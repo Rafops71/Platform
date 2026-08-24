@@ -1,0 +1,25 @@
+name: Supabase Heartbeat
+
+# Keeps the free-tier Supabase project from being paused for inactivity by
+# making a lightweight, authenticated read every 3 days. This is the
+# generally documented approach (any API activity counts) — Supabase's
+# current pause policy should be double-checked in the project dashboard
+# periodically, since free-tier terms can change.
+on:
+  schedule:
+    - cron: '0 6 */3 * *'   # 06:00 UTC, every 3 days
+  workflow_dispatch: {}      # allows manual "Run workflow" for testing
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST endpoint
+        run: |
+          curl -sS -o /dev/null -w "HTTP %{http_code}\n" \
+            "${SUPABASE_URL}/rest/v1/commodities?select=id&limit=1" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}"
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}

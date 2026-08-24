@@ -1,0 +1,30 @@
+name: Listing Reminders
+
+# Drives Section 12's "after 30 days, remind the participant" requirement.
+# Calls send_listing_reminders() (sql/rls_policies.sql), which is deliberately
+# restricted to the service_role — it writes notifications for other users,
+# which is not something any participant/anon session is allowed to do.
+#
+# Requires a repo secret SUPABASE_SERVICE_ROLE_KEY (Settings > Secrets and
+# variables > Actions). Unlike the publishable key, this key bypasses RLS —
+# keep it out of any file in this repo; it belongs only in this secret.
+on:
+  schedule:
+    - cron: '0 7 * * *'   # once a day, 07:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  send-reminders:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call send_listing_reminders()
+        run: |
+          curl -sS -X POST \
+            "${SUPABASE_URL}/rest/v1/rpc/send_listing_reminders" \
+            -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+            -H "Content-Type: application/json" \
+            -d '{}'
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

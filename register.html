@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jericho Platform — Register</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="auth-shell">
+  <div class="logo-row">
+    <h1>Jericho Platform</h1>
+    <p>Complete your registration</p>
+  </div>
+
+  <div id="invitation-checking" class="card text-center text-muted">Checking invitation link…</div>
+
+  <div id="invitation-invalid" class="card hidden">
+    <p><strong>This invitation link is invalid, expired, or already used.</strong></p>
+    <p class="text-muted">Ask an Operator to send you a new invitation link.</p>
+  </div>
+
+  <div id="register-card" class="card hidden">
+    <form id="register-form">
+      <div class="grid-2">
+        <div>
+          <label for="first_name">First name *</label>
+          <input type="text" id="first_name" required>
+        </div>
+        <div>
+          <label for="last_name">Last name *</label>
+          <input type="text" id="last_name" required>
+        </div>
+      </div>
+
+      <label for="company">Company (optional)</label>
+      <input type="text" id="company">
+
+      <label for="email">Email *</label>
+      <input type="email" id="email" required autocomplete="username">
+
+      <label for="password">Password *</label>
+      <input type="password" id="password" required minlength="6" autocomplete="new-password">
+      <div class="field-hint">At least 6 characters.</div>
+
+      <div class="grid-2">
+        <div>
+          <label for="country">Country *</label>
+          <input type="text" id="country" required>
+        </div>
+        <div>
+          <label for="phone">Phone number *</label>
+          <input type="tel" id="phone" required>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block" style="margin-top:18px;" id="register-btn">Register</button>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.4/dist/umd/supabase.js"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/auth.js"></script>
+</body>
+</html>

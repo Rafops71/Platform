@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jericho Platform — Dashboard</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="container">
+    <h1>Jericho Platform</h1>
+    <div class="user-info">
+      <span id="user-name"></span> ·
+      <a href="#" id="logout-link" style="color:#fff;">Sign out</a>
+    </div>
+  </div>
+</header>
+
+<nav class="tabs">
+  <div class="container">
+    <button data-screen="my-listings" class="active">My Listings</button>
+    <button data-screen="new-listing">New Listing</button>
+    <button data-screen="browse">Browse</button>
+    <button data-screen="mailbox">Mailbox</button>
+    <button data-screen="notifications">Notifications<span id="notif-dot" class="notification-dot hidden"></span></button>
+    <button data-screen="profile">Profile</button>
+  </div>
+</nav>
+
+<main class="container">
+
+  <!-- MY LISTINGS -->
+  <section id="screen-my-listings" class="screen active">
+    <div class="card">
+      <div class="flex-between">
+        <h2 class="mt-0">My Listings</h2>
+        <button class="btn btn-primary btn-small" data-goto="new-listing">+ New Listing</button>
+      </div>
+      <div id="my-listings-list" class="stack"><p class="empty-state">Loading…</p></div>
+    </div>
+  </section>
+
+  <!-- NEW / EDIT LISTING -->
+  <section id="screen-new-listing" class="screen">
+    <div class="card">
+      <h2 class="mt-0" id="listing-form-title">New Listing</h2>
+      <form id="listing-form">
+        <input type="hidden" id="listing-id">
+
+        <label>Type *</label>
+        <div class="row">
+          <label class="checkbox-row"><input type="radio" name="type" value="sell" required> Sell Offer</label>
+          <label class="checkbox-row"><input type="radio" name="type" value="buy"> Buy Request</label>
+        </div>
+
+        <label for="commodity">Commodity *</label>
+        <select id="commodity-select">
+          <option value="">Loading commodities…</option>
+          <option value="__other__">Other (specify)</option>
+        </select>
+        <input type="text" id="commodity-other" placeholder="Specify commodity" class="hidden" style="margin-top:8px;">
+
+        <div class="grid-2">
+          <div>
+            <label for="quantity">Quantity</label>
+            <input type="number" id="quantity" step="any" min="0">
+          </div>
+          <div>
+            <label for="unit">Unit</label>
+            <input type="text" id="unit" placeholder="MT, kg, …">
+          </div>
+        </div>
+
+        <label for="specification">Specification / Grade</label>
+        <textarea id="specification"></textarea>
+
+        <label for="incoterm">Incoterm *</label>
+        <select id="incoterm" required></select>
+
+        <label id="location-label" for="location">Origin</label>
+        <input type="text" id="location" placeholder="Country / region">
+
+        <div class="grid-2">
+          <div>
+            <label for="price_conditions">Price / Conditions</label>
+            <input type="text" id="price_conditions">
+          </div>
+          <div>
+            <label for="currency">Currency</label>
+            <select id="currency">
+              <option value="">—</option>
+            </select>
+          </div>
+        </div>
+
+        <label for="notes">Notes</label>
+        <textarea id="notes"></textarea>
+
+        <fieldset>
+          <legend>Documents you have</legend>
+          <div id="doc-checklist" class="stack"></div>
+        </fieldset>
+
+        <div class="row" style="margin-top:18px;">
+          <button type="submit" class="btn btn-primary" id="listing-submit-btn">Save Listing</button>
+          <button type="button" class="btn btn-secondary" id="listing-cancel-btn">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- BROWSE (anonymous) -->
+  <section id="screen-browse" class="screen">
+    <div class="card">
+      <h2 class="mt-0">Browse Listings</h2>
+      <p class="text-muted" style="font-size:13px;">Anonymous — you never see who posted a listing.</p>
+      <div class="row" style="margin-bottom:12px;">
+        <select id="browse-filter-type" style="max-width:160px;">
+          <option value="">All types</option>
+          <option value="sell">Sell Offers</option>
+          <option value="buy">Buy Requests</option>
+        </select>
+        <input type="text" id="browse-filter-commodity" placeholder="Filter by commodity" style="max-width:220px;">
+        <button class="btn btn-secondary btn-small" id="browse-refresh-btn">Refresh</button>
+      </div>
+      <div id="browse-list" class="stack"><p class="empty-state">Loading…</p></div>
+    </div>
+  </section>
+
+  <!-- MAILBOX -->
+  <section id="screen-mailbox" class="screen">
+    <div class="card">
+      <h2 class="mt-0">Mailbox</h2>
+      <p class="text-muted" style="font-size:13px;">All messages go through the Operators — no direct contact between participants.</p>
+      <div id="mailbox-list" class="stack"><p class="empty-state">Loading…</p></div>
+    </div>
+  </section>
+
+  <!-- NOTIFICATIONS -->
+  <section id="screen-notifications" class="screen">
+    <div class="card">
+      <h2 class="mt-0">Notifications</h2>
+      <div id="notifications-list" class="stack"><p class="empty-state">Loading…</p></div>
+    </div>
+  </section>
+
+  <!-- PROFILE -->
+  <section id="screen-profile" class="screen">
+    <div class="card">
+      <h2 class="mt-0">Profile</h2>
+      <form id="profile-form">
+        <div class="grid-2">
+          <div>
+            <label for="p_first_name">First name</label>
+            <input type="text" id="p_first_name" required>
+          </div>
+          <div>
+            <label for="p_last_name">Last name</label>
+            <input type="text" id="p_last_name" required>
+          </div>
+        </div>
+        <label for="p_company">Company</label>
+        <input type="text" id="p_company">
+        <label>Email</label>
+        <input type="email" id="p_email" disabled>
+        <div class="field-hint">Email cannot be changed here — contact an Operator.</div>
+        <div class="grid-2">
+          <div>
+            <label for="p_country">Country</label>
+            <input type="text" id="p_country" required>
+          </div>
+          <div>
+            <label for="p_phone">Phone</label>
+            <input type="tel" id="p_phone" required>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary" style="margin-top:16px;">Save Profile</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3>Change Password</h3>
+      <form id="password-form">
+        <label for="new_password">New password</label>
+        <input type="password" id="new_password" minlength="6" required>
+        <button type="submit" class="btn btn-secondary" style="margin-top:12px;">Update Password</button>
+      </form>
+    </div>
+  </section>
+
+</main>
+
+<!-- Contact / message modal -->
+<div id="contact-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:900;">
+  <div class="card" style="max-width:420px;margin:60px auto;">
+    <h2 class="mt-0">Contact <span id="contact-ref"></span></h2>
+    <p class="text-muted" style="font-size:13px;">Your message goes to the Operators, who will forward it anonymously if appropriate.</p>
+    <label for="contact-body">Message</label>
+    <textarea id="contact-body" required></textarea>
+    <div class="row" style="margin-top:14px;">
+      <button class="btn btn-primary" id="contact-send-btn">Send</button>
+      <button class="btn btn-secondary" id="contact-cancel-btn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.4/dist/umd/supabase.js"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

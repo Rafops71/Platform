@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jericho Platform — Operator</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="container">
+    <h1>Jericho Platform — Operator</h1>
+    <div class="user-info">
+      <span id="user-name"></span> ·
+      <a href="#" id="logout-link" style="color:#fff;">Sign out</a>
+    </div>
+  </div>
+</header>
+
+<nav class="tabs">
+  <div class="container">
+    <button data-screen="approvals" class="active">Approvals<span id="approvals-dot" class="notification-dot hidden"></span></button>
+    <button data-screen="listings">All Listings</button>
+    <button data-screen="invitations">Invitations</button>
+    <button data-screen="users">Users</button>
+    <button data-screen="commodities">Commodities</button>
+    <button data-screen="doc-requests">Document Requests</button>
+    <button data-screen="mailbox">Mailbox</button>
+    <button data-screen="matches">Matches</button>
+    <button data-screen="activity">Activity Log</button>
+  </div>
+</nav>
+
+<main class="container">
+
+  <!-- PENDING APPROVALS -->
+  <section id="screen-approvals" class="screen active">
+    <div class="card">
+      <h2 class="mt-0">Pending Approvals</h2>
+      <div id="approvals-list" class="stack"><p class="empty-state">Loading…</p></div>
+    </div>
+  </section>
+
+  <!-- ALL LISTINGS + SEARCH -->
+  <section id="screen-listings" class="screen">
+    <div class="card">
+      <h2 class="mt-0">All Listings</h2>
+      <div class="row" style="margin-bottom:12px;">
+        <select id="listing-filter-type"><option value="">All types</option><option value="sell">Sell</option><option value="buy">Buy</option></select>
+        <select id="listing-filter-status"><option value="">All statuses</option></select>
+        <input type="text" id="listing-filter-commodity" placeholder="Commodity">
+        <input type="text" id="listing-filter-incoterm" placeholder="Incoterm">
+        <button class="btn btn-secondary btn-small" id="listing-search-btn">Search</button>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="data-table" id="listings-table">
+          <thead><tr><th>Ref</th><th>Owner</th><th>Type</th><th>Commodity</th><th>Qty</th><th>Incoterm</th><th>Status</th><th>Updated</th><th></th></tr></thead>
+          <tbody><tr><td colspan="9" class="empty-state">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- INVITATIONS -->
+  <section id="screen-invitations" class="screen">
+    <div class="card">
+      <h2 class="mt-0">Create Invitation</h2>
+      <label for="invite-email">Email (optional, for your own reference)</label>
+      <input type="email" id="invite-email">
+      <button class="btn btn-primary" id="create-invite-btn" style="margin-top:12px;">Generate Invitation Link</button>
+      <div id="invite-result" class="card hidden" style="margin-top:12px;background:var(--blue-tint);"></div>
+    </div>
+    <div class="card">
+      <h2 class="mt-0">All Invitations</h2>
+      <div id="invitations-list" class="stack"><p class="empty-state">Loading…</p></div>
+    </div>
+  </section>
+
+  <!-- USERS -->
+  <section id="screen-users" class="screen">
+    <div class="card">
+      <h2 class="mt-0">Users</h2>
+      <div id="users-list" class="stack"><p class="empty-state">Loading…</p></div>
+    </div>
+  </section>
+
+  <!-- COMMODITIES -->
+  <section id="screen-commodities" class="screen">
+    <div class="card">
+      <h2 class="mt-0">Commodities</h2>
+      <div class="row">
+        <input type="text" id="new-commodity-name" placeholder="New commodity name">
+        <button class="btn btn-primary btn-small" id="add-commodity-btn">Add</button>
+      </div>
+      <div id="commodities-list" class="stack" style="margin-top:12px;"><p class="empty-state">Loading…</p></div>
+    </div>
+  </section>
+
+  <!-- DOCUMENT REQUESTS -->
+  <section id="screen-doc-requests" class="screen">
+    <div class="card">
+      <h2 class="mt-0">Request a Document</h2>
+      <label for="dr-listing">Listing</label>
+      <select id="dr-listing"><option value="">Select a listing…</option></select>
+      <label for="dr-doctype">Document type</label>
+      <select id="dr-doctype"></select>
+      <button class="btn btn-primary" id="create-doc-request-btn" style="margin-top:12px;">Send Request</button>
+    </div>
+    <div class="card">
+      <h2 class="mt-0">All Document Requests</h2>
+      <div id="doc-requests-list" class="stack"><p class="empty-state">Loading…</p></div>
+    </div>
+  </section>
+
+  <!-- MAILBOX -->
+  <section id="screen-mailbox" class="screen">
+    <div class="card">
+      <h2 class="mt-0">Mailbox</h2>
+      <p class="text-muted" style="font-size:13px;">Review each message, then forward, reply, or ignore.</p>
+      <div id="operator-mailbox-list" class="stack"><p class="empty-state">Loading…</p></div>
+    </div>
+  </section>
+
+  <!-- MATCHES -->
+  <section id="screen-matches" class="screen">
+    <div class="card">
+      <h2 class="mt-0">Match Suggestions</h2>
+      <div id="matches-list" class="stack"><p class="empty-state">Loading…</p></div>
+    </div>
+  </section>
+
+  <!-- ACTIVITY LOG -->
+  <section id="screen-activity" class="screen">
+    <div class="card">
+      <h2 class="mt-0">Activity Log</h2>
+      <div id="activity-list" class="stack"><p class="empty-state">Loading…</p></div>
+    </div>
+  </section>
+
+</main>
+
+<!-- Forward modal -->
+<div id="forward-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:900;">
+  <div class="card" style="max-width:420px;margin:60px auto;">
+    <h2 class="mt-0">Forward Message</h2>
+    <p class="text-muted" style="font-size:13px;">Sends this message to the owner of the listing it references, identified only by their reference number.</p>
+    <div id="forward-target-info" class="text-muted" style="margin-bottom:10px;"></div>
+    <div class="row">
+      <button class="btn btn-primary" id="forward-confirm-btn">Forward</button>
+      <button class="btn btn-secondary" id="forward-cancel-btn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reply modal -->
+<div id="reply-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:900;">
+  <div class="card" style="max-width:420px;margin:60px auto;">
+    <h2 class="mt-0">Reply as Operator</h2>
+    <label for="reply-body">Message</label>
+    <textarea id="reply-body"></textarea>
+    <div class="row" style="margin-top:12px;">
+      <button class="btn btn-primary" id="reply-send-btn">Send</button>
+      <button class="btn btn-secondary" id="reply-cancel-btn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.4/dist/umd/supabase.js"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/operator.js"></script>
+</body>
+</html>

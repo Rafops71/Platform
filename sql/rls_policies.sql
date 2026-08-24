@@ -689,3 +689,29 @@ create policy notifications_update on public.notifications for update
 drop policy if exists notifications_insert on public.notifications;
 create policy notifications_insert on public.notifications for insert
   with check (public.is_operator());
+
+-- ============================================================================
+-- TABLE-LEVEL GRANTS
+--
+-- RLS policies above decide which ROWS a query can see/touch; Postgres also
+-- requires a baseline table-level GRANT before RLS is even consulted. Stated
+-- explicitly here rather than assumed, so this script is self-contained
+-- regardless of a given Supabase project's default privileges.
+-- `anon` gets nothing at the table level — pre-login access goes exclusively
+-- through get_invitation_by_token(), already granted above.
+-- reference_counters gets no grants at all: only next_reference() (definer)
+-- may touch it.
+-- ============================================================================
+grant usage on schema public to authenticated, anon;
+
+grant select, update on public.profiles to authenticated;
+grant select, insert, update on public.invitations to authenticated;
+grant select, insert, update, delete on public.commodities to authenticated;
+grant select, insert, update, delete on public.listings to authenticated;
+grant select, insert, update, delete on public.document_checklist to authenticated;
+grant select, insert, update on public.document_requests to authenticated;
+grant select, insert, update on public.messages to authenticated;
+grant select, insert on public.message_forward_log to authenticated;
+grant select, insert on public.activity_log to authenticated;
+grant select, update on public.matches to authenticated;
+grant select, insert, update on public.notifications to authenticated;
