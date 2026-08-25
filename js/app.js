@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   await loadMyListings();
   await refreshNotificationDot();
+  await refreshDocRequestDot();
 });
 
 // ------------------------------------------------------------- TAB NAV ----
@@ -47,6 +48,7 @@ function showScreen(name) {
 
   if (name === 'my-listings') loadMyListings();
   if (name === 'browse') loadBrowseListings();
+  if (name === 'doc-requests') loadDocRequests();
   if (name === 'mailbox') loadMailbox();
   if (name === 'notifications') loadNotifications();
   if (name === 'new-listing' && !EDITING_LISTING_ID) resetListingForm();
@@ -121,7 +123,7 @@ async function removeListing(id) {
   if (!confirm('Remove this listing? This cannot be undone.')) return;
   const { error } = await jericho.from('listings').delete().eq('id', id);
   if (error) { showError(errorMessage(error)); return; }
-  await logActivity('listing_removed', { listing_id: id });
+  // Activity logging happens in the database (trg_log_listing_change).
   showSuccess('Listing removed.');
   loadMyListings();
 }
@@ -139,7 +141,11 @@ function renderDocChecklist(selected = {}) {
 }
 
 async function loadCommodities() {
-  const { data, error } = await jericho.from('commodities').select('*').order('name');
+  // Ordered by the curated sort_order (metal/energy families grouped together),
+  // falling back to name for anything an Operator added later.
+  const { data, error } = await jericho.from('commodities').select('*')
+    .order('sort_order', { ascending: true, nullsFirst: false })
+    .order('name');
   const select = document.getElementById('commodity-select');
   if (error) { console.error(error); return; }
   COMMODITIES = data || [];
@@ -152,6 +158,18 @@ async function loadCommodities() {
   const otherOpt = document.createElement('option');
   otherOpt.value = '__other__'; otherOpt.textContent = 'Other (specify)';
   select.appendChild(otherOpt);
+
+  // The Browse filter offers the same curated list, plus whatever free-text
+  // commodities actually exist on listings (added via "Other").
+  const browseFilter = document.getElementById('browse-filter-commodity');
+  if (browseFilter) {
+    browseFilter.innerHTML = '<option value="">All commodities</option>';
+    COMMODITIES.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.name; opt.textContent = c.name;
+      browseFilter.appendChild(opt);
+    });
+  }
 }
 
 function wireListingForm() {
@@ -247,7 +265,6 @@ async function submitListingForm(e) {
   if (listingId) {
     const { error } = await jericho.from('listings').update(payload).eq('id', listingId);
     if (error) { showError(errorMessage(error)); btn.disabled = false; btn.textContent = 'Save Listing'; return; }
-    await logActivity('listing_edited', { listing_id: listingId });
   } else {
     const { data: refData, error: refError } = await jericho.rpc('next_reference', { p_type: type });
     if (refError) { showError(errorMessage(refError)); btn.disabled = false; btn.textContent = 'Save Listing'; return; }
@@ -258,7 +275,6 @@ async function submitListingForm(e) {
       .select('id').single();
     if (error) { showError(errorMessage(error)); btn.disabled = false; btn.textContent = 'Save Listing'; return; }
     listingId = inserted.id;
-    await logActivity('listing_created', { listing_id: listingId, reference_number: refData });
   }
 
   // Sync document checklist: upsert one row per doc type.
@@ -289,10 +305,14 @@ async function loadBrowseListings() {
 
   const typeFilter = document.getElementById('browse-filter-type').value;
   const commodityFilter = document.getElementById('browse-filter-commodity').value.trim().toLowerCase();
+  const regionFilter = document.getElementById('browse-filter-region').value.trim().toLowerCase();
+  const statusFilter = document.getElementById('browse-filter-status').value;
 
   let listings = data || [];
   if (typeFilter) listings = listings.filter(l => l.type === typeFilter);
   if (commodityFilter) listings = listings.filter(l => l.commodity.toLowerCase().includes(commodityFilter));
+  if (regionFilter) listings = listings.filter(l => (l.region || '').toLowerCase().includes(regionFilter));
+  if (statusFilter) listings = listings.filter(l => l.status === statusFilter);
   listings.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
   if (!listings.length) { container.innerHTML = '<p class="empty-state">No listings match.</p>'; return; }
@@ -391,7 +411,6 @@ async function sendContactMessage() {
     body, status: 'pending_review'
   });
   if (error) { showError(errorMessage(error)); return; }
-  await logActivity('message_sent', { listing_id: CONTACT_TARGET.listingId });
   showSuccess('Message sent to Operators.');
   closeContactModal();
   loadMailbox();
@@ -473,7 +492,79 @@ function wireProfile() {
   });
 }
 
-async function logActivity(action, details = null) {
-  try { await jericho.from('activity_log').insert({ user_id: CURRENT_PROFILE.id, action, details }); }
-  catch (e) { console.warn('activity log failed (non-fatal):', e); }
+// ------------------------------------------------- DOCUMENT REQUESTS ----
+// Section 14: the participant responds by confirming they have the document
+// or marking it unavailable. No file upload at this stage.
+
+async function loadDocRequests() {
+  const container = document.getElementById('doc-requests-list');
+  container.innerHTML = '<p class="empty-state">Loading…</p>';
+
+  const { data, error } = await jericho
+    .from('document_requests')
+    .select('*')
+    .eq('participant_id', CURRENT_PROFILE.id)
+    .order('requested_at', { ascending: false });
+
+  if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
+  if (!data.length) { container.innerHTML = '<p class="empty-state">No document requests.</p>'; return; }
+
+  // Resolve reference numbers in one query rather than one per row.
+  const listingIds = [...new Set(data.map(r => r.listing_id).filter(Boolean))];
+  const refByListing = {};
+  if (listingIds.length) {
+    const { data: listings } = await jericho
+      .from('listings').select('id,reference_number').in('id', listingIds);
+    (listings || []).forEach(l => { refByListing[l.id] = l.reference_number; });
+  }
+
+  container.innerHTML = '';
+  data.forEach(r => {
+    const badgeClass = r.status === 'confirmed' ? 'badge-green'
+      : r.status === 'unavailable' ? 'badge-red' : 'badge-amber';
+    const row = document.createElement('div');
+    row.className = 'list-row';
+    row.innerHTML = `
+      <div class="list-row-top">
+        <span class="list-row-title">${escapeHtml(r.doc_type)}</span>
+        <span class="badge ${badgeClass}">${escapeHtml(statusLabel(r.status))}</span>
+      </div>
+      <div class="list-row-meta">
+        ${r.listing_id && refByListing[r.listing_id] ? escapeHtml(refByListing[r.listing_id]) + ' · ' : ''}
+        Requested ${formatDateTime(r.requested_at)}
+        ${r.responded_at ? ' · Responded ' + formatDateTime(r.responded_at) : ''}
+      </div>
+      ${r.status === 'requested' ? `
+        <div class="row" style="margin-top:4px;">
+          <button class="btn btn-primary btn-small" data-confirm="${r.id}">I have this document</button>
+          <button class="btn btn-secondary btn-small" data-unavailable="${r.id}">Not available</button>
+        </div>` : ''}
+    `;
+    container.appendChild(row);
+  });
+
+  container.querySelectorAll('[data-confirm]').forEach(b =>
+    b.addEventListener('click', () => respondToDocRequest(b.dataset.confirm, 'confirmed')));
+  container.querySelectorAll('[data-unavailable]').forEach(b =>
+    b.addEventListener('click', () => respondToDocRequest(b.dataset.unavailable, 'unavailable')));
+}
+
+async function respondToDocRequest(requestId, status) {
+  const { error } = await jericho
+    .from('document_requests')
+    .update({ status, responded_at: new Date().toISOString() })
+    .eq('id', requestId);
+  if (error) { showError(errorMessage(error)); return; }
+  // The database notifies Operators and writes the audit entry
+  // (trg_notify_doc_request_response / trg_log_doc_request_change).
+  showSuccess('Response recorded.');
+  loadDocRequests();
+  refreshDocRequestDot();
+}
+
+async function refreshDocRequestDot() {
+  const { count } = await jericho
+    .from('document_requests').select('id', { count: 'exact', head: true })
+    .eq('participant_id', CURRENT_PROFILE.id).eq('status', 'requested');
+  document.getElementById('docreq-dot').classList.toggle('hidden', !count);
 }

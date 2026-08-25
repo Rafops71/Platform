@@ -121,8 +121,28 @@ input:focus, select:focus, textarea:focus {
 }
 textarea { min-height: 80px; resize: vertical; }
 .field-hint { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
-.checkbox-row { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
-.checkbox-row input { width: auto; }
+/* Checkbox/radio rows are the main touch target on the listing form (15
+   document checkboxes). Native controls render ~13px tall, well under a
+   comfortable tap size, so the whole label is made the target: the label
+   wraps the input, so tapping anywhere on the row toggles it. */
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 2px 0;
+  min-height: 40px;
+  padding: 4px 2px;
+  cursor: pointer;
+  font-weight: normal;
+}
+.checkbox-row input[type="checkbox"],
+.checkbox-row input[type="radio"] {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  margin: 0;
+  accent-color: var(--blue);
+}
 fieldset { border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; margin: 12px 0 0; }
 fieldset legend { font-size: 13px; font-weight: 600; padding: 0 6px; }
 
@@ -144,7 +164,7 @@ button, .btn {
 .btn-secondary:hover { background: var(--bg); }
 .btn-danger { background: var(--red); color: #fff; }
 .btn-danger:hover { opacity: 0.9; }
-.btn-small { padding: 6px 12px; font-size: 12px; }
+.btn-small { padding: 8px 14px; font-size: 12px; min-height: 34px; }
 .btn-block { display: block; width: 100%; }
 button:disabled { opacity: 0.55; cursor: not-allowed; }
 
@@ -224,3 +244,11 @@ table.data-table th { color: var(--text-muted); font-size: 12px; text-transform:
 .logo-row h1 { color: var(--blue-dark); font-size: 22px; margin: 0; }
 .logo-row p { color: var(--text-muted); font-size: 13px; margin: 4px 0 0; }
 .notification-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--red); margin-left: 4px; }
+
+/* Touch screens: keep every interactive control at a comfortable tap size. */
+@media (max-width: 700px) {
+  button, .btn, input, select, textarea { min-height: 40px; }
+  .btn-small { min-height: 36px; }
+  input[type="checkbox"], input[type="radio"] { min-height: 20px; }
+  nav.tabs button { min-height: 44px; }
+}

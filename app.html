@@ -22,6 +22,7 @@
     <button data-screen="my-listings" class="active">My Listings</button>
     <button data-screen="new-listing">New Listing</button>
     <button data-screen="browse">Browse</button>
+    <button data-screen="doc-requests">Documents<span id="docreq-dot" class="notification-dot hidden"></span></button>
     <button data-screen="mailbox">Mailbox</button>
     <button data-screen="notifications">Notifications<span id="notif-dot" class="notification-dot hidden"></span></button>
     <button data-screen="profile">Profile</button>
@@ -121,10 +122,29 @@
           <option value="sell">Sell Offers</option>
           <option value="buy">Buy Requests</option>
         </select>
-        <input type="text" id="browse-filter-commodity" placeholder="Filter by commodity" style="max-width:220px;">
-        <button class="btn btn-secondary btn-small" id="browse-refresh-btn">Refresh</button>
+        <select id="browse-filter-commodity" style="max-width:240px;">
+          <option value="">All commodities</option>
+        </select>
+        <input type="text" id="browse-filter-region" placeholder="Region" style="max-width:160px;">
+        <select id="browse-filter-status" style="max-width:170px;">
+          <option value="">All statuses</option>
+          <option value="available">Available</option>
+          <option value="under_review">Under Review</option>
+          <option value="negotiation">Negotiation</option>
+          <option value="closed">Closed</option>
+        </select>
+        <button class="btn btn-secondary btn-small" id="browse-refresh-btn">Apply</button>
       </div>
       <div id="browse-list" class="stack"><p class="empty-state">Loading…</p></div>
+    </div>
+  </section>
+
+  <!-- DOCUMENT REQUESTS (participant response) -->
+  <section id="screen-doc-requests" class="screen">
+    <div class="card">
+      <h2 class="mt-0">Document Requests</h2>
+      <p class="text-muted" style="font-size:13px;">Operators may ask you to confirm a specific document. No upload is required — confirm whether you have it.</p>
+      <div id="doc-requests-list" class="stack"><p class="empty-state">Loading…</p></div>
     </div>
   </section>
 

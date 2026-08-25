@@ -37,7 +37,7 @@ function showScreen(name) {
   document.querySelector(`nav.tabs button[data-screen="${name}"]`).classList.add('active');
 
   if (name === 'approvals') loadApprovals();
-  if (name === 'listings') loadListings();
+  if (name === 'listings') { populateCommodityFilter(); loadListings(); }
   if (name === 'invitations') loadInvitations();
   if (name === 'users') loadUsers();
   if (name === 'commodities') loadCommodities();
@@ -92,13 +92,9 @@ async function loadApprovals() {
 async function setUserStatus(profileId, status) {
   const { error } = await jericho.from('profiles').update({ status }).eq('id', profileId);
   if (error) { showError(errorMessage(error)); return; }
-  await logOpActivity('user_status_changed', { profile_id: profileId, status });
-  if (status === 'approved') {
-    await jericho.from('notifications').insert({
-      user_id: profileId, type: 'registration_approved',
-      message: 'Your registration has been approved. You can now sign in.'
-    });
-  }
+  // The audit entry and the "approved" notification are written by database
+  // triggers (trg_log_profile_change / trg_notify_profile_approved), so they
+  // cannot be lost if this browser drops the follow-up request.
   showSuccess(`User ${status}.`);
   loadApprovals();
   loadUsers();
@@ -112,31 +108,94 @@ function populateStatusFilter() {
     opt.value = s; opt.textContent = statusLabel(s);
     select.appendChild(opt);
   });
+
+  const incotermSelect = document.getElementById('listing-filter-incoterm');
+  INCOTERMS.forEach(i => {
+    const opt = document.createElement('option');
+    opt.value = i; opt.textContent = i;
+    incotermSelect.appendChild(opt);
+  });
+
   document.getElementById('listing-search-btn').addEventListener('click', loadListings);
+  document.getElementById('listing-clear-btn').addEventListener('click', () => {
+    ['listing-filter-type','listing-filter-status','listing-filter-commodity',
+     'listing-filter-incoterm','listing-filter-region','listing-filter-qty-min',
+     'listing-filter-qty-max','listing-filter-date-from','listing-filter-date-to',
+     'listing-filter-docs'].forEach(id => { document.getElementById(id).value = ''; });
+    loadListings();
+  });
+}
+
+/** Fill the commodity filter dropdown from the Operator-managed list. */
+async function populateCommodityFilter() {
+  const select = document.getElementById('listing-filter-commodity');
+  const { data } = await jericho.from('commodities').select('name')
+    .order('sort_order', { ascending: true, nullsFirst: false }).order('name');
+  select.innerHTML = '<option value="">All commodities</option>';
+  (data || []).forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.name; opt.textContent = c.name;
+    select.appendChild(opt);
+  });
 }
 
 async function loadListings() {
   const tbody = document.querySelector('#listings-table tbody');
-  tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Loading…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="10" class="empty-state">Loading…</td></tr>';
 
-  let query = jericho.from('listings').select('*, profiles!listings_user_id_fkey(first_name,last_name,company)').order('created_at', { ascending: false });
+  let query = jericho.from('listings')
+    .select('*, profiles!listings_user_id_fkey(first_name,last_name,company)')
+    .order('created_at', { ascending: false });
 
   const type = document.getElementById('listing-filter-type').value;
   const status = document.getElementById('listing-filter-status').value;
-  const commodity = document.getElementById('listing-filter-commodity').value.trim();
-  const incoterm = document.getElementById('listing-filter-incoterm').value.trim();
+  const commodity = document.getElementById('listing-filter-commodity').value;
+  const incoterm = document.getElementById('listing-filter-incoterm').value;
+  const region = document.getElementById('listing-filter-region').value.trim();
+  const qtyMin = document.getElementById('listing-filter-qty-min').value;
+  const qtyMax = document.getElementById('listing-filter-qty-max').value;
+  const dateFrom = document.getElementById('listing-filter-date-from').value;
+  const dateTo = document.getElementById('listing-filter-date-to').value;
+  const docsFilter = document.getElementById('listing-filter-docs').value;
+
   if (type) query = query.eq('type', type);
   if (status) query = query.eq('status', status);
-  if (commodity) query = query.ilike('commodity', `%${commodity}%`);
-  if (incoterm) query = query.ilike('incoterm', `%${incoterm}%`);
+  if (commodity) query = query.eq('commodity', commodity);
+  if (incoterm) query = query.eq('incoterm', incoterm);
+  if (qtyMin) query = query.gte('quantity', qtyMin);
+  if (qtyMax) query = query.lte('quantity', qtyMax);
+  if (dateFrom) query = query.gte('created_at', dateFrom);
+  // Date inputs are a plain day; extend "to" to the end of that day so the
+  // final day is included rather than cut off at 00:00.
+  if (dateTo) query = query.lte('created_at', dateTo + 'T23:59:59.999Z');
+  // Region lives in origin (sell) or destination (buy), so match either.
+  if (region) query = query.or(`origin.ilike.%${region}%,destination.ilike.%${region}%`);
 
   const { data, error } = await query;
-  if (error) { tbody.innerHTML = `<tr><td colspan="9" class="empty-state">${escapeHtml(errorMessage(error))}</td></tr>`; return; }
-  if (!data.length) { tbody.innerHTML = '<tr><td colspan="9" class="empty-state">No listings match.</td></tr>'; return; }
+  if (error) { tbody.innerHTML = `<tr><td colspan="10" class="empty-state">${escapeHtml(errorMessage(error))}</td></tr>`; return; }
+
+  // Which listings have at least one ticked document — fetched in one query
+  // rather than per row.
+  const withDocs = new Set();
+  if (data.length) {
+    const { data: checked } = await jericho
+      .from('document_checklist').select('listing_id')
+      .eq('indicated', true).in('listing_id', data.map(l => l.id));
+    (checked || []).forEach(c => withDocs.add(c.listing_id));
+  }
+
+  let rows = data;
+  if (docsFilter === 'yes') rows = rows.filter(l => withDocs.has(l.id));
+  if (docsFilter === 'no') rows = rows.filter(l => !withDocs.has(l.id));
+
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="10" class="empty-state">No listings match.</td></tr>'; return; }
 
   tbody.innerHTML = '';
-  data.forEach(l => {
-    const owner = l.profiles ? `${l.profiles.first_name} ${l.profiles.last_name}${l.profiles.company ? ' (' + l.profiles.company + ')' : ''}` : 'Unknown';
+  rows.forEach(l => {
+    const owner = l.profiles
+      ? `${l.profiles.first_name} ${l.profiles.last_name}${l.profiles.company ? ' (' + l.profiles.company + ')' : ''}`
+      : 'Unknown';
+    const hasDocs = withDocs.has(l.id);
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td data-label="Ref">${escapeHtml(l.reference_number)}</td>
@@ -145,14 +204,18 @@ async function loadListings() {
       <td data-label="Commodity">${escapeHtml(l.commodity)}</td>
       <td data-label="Qty">${l.quantity ? escapeHtml(String(l.quantity)) + ' ' + escapeHtml(l.unit || '') : '—'}</td>
       <td data-label="Incoterm">${escapeHtml(l.incoterm)}</td>
+      <td data-label="Docs">${hasDocs ? 'Yes' : '<strong>None</strong>'}</td>
       <td data-label="Status">
         <select data-status-for="${l.id}">
-          ${['available','under_review','negotiation','closed','archived'].map(s =>
-            `<option value="${s}" ${s === l.status ? 'selected' : ''}>${statusLabel(s)}</option>`).join('')}
+          ${['available','under_review','negotiation','closed','archived'].map(st =>
+            `<option value="${st}" ${st === l.status ? 'selected' : ''}>${statusLabel(st)}</option>`).join('')}
         </select>
       </td>
       <td data-label="Updated">${formatDate(l.updated_at)}</td>
-      <td data-label=""><button class="btn btn-danger btn-small" data-remove-listing="${l.id}">Remove</button></td>
+      <td data-label="">
+        <button class="btn btn-secondary btn-small" data-remind="${l.id}">Remind</button>
+        <button class="btn btn-danger btn-small" data-remove-listing="${l.id}">Remove</button>
+      </td>
     `;
     tbody.appendChild(tr);
   });
@@ -161,15 +224,22 @@ async function loadListings() {
     sel.addEventListener('change', async () => {
       const { error } = await jericho.from('listings').update({ status: sel.value }).eq('id', sel.dataset.statusFor);
       if (error) { showError(errorMessage(error)); return; }
-      await logOpActivity('listing_status_changed', { listing_id: sel.dataset.statusFor, status: sel.value });
+      // Logging + owner notification happen in the database.
       showSuccess('Status updated.');
     }));
+
+  tbody.querySelectorAll('[data-remind]').forEach(b =>
+    b.addEventListener('click', async () => {
+      const { error } = await jericho.rpc('send_manual_reminder', { p_listing_id: b.dataset.remind });
+      if (error) { showError(errorMessage(error)); return; }
+      showSuccess('Reminder sent to the listing owner.');
+    }));
+
   tbody.querySelectorAll('[data-remove-listing]').forEach(b =>
     b.addEventListener('click', async () => {
       if (!confirm('Remove this listing?')) return;
       const { error } = await jericho.from('listings').delete().eq('id', b.dataset.removeListing);
       if (error) { showError(errorMessage(error)); return; }
-      await logOpActivity('listing_removed', { listing_id: b.dataset.removeListing });
       showSuccess('Listing removed.');
       loadListings();
     }));
@@ -267,44 +337,124 @@ async function setUserRole(profileId, role) {
   if (!confirm(`Change this user's role to ${role}?`)) return;
   const { error } = await jericho.from('profiles').update({ role }).eq('id', profileId);
   if (error) { showError(errorMessage(error)); return; }
-  await logOpActivity('user_role_changed', { profile_id: profileId, role });
   showSuccess('Role updated.');
   loadUsers();
 }
 
 // -------------------------------------------------------- COMMODITIES ----
+// The commodity list drives the dropdown on every listing form. Deleting one
+// does NOT change listings that already reference it: listings.commodity is
+// plain text, not a foreign key, so historic listings keep their commodity
+// name. The UI warns when a commodity is still in use so an Operator isn't
+// surprised by that.
+
+let COMMODITY_CACHE = [];
+
 function wireCommodities() {
-  document.getElementById('add-commodity-btn').addEventListener('click', async () => {
-    const name = document.getElementById('new-commodity-name').value.trim();
-    if (!name) return;
-    const { error } = await jericho.from('commodities').insert({ name, created_by: CURRENT_PROFILE.id });
-    if (error) { showError(errorMessage(error)); return; }
-    await logOpActivity('commodity_added', { name });
-    document.getElementById('new-commodity-name').value = '';
-    loadCommodities();
+  document.getElementById('add-commodity-btn').addEventListener('click', addCommodity);
+
+  // Enter in the name box should add, not submit anything unexpected.
+  document.getElementById('new-commodity-name').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); addCommodity(); }
   });
+
+  document.getElementById('commodity-search').addEventListener('input', renderCommodities);
+}
+
+async function addCommodity() {
+  const input = document.getElementById('new-commodity-name');
+  const name = input.value.trim();
+  if (!name) { showError('Enter a commodity name.'); return; }
+
+  // Case-insensitive duplicate check up front, so the Operator gets a clear
+  // message instead of a raw unique-constraint error from Postgres.
+  if (COMMODITY_CACHE.some(c => c.name.toLowerCase() === name.toLowerCase())) {
+    showError(`"${name}" is already in the list.`);
+    return;
+  }
+
+  const { error } = await jericho.from('commodities')
+    .insert({ name, created_by: CURRENT_PROFILE.id, sort_order: 999 });
+  if (error) { showError(errorMessage(error)); return; }
+  await logOpActivity('commodity_added', { name });
+  input.value = '';
+  showSuccess(`Added "${name}".`);
+  loadCommodities();
 }
 
 async function loadCommodities() {
   const container = document.getElementById('commodities-list');
   container.innerHTML = '<p class="empty-state">Loading…</p>';
-  const { data, error } = await jericho.from('commodities').select('*').order('name');
+
+  const { data, error } = await jericho.from('commodities').select('*')
+    .order('sort_order', { ascending: true, nullsFirst: false })
+    .order('name');
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
-  if (!data.length) { container.innerHTML = '<p class="empty-state">No commodities yet.</p>'; return; }
+
+  COMMODITY_CACHE = data || [];
+
+  // How many listings currently use each commodity name, so the Operator can
+  // see what a deletion would leave behind.
+  const { data: listings } = await jericho.from('listings').select('commodity');
+  const usage = {};
+  (listings || []).forEach(l => {
+    const key = (l.commodity || '').toLowerCase();
+    usage[key] = (usage[key] || 0) + 1;
+  });
+  COMMODITY_CACHE.forEach(c => { c.usage = usage[c.name.toLowerCase()] || 0; });
+
+  renderCommodities();
+}
+
+function renderCommodities() {
+  const container = document.getElementById('commodities-list');
+  const filter = document.getElementById('commodity-search').value.trim().toLowerCase();
+  const rows = filter
+    ? COMMODITY_CACHE.filter(c => c.name.toLowerCase().includes(filter))
+    : COMMODITY_CACHE;
+
+  document.getElementById('commodity-count').textContent =
+    `${rows.length} of ${COMMODITY_CACHE.length} shown`;
+
+  if (!COMMODITY_CACHE.length) {
+    container.innerHTML = '<p class="empty-state">No commodities yet. Add one above, or run sql/seed_commodities.sql to load the standard list.</p>';
+    return;
+  }
+  if (!rows.length) { container.innerHTML = '<p class="empty-state">No commodity matches that filter.</p>'; return; }
 
   container.innerHTML = '';
-  data.forEach(c => {
+  rows.forEach(c => {
     const row = document.createElement('div');
-    row.className = 'list-row-top';
-    row.innerHTML = `<span>${escapeHtml(c.name)}</span><button class="btn btn-danger btn-small" data-del-commodity="${c.id}">Remove</button>`;
+    row.className = 'list-row';
+    row.innerHTML = `
+      <div class="list-row-top">
+        <span class="list-row-title">${escapeHtml(c.name)}</span>
+        <span class="row" style="gap:6px;">
+          ${c.usage > 0 ? `<span class="badge badge-blue">${c.usage} listing${c.usage === 1 ? '' : 's'}</span>` : ''}
+          <button class="btn btn-danger btn-small" data-del-commodity="${c.id}" data-name="${escapeHtml(c.name)}" data-usage="${c.usage}">Remove</button>
+        </span>
+      </div>
+    `;
     container.appendChild(row);
   });
+
   container.querySelectorAll('[data-del-commodity]').forEach(b =>
-    b.addEventListener('click', async () => {
-      const { error } = await jericho.from('commodities').delete().eq('id', b.dataset.delCommodity);
-      if (error) { showError(errorMessage(error)); return; }
-      loadCommodities();
-    }));
+    b.addEventListener('click', () => deleteCommodity(b.dataset.delCommodity, b.dataset.name, Number(b.dataset.usage))));
+}
+
+async function deleteCommodity(id, name, usage) {
+  const warning = usage > 0
+    ? `"${name}" is used by ${usage} existing listing${usage === 1 ? '' : 's'}.\n\n` +
+      `Those listings keep the name "${name}" — nothing is deleted from them — but ` +
+      `it will no longer appear in the dropdown for new listings.\n\nRemove it from the list?`
+    : `Remove "${name}" from the commodity list?`;
+  if (!confirm(warning)) return;
+
+  const { error } = await jericho.from('commodities').delete().eq('id', id);
+  if (error) { showError(errorMessage(error)); return; }
+  await logOpActivity('commodity_removed', { name });
+  showSuccess(`Removed "${name}".`);
+  loadCommodities();
 }
 
 // ----------------------------------------------------- DOCUMENT REQUESTS ----
@@ -341,8 +491,9 @@ async function createDocRequest() {
     listing_id: listingId, requester_id: CURRENT_PROFILE.id, participant_id: participantId, doc_type: docType
   });
   if (error) { showError(errorMessage(error)); return; }
-  await logOpActivity('document_requested', { listing_id: listingId, doc_type: docType });
-
+  // Audit entry is written by trg_log_doc_request_change; the participant
+  // notification is written here because it is addressed to a specific user
+  // chosen by this Operator action.
   await jericho.from('notifications').insert({
     user_id: participantId, type: 'document_requested',
     message: `An Operator requested: ${docType}`, related_id: listingId
@@ -415,7 +566,6 @@ async function loadOperatorMailbox() {
   container.querySelectorAll('[data-ignore]').forEach(b => b.addEventListener('click', async () => {
     const { error } = await jericho.from('messages').update({ status: 'ignored' }).eq('id', b.dataset.ignore);
     if (error) { showError(errorMessage(error)); return; }
-    await logOpActivity('message_ignored', { message_id: b.dataset.ignore });
     loadOperatorMailbox();
   }));
 }
@@ -443,7 +593,6 @@ async function confirmForward() {
     user_id: FORWARD_TARGET.toUserId, type: 'message_forwarded',
     message: `A message was forwarded to you regarding ${FORWARD_TARGET.refLabel}.`, related_id: FORWARD_TARGET.listingId
   });
-  await logOpActivity('message_forwarded', { message_id: FORWARD_TARGET.messageId, to_user_id: FORWARD_TARGET.toUserId });
   document.getElementById('forward-modal').classList.add('hidden');
   showSuccess('Message forwarded.');
   loadOperatorMailbox();
@@ -478,8 +627,6 @@ async function confirmReply() {
   await jericho.from('notifications').insert({
     user_id: REPLY_TARGET.senderId, type: 'message_reply', message: 'An Operator replied to your message.'
   });
-  await logOpActivity('message_replied', { original_message_id: REPLY_TARGET.originalMessageId });
-
   document.getElementById('reply-modal').classList.add('hidden');
   showSuccess('Reply sent.');
   loadOperatorMailbox();

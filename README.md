@@ -19,12 +19,15 @@ GitHub Pages · GitHub Actions (heartbeat).
 
 In the Supabase Dashboard → SQL Editor, run, in this exact order:
 
-1. `sql/schema.sql` — creates all tables and indexes.
-2. `sql/rls_policies.sql` — creates every trigger, security-definer function, and
-   Row Level Security policy that enforces the anonymity/role model. This is where
+1. `sql/schema.sql` — all tables and indexes.
+2. `sql/rls_policies.sql` — every trigger, security-definer function, and Row
+   Level Security policy that enforces the anonymity/role model. This is where
    the actual security lives — not in the frontend.
+3. `sql/002_updates.sql` — bug fixes and the backend-enforced audit log and
+   notifications. **Required**, including on a fresh install.
+4. `sql/seed_commodities.sql` — loads the standard commodity list.
 
-Both files are safe to re-run (guarded with `if not exists` / `or replace`).
+All files are safe to re-run (guarded with `if not exists` / `or replace`).
 
 ### 2. First Operator account
 
@@ -36,6 +39,14 @@ Nobody can self-register as an Operator — every signup is hardcoded to
    Operator's real email.
 2. In the SQL Editor, run `sql/first_operator.sql` (edit the email in it first if
    promoting someone other than Rafael).
+
+Once one Operator exists, further Operators can be promoted from the Users page
+in the app — no SQL needed.
+
+> If you ran an earlier version of these scripts, this UPDATE appeared to
+> succeed while silently changing nothing, and the workaround was
+> `set session_replication_role = replica;`. That is fixed in
+> `002_updates.sql`; the plain UPDATE now works.
 
 ### 3. Required Auth setting
 
@@ -82,9 +93,12 @@ Two scheduled workflows:
 ```
 /platform/
 ├── sql/
-│   ├── schema.sql            tables + indexes
-│   ├── rls_policies.sql      RLS, triggers, security-definer functions
-│   └── first_operator.sql    one-time Operator bootstrap
+│   ├── schema.sql             tables + indexes
+│   ├── rls_policies.sql       RLS, triggers, security-definer functions
+│   ├── 002_updates.sql        fixes + audit-log/notification triggers
+│   ├── seed_commodities.sql   standard commodity list
+│   ├── first_operator.sql     one-time Operator bootstrap
+│   └── tests/                 local Postgres security suite
 ├── css/
 │   └── styles.css
 ├── js/
@@ -118,10 +132,33 @@ Two scheduled workflows:
   message is available for the sender to note their own reference if
   relevant; nothing automatic infers or attaches it.
 
+## Testing
+
+`sql/tests/` holds a suite that runs the real SQL scripts against a local
+PostgreSQL and asserts the security rules hold — see `sql/tests/README.md`.
+**38 PASS / 0 FAIL** at the last run, covering: self-registration always landing
+as participant/pending, participants being unable to escalate role/status/email,
+listings being readable only by their owner or an Operator, the anonymous view
+exposing no `user_id`, mailbox messages reaching a recipient only after an
+Operator forwards them, invitation tokens being unlistable and single-use, and
+the activity log and matches being Operator-only.
+
+That suite found two real bugs that code review had missed: a `current_user`
+check inside a `SECURITY DEFINER` function that let a participant promote
+themselves to Operator, and an RLS sub-query that bound a bare `id` to the wrong
+table so forwarded messages never arrived.
+
+The frontend is exercised with Playwright against a stubbed Supabase REST layer
+(20/20 interaction checks; both dashboards, every tab, no JS errors; responsive
+checks at 375/412/1280px with no horizontal overflow and every tap target
+≥36px).
+
+**Not yet verified:** none of this has been run against the live Supabase
+project. The sandbox this was built in blocks `*.supabase.co`, so the live
+signup → approval → listing → mailbox path still needs a real run-through.
+
 ## Status
 
-Build in progress. See commit history for what's actually implemented so far —
-this README will be kept current, not aspirational. Not yet independently
-tested end-to-end against a live Supabase project — see the Testing section
-that will be added once the schema is live and a real run-through has
-happened.
+All features in Sections 5–17 of the specification are implemented. Email
+notifications (Section 12) are deliberately **not** implemented — in-platform
+notifications only, per the agreed scope.

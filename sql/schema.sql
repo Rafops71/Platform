@@ -53,6 +53,7 @@ create table if not exists public.invitations (
 create table if not exists public.commodities (
   id          uuid primary key default gen_random_uuid(),
   name        text not null unique,
+  sort_order  integer,   -- controls dropdown order; see sql/seed_commodities.sql
   created_by  uuid references public.profiles(id),
   created_at  timestamptz not null default now()
 );

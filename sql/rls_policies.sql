@@ -129,6 +129,26 @@ security definer
 set search_path = public
 as $$
 begin
+  -- Exempt only a direct database connection with NO end-user session.
+  --
+  -- The test is auth.uid() IS NULL, deliberately NOT a check on current_user:
+  -- inside a SECURITY DEFINER function current_user is the function's OWNER
+  -- (postgres), not the caller, so a role-name check here would exempt every
+  -- caller — including a participant escalating their own role. Verified
+  -- against a real Postgres: the role-name version let a participant become
+  -- an operator; this version blocks it.
+  --
+  -- Why auth.uid() IS NULL is safe: every browser request carries a session,
+  -- so auth.uid() is non-NULL for participants and operators alike. It is
+  -- NULL only for the SQL Editor (which runs as postgres) and service_role
+  -- jobs — both of which already have full database access. An unauthenticated
+  -- (anon) request cannot reach this trigger at all: anon holds no UPDATE
+  -- grant on profiles, and profiles_update requires user_id = auth.uid().
+  if auth.uid() is null then
+    new.updated_at := now();
+    return new;
+  end if;
+
   if not public.is_operator() then
     new.role := old.role;
     new.status := old.status;
@@ -573,28 +593,28 @@ drop policy if exists document_checklist_select on public.document_checklist;
 create policy document_checklist_select on public.document_checklist for select
   using (
     public.is_operator()
-    or exists (select 1 from public.listings l where l.id = listing_id and l.user_id = public.current_profile_id())
+    or exists (select 1 from public.listings l where l.id = public.document_checklist.listing_id and l.user_id = public.current_profile_id())
   );
 
 drop policy if exists document_checklist_insert on public.document_checklist;
 create policy document_checklist_insert on public.document_checklist for insert
   with check (
     public.is_operator()
-    or exists (select 1 from public.listings l where l.id = listing_id and l.user_id = public.current_profile_id())
+    or exists (select 1 from public.listings l where l.id = public.document_checklist.listing_id and l.user_id = public.current_profile_id())
   );
 
 drop policy if exists document_checklist_update on public.document_checklist;
 create policy document_checklist_update on public.document_checklist for update
   using (
     public.is_operator()
-    or exists (select 1 from public.listings l where l.id = listing_id and l.user_id = public.current_profile_id())
+    or exists (select 1 from public.listings l where l.id = public.document_checklist.listing_id and l.user_id = public.current_profile_id())
   );
 
 drop policy if exists document_checklist_delete on public.document_checklist;
 create policy document_checklist_delete on public.document_checklist for delete
   using (
     public.is_operator()
-    or exists (select 1 from public.listings l where l.id = listing_id and l.user_id = public.current_profile_id())
+    or exists (select 1 from public.listings l where l.id = public.document_checklist.listing_id and l.user_id = public.current_profile_id())
   );
 
 -- ----------------------------------------------------------------------------
@@ -624,8 +644,13 @@ create policy messages_select on public.messages for select
     sender_id = public.current_profile_id()
     or public.is_operator()
     or exists (
+      -- public.messages.id must be spelled out in full. A bare `id` here
+      -- resolves to message_forward_log.id (the inner FROM wins the name),
+      -- making the condition f.message_id = f.id, which is never true — that
+      -- silently broke forwarded-message delivery until a live test caught it.
       select 1 from public.message_forward_log f
-      where f.message_id = id and f.to_user_id = public.current_profile_id()
+      where f.message_id = public.messages.id
+        and f.to_user_id = public.current_profile_id()
     )
   );
 
