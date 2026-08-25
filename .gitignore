@@ -1,0 +1,12 @@
+# Secrets — never commit these.
+# .env holds the service role key and the database password, both of which
+# bypass Row Level Security entirely. Anyone with either has full read/write
+# access to every table, including real identities behind anonymous listings.
+.env
+.env.*
+!.env.example
+
+# Local tooling noise
+.DS_Store
+node_modules/
+*.log
