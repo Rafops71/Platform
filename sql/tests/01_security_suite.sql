@@ -61,15 +61,19 @@ select case when count(*)=2 then 'PASS' else 'FAIL' end
   as "T10 get_public_listings shows all listings" from public.get_public_listings();
 reset role; reset test.uid;
 
--- The anonymity guarantee: the public view must not expose user_id at all.
-select case when not exists (
-    select 1 from information_schema.columns
-    where table_schema='public' and table_name='listings' and column_name='user_id'
-      and column_name in (select column_name from information_schema.routines r
-                          where r.routine_name='get_public_listings' and false))
-  and (select count(*) from json_object_keys(to_json((select l from public.get_public_listings() l limit 1)))
-       where json_object_keys in ('user_id','specification','price_conditions','notes')) = 0
-  then 'PASS' else 'FAIL' end as "T11 public view exposes no user_id/notes/price";
+-- The anonymity guarantee, as confirmed 2026-08-26: participants see every
+-- commercial detail of a listing and only the poster's identity is withheld.
+-- This test used to assert the opposite for specification/price/notes — that
+-- was the earlier, narrower rule, and sql/005 deliberately reversed it.
+select case when (
+    select count(*) from json_object_keys(to_json((select l from public.get_public_listings() l limit 1)))
+     where json_object_keys in ('user_id','email','first_name','last_name','company','phone')
+  ) = 0 then 'PASS' else 'FAIL' end as "T11a public view exposes no poster identity";
+
+select case when (
+    select count(*) from json_object_keys(to_json((select l from public.get_public_listings() l limit 1)))
+     where json_object_keys in ('specification','price_conditions','price_unit','currency','notes','region')
+  ) = 6 then 'PASS' else 'FAIL' end as "T11b public view exposes full commercial detail";
 
 set role authenticated; set test.uid='44444444-4444-4444-4444-444444444444';
 update public.listings set status='closed' where reference_number='SELL-26-001';
@@ -174,7 +178,7 @@ reset role; reset test.uid;
 \echo '=========== DOCUMENT CHECKLIST ==========='
 set role authenticated; set test.uid='22222222-2222-2222-2222-222222222222';
 insert into public.document_checklist (listing_id, doc_type, indicated)
- select id,'Assay report',true from public.listings where reference_number='SELL-26-001';
+ select id,'Assay Report',true from public.listings where reference_number='SELL-26-001';
 select case when count(*)=1 then 'PASS' else 'FAIL' end as "T33 owner can write own checklist" from public.document_checklist;
 reset role; reset test.uid;
 set role authenticated; set test.uid='33333333-3333-3333-3333-333333333333';

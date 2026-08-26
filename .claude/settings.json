@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node scripts/q.js \"select *)",
+      "Bash(node scripts/q.js --json \"select *)",
+      "Bash(npm run q -- \"select *)",
+      "Bash(node scripts/verify-live.js)",
+      "Bash(npm run verify-live)",
+      "Bash(node scripts/run-sql-tests.js)",
+      "Bash(npm run test:sql)",
+      "Bash(node scripts/send-listing-emails.js --dry-run)",
+      "Bash(npm run e2e)",
+      "Bash(npm run e2e:headed)",
+      "Bash(npx playwright test *)",
+      "Bash(npx playwright --version)",
+      "Bash(node --check *)"
+    ]
+  }
+}

@@ -9,6 +9,7 @@
     "apply-sql": "node scripts/apply-sql.js",
     "send-listing-emails": "node scripts/send-listing-emails.js",
     "q": "node scripts/q.js",
+    "test:sql": "node scripts/run-sql-tests.js",
     "e2e": "playwright test",
     "e2e:headed": "playwright test --headed",
     "e2e:ui": "playwright test --ui"
@@ -17,6 +18,10 @@
     "pg": "^8.13.1"
   },
   "devDependencies": {
-    "@playwright/test": "^1.62.1"
+    "@playwright/test": "^1.62.1",
+    "embedded-postgres": "^18.4.0-beta.17"
+  },
+  "allowScripts": {
+    "@embedded-postgres/windows-x64@18.4.0-beta.17": true
   }
 }
