@@ -1,0 +1,15 @@
+{
+  "name": "jericho-platform-scripts",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Node-based tooling for environments without psql. See HANDOFF.md.",
+  "type": "commonjs",
+  "scripts": {
+    "verify-live": "node scripts/verify-live.js",
+    "apply-sql": "node scripts/apply-sql.js",
+    "send-listing-emails": "node scripts/send-listing-emails.js"
+  },
+  "dependencies": {
+    "pg": "^8.13.1"
+  }
+}

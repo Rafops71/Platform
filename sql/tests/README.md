@@ -23,7 +23,9 @@ pg_ctl -D /tmp/pgtest -o '-k /tmp/pgsock -p 5433' -l /tmp/pg.log start
 psql -h /tmp/pgsock -p 5433 -d postgres -c 'create database jericho;'
 
 for f in sql/tests/00_supabase_stub.sql sql/schema.sql sql/rls_policies.sql \
-         sql/002_updates.sql sql/seed_commodities.sql; do
+         sql/002_updates.sql sql/003_email_notifications.sql \
+         sql/004_email_outbox_retry.sql sql/005_confirmed_updates.sql \
+         sql/seed_commodities.sql; do
   psql -h /tmp/pgsock -p 5433 -d jericho -v ON_ERROR_STOP=1 -q -f "$f"
 done
 

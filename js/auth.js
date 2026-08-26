@@ -84,6 +84,7 @@ async function initRegisterPage() {
   const checking = document.getElementById('invitation-checking');
   const invalidCard = document.getElementById('invitation-invalid');
   const registerCard = document.getElementById('register-card');
+  populateSelect('country', COUNTRIES);
 
   if (!invitationToken) {
     checking.classList.add('hidden');

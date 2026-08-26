@@ -69,7 +69,7 @@
           </div>
           <div>
             <label for="unit">Unit</label>
-            <input type="text" id="unit" placeholder="MT, kg, …">
+            <select id="unit"></select>
           </div>
         </div>
 
@@ -80,7 +80,7 @@
         <select id="incoterm" required></select>
 
         <label id="location-label" for="location">Origin</label>
-        <input type="text" id="location" placeholder="Country / region">
+        <select id="location"></select>
 
         <div class="grid-2">
           <div>
@@ -125,7 +125,7 @@
         <select id="browse-filter-commodity" style="max-width:240px;">
           <option value="">All commodities</option>
         </select>
-        <input type="text" id="browse-filter-region" placeholder="Region" style="max-width:160px;">
+        <input type="text" id="browse-filter-region" placeholder="Origin / Destination" style="max-width:180px;">
         <select id="browse-filter-status" style="max-width:170px;">
           <option value="">All statuses</option>
           <option value="available">Available</option>

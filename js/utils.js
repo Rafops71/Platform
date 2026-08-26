@@ -104,14 +104,120 @@ function getQueryParam(name) {
   return new URLSearchParams(window.location.search).get(name);
 }
 
-const DOCUMENT_TYPES = [
-  'Certificate of Analysis', 'Cargo Information Sheet / CIS', 'Past performance record',
-  'Proof of product', 'Assay report', 'SGS report', 'Certificate of origin',
-  'LOI', 'ICPO', 'SPA', 'Company registration', 'KYC', 'Photographs', 'Videos', 'Other'
+/** The "Documents you have" checklist, in two fixed categories.
+ *
+ *  Scope (set 2026-08-26): this records what the seller/broker actually holds
+ *  about the *material* and about the *legitimacy/compliance* of the offering.
+ *  Documents that only come into existence later, in the negotiation between a
+ *  specific buyer and seller — LOI, ICPO, SPA, Proof of Funds, Past
+ *  Performance — were deliberately removed; they say nothing about the goods
+ *  and inviting them here mixed two different stages of a deal. */
+const DOCUMENT_GROUPS = [
+  {
+    title: 'Material / Product Documentation',
+    docs: [
+      'Certificate of Analysis (COA)',
+      'Assay Report',
+      'SGS or equivalent independent inspection report',
+      'Certificate of Origin',
+      'Proof of Product',
+      'Photos',
+      'Videos',
+      'Other relevant product/material documentation',
+    ],
+  },
+  {
+    title: 'Company / Compliance & Supporting Documentation',
+    docs: [
+      'Company Registration / Corporate Documents',
+      'KYC Documentation',
+      'CIS (Customer Information Sheet)',
+      'Export License / Permit, where applicable',
+      'Warehouse Receipt, where applicable',
+      'Bill of Lading / Shipping Documentation, where applicable',
+      'Packing List, where applicable',
+      'Other relevant compliance or logistical documentation',
+    ],
+  },
 ];
+
+/** Flat list of every checklist item, in display order. document_checklist
+ *  rows are keyed by these strings, so they are the storage contract too. */
+const DOCUMENT_TYPES = DOCUMENT_GROUPS.flatMap(g => g.docs);
 
 const INCOTERMS = ['EXW', 'FCA', 'FAS', 'FOB', 'CFR', 'CIF', 'CPT', 'CIP', 'DAP', 'DPU', 'DDP'];
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'ZAR'];
+
+/** Commercial weights and volumes offered for a listing's Unit field. */
+const UNITS = [
+  'Grams', 'Kilograms', 'Metric tons', 'Pounds', 'Ounces',
+  'Liters', 'Cubic meters', 'Barrels', 'Gallons', 'Bushels',
+];
+
+const COUNTRIES = [
+  'Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua and Barbuda', 'Argentina',
+  'Armenia', 'Australia', 'Austria', 'Azerbaijan', 'Bahamas', 'Bahrain', 'Bangladesh', 'Barbados',
+  'Belarus', 'Belgium', 'Belize', 'Benin', 'Bhutan', 'Bolivia', 'Bosnia and Herzegovina', 'Botswana',
+  'Brazil', 'Brunei', 'Bulgaria', 'Burkina Faso', 'Burundi', 'Cabo Verde', 'Cambodia', 'Cameroon',
+  'Canada', 'Central African Republic', 'Chad', 'Chile', 'China', 'Colombia', 'Comoros',
+  'Congo (Republic of the)', 'Congo (Democratic Republic of the)', 'Costa Rica', "Cote d'Ivoire",
+  'Croatia', 'Cuba', 'Cyprus', 'Czechia', 'Denmark', 'Djibouti', 'Dominica', 'Dominican Republic',
+  'Ecuador', 'Egypt', 'El Salvador', 'Equatorial Guinea', 'Eritrea', 'Estonia', 'Eswatini',
+  'Ethiopia', 'Fiji', 'Finland', 'France', 'Gabon', 'Gambia', 'Georgia', 'Germany', 'Ghana',
+  'Greece', 'Grenada', 'Guatemala', 'Guinea', 'Guinea-Bissau', 'Guyana', 'Haiti', 'Honduras',
+  'Hungary', 'Iceland', 'India', 'Indonesia', 'Iran', 'Iraq', 'Ireland', 'Israel', 'Italy',
+  'Jamaica', 'Japan', 'Jordan', 'Kazakhstan', 'Kenya', 'Kiribati', 'Kosovo', 'Kuwait', 'Kyrgyzstan',
+  'Laos', 'Latvia', 'Lebanon', 'Lesotho', 'Liberia', 'Libya', 'Liechtenstein', 'Lithuania',
+  'Luxembourg', 'Madagascar', 'Malawi', 'Malaysia', 'Maldives', 'Mali', 'Malta',
+  'Marshall Islands', 'Mauritania', 'Mauritius', 'Mexico', 'Micronesia', 'Moldova', 'Monaco',
+  'Mongolia', 'Montenegro', 'Morocco', 'Mozambique', 'Myanmar', 'Namibia', 'Nauru', 'Nepal',
+  'Netherlands', 'New Zealand', 'Nicaragua', 'Niger', 'Nigeria', 'North Korea', 'North Macedonia',
+  'Norway', 'Oman', 'Pakistan', 'Palau', 'Palestine', 'Panama', 'Papua New Guinea', 'Paraguay',
+  'Peru', 'Philippines', 'Poland', 'Portugal', 'Qatar', 'Romania', 'Russia', 'Rwanda',
+  'Saint Kitts and Nevis', 'Saint Lucia', 'Saint Vincent and the Grenadines', 'Samoa',
+  'San Marino', 'Sao Tome and Principe', 'Saudi Arabia', 'Senegal', 'Serbia', 'Seychelles',
+  'Sierra Leone', 'Singapore', 'Slovakia', 'Slovenia', 'Solomon Islands', 'Somalia',
+  'South Africa', 'South Korea', 'South Sudan', 'Spain', 'Sri Lanka', 'Sudan', 'Suriname',
+  'Sweden', 'Switzerland', 'Syria', 'Taiwan', 'Tajikistan', 'Tanzania', 'Thailand', 'Timor-Leste',
+  'Togo', 'Tonga', 'Trinidad and Tobago', 'Tunisia', 'Turkey', 'Turkmenistan', 'Tuvalu', 'Uganda',
+  'Ukraine', 'United Arab Emirates', 'United Kingdom', 'United States', 'Uruguay', 'Uzbekistan',
+  'Vanuatu', 'Vatican City', 'Venezuela', 'Vietnam', 'Yemen', 'Zambia', 'Zimbabwe'
+];
+
+/** Populate a <select> with plain string options. If withBlank, first resets
+ *  the select and inserts a leading empty option; otherwise appends to
+ *  whatever options are already there (e.g. a placeholder in the HTML). */
+function populateSelect(id, values, withBlank = false) {
+  const el = document.getElementById(id);
+  if (withBlank) el.innerHTML = '<option value="">—</option>';
+  values.forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v; opt.textContent = v;
+    el.appendChild(opt);
+  });
+}
+
+/** Set a <select> to `value`, keeping values that predate the dropdown.
+ *
+ *  Unit and Origin/Destination used to be free-text inputs, so existing rows
+ *  hold things like "mt" or "belgium" that match no option. Assigning those to
+ *  a <select> silently selects nothing, and the next save would write the
+ *  blank back — quietly destroying data the user never chose to clear. So an
+ *  unrecognised value is appended as its own option (matched case-insensitively
+ *  first, since "belgium" and "Belgium" are the same place) and selected. */
+function setSelectValue(id, value) {
+  const el = document.getElementById(id);
+  if (!value) { el.value = ''; return; }
+
+  const match = Array.from(el.options).find(o => o.value.toLowerCase() === String(value).toLowerCase());
+  if (match) { el.value = match.value; return; }
+
+  const opt = document.createElement('option');
+  opt.value = value;
+  opt.textContent = `${value} (existing entry)`;
+  el.appendChild(opt);
+  el.value = value;
+}
 
 const STATUS_LABELS = {
   available: 'Available', under_review: 'Under Review', negotiation: 'Negotiation',

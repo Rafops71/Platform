@@ -250,6 +250,24 @@ function wireInvitations() {
   document.getElementById('create-invite-btn').addEventListener('click', createInvitation);
 }
 
+/** Rebuild the registration link for an invitation token. */
+function invitationLink(token) {
+  return `${window.location.origin}${window.location.pathname.replace('operator.html', 'register.html')}?token=${token}`;
+}
+
+/** Queue the invitation email. The outbox is not writable by any client
+ *  session (RLS with no policies), so this goes through a security-definer
+ *  RPC — see sql/005_invitation_emails.sql. The link is built here because
+ *  only the browser knows the origin the platform is served from. */
+async function emailInvitation(email, token) {
+  const { error } = await jericho.rpc('queue_invitation_email', {
+    p_to_email: email,
+    p_link: invitationLink(token),
+  });
+  if (error) { showError(`Invitation saved, but the email could not be queued: ${errorMessage(error)}`); return false; }
+  return true;
+}
+
 async function createInvitation() {
   const email = document.getElementById('invite-email').value.trim().toLowerCase() || null;
   const token = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
@@ -258,9 +276,16 @@ async function createInvitation() {
   if (error) { showError(errorMessage(error)); return; }
   await logOpActivity('invitation_created', { email });
 
-  const link = `${window.location.origin}${window.location.pathname.replace('operator.html', 'register.html')}?token=${token}`;
+  const link = invitationLink(token);
+  let emailNote = '';
+  if (email) {
+    if (await emailInvitation(email, token)) emailNote = `<br><span class="text-muted">Invitation email queued to ${escapeHtml(email)}.</span>`;
+  } else {
+    emailNote = '<br><span class="text-muted">No email address given — nothing was sent. Copy the link and pass it on yourself.</span>';
+  }
+
   const resultBox = document.getElementById('invite-result');
-  resultBox.innerHTML = `<strong>Invitation link (valid 5 days, single use):</strong><br><code style="word-break:break-all;">${escapeHtml(link)}</code>`;
+  resultBox.innerHTML = `<strong>Invitation link (valid 5 days, single use):</strong><br><code style="word-break:break-all;">${escapeHtml(link)}</code>${emailNote}`;
   resultBox.classList.remove('hidden');
   document.getElementById('invite-email').value = '';
   loadInvitations();
@@ -282,15 +307,102 @@ async function loadInvitations() {
       : '<span class="badge badge-green">Active</span>';
     const row = document.createElement('div');
     row.className = 'list-row';
+    // A used invitation is spent — its link cannot be redeemed again, so only
+    // deletion (tidying the list) still makes sense for it.
+    const actions = inv.used_at
+      ? `<button class="btn btn-secondary btn-small" data-inv-delete="${inv.id}">Delete</button>`
+      : `<button class="btn btn-secondary btn-small" data-inv-copy="${escapeHtml(inv.token)}">Copy link</button>
+         <button class="btn btn-secondary btn-small" data-inv-edit="${inv.id}">Edit</button>
+         <button class="btn btn-secondary btn-small" data-inv-resend="${inv.id}">Resend email</button>
+         <button class="btn btn-secondary btn-small" data-inv-delete="${inv.id}">Delete</button>`;
+
     row.innerHTML = `
       <div class="list-row-top">
         <span class="list-row-title">${escapeHtml(inv.email || 'No email noted')}</span>
         ${badge}
       </div>
       <div class="list-row-meta">Created ${formatDate(inv.created_at)} · Expires ${formatDate(inv.expires_at)}${inv.used_at ? ' · Used ' + formatDate(inv.used_at) : ''}</div>
+      <div class="row" style="margin-top:6px;">${actions}</div>
+      <div class="hidden" data-inv-editor="${inv.id}" style="margin-top:8px;">
+        <label>Email</label>
+        <input type="email" data-inv-email="${inv.id}" value="${escapeHtml(inv.email || '')}">
+        <label>Expires</label>
+        <input type="date" data-inv-expires="${inv.id}" value="${new Date(inv.expires_at).toISOString().slice(0, 10)}">
+        <div class="row" style="margin-top:8px;">
+          <button class="btn btn-primary btn-small" data-inv-save="${inv.id}">Save</button>
+          <button class="btn btn-secondary btn-small" data-inv-cancel="${inv.id}">Cancel</button>
+        </div>
+      </div>
     `;
     container.appendChild(row);
   });
+
+  wireInvitationActions(container, data);
+}
+
+function wireInvitationActions(container, invitations) {
+  const byId = {};
+  invitations.forEach(i => { byId[i.id] = i; });
+  const editor = id => container.querySelector(`[data-inv-editor="${id}"]`);
+
+  container.querySelectorAll('[data-inv-copy]').forEach(b =>
+    b.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(invitationLink(b.dataset.invCopy));
+        showSuccess('Invitation link copied.');
+      } catch {
+        // Clipboard access needs a secure context and can be blocked outright;
+        // showing the link still lets the operator copy it by hand.
+        showError(`Could not copy. Link: ${invitationLink(b.dataset.invCopy)}`);
+      }
+    }));
+
+  container.querySelectorAll('[data-inv-edit]').forEach(b =>
+    b.addEventListener('click', () => editor(b.dataset.invEdit).classList.remove('hidden')));
+
+  container.querySelectorAll('[data-inv-cancel]').forEach(b =>
+    b.addEventListener('click', () => editor(b.dataset.invCancel).classList.add('hidden')));
+
+  container.querySelectorAll('[data-inv-save]').forEach(b =>
+    b.addEventListener('click', async () => {
+      const id = b.dataset.invSave;
+      const email = container.querySelector(`[data-inv-email="${id}"]`).value.trim().toLowerCase() || null;
+      const expires = container.querySelector(`[data-inv-expires="${id}"]`).value;
+      if (!expires) { showError('Give the invitation an expiry date.'); return; }
+
+      // Expiry is a timestamptz; a bare date would land at 00:00 and expire the
+      // invitation at the start of the chosen day rather than the end of it.
+      const expires_at = new Date(`${expires}T23:59:59`).toISOString();
+
+      const { error } = await jericho.from('invitations').update({ email, expires_at }).eq('id', id);
+      if (error) { showError(errorMessage(error)); return; }
+      await logOpActivity('invitation_updated', { invitation_id: id, email });
+      showSuccess('Invitation updated.');
+      loadInvitations();
+    }));
+
+  container.querySelectorAll('[data-inv-resend]').forEach(b =>
+    b.addEventListener('click', async () => {
+      const inv = byId[b.dataset.invResend];
+      if (!inv.email) { showError('No email address on this invitation — add one with Edit first.'); return; }
+      if (await emailInvitation(inv.email, inv.token)) {
+        await logOpActivity('invitation_resent', { invitation_id: inv.id, email: inv.email });
+        showSuccess(`Invitation email queued to ${inv.email}.`);
+      }
+    }));
+
+  container.querySelectorAll('[data-inv-delete]').forEach(b =>
+    b.addEventListener('click', async () => {
+      const inv = byId[b.dataset.invDelete];
+      const who = inv.email || 'this invitation';
+      if (!confirm(`Delete the invitation for ${who}? Its link stops working immediately and cannot be undone.`)) return;
+
+      const { error } = await jericho.from('invitations').delete().eq('id', inv.id);
+      if (error) { showError(errorMessage(error)); return; }
+      await logOpActivity('invitation_deleted', { invitation_id: inv.id, email: inv.email });
+      showSuccess('Invitation deleted — its link no longer works.');
+      loadInvitations();
+    }));
 }
 
 // -------------------------------------------------------------- USERS ----

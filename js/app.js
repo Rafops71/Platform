@@ -21,6 +21,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   populateSelect('incoterm', INCOTERMS);
   populateSelect('currency', CURRENCIES, true);
+  populateSelect('unit', UNITS, true);
+  populateSelect('location', COUNTRIES, true);
   await loadCommodities();
   renderDocChecklist();
 
@@ -54,15 +56,7 @@ function showScreen(name) {
   if (name === 'new-listing' && !EDITING_LISTING_ID) resetListingForm();
 }
 
-function populateSelect(id, values, withBlank = false) {
-  const el = document.getElementById(id);
-  if (withBlank) el.innerHTML = '<option value="">—</option>';
-  values.forEach(v => {
-    const opt = document.createElement('option');
-    opt.value = v; opt.textContent = v;
-    el.appendChild(opt);
-  });
-}
+// populateSelect() now lives in utils.js (shared with register's country dropdown).
 
 // ---------------------------------------------------------- MY LISTINGS ----
 async function loadMyListings() {
@@ -132,11 +126,19 @@ async function removeListing(id) {
 function renderDocChecklist(selected = {}) {
   const container = document.getElementById('doc-checklist');
   container.innerHTML = '';
-  DOCUMENT_TYPES.forEach(doc => {
-    const row = document.createElement('label');
-    row.className = 'checkbox-row';
-    row.innerHTML = `<input type="checkbox" value="${escapeHtml(doc)}" ${selected[doc] ? 'checked' : ''}> ${escapeHtml(doc)}`;
-    container.appendChild(row);
+  DOCUMENT_GROUPS.forEach(group => {
+    const heading = document.createElement('p');
+    heading.className = 'text-muted';
+    heading.style.cssText = 'font-size:13px;font-weight:600;margin:12px 0 4px;';
+    heading.textContent = group.title;
+    container.appendChild(heading);
+
+    group.docs.forEach(doc => {
+      const row = document.createElement('label');
+      row.className = 'checkbox-row';
+      row.innerHTML = `<input type="checkbox" value="${escapeHtml(doc)}" ${selected[doc] ? 'checked' : ''}> ${escapeHtml(doc)}`;
+      container.appendChild(row);
+    });
   });
 }
 
@@ -196,6 +198,9 @@ function resetListingForm() {
   document.getElementById('listing-form').reset();
   document.getElementById('commodity-other').classList.add('hidden');
   document.getElementById('location-label').textContent = 'Origin';
+  // Drop any "(existing entry)" options setSelectValue() appended while editing.
+  populateSelect('unit', UNITS, true);
+  populateSelect('location', COUNTRIES, true);
   renderDocChecklist();
 }
 
@@ -218,10 +223,10 @@ async function editListing(id) {
   document.getElementById('commodity-other').value = isKnownCommodity ? '' : listing.commodity;
 
   document.getElementById('quantity').value = listing.quantity ?? '';
-  document.getElementById('unit').value = listing.unit ?? '';
+  setSelectValue('unit', listing.unit);
   document.getElementById('specification').value = listing.specification ?? '';
   document.getElementById('incoterm').value = listing.incoterm;
-  document.getElementById('location').value = listing.type === 'sell' ? (listing.origin ?? '') : (listing.destination ?? '');
+  setSelectValue('location', listing.type === 'sell' ? listing.origin : listing.destination);
   document.getElementById('price_conditions').value = listing.price_conditions ?? '';
   document.getElementById('currency').value = listing.currency ?? '';
   document.getElementById('notes').value = listing.notes ?? '';
@@ -329,8 +334,12 @@ async function loadBrowseListings() {
       <div class="list-row-meta">
         ${l.type === 'sell' ? 'Sell Offer' : 'Buy Request'} ·
         ${l.quantity ? escapeHtml(String(l.quantity)) + ' ' + escapeHtml(l.unit || '') : 'Qty n/a'} ·
-        ${escapeHtml(l.incoterm)} · ${escapeHtml(l.region || 'Region n/a')}
+        ${escapeHtml(l.incoterm)} ·
+        ${l.type === 'sell' ? 'Origin' : 'Destination'}: ${escapeHtml(l.region || 'n/a')}
       </div>
+      ${l.specification ? `<div class="list-row-meta">Specification / Grade: ${escapeHtml(l.specification)}</div>` : ''}
+      ${l.price_conditions ? `<div class="list-row-meta">Price / Conditions: ${escapeHtml(l.price_conditions)}${l.currency ? ' ' + escapeHtml(l.currency) : ''}</div>` : ''}
+      ${l.notes ? `<div class="list-row-meta">Notes: ${escapeHtml(l.notes)}</div>` : ''}
       <div class="list-row-meta">
         ${l.has_documents ? 'Documents indicated' : '<strong>No documents indicated</strong>'} · Posted ${formatDate(l.created_at)}
       </div>

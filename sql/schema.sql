@@ -105,11 +105,22 @@ create table if not exists public.listings (
 create table if not exists public.document_checklist (
   id           uuid primary key default gen_random_uuid(),
   listing_id   uuid not null references public.listings(id) on delete cascade,
+  -- Two fixed categories; see DOCUMENT_GROUPS in js/utils.js. Kept in step
+  -- with sql/005_confirmed_updates.sql, which migrates existing databases.
   doc_type     text not null check (doc_type in (
-                 'Certificate of Analysis','Cargo Information Sheet / CIS',
-                 'Past performance record','Proof of product','Assay report',
-                 'SGS report','Certificate of origin','LOI','ICPO','SPA',
-                 'Company registration','KYC','Photographs','Videos','Other')),
+                 -- A) Material / Product Documentation
+                 'Certificate of Analysis (COA)','Assay Report',
+                 'SGS or equivalent independent inspection report',
+                 'Certificate of Origin','Proof of Product','Photos','Videos',
+                 'Other relevant product/material documentation',
+                 -- B) Company / Compliance & Supporting Documentation
+                 'Company Registration / Corporate Documents','KYC Documentation',
+                 'CIS (Customer Information Sheet)',
+                 'Export License / Permit, where applicable',
+                 'Warehouse Receipt, where applicable',
+                 'Bill of Lading / Shipping Documentation, where applicable',
+                 'Packing List, where applicable',
+                 'Other relevant compliance or logistical documentation')),
   indicated    boolean not null default false,
   updated_at   timestamptz not null default now(),
   unique (listing_id, doc_type)

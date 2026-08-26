@@ -1,0 +1,30 @@
+name: Listing Email Notifications
+
+# Drives the 2026-08-26 requirement: every member gets emailed the full
+# content of every new Sell Offer / Buy Request. sql/003_email_notifications.sql
+# queues rows into public.email_outbox on every listing insert; this workflow
+# just runs scripts/send-listing-emails.js to flush that queue.
+#
+# Requires repo secrets (Settings > Secrets and variables > Actions):
+#   SUPABASE_DB_URL     — same one used by apply-sql / verify-live
+#   RESEND_API_KEY       — from https://resend.com/api-keys
+#   LISTING_EMAIL_FROM    — a sender verified with Resend
+on:
+  schedule:
+    - cron: '*/5 * * * *'   # every 5 minutes
+  workflow_dispatch: {}
+
+jobs:
+  send-listing-emails:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: node scripts/send-listing-emails.js
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          LISTING_EMAIL_FROM: ${{ secrets.LISTING_EMAIL_FROM }}
