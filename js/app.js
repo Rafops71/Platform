@@ -21,16 +21,47 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   populateSelect('incoterm', INCOTERMS);
   populateSelect('currency', CURRENCIES, true);
-  populateSelect('unit', UNITS, true);
-  populateSelect('price_unit', UNITS, true);
-  populateSelect('location', COUNTRIES, true);
+  // Labels are translated; the stored values stay canonical English.
+  populateSelect('unit', UNITS, true, unitLabel);
+  populateSelect('price_unit', UNITS, true, unitLabel);
+  populateSelect('location', COUNTRIES, true, countryLabel);
   await loadCommodities();
   renderDocChecklist();
+
+  applyTranslations();
+  renderLanguageToggle('lang-toggle');
 
   await loadMyListings();
   await refreshNotificationDot();
   await refreshDocRequestDot();
 });
+
+/** Called by i18n.js after the participant switches language. Static text is
+ *  already handled by applyTranslations(); this re-renders everything drawn
+ *  from data — the dropdown labels and whichever screen is on show — so the
+ *  page changes language in place rather than needing a reload that would
+ *  lose a half-filled form. */
+window.onLanguageChange = function () {
+  populateSelect('unit', UNITS, true, unitLabel);
+  populateSelect('price_unit', UNITS, true, unitLabel);
+  populateSelect('location', COUNTRIES, true, countryLabel);
+  loadCommodities();
+
+  const selectedDocs = {};
+  document.querySelectorAll('#doc-checklist input:checked').forEach(i => { selectedDocs[i.value] = true; });
+  renderDocChecklist(selectedDocs);
+
+  const active = document.querySelector('.screen.active');
+  const screen = active ? active.id.replace('screen-', '') : 'my-listings';
+  if (screen === 'my-listings') loadMyListings();
+  if (screen === 'browse') loadBrowseListings();
+  if (screen === 'doc-requests') loadDocRequests();
+  if (screen === 'mailbox') loadMailbox();
+  if (screen === 'notifications') loadNotifications();
+  if (screen === 'new-listing' && !EDITING_LISTING_ID) {
+    document.getElementById('listing-form-title').textContent = t('form.newListing');
+  }
+};
 
 // ------------------------------------------------------------- TAB NAV ----
 function wireTabs() {
@@ -62,7 +93,7 @@ function showScreen(name) {
 // ---------------------------------------------------------- MY LISTINGS ----
 async function loadMyListings() {
   const container = document.getElementById('my-listings-list');
-  container.innerHTML = '<p class="empty-state">Loading…</p>';
+  container.innerHTML = `<p class="empty-state">${t('common.loading')}</p>`;
 
   const { data, error } = await jericho
     .from('listings')
@@ -71,7 +102,7 @@ async function loadMyListings() {
     .order('created_at', { ascending: false });
 
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
-  if (!data.length) { container.innerHTML = '<p class="empty-state">You have no listings yet.</p>'; return; }
+  if (!data.length) { container.innerHTML = `<p class="empty-state">${t('listings.none')}</p>`; return; }
 
   container.innerHTML = '';
   for (const listing of data) {
@@ -89,15 +120,15 @@ async function loadMyListings() {
         <span class="badge ${statusBadgeClass(listing.status)}">${escapeHtml(statusLabel(listing.status))}</span>
       </div>
       <div class="list-row-meta">
-        ${listing.type === 'sell' ? 'Sell Offer' : 'Buy Request'} ·
-        ${listing.quantity ? escapeHtml(String(listing.quantity)) + ' ' + escapeHtml(listing.unit || '') : 'Qty n/a'} ·
+        ${listing.type === 'sell' ? t('form.sellOffer') : t('form.buyRequest')} ·
+        ${listing.quantity ? escapeHtml(formatNumber(listing.quantity)) + ' ' + escapeHtml(unitLabel(listing.unit || '')) : t('listings.qtyNa')} ·
         ${escapeHtml(listing.incoterm)} ·
-        Updated ${formatDate(listing.updated_at)}
+        ${t('listings.updated', { date: formatDate(listing.updated_at) })}
       </div>
-      <div class="list-row-meta">${count > 0 ? `${count} document(s) indicated` : '<strong>No documents indicated</strong>'}</div>
+      <div class="list-row-meta">${count > 0 ? escapeHtml(t('listings.docsIndicated', { count })) : `<strong>${escapeHtml(t('listings.noDocsIndicated'))}</strong>`}</div>
       <div class="row" style="margin-top:4px;">
-        <button class="btn btn-secondary btn-small" data-edit="${listing.id}">Edit</button>
-        <button class="btn btn-danger btn-small" data-remove="${listing.id}">Remove</button>
+        <button class="btn btn-secondary btn-small" data-edit="${listing.id}">${escapeHtml(t('common.edit'))}</button>
+        <button class="btn btn-danger btn-small" data-remove="${listing.id}">${escapeHtml(t('common.remove'))}</button>
       </div>
     `;
     container.appendChild(row);
@@ -109,17 +140,27 @@ async function loadMyListings() {
     b.addEventListener('click', () => removeListing(b.dataset.remove)));
 }
 
+/** "13.850 USD por Toneladas métricas" / "13,850 USD per Metric tons".
+ *  Assembled here rather than inline so the number formatting and the "per"
+ *  join word both follow the active language. */
+function priceLine(l) {
+  let out = formatNumber(l.price_conditions) || l.price_conditions || '';
+  if (l.currency) out += ` ${l.currency}`;
+  if (l.price_unit) out += currentLang() === 'es' ? ` por ${unitLabel(l.price_unit)}` : ` per ${unitLabel(l.price_unit)}`;
+  return out;
+}
+
 function statusBadgeClass(status) {
   return { available: 'badge-green', under_review: 'badge-amber', negotiation: 'badge-blue',
            closed: 'badge-grey', archived: 'badge-grey' }[status] || 'badge-grey';
 }
 
 async function removeListing(id) {
-  if (!confirm('Remove this listing? This cannot be undone.')) return;
+  if (!confirm(t('listings.confirmRemove'))) return;
   const { error } = await jericho.from('listings').delete().eq('id', id);
   if (error) { showError(errorMessage(error)); return; }
   // Activity logging happens in the database (trg_log_listing_change).
-  showSuccess('Listing removed.');
+  showSuccess(t('listings.removed'));
   loadMyListings();
 }
 
@@ -131,13 +172,13 @@ function renderDocChecklist(selected = {}) {
     const heading = document.createElement('p');
     heading.className = 'text-muted';
     heading.style.cssText = 'font-size:13px;font-weight:600;margin:12px 0 4px;';
-    heading.textContent = group.title;
+    heading.textContent = group.titleKey ? t(group.titleKey) : group.title;
     container.appendChild(heading);
 
     group.docs.forEach(doc => {
       const row = document.createElement('label');
       row.className = 'checkbox-row';
-      row.innerHTML = `<input type="checkbox" value="${escapeHtml(doc)}" ${selected[doc] ? 'checked' : ''}> ${escapeHtml(doc)}`;
+      row.innerHTML = `<input type="checkbox" value="${escapeHtml(doc)}" ${selected[doc] ? 'checked' : ''}> ${escapeHtml(docTypeLabel(doc))}`;
       container.appendChild(row);
     });
   });
@@ -149,21 +190,21 @@ async function loadCommodities() {
   if (error) { console.error(error); return; }
 
   COMMODITIES = sortCommodities(data);
-  select.innerHTML = '<option value="">Select commodity…</option>';
+  select.innerHTML = `<option value="">${escapeHtml(t('form.commoditySelect'))}</option>`;
   COMMODITIES.forEach(c => {
     const opt = document.createElement('option');
     opt.value = c.name; opt.textContent = c.name;
     select.appendChild(opt);
   });
   const otherOpt = document.createElement('option');
-  otherOpt.value = '__other__'; otherOpt.textContent = 'Other (specify)';
+  otherOpt.value = '__other__'; otherOpt.textContent = t('form.commodityOther');
   select.appendChild(otherOpt);
 
   // The Browse filter offers the same curated list, plus whatever free-text
   // commodities actually exist on listings (added via "Other").
   const browseFilter = document.getElementById('browse-filter-commodity');
   if (browseFilter) {
-    browseFilter.innerHTML = '<option value="">All commodities</option>';
+    browseFilter.innerHTML = `<option value="">${escapeHtml(t('browse.allCommodities'))}</option>`;
     COMMODITIES.forEach(c => {
       const opt = document.createElement('option');
       opt.value = c.name; opt.textContent = c.name;
@@ -175,7 +216,7 @@ async function loadCommodities() {
 function wireListingForm() {
   document.querySelectorAll('input[name="type"]').forEach(r =>
     r.addEventListener('change', () => {
-      document.getElementById('location-label').textContent = r.value === 'sell' ? 'Origin' : 'Destination';
+      document.getElementById('location-label').textContent = r.value === 'sell' ? t('form.origin') : t('form.destination');
     }));
 
   document.getElementById('commodity-select').addEventListener('change', (e) => {
@@ -192,29 +233,30 @@ function wireListingForm() {
 
 function resetListingForm() {
   EDITING_LISTING_ID = null;
-  document.getElementById('listing-form-title').textContent = 'New Listing';
+  document.getElementById('listing-form-title').textContent = t('form.newListing');
   document.getElementById('listing-form').reset();
   document.getElementById('commodity-other').classList.add('hidden');
-  document.getElementById('location-label').textContent = 'Origin';
+  document.getElementById('location-label').textContent = t('form.origin');
   // Drop any "(existing entry)" options setSelectValue() appended while editing.
-  populateSelect('unit', UNITS, true);
-  populateSelect('price_unit', UNITS, true);
-  populateSelect('location', COUNTRIES, true);
+  // Labels are translated; the stored values stay canonical English.
+  populateSelect('unit', UNITS, true, unitLabel);
+  populateSelect('price_unit', UNITS, true, unitLabel);
+  populateSelect('location', COUNTRIES, true, countryLabel);
   renderDocChecklist();
 }
 
 async function editListing(id) {
   const { data: listing, error } = await jericho.from('listings').select('*').eq('id', id).maybeSingle();
-  if (error || !listing) { showError('Could not load listing.'); return; }
+  if (error || !listing) { showError(t('listings.loadFailed')); return; }
 
   const { data: checklist } = await jericho.from('document_checklist').select('*').eq('listing_id', id);
   const selected = {};
   (checklist || []).forEach(c => { if (c.indicated) selected[c.doc_type] = true; });
 
   EDITING_LISTING_ID = id;
-  document.getElementById('listing-form-title').textContent = `Edit ${listing.reference_number}`;
+  document.getElementById('listing-form-title').textContent = t('form.editListing', { ref: listing.reference_number });
   document.querySelector(`input[name="type"][value="${listing.type}"]`).checked = true;
-  document.getElementById('location-label').textContent = listing.type === 'sell' ? 'Origin' : 'Destination';
+  document.getElementById('location-label').textContent = listing.type === 'sell' ? t('form.origin') : t('form.destination');
 
   const isKnownCommodity = COMMODITIES.some(c => c.name === listing.commodity);
   document.getElementById('commodity-select').value = isKnownCommodity ? listing.commodity : '__other__';
@@ -238,17 +280,17 @@ async function editListing(id) {
 async function submitListingForm(e) {
   e.preventDefault();
   const btn = document.getElementById('listing-submit-btn');
-  btn.disabled = true; btn.textContent = 'Saving…';
+  btn.disabled = true; btn.textContent = t('common.saving');
 
   const typeInput = document.querySelector('input[name="type"]:checked');
-  if (!typeInput) { showError('Choose Sell Offer or Buy Request.'); btn.disabled = false; btn.textContent = 'Save Listing'; return; }
+  if (!typeInput) { showError(t('form.chooseType')); btn.disabled = false; btn.textContent = t('form.saveListing'); return; }
   const type = typeInput.value;
 
   const commoditySelect = document.getElementById('commodity-select').value;
   const commodity = commoditySelect === '__other__'
     ? document.getElementById('commodity-other').value.trim()
     : commoditySelect;
-  if (!commodity) { showError('Choose or specify a commodity.'); btn.disabled = false; btn.textContent = 'Save Listing'; return; }
+  if (!commodity) { showError(t('form.chooseCommodity')); btn.disabled = false; btn.textContent = t('form.saveListing'); return; }
 
   const location = document.getElementById('location').value.trim();
 
@@ -270,16 +312,16 @@ async function submitListingForm(e) {
 
   if (listingId) {
     const { error } = await jericho.from('listings').update(payload).eq('id', listingId);
-    if (error) { showError(errorMessage(error)); btn.disabled = false; btn.textContent = 'Save Listing'; return; }
+    if (error) { showError(errorMessage(error)); btn.disabled = false; btn.textContent = t('form.saveListing'); return; }
   } else {
     const { data: refData, error: refError } = await jericho.rpc('next_reference', { p_type: type });
-    if (refError) { showError(errorMessage(refError)); btn.disabled = false; btn.textContent = 'Save Listing'; return; }
+    if (refError) { showError(errorMessage(refError)); btn.disabled = false; btn.textContent = t('form.saveListing'); return; }
 
     const { data: inserted, error } = await jericho
       .from('listings')
       .insert({ ...payload, user_id: CURRENT_PROFILE.id, reference_number: refData })
       .select('id').single();
-    if (error) { showError(errorMessage(error)); btn.disabled = false; btn.textContent = 'Save Listing'; return; }
+    if (error) { showError(errorMessage(error)); btn.disabled = false; btn.textContent = t('form.saveListing'); return; }
     listingId = inserted.id;
   }
 
@@ -291,10 +333,10 @@ async function submitListingForm(e) {
     .upsert(rows, { onConflict: 'listing_id,doc_type' });
   if (checklistError) console.error('Checklist save failed:', checklistError);
 
-  showSuccess('Listing saved.');
+  showSuccess(t('listings.saved'));
   resetListingForm();
   showScreen('my-listings');
-  btn.disabled = false; btn.textContent = 'Save Listing';
+  btn.disabled = false; btn.textContent = t('form.saveListing');
 }
 
 // -------------------------------------------------------------- BROWSE ----
@@ -304,7 +346,7 @@ function wireBrowse() {
 
 async function loadBrowseListings() {
   const container = document.getElementById('browse-list');
-  container.innerHTML = '<p class="empty-state">Loading…</p>';
+  container.innerHTML = `<p class="empty-state">${t('common.loading')}</p>`;
 
   const { data, error } = await jericho.rpc('get_public_listings');
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
@@ -321,7 +363,7 @@ async function loadBrowseListings() {
   if (statusFilter) listings = listings.filter(l => l.status === statusFilter);
   listings.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-  if (!listings.length) { container.innerHTML = '<p class="empty-state">No listings match.</p>'; return; }
+  if (!listings.length) { container.innerHTML = `<p class="empty-state">${t('browse.noMatch')}</p>`; return; }
 
   container.innerHTML = '';
   listings.forEach(l => {
@@ -333,19 +375,19 @@ async function loadBrowseListings() {
         <span class="badge ${statusBadgeClass(l.status)}">${escapeHtml(statusLabel(l.status))}</span>
       </div>
       <div class="list-row-meta">
-        ${l.type === 'sell' ? 'Sell Offer' : 'Buy Request'} ·
-        ${l.quantity ? escapeHtml(String(l.quantity)) + ' ' + escapeHtml(l.unit || '') : 'Qty n/a'} ·
+        ${l.type === 'sell' ? t('form.sellOffer') : t('form.buyRequest')} ·
+        ${l.quantity ? escapeHtml(formatNumber(l.quantity)) + ' ' + escapeHtml(unitLabel(l.unit || '')) : t('listings.qtyNa')} ·
         ${escapeHtml(l.incoterm)} ·
-        ${l.type === 'sell' ? 'Origin' : 'Destination'}: ${escapeHtml(l.region || 'n/a')}
+        ${l.type === 'sell' ? escapeHtml(t('browse.originLabel')) : escapeHtml(t('browse.destinationLabel'))}: ${escapeHtml(l.region ? countryLabel(l.region) : t('browse.na'))}
       </div>
-      ${l.specification ? `<div class="list-row-meta">Specification / Grade: ${escapeHtml(l.specification)}</div>` : ''}
-      ${l.price_conditions ? `<div class="list-row-meta">Price: ${escapeHtml(l.price_conditions)}${l.currency ? ' ' + escapeHtml(l.currency) : ''}${l.price_unit ? ' per ' + escapeHtml(l.price_unit) : ''}</div>` : ''}
-      ${l.notes ? `<div class="list-row-meta">Notes: ${escapeHtml(l.notes)}</div>` : ''}
+      ${l.specification ? `<div class="list-row-meta">${escapeHtml(t('browse.specification', { value: l.specification }))}</div>` : ''}
+      ${l.price_conditions ? `<div class="list-row-meta">${escapeHtml(t('browse.price', { value: priceLine(l) }))}</div>` : ''}
+      ${l.notes ? `<div class="list-row-meta">${escapeHtml(t('browse.notes', { value: l.notes }))}</div>` : ''}
       <div class="list-row-meta">
-        ${l.has_documents ? 'Documents indicated' : '<strong>No documents indicated</strong>'} · Posted ${formatDate(l.created_at)}
+        ${l.has_documents ? escapeHtml(t('listings.documentsIndicated')) : `<strong>${escapeHtml(t('listings.noDocsIndicated'))}</strong>`} · ${escapeHtml(t('listings.posted', { date: formatDate(l.created_at) }))}
       </div>
       <div class="row" style="margin-top:4px;">
-        <button class="btn btn-secondary btn-small" data-contact="${l.id}" data-ref="${escapeHtml(l.reference_number)}">Contact</button>
+        <button class="btn btn-secondary btn-small" data-contact="${l.id}" data-ref="${escapeHtml(l.reference_number)}">${escapeHtml(t('browse.contact'))}</button>
       </div>
     `;
     container.appendChild(row);
@@ -358,7 +400,7 @@ async function loadBrowseListings() {
 // ------------------------------------------------------------- MAILBOX ----
 async function loadMailbox() {
   const container = document.getElementById('mailbox-list');
-  container.innerHTML = '<p class="empty-state">Loading…</p>';
+  container.innerHTML = `<p class="empty-state">${t('common.loading')}</p>`;
 
   const { data: messages, error } = await jericho
     .from('messages').select('*').order('created_at', { ascending: false });
@@ -368,7 +410,7 @@ async function loadMailbox() {
     .from('message_forward_log').select('message_id').eq('to_user_id', CURRENT_PROFILE.id);
   const forwardedIds = new Set((forwardsToMe || []).map(f => f.message_id));
 
-  if (!messages.length) { container.innerHTML = '<p class="empty-state">No messages yet.</p>'; return; }
+  if (!messages.length) { container.innerHTML = `<p class="empty-state">${t('mailbox.none')}</p>`; return; }
 
   container.innerHTML = '';
   for (const m of messages) {
@@ -382,18 +424,18 @@ async function loadMailbox() {
     row.className = 'list-row';
     row.innerHTML = `
       <div class="list-row-top">
-        <span class="list-row-title">${mine ? 'You → Operators' : 'Forwarded to you'} ${refLabel ? '· ' + escapeHtml(refLabel) : ''}</span>
+        <span class="list-row-title">${escapeHtml(mine ? t('mailbox.fromYou') : t('mailbox.toYou'))} ${refLabel ? '· ' + escapeHtml(refLabel) : ''}</span>
         <span class="badge badge-grey">${escapeHtml(statusLabel(m.status))}</span>
       </div>
       ${m.subject ? `<div class="list-row-meta"><em>${escapeHtml(m.subject)}</em></div>` : ''}
       <div>${escapeHtml(m.body)}</div>
       <div class="list-row-meta">${formatDateTime(m.created_at)}</div>
-      ${!mine ? `<div class="row" style="margin-top:4px;"><button class="btn btn-secondary btn-small" data-reply="${m.listing_id || ''}">Reply</button></div>` : ''}
+      ${!mine ? `<div class="row" style="margin-top:4px;"><button class="btn btn-secondary btn-small" data-reply="${m.listing_id || ''}">${escapeHtml(t('common.reply'))}</button></div>` : ''}
     `;
     container.appendChild(row);
     if (!mine) {
       row.querySelector('[data-reply]').addEventListener('click', () =>
-        openContactModal(m.listing_id, refLabel || '(listing)'));
+        openContactModal(m.listing_id, refLabel || t('mailbox.listingFallback')));
     }
   }
 }
@@ -414,14 +456,14 @@ function closeContactModal() { document.getElementById('contact-modal').classLis
 
 async function sendContactMessage() {
   const body = document.getElementById('contact-body').value.trim();
-  if (!body) { showError('Write a message first.'); return; }
+  if (!body) { showError(t('contact.empty')); return; }
   const { error } = await jericho.from('messages').insert({
     sender_id: CURRENT_PROFILE.id,
     listing_id: CONTACT_TARGET.listingId || null,
     body, status: 'pending_review'
   });
   if (error) { showError(errorMessage(error)); return; }
-  showSuccess('Message sent to Operators.');
+  showSuccess(t('contact.sent'));
   closeContactModal();
   loadMailbox();
 }
@@ -429,7 +471,7 @@ async function sendContactMessage() {
 // --------------------------------------------------------- NOTIFICATIONS ----
 async function loadNotifications() {
   const container = document.getElementById('notifications-list');
-  container.innerHTML = '<p class="empty-state">Loading…</p>';
+  container.innerHTML = `<p class="empty-state">${t('common.loading')}</p>`;
 
   const { data, error } = await jericho
     .from('notifications').select('*')
@@ -437,7 +479,7 @@ async function loadNotifications() {
     .order('created_at', { ascending: false });
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
 
-  if (!data.length) { container.innerHTML = '<p class="empty-state">No notifications.</p>'; return; }
+  if (!data.length) { container.innerHTML = `<p class="empty-state">${t('notifications.none')}</p>`; return; }
 
   container.innerHTML = '';
   data.forEach(n => {
@@ -489,7 +531,7 @@ function wireProfile() {
       phone: document.getElementById('p_phone').value.trim(),
     }).eq('id', CURRENT_PROFILE.id);
     if (error) { showError(errorMessage(error)); return; }
-    showSuccess('Profile updated.');
+    showSuccess(t('profile.saved'));
   });
 
   document.getElementById('password-form').addEventListener('submit', async (e) => {
@@ -497,7 +539,7 @@ function wireProfile() {
     const newPassword = document.getElementById('new_password').value;
     const { error } = await jericho.auth.updateUser({ password: newPassword });
     if (error) { showError(errorMessage(error)); return; }
-    showSuccess('Password updated.');
+    showSuccess(t('profile.passwordUpdated'));
     document.getElementById('password-form').reset();
   });
 }
@@ -508,7 +550,7 @@ function wireProfile() {
 
 async function loadDocRequests() {
   const container = document.getElementById('doc-requests-list');
-  container.innerHTML = '<p class="empty-state">Loading…</p>';
+  container.innerHTML = `<p class="empty-state">${t('common.loading')}</p>`;
 
   const { data, error } = await jericho
     .from('document_requests')
@@ -517,7 +559,7 @@ async function loadDocRequests() {
     .order('requested_at', { ascending: false });
 
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
-  if (!data.length) { container.innerHTML = '<p class="empty-state">No document requests.</p>'; return; }
+  if (!data.length) { container.innerHTML = `<p class="empty-state">${t('docreq.none')}</p>`; return; }
 
   // Resolve reference numbers in one query rather than one per row.
   const listingIds = [...new Set(data.map(r => r.listing_id).filter(Boolean))];
@@ -536,18 +578,18 @@ async function loadDocRequests() {
     row.className = 'list-row';
     row.innerHTML = `
       <div class="list-row-top">
-        <span class="list-row-title">${escapeHtml(r.doc_type)}</span>
+        <span class="list-row-title">${escapeHtml(docTypeLabel(r.doc_type))}</span>
         <span class="badge ${badgeClass}">${escapeHtml(statusLabel(r.status))}</span>
       </div>
       <div class="list-row-meta">
         ${r.listing_id && refByListing[r.listing_id] ? escapeHtml(refByListing[r.listing_id]) + ' · ' : ''}
-        Requested ${formatDateTime(r.requested_at)}
-        ${r.responded_at ? ' · Responded ' + formatDateTime(r.responded_at) : ''}
+        ${escapeHtml(t('docreq.requested', { date: formatDateTime(r.requested_at) }))}
+        ${r.responded_at ? ' · ' + escapeHtml(t('docreq.responded', { date: formatDateTime(r.responded_at) })) : ''}
       </div>
       ${r.status === 'requested' ? `
         <div class="row" style="margin-top:4px;">
-          <button class="btn btn-primary btn-small" data-confirm="${r.id}">I have this document</button>
-          <button class="btn btn-secondary btn-small" data-unavailable="${r.id}">Not available</button>
+          <button class="btn btn-primary btn-small" data-confirm="${r.id}">${escapeHtml(t('docreq.haveIt'))}</button>
+          <button class="btn btn-secondary btn-small" data-unavailable="${r.id}">${escapeHtml(t('docreq.notAvailable'))}</button>
         </div>` : ''}
     `;
     container.appendChild(row);
@@ -567,7 +609,7 @@ async function respondToDocRequest(requestId, status) {
   if (error) { showError(errorMessage(error)); return; }
   // The database notifies Operators and writes the audit entry
   // (trg_notify_doc_request_response / trg_log_doc_request_change).
-  showSuccess('Response recorded.');
+  showSuccess(t('docreq.recorded'));
   loadDocRequests();
   refreshDocRequestDot();
 }

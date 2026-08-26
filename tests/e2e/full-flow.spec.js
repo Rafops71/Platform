@@ -210,7 +210,10 @@ test.describe.serial('full participant lifecycle', () => {
     // Every commercial field is public to an approved participant.
     await expect(card).toContainText(LISTING.commodity);
     await expect(card).toContainText(LISTING.specification);
-    await expect(card).toContainText(LISTING.price);
+    // Numbers are rendered in the active locale, so 13850 shows as 13,850 in
+    // English (and 13.850 in Spanish). Assert what the participant actually
+    // sees rather than the raw stored string.
+    await expect(card).toContainText(new Intl.NumberFormat('en-GB').format(Number(LISTING.price)));
     await expect(card).toContainText(LISTING.priceUnit);
     await expect(card).toContainText(LISTING.notes);
     await expect(card).toContainText(LISTING.origin);

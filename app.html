@@ -12,20 +12,21 @@
     <h1>Jericho Platform</h1>
     <div class="user-info">
       <span id="user-name"></span> ·
-      <a href="#" id="logout-link" style="color:#fff;">Sign out</a>
+      <span id="lang-toggle" class="lang-toggle"></span> ·
+      <a href="#" id="logout-link" style="color:#fff;" data-i18n="common.signout">Sign out</a>
     </div>
   </div>
 </header>
 
 <nav class="tabs">
   <div class="container">
-    <button data-screen="my-listings" class="active">My Listings</button>
-    <button data-screen="new-listing">New Listing</button>
-    <button data-screen="browse">Browse</button>
-    <button data-screen="doc-requests">Documents<span id="docreq-dot" class="notification-dot hidden"></span></button>
-    <button data-screen="mailbox">Mailbox</button>
-    <button data-screen="notifications">Notifications<span id="notif-dot" class="notification-dot hidden"></span></button>
-    <button data-screen="profile">Profile</button>
+    <button data-screen="my-listings" class="active" data-i18n="nav.myListings">My Listings</button>
+    <button data-screen="new-listing" data-i18n="nav.newListing">New Listing</button>
+    <button data-screen="browse" data-i18n="nav.browse">Browse</button>
+    <button data-screen="doc-requests"><span data-i18n="nav.documents">Documents</span><span id="docreq-dot" class="notification-dot hidden"></span></button>
+    <button data-screen="mailbox" data-i18n="nav.mailbox">Mailbox</button>
+    <button data-screen="notifications"><span data-i18n="nav.notifications">Notifications</span><span id="notif-dot" class="notification-dot hidden"></span></button>
+    <button data-screen="profile" data-i18n="nav.profile">Profile</button>
   </div>
 </nav>
 
@@ -35,8 +36,8 @@
   <section id="screen-my-listings" class="screen active">
     <div class="card">
       <div class="flex-between">
-        <h2 class="mt-0">My Listings</h2>
-        <button class="btn btn-primary btn-small" data-goto="new-listing">+ New Listing</button>
+        <h2 class="mt-0" data-i18n="listings.mine">My Listings</h2>
+        <button class="btn btn-primary btn-small" data-goto="new-listing" data-i18n="listings.new">+ New Listing</button>
       </div>
       <div id="my-listings-list" class="stack"><p class="empty-state">Loading…</p></div>
     </div>
@@ -49,34 +50,34 @@
       <form id="listing-form">
         <input type="hidden" id="listing-id">
 
-        <label>Type *</label>
+        <label><span data-i18n="form.type">Type</span> *</label>
         <div class="row">
-          <label class="checkbox-row"><input type="radio" name="type" value="sell" required> Sell Offer</label>
-          <label class="checkbox-row"><input type="radio" name="type" value="buy"> Buy Request</label>
+          <label class="checkbox-row"><input type="radio" name="type" value="sell" required> <span data-i18n="form.sellOffer">Sell Offer</span></label>
+          <label class="checkbox-row"><input type="radio" name="type" value="buy"> <span data-i18n="form.buyRequest">Buy Request</span></label>
         </div>
 
-        <label for="commodity">Commodity *</label>
+        <label for="commodity"><span data-i18n="form.commodity">Commodity</span> *</label>
         <select id="commodity-select">
-          <option value="">Loading commodities…</option>
-          <option value="__other__">Other (specify)</option>
+          <option value="" data-i18n="form.commodityLoading">Loading commodities…</option>
+          <option value="__other__" data-i18n="form.commodityOther">Other (specify)</option>
         </select>
-        <input type="text" id="commodity-other" placeholder="Specify commodity" class="hidden" style="margin-top:8px;">
+        <input type="text" id="commodity-other" data-i18n-placeholder="form.commodityOtherPlaceholder" placeholder="Specify commodity" class="hidden" style="margin-top:8px;">
 
         <div class="grid-2">
           <div>
-            <label for="quantity">Quantity</label>
+            <label for="quantity" data-i18n="form.quantity">Quantity</label>
             <input type="number" id="quantity" step="any" min="0">
           </div>
           <div>
-            <label for="unit">Unit</label>
+            <label for="unit" data-i18n="form.unit">Unit</label>
             <select id="unit"></select>
           </div>
         </div>
 
-        <label for="specification">Specification / Grade</label>
+        <label for="specification" data-i18n="form.specification">Specification / Grade</label>
         <textarea id="specification"></textarea>
 
-        <label for="incoterm">Incoterm *</label>
+        <label for="incoterm"><span data-i18n="form.incoterm">Incoterm</span> *</label>
         <select id="incoterm" required></select>
 
         <label id="location-label" for="location">Origin</label>
@@ -84,31 +85,31 @@
 
         <div class="grid-2">
           <div>
-            <label for="price_conditions">Price amount</label>
+            <label for="price_conditions" data-i18n="form.priceAmount">Price amount</label>
             <input type="text" id="price_conditions">
           </div>
           <div>
-            <label for="currency">Currency</label>
+            <label for="currency" data-i18n="form.currency">Currency</label>
             <select id="currency">
               <option value="">—</option>
             </select>
           </div>
         </div>
 
-        <label for="price_unit">Price per</label>
+        <label for="price_unit" data-i18n="form.pricePer">Price per</label>
         <select id="price_unit"></select>
 
-        <label for="notes">Notes</label>
+        <label for="notes" data-i18n="form.notes">Notes</label>
         <textarea id="notes"></textarea>
 
         <fieldset>
-          <legend>Documents you have</legend>
+          <legend data-i18n="form.documentsYouHave">Documents you have</legend>
           <div id="doc-checklist" class="stack"></div>
         </fieldset>
 
         <div class="row" style="margin-top:18px;">
-          <button type="submit" class="btn btn-primary" id="listing-submit-btn">Save Listing</button>
-          <button type="button" class="btn btn-secondary" id="listing-cancel-btn">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="listing-submit-btn" data-i18n="form.saveListing">Save Listing</button>
+          <button type="button" class="btn btn-secondary" id="listing-cancel-btn" data-i18n="common.cancel">Cancel</button>
         </div>
       </form>
     </div>
@@ -117,26 +118,26 @@
   <!-- BROWSE (anonymous) -->
   <section id="screen-browse" class="screen">
     <div class="card">
-      <h2 class="mt-0">Browse Listings</h2>
-      <p class="text-muted" style="font-size:13px;">Anonymous — you never see who posted a listing.</p>
+      <h2 class="mt-0" data-i18n="browse.title">Browse Listings</h2>
+      <p class="text-muted" style="font-size:13px;" data-i18n="browse.anonymous">Anonymous — you never see who posted a listing.</p>
       <div class="row" style="margin-bottom:12px;">
         <select id="browse-filter-type" style="max-width:160px;">
-          <option value="">All types</option>
-          <option value="sell">Sell Offers</option>
-          <option value="buy">Buy Requests</option>
+          <option value="" data-i18n="browse.allTypes">All types</option>
+          <option value="sell" data-i18n="browse.sellOffers">Sell Offers</option>
+          <option value="buy" data-i18n="browse.buyRequests">Buy Requests</option>
         </select>
         <select id="browse-filter-commodity" style="max-width:240px;">
-          <option value="">All commodities</option>
+          <option value="" data-i18n="browse.allCommodities">All commodities</option>
         </select>
-        <input type="text" id="browse-filter-region" placeholder="Origin / Destination" style="max-width:180px;">
+        <input type="text" id="browse-filter-region" data-i18n-placeholder="browse.originDestination" placeholder="Origin / Destination" style="max-width:180px;">
         <select id="browse-filter-status" style="max-width:170px;">
-          <option value="">All statuses</option>
-          <option value="available">Available</option>
-          <option value="under_review">Under Review</option>
-          <option value="negotiation">Negotiation</option>
-          <option value="closed">Closed</option>
+          <option value="" data-i18n="browse.allStatuses">All statuses</option>
+          <option value="available" data-i18n="status.available">Available</option>
+          <option value="under_review" data-i18n="status.under_review">Under Review</option>
+          <option value="negotiation" data-i18n="status.negotiation">Negotiation</option>
+          <option value="closed" data-i18n="status.closed">Closed</option>
         </select>
-        <button class="btn btn-secondary btn-small" id="browse-refresh-btn">Apply</button>
+        <button class="btn btn-secondary btn-small" id="browse-refresh-btn" data-i18n="common.apply">Apply</button>
       </div>
       <div id="browse-list" class="stack"><p class="empty-state">Loading…</p></div>
     </div>
@@ -145,8 +146,8 @@
   <!-- DOCUMENT REQUESTS (participant response) -->
   <section id="screen-doc-requests" class="screen">
     <div class="card">
-      <h2 class="mt-0">Document Requests</h2>
-      <p class="text-muted" style="font-size:13px;">Operators may ask you to confirm a specific document. No upload is required — confirm whether you have it.</p>
+      <h2 class="mt-0" data-i18n="docreq.title">Document Requests</h2>
+      <p class="text-muted" style="font-size:13px;" data-i18n="docreq.intro">Operators may ask you to confirm a specific document. No upload is required — confirm whether you have it.</p>
       <div id="doc-requests-list" class="stack"><p class="empty-state">Loading…</p></div>
     </div>
   </section>
@@ -154,8 +155,8 @@
   <!-- MAILBOX -->
   <section id="screen-mailbox" class="screen">
     <div class="card">
-      <h2 class="mt-0">Mailbox</h2>
-      <p class="text-muted" style="font-size:13px;">All messages go through the Operators — no direct contact between participants.</p>
+      <h2 class="mt-0" data-i18n="mailbox.title">Mailbox</h2>
+      <p class="text-muted" style="font-size:13px;" data-i18n="mailbox.intro">All messages go through the Operators — no direct contact between participants.</p>
       <div id="mailbox-list" class="stack"><p class="empty-state">Loading…</p></div>
     </div>
   </section>
@@ -163,7 +164,7 @@
   <!-- NOTIFICATIONS -->
   <section id="screen-notifications" class="screen">
     <div class="card">
-      <h2 class="mt-0">Notifications</h2>
+      <h2 class="mt-0" data-i18n="notifications.title">Notifications</h2>
       <div id="notifications-list" class="stack"><p class="empty-state">Loading…</p></div>
     </div>
   </section>
@@ -171,43 +172,43 @@
   <!-- PROFILE -->
   <section id="screen-profile" class="screen">
     <div class="card">
-      <h2 class="mt-0">Profile</h2>
+      <h2 class="mt-0" data-i18n="profile.title">Profile</h2>
       <form id="profile-form">
         <div class="grid-2">
           <div>
-            <label for="p_first_name">First name</label>
+            <label for="p_first_name" data-i18n="register.firstName">First name</label>
             <input type="text" id="p_first_name" required>
           </div>
           <div>
-            <label for="p_last_name">Last name</label>
+            <label for="p_last_name" data-i18n="register.lastName">Last name</label>
             <input type="text" id="p_last_name" required>
           </div>
         </div>
-        <label for="p_company">Company</label>
+        <label for="p_company" data-i18n="register.company">Company</label>
         <input type="text" id="p_company">
-        <label>Email</label>
+        <label data-i18n="common.email">Email</label>
         <input type="email" id="p_email" disabled>
-        <div class="field-hint">Email cannot be changed here — contact an Operator.</div>
+        <div class="field-hint" data-i18n="profile.emailLocked">Email cannot be changed here — contact an Operator.</div>
         <div class="grid-2">
           <div>
-            <label for="p_country">Country</label>
+            <label for="p_country" data-i18n="register.country">Country</label>
             <input type="text" id="p_country" required>
           </div>
           <div>
-            <label for="p_phone">Phone</label>
+            <label for="p_phone" data-i18n="profile.phone">Phone</label>
             <input type="tel" id="p_phone" required>
           </div>
         </div>
-        <button type="submit" class="btn btn-primary" style="margin-top:16px;">Save Profile</button>
+        <button type="submit" class="btn btn-primary" style="margin-top:16px;" data-i18n="profile.save">Save Profile</button>
       </form>
     </div>
 
     <div class="card">
-      <h3>Change Password</h3>
+      <h3 data-i18n="profile.changePassword">Change Password</h3>
       <form id="password-form">
-        <label for="new_password">New password</label>
+        <label for="new_password" data-i18n="profile.newPassword">New password</label>
         <input type="password" id="new_password" minlength="6" required>
-        <button type="submit" class="btn btn-secondary" style="margin-top:12px;">Update Password</button>
+        <button type="submit" class="btn btn-secondary" style="margin-top:12px;" data-i18n="profile.updatePassword">Update Password</button>
       </form>
     </div>
   </section>
@@ -218,18 +219,19 @@
 <div id="contact-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:900;">
   <div class="card" style="max-width:420px;margin:60px auto;">
     <h2 class="mt-0">Contact <span id="contact-ref"></span></h2>
-    <p class="text-muted" style="font-size:13px;">Your message goes to the Operators, who will forward it anonymously if appropriate.</p>
-    <label for="contact-body">Message</label>
+    <p class="text-muted" style="font-size:13px;" data-i18n="contact.intro">Your message goes to the Operators, who will forward it anonymously if appropriate.</p>
+    <label for="contact-body" data-i18n="common.message">Message</label>
     <textarea id="contact-body" required></textarea>
     <div class="row" style="margin-top:14px;">
-      <button class="btn btn-primary" id="contact-send-btn">Send</button>
-      <button class="btn btn-secondary" id="contact-cancel-btn">Cancel</button>
+      <button class="btn btn-primary" id="contact-send-btn" data-i18n="common.send">Send</button>
+      <button class="btn btn-secondary" id="contact-cancel-btn" data-i18n="common.cancel">Cancel</button>
     </div>
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.4/dist/umd/supabase.js"></script>
 <script src="js/supabase-config.js"></script>
+<script src="js/i18n.js"></script>
 <script src="js/utils.js"></script>
 <script src="js/app.js"></script>
 </body>

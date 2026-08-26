@@ -13,16 +13,37 @@ function escapeHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
+/** Dates are shown in European format, DD/MM/YYYY, everywhere in the platform.
+ *  Built from the parts rather than toLocaleDateString() so the result cannot
+ *  drift with the viewer's machine locale — a US-configured browser would
+ *  otherwise render 03/04/2026 as March 4th to one participant and April 3rd
+ *  to another, which is worse than being in the wrong language. */
 function formatDate(isoString) {
   if (!isoString) return '';
   const d = new Date(isoString);
-  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = n => String(n).padStart(2, '0');
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
 }
 
+/** DD/MM/YYYY HH:MM, 24-hour — European convention, no AM/PM. */
 function formatDateTime(isoString) {
   if (!isoString) return '';
   const d = new Date(isoString);
-  return d.toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = n => String(n).padStart(2, '0');
+  return `${formatDate(isoString)} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/** Numbers in the active language's convention: 1.234,5 in Spanish,
+ *  1,234.5 in English. Both are European-style (en-GB, not en-US).
+ *  Falls back to the raw value where i18n is not loaded (operator.html). */
+function formatNumber(value) {
+  if (value === null || value === undefined || value === '') return '';
+  const n = Number(value);
+  if (Number.isNaN(n)) return String(value);
+  const locale = typeof i18nLocale === 'function' ? i18nLocale() : 'en-GB';
+  return new Intl.NumberFormat(locale, { maximumFractionDigits: 4 }).format(n);
 }
 
 /** Simple toast notification, top of screen, auto-dismisses. */
@@ -115,6 +136,7 @@ function getQueryParam(name) {
 const DOCUMENT_GROUPS = [
   {
     title: 'Material / Product Documentation',
+    titleKey: 'docs.groupMaterial',
     docs: [
       'Certificate of Analysis (COA)',
       'Assay Report',
@@ -131,6 +153,7 @@ const DOCUMENT_GROUPS = [
   },
   {
     title: 'Company / Compliance & Supporting Documentation',
+    titleKey: 'docs.groupCompany',
     docs: [
       'Company Registration / Corporate Documents',
       'KYC Documentation',
@@ -141,8 +164,37 @@ const DOCUMENT_GROUPS = [
 ];
 
 /** Flat list of every checklist item, in display order. document_checklist
- *  rows are keyed by these strings, so they are the storage contract too. */
+ *  rows are keyed by these strings, so they are the storage contract too —
+ *  which is exactly why the Spanish labels below are display-only. */
 const DOCUMENT_TYPES = DOCUMENT_GROUPS.flatMap(g => g.docs);
+
+/** Canonical doc_type -> translation key. Storage never changes language. */
+const DOCUMENT_TYPE_KEYS = {
+  'Certificate of Analysis (COA)': 'docs.certificateOfAnalysis',
+  'Assay Report': 'docs.assayReport',
+  'Certificate of Origin': 'docs.certificateOfOrigin',
+  'Photos': 'docs.photos',
+  'Videos': 'docs.videos',
+  'Warehouse Receipt, where applicable': 'docs.warehouseReceipt',
+  'Bill of Lading / Shipping Documentation, where applicable': 'docs.billOfLading',
+  'Packing List, where applicable': 'docs.packingList',
+  'Other relevant product/material documentation': 'docs.otherMaterial',
+  'Company Registration / Corporate Documents': 'docs.companyRegistration',
+  'KYC Documentation': 'docs.kyc',
+  'CIS (Customer Information Sheet)': 'docs.cis',
+  'Other': 'docs.other',
+};
+
+/** Display label for a stored doc_type. English (the stored value) wherever
+ *  i18n is not loaded, so operator.html is unaffected. */
+function docTypeLabel(docType) {
+  const key = DOCUMENT_TYPE_KEYS[docType];
+  if (key && typeof t === 'function') {
+    const translated = t(key);
+    if (translated !== key) return translated;
+  }
+  return docType;
+}
 
 const INCOTERMS = ['EXW', 'FCA', 'FAS', 'FOB', 'CFR', 'CIF', 'CPT', 'CIP', 'DAP', 'DPU', 'DDP'];
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'ZAR'];
@@ -188,15 +240,25 @@ const COUNTRIES = [
 
 /** Populate a <select> with plain string options. If withBlank, first resets
  *  the select and inserts a leading empty option; otherwise appends to
- *  whatever options are already there (e.g. a placeholder in the HTML). */
-function populateSelect(id, values, withBlank = false) {
+ *  whatever options are already there (e.g. a placeholder in the HTML).
+ *
+ *  `labelFn` translates what the option *shows* without touching what it
+ *  *stores*. Country and unit values stay canonical English in the database,
+ *  so a listing created in Spanish and one created in English are identical
+ *  records — only the rendering differs. */
+function populateSelect(id, values, withBlank = false, labelFn = null) {
   const el = document.getElementById(id);
+  if (!el) return;
+  const previous = el.value;
   if (withBlank) el.innerHTML = '<option value="">—</option>';
   values.forEach(v => {
     const opt = document.createElement('option');
-    opt.value = v; opt.textContent = v;
+    opt.value = v;
+    opt.textContent = labelFn ? labelFn(v) : v;
     el.appendChild(opt);
   });
+  // Keep the current selection across a language switch, which repopulates.
+  if (previous && values.includes(previous)) el.value = previous;
 }
 
 /** Sort commodity rows alphabetically by name, with "Other" pinned last.
@@ -233,7 +295,9 @@ function setSelectValue(id, value) {
 
   const opt = document.createElement('option');
   opt.value = value;
-  opt.textContent = `${value} (existing entry)`;
+  opt.textContent = typeof t === 'function'
+    ? t('form.existingEntry', { value })
+    : `${value} (existing entry)`;
   el.appendChild(opt);
   el.value = value;
 }
@@ -247,4 +311,13 @@ const STATUS_LABELS = {
   pending_review: 'Pending Review', forwarded: 'Forwarded', replied: 'Replied', ignored: 'Ignored'
 };
 
-function statusLabel(status) { return STATUS_LABELS[status] || status; }
+/** Human label for a status. On participant pages this goes through the
+ *  translation dictionary; on operator.html, where js/i18n.js is deliberately
+ *  not loaded, it falls back to the English table above. */
+function statusLabel(status) {
+  if (typeof t === 'function') {
+    const translated = t(`status.${status}`);
+    if (translated !== `status.${status}`) return translated;
+  }
+  return STATUS_LABELS[status] || status;
+}

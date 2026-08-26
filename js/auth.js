@@ -2,9 +2,24 @@
 // Runs on both index.html (login) and register.html (registration).
 
 document.addEventListener('DOMContentLoaded', () => {
+  applyTranslations();
+  renderLanguageToggle('lang-toggle');
+
   if (document.getElementById('login-form')) initLoginPage();
   if (document.getElementById('register-form')) initRegisterPage();
 });
+
+/** Re-render what applyTranslations() cannot reach: the country dropdown,
+ *  whose labels are translated while its stored values stay English. */
+window.onLanguageChange = function () {
+  if (document.getElementById('country')) {
+    const select = document.getElementById('country');
+    const chosen = select.value;
+    select.innerHTML = `<option value="">${escapeHtml(t('register.countryPlaceholder'))}</option>`;
+    populateSelect('country', COUNTRIES, false, countryLabel);
+    select.value = chosen;
+  }
+};
 
 // ---------------------------------------------------------------- LOGIN ----
 async function initLoginPage() {
@@ -18,10 +33,10 @@ async function initLoginPage() {
 
   const notice = document.getElementById('notice');
   if (getQueryParam('pending') === '1') {
-    notice.textContent = 'Your registration is awaiting Operator approval. You will be able to sign in once approved.';
+    notice.textContent = t('login.pending');
     notice.classList.remove('hidden');
   } else if (getQueryParam('blocked') === '1') {
-    notice.textContent = 'This account is not currently active. Contact an Operator.';
+    notice.textContent = t('login.blocked');
     notice.classList.remove('hidden');
   }
 
@@ -31,13 +46,13 @@ async function initLoginPage() {
     const password = document.getElementById('password').value;
     const btn = document.getElementById('login-btn');
     btn.disabled = true;
-    btn.textContent = 'Signing in…';
+    btn.textContent = t('login.submitting');
 
     const { data, error } = await jericho.auth.signInWithPassword({ email, password });
     if (error) {
       showError(errorMessage(error));
       btn.disabled = false;
-      btn.textContent = 'Sign In';
+      btn.textContent = t('login.submit');
       return;
     }
 
@@ -45,10 +60,10 @@ async function initLoginPage() {
       .from('profiles').select('*').eq('user_id', data.user.id).maybeSingle();
 
     if (profErr || !prof) {
-      showError('Could not load your profile. Contact an Operator.');
+      showError(t('login.noProfile'));
       await jericho.auth.signOut();
       btn.disabled = false;
-      btn.textContent = 'Sign In';
+      btn.textContent = t('login.submit');
       return;
     }
 
@@ -84,7 +99,7 @@ async function initRegisterPage() {
   const checking = document.getElementById('invitation-checking');
   const invalidCard = document.getElementById('invitation-invalid');
   const registerCard = document.getElementById('register-card');
-  populateSelect('country', COUNTRIES);
+  populateSelect('country', COUNTRIES, false, countryLabel);
 
   if (!invitationToken) {
     checking.classList.add('hidden');
@@ -115,7 +130,7 @@ async function handleRegisterSubmit(e) {
   e.preventDefault();
   const btn = document.getElementById('register-btn');
   btn.disabled = true;
-  btn.textContent = 'Registering…';
+  btn.textContent = t('register.submitting');
 
   const email = document.getElementById('email').value.trim().toLowerCase();
   const password = document.getElementById('password').value;
@@ -133,7 +148,7 @@ async function handleRegisterSubmit(e) {
   if (error) {
     showError(errorMessage(error));
     btn.disabled = false;
-    btn.textContent = 'Register';
+    btn.textContent = t('register.submit');
     return;
   }
 
@@ -143,9 +158,9 @@ async function handleRegisterSubmit(e) {
     // with email confirmation OFF (see README) specifically so this step
     // works in one pass; if it's on, tell the user plainly rather than
     // silently failing to consume the invitation.
-    showError('Account created, but email confirmation is required by the current Supabase settings. Contact an Operator — invitation could not be marked as used automatically.');
+    showError(`${t('register.emailConfirm')} ${t('register.inviteNotMarked')}`);
     btn.disabled = false;
-    btn.textContent = 'Register';
+    btn.textContent = t('register.submit');
     return;
   }
 

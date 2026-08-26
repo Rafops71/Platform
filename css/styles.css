@@ -252,3 +252,46 @@ table.data-table th { color: var(--text-muted); font-size: 12px; text-transform:
   input[type="checkbox"], input[type="radio"] { min-height: 20px; }
   nav.tabs button { min-height: 44px; }
 }
+
+/* ---------------------------------------------------------------------------
+   Language toggle (participant pages only — the Operator dashboard is
+   English-only and never renders one). Two small EN / ES buttons that inherit
+   the surrounding colour, so the same markup works both on the dark header
+   and on the light sign-in card.
+   --------------------------------------------------------------------------- */
+.lang-toggle {
+  display: inline-flex;
+  gap: 2px;
+  vertical-align: middle;
+}
+.lang-btn {
+  background: transparent;
+  border: 1px solid currentColor;
+  color: inherit;
+  opacity: 0.65;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  line-height: 1;
+  padding: 3px 6px;
+  min-height: 0;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.lang-btn:hover { opacity: 0.9; }
+/* A neutral grey wash rather than currentColor: the toggle sits on the dark
+   header and on the light auth card, and filling with the text colour would
+   make the active label invisible against its own background. */
+.lang-btn-active {
+  opacity: 1;
+  background: rgba(128, 128, 128, 0.3);
+}
+
+/* On the sign-in and registration cards the toggle sits above the logo,
+   right-aligned, so it never competes with the form. */
+.lang-toggle-auth {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+  color: var(--text-muted, #667);
+}
