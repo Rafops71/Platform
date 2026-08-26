@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   populateSelect('incoterm', INCOTERMS);
   populateSelect('currency', CURRENCIES, true);
   populateSelect('unit', UNITS, true);
+  populateSelect('price_unit', UNITS, true);
   populateSelect('location', COUNTRIES, true);
   await loadCommodities();
   renderDocChecklist();
@@ -200,6 +201,7 @@ function resetListingForm() {
   document.getElementById('location-label').textContent = 'Origin';
   // Drop any "(existing entry)" options setSelectValue() appended while editing.
   populateSelect('unit', UNITS, true);
+  populateSelect('price_unit', UNITS, true);
   populateSelect('location', COUNTRIES, true);
   renderDocChecklist();
 }
@@ -228,6 +230,7 @@ async function editListing(id) {
   document.getElementById('incoterm').value = listing.incoterm;
   setSelectValue('location', listing.type === 'sell' ? listing.origin : listing.destination);
   document.getElementById('price_conditions').value = listing.price_conditions ?? '';
+  setSelectValue('price_unit', listing.price_unit);
   document.getElementById('currency').value = listing.currency ?? '';
   document.getElementById('notes').value = listing.notes ?? '';
   renderDocChecklist(selected);
@@ -261,6 +264,7 @@ async function submitListingForm(e) {
     origin: type === 'sell' ? (location || null) : null,
     destination: type === 'buy' ? (location || null) : null,
     price_conditions: document.getElementById('price_conditions').value.trim() || null,
+    price_unit: document.getElementById('price_unit').value || null,
     currency: document.getElementById('currency').value || null,
     notes: document.getElementById('notes').value.trim() || null,
   };
@@ -338,7 +342,7 @@ async function loadBrowseListings() {
         ${l.type === 'sell' ? 'Origin' : 'Destination'}: ${escapeHtml(l.region || 'n/a')}
       </div>
       ${l.specification ? `<div class="list-row-meta">Specification / Grade: ${escapeHtml(l.specification)}</div>` : ''}
-      ${l.price_conditions ? `<div class="list-row-meta">Price / Conditions: ${escapeHtml(l.price_conditions)}${l.currency ? ' ' + escapeHtml(l.currency) : ''}</div>` : ''}
+      ${l.price_conditions ? `<div class="list-row-meta">Price: ${escapeHtml(l.price_conditions)}${l.currency ? ' ' + escapeHtml(l.currency) : ''}${l.price_unit ? ' per ' + escapeHtml(l.price_unit) : ''}</div>` : ''}
       ${l.notes ? `<div class="list-row-meta">Notes: ${escapeHtml(l.notes)}</div>` : ''}
       <div class="list-row-meta">
         ${l.has_documents ? 'Documents indicated' : '<strong>No documents indicated</strong>'} · Posted ${formatDate(l.created_at)}

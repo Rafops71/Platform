@@ -118,11 +118,14 @@ const DOCUMENT_GROUPS = [
     docs: [
       'Certificate of Analysis (COA)',
       'Assay Report',
-      'SGS or equivalent independent inspection report',
       'Certificate of Origin',
-      'Proof of Product',
       'Photos',
       'Videos',
+      // Shipping paperwork sits here rather than under Compliance: it evidences
+      // the goods themselves — that they exist, are stored, and are in transit.
+      'Warehouse Receipt, where applicable',
+      'Bill of Lading / Shipping Documentation, where applicable',
+      'Packing List, where applicable',
       'Other relevant product/material documentation',
     ],
   },
@@ -132,11 +135,7 @@ const DOCUMENT_GROUPS = [
       'Company Registration / Corporate Documents',
       'KYC Documentation',
       'CIS (Customer Information Sheet)',
-      'Export License / Permit, where applicable',
-      'Warehouse Receipt, where applicable',
-      'Bill of Lading / Shipping Documentation, where applicable',
-      'Packing List, where applicable',
-      'Other relevant compliance or logistical documentation',
+      'Other',
     ],
   },
 ];
@@ -148,10 +147,13 @@ const DOCUMENT_TYPES = DOCUMENT_GROUPS.flatMap(g => g.docs);
 const INCOTERMS = ['EXW', 'FCA', 'FAS', 'FOB', 'CFR', 'CIF', 'CPT', 'CIP', 'DAP', 'DPU', 'DDP'];
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'ZAR'];
 
-/** Commercial weights and volumes offered for a listing's Unit field. */
+/** Commercial weights and volumes. Used for both a listing's Quantity unit
+ *  and its "Price per" unit, which are deliberately independent — ore is
+ *  quantified in metric tons but priced per DMTU, for instance. */
 const UNITS = [
   'Grams', 'Kilograms', 'Metric tons', 'Pounds', 'Ounces',
   'Liters', 'Cubic meters', 'Barrels', 'Gallons', 'Bushels',
+  'Dry Metric Ton Units (DMTU)',
 ];
 
 const COUNTRIES = [

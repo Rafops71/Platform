@@ -86,6 +86,9 @@ create table if not exists public.listings (
   origin             text,       -- used when type = 'sell'
   destination        text,       -- used when type = 'buy'
   price_conditions   text,
+  -- Unit the price is quoted per (from UNITS in js/utils.js). Independent of
+  -- `unit` above: ore is quantified in metric tons but priced per DMTU.
+  price_unit         text,
   currency           text check (currency in ('USD','EUR','GBP','ZAR')),
   notes              text,
   status             text not null default 'available' check (status in
@@ -106,21 +109,19 @@ create table if not exists public.document_checklist (
   id           uuid primary key default gen_random_uuid(),
   listing_id   uuid not null references public.listings(id) on delete cascade,
   -- Two fixed categories; see DOCUMENT_GROUPS in js/utils.js. Kept in step
-  -- with sql/005_confirmed_updates.sql, which migrates existing databases.
+  -- with sql/006_checklist_and_price_unit.sql, which migrates existing
+  -- databases to this same vocabulary.
   doc_type     text not null check (doc_type in (
                  -- A) Material / Product Documentation
                  'Certificate of Analysis (COA)','Assay Report',
-                 'SGS or equivalent independent inspection report',
-                 'Certificate of Origin','Proof of Product','Photos','Videos',
-                 'Other relevant product/material documentation',
-                 -- B) Company / Compliance & Supporting Documentation
-                 'Company Registration / Corporate Documents','KYC Documentation',
-                 'CIS (Customer Information Sheet)',
-                 'Export License / Permit, where applicable',
+                 'Certificate of Origin','Photos','Videos',
                  'Warehouse Receipt, where applicable',
                  'Bill of Lading / Shipping Documentation, where applicable',
                  'Packing List, where applicable',
-                 'Other relevant compliance or logistical documentation')),
+                 'Other relevant product/material documentation',
+                 -- B) Company / Compliance & Supporting Documentation
+                 'Company Registration / Corporate Documents','KYC Documentation',
+                 'CIS (Customer Information Sheet)','Other')),
   indicated    boolean not null default false,
   updated_at   timestamptz not null default now(),
   unique (listing_id, doc_type)
