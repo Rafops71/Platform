@@ -45,31 +45,38 @@ const RETRY_FAILED = process.argv.includes('--retry-failed');
 const MAX_ATTEMPTS = 5;
 
 function loadEnv() {
+  // .env is a local-development convenience, not a requirement. CI has no
+  // .env at all — it is git-ignored — and passes the same values as real
+  // environment variables instead. Treating a missing file as fatal made this
+  // script exit 1 on every GitHub Actions run before it ever looked at them.
   const envPath = path.join(ROOT, '.env');
-  if (!fs.existsSync(envPath)) {
-    console.error('ERROR: no .env — cp .env.example .env and fill it in.');
-    process.exit(1);
+  if (fs.existsSync(envPath)) {
+    for (const line of fs.readFileSync(envPath, 'utf8').split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const eq = trimmed.indexOf('=');
+      if (eq === -1) continue;
+      const key = trimmed.slice(0, eq).trim();
+      const value = trimmed.slice(eq + 1).trim();
+      // Real environment variables win, so CI secrets are never shadowed.
+      if (!(key in process.env)) process.env[key] = value;
+    }
   }
-  for (const line of fs.readFileSync(envPath, 'utf8').split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const eq = trimmed.indexOf('=');
-    if (eq === -1) continue;
-    const key = trimmed.slice(0, eq).trim();
-    const value = trimmed.slice(eq + 1).trim();
-    if (!(key in process.env)) process.env[key] = value;
-  }
+
+  // Named generically: locally these come from .env, in CI from repo secrets.
+  const where = fs.existsSync(envPath) ? '.env' : 'the environment (CI: repo secrets)';
+
   if (!process.env.SUPABASE_DB_URL) {
-    console.error('ERROR: SUPABASE_DB_URL empty in .env');
+    console.error(`ERROR: SUPABASE_DB_URL not set in ${where}`);
     process.exit(1);
   }
   if (!DRY_RUN && !process.env.RESEND_API_KEY) {
-    console.error('ERROR: RESEND_API_KEY empty in .env — see the header of this file.');
+    console.error(`ERROR: RESEND_API_KEY not set in ${where} — see the header of this file.`);
     console.error('(Use --dry-run to preview queued emails without sending or needing a key.)');
     process.exit(1);
   }
   if (!DRY_RUN && !process.env.LISTING_EMAIL_FROM) {
-    console.error('ERROR: LISTING_EMAIL_FROM empty in .env — see the header of this file.');
+    console.error(`ERROR: LISTING_EMAIL_FROM not set in ${where} — see the header of this file.`);
     process.exit(1);
   }
 }

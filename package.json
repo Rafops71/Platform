@@ -7,9 +7,16 @@
   "scripts": {
     "verify-live": "node scripts/verify-live.js",
     "apply-sql": "node scripts/apply-sql.js",
-    "send-listing-emails": "node scripts/send-listing-emails.js"
+    "send-listing-emails": "node scripts/send-listing-emails.js",
+    "q": "node scripts/q.js",
+    "e2e": "playwright test",
+    "e2e:headed": "playwright test --headed",
+    "e2e:ui": "playwright test --ui"
   },
   "dependencies": {
     "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1"
   }
 }

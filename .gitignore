@@ -10,3 +10,10 @@
 .DS_Store
 node_modules/
 *.log
+
+# Playwright output. Traces and screenshots from a failed E2E run can contain
+# session tokens and the contents of test accounts — never commit them.
+test-results/
+playwright-report/
+blob-report/
+.playwright/
