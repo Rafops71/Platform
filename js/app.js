@@ -144,14 +144,11 @@ function renderDocChecklist(selected = {}) {
 }
 
 async function loadCommodities() {
-  // Ordered by the curated sort_order (metal/energy families grouped together),
-  // falling back to name for anything an Operator added later.
-  const { data, error } = await jericho.from('commodities').select('*')
-    .order('sort_order', { ascending: true, nullsFirst: false })
-    .order('name');
+  const { data, error } = await jericho.from('commodities').select('*');
   const select = document.getElementById('commodity-select');
   if (error) { console.error(error); return; }
-  COMMODITIES = data || [];
+
+  COMMODITIES = sortCommodities(data);
   select.innerHTML = '<option value="">Select commodity…</option>';
   COMMODITIES.forEach(c => {
     const opt = document.createElement('option');

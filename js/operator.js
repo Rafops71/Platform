@@ -129,10 +129,9 @@ function populateStatusFilter() {
 /** Fill the commodity filter dropdown from the Operator-managed list. */
 async function populateCommodityFilter() {
   const select = document.getElementById('listing-filter-commodity');
-  const { data } = await jericho.from('commodities').select('name')
-    .order('sort_order', { ascending: true, nullsFirst: false }).order('name');
+  const { data } = await jericho.from('commodities').select('name');
   select.innerHTML = '<option value="">All commodities</option>';
-  (data || []).forEach(c => {
+  sortCommodities(data).forEach(c => {
     const opt = document.createElement('option');
     opt.value = c.name; opt.textContent = c.name;
     select.appendChild(opt);
@@ -485,8 +484,11 @@ async function addCommodity() {
     return;
   }
 
+  // sort_order is left null: the list is alphabetised in the client by
+  // sortCommodities(), and a hard 999 here would pin every new commodity to
+  // the bottom for anything still ordering by the column.
   const { error } = await jericho.from('commodities')
-    .insert({ name, created_by: CURRENT_PROFILE.id, sort_order: 999 });
+    .insert({ name, created_by: CURRENT_PROFILE.id, sort_order: null });
   if (error) { showError(errorMessage(error)); return; }
   await logOpActivity('commodity_added', { name });
   input.value = '';
@@ -498,12 +500,10 @@ async function loadCommodities() {
   const container = document.getElementById('commodities-list');
   container.innerHTML = '<p class="empty-state">Loading…</p>';
 
-  const { data, error } = await jericho.from('commodities').select('*')
-    .order('sort_order', { ascending: true, nullsFirst: false })
-    .order('name');
+  const { data, error } = await jericho.from('commodities').select('*');
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
 
-  COMMODITY_CACHE = data || [];
+  COMMODITY_CACHE = sortCommodities(data);
 
   // How many listings currently use each commodity name, so the Operator can
   // see what a deletion would leave behind.

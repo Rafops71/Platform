@@ -199,6 +199,23 @@ function populateSelect(id, values, withBlank = false) {
   });
 }
 
+/** Sort commodity rows alphabetically by name, with "Other" pinned last.
+ *
+ *  Sorting client-side rather than in the query keeps the list alphabetical
+ *  even when sort_order has not caught up — a commodity an Operator adds
+ *  through the UI has no sort_order until the seed is re-run, and ordering by
+ *  that column alone would drop it at the bottom instead of under its own
+ *  letter. localeCompare is case-insensitive and accent-aware, so "LNG" files
+ *  under L with "Lead" rather than ahead of every lowercase name. */
+function sortCommodities(rows) {
+  return [...(rows || [])].sort((a, b) => {
+    const aOther = a.name.toLowerCase() === 'other';
+    const bOther = b.name.toLowerCase() === 'other';
+    if (aOther !== bOther) return aOther ? 1 : -1;
+    return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+  });
+}
+
 /** Set a <select> to `value`, keeping values that predate the dropdown.
  *
  *  Unit and Origin/Destination used to be free-text inputs, so existing rows
