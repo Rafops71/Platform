@@ -30,10 +30,17 @@ const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 // whatever the previous value created, so it is deliberately boring.
 const E2E_PREFIX = 'jericho-e2e-';
 
-/** Unique address for one test run. Local part only — the domain never
- *  receives anything, since these accounts are created pre-confirmed. */
-function testEmail(label) {
-  return `${E2E_PREFIX}${label}-${crypto.randomBytes(4).toString('hex')}@example.invalid`;
+/** Unique address for one test run. The domain never receives anything, since
+ *  these accounts are created pre-confirmed.
+ *
+ *  The default is .invalid, which is reserved by RFC 2606 and can never be
+ *  routed anywhere. One caller overrides it: a self-service email change goes
+ *  through GoTrue's own validation, which rejects any domain without real MX
+ *  records — and it validates the address the account *currently* holds, so an
+ *  account created at .invalid cannot change its address at all. Teardown keys
+ *  on the prefix and not the domain, so overriding it stays safe. */
+function testEmail(label, domain = 'example.invalid') {
+  return `${E2E_PREFIX}${label}-${crypto.randomBytes(4).toString('hex')}@${domain}`;
 }
 
 function testPassword() {
@@ -70,8 +77,8 @@ async function admin(path, options = {}) {
 /** Create a confirmed auth user. The on_auth_user_created trigger builds the
  *  matching profile as a pending participant; `role` and `status` here are
  *  applied afterwards over SQL, exactly as an operator approval would. */
-async function createAccount({ label, role = 'participant', status = 'approved', meta = {} }) {
-  const email = testEmail(label);
+async function createAccount({ label, role = 'participant', status = 'approved', meta = {}, domain }) {
+  const email = testEmail(label, domain);
   const password = testPassword();
 
   const user = await admin('/users', {

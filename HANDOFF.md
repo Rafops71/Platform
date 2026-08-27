@@ -28,15 +28,15 @@ directly. If you want it anyway:
 ## Current state
 
 **The live database is fully migrated.** Everything through
-`sql/009_message_threading.sql` is applied and verified present at the catalog
+`sql/011_profile_self_service.sql` is applied and verified present at the catalog
 level — not assumed, but read back: columns, foreign keys, check constraints,
 and indexes all confirmed.
 
 **Both test suites pass against the current code:**
 
 ```sh
-npm run test:sql      # 88 assertions, 0 failures
-npm run e2e           # 60 tests, 0 failures
+npm run test:sql      # 104 assertions, 0 failures
+npm run e2e           # 71 tests, 0 failures
 npm run verify-live   # READ-ONLY health check, safe on production
 ```
 
@@ -50,6 +50,31 @@ verified**, including real signup firing `handle_new_user`, `auth.uid()`
 resolving correctly under PostgREST, invitation tokens being consumed in one
 pass with email confirmation off, and the full invite → register → approve →
 listing → browse → contact → forward → reply path.
+
+### Changing an email address needs a confirmation this project does not send
+
+A participant can change their own email on the Profile page, and the flow is
+not instant: this Supabase project requires the change to be confirmed from the
+**new** address. `auth.updateUser({ email })` returns success, GoTrue parks the
+address in `auth.users.email_change`, and `auth.users.email` only moves when the
+link in that confirmation mail is followed. The confirmation is sent by Supabase
+Auth itself, not by the outbox in `sql/003`, so nothing here composes or queues
+it — but it does mean the address does not change until somebody clicks.
+
+The page says so rather than claiming success, which matters: telling someone
+their email has changed when it has not is how they lock themselves out.
+
+`public.profiles.email` is never written by the browser. A trigger
+(`trg_sync_profile_email_from_auth`, `sql/011`) mirrors it from `auth.users`
+whenever Auth moves it, so the address someone signs in with and the address
+they are mailed at cannot drift apart. `protect_profile_columns()` still pins
+the column against every other writer; the trigger's own update is let through
+by a transaction-local GUC that only that function sets.
+
+One consequence for tests: GoTrue validates the address the account *currently*
+holds, and rejects domains with no MX records — so an account created at
+`@example.invalid` (the suite default) can never change its address. Only
+`tests/e2e/profile.spec.js` overrides the fixture domain, to `resend.dev`.
 
 ### The Operator workload overview
 

@@ -51,7 +51,12 @@ The order is:
    per-recipient language selection.
 10. `sql/009_message_threading.sql` — `messages.in_reply_to`, which is what lets
     an Operator route a reply back to the person who asked.
-11. `sql/seed_commodities.sql` — the standard commodity list. **Last**, because
+11. `sql/010_terms_acceptance.sql` — the record of who accepted which version of
+    the Terms, written by `handle_new_user()`.
+12. `sql/011_profile_self_service.sql` — the `job_title` column, the trigger that
+    mirrors an Auth email change onto `public.profiles`, and the activity-log
+    entries for profile, email and password changes.
+13. `sql/seed_commodities.sql` — the standard commodity list. **Last**, because
     step 8 reorders what it inserts.
 
 All files are safe to re-run (guarded with `if not exists` / `or replace`).
@@ -188,7 +193,7 @@ npm run e2e           # Playwright, against the LIVE Supabase project
 npm run e2e:headed    # the same, with a visible browser
 ```
 
-**Current: 88 SQL assertions and 60 E2E tests, all passing.**
+**Current: 104 SQL assertions and 71 E2E tests, all passing.**
 
 ### SQL security suite
 
@@ -230,7 +235,8 @@ flow, Operator approval, listings with reference numbers, the document
 checklist, the brokered mailbox with threaded replies, in-platform
 notifications, notification email in the recipient's language, the bilingual
 participant interface, commodity management, the activity log, the match
-suggestion engine, and the Operator workload overview.
+suggestion engine, the Operator workload overview, and participant
+self-service for profile details, email address and password.
 
 **Known open items:**
 

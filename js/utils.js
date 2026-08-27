@@ -355,3 +355,14 @@ function statusLabel(status) {
   }
   return STATUS_LABELS[status] || status;
 }
+
+/** Human label for a platform role, translated on participant pages and
+ *  falling back to the stored value everywhere else - same arrangement as
+ *  statusLabel above, for the same reason. */
+function roleLabel(role) {
+  if (typeof t === 'function') {
+    const translated = t(`role.${role}`);
+    if (translated !== `role.${role}`) return translated;
+  }
+  return role === 'operator' ? 'Operator' : 'Participant';
+}

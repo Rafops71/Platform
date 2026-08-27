@@ -91,6 +91,26 @@ window.onLanguageChange = function (lang) {
   populateSelect('unit', UNITS, true, unitLabel);
   populateSelect('price_unit', UNITS, true, unitLabel);
   populateSelect('location', COUNTRIES, true, countryLabel);
+  // The Profile country dropdown carries translated labels over canonical
+  // English values, so it repopulates like the others - and its own selection
+  // has to survive that, or switching language would silently blank the
+  // country a participant is about to save.
+  const countrySelect = document.getElementById('p_country');
+  if (countrySelect) {
+    const chosen = countrySelect.value;
+    countrySelect.innerHTML = `<option value="">${escapeHtml(t('register.countryPlaceholder'))}</option>`;
+    populateSelect('p_country', COUNTRIES, false, countryLabel);
+    countrySelect.value = chosen;
+  }
+  // The header toggle and the Profile select are two views of one setting;
+  // whichever was used, both end up showing the same thing.
+  const langSelect = document.getElementById('p_language');
+  if (langSelect && lang) langSelect.value = lang;
+  const roleValue = document.getElementById('p_role_value');
+  if (roleValue && CURRENT_PROFILE) {
+    roleValue.textContent = roleLabel(CURRENT_PROFILE.role);
+    document.getElementById('p_status_value').textContent = statusLabel(CURRENT_PROFILE.status);
+  }
   loadCommodities();
 
   const selectedDocs = {};
@@ -565,35 +585,127 @@ async function refreshNotificationDot() {
 }
 
 // -------------------------------------------------------------- PROFILE ----
+//
+// Three forms rather than one, because they are three different things. The
+// details are the participant's own row and save in a single UPDATE. The email
+// and the password belong to Supabase Auth, and each needs the current password
+// before it will move - so neither can ride along on a Save of the details, and
+// somebody who walks away from an unlocked screen cannot have their sign-in
+// taken over by whoever sits down next.
+
 function wireProfile() {
+  populateSelect('p_country', COUNTRIES, false, countryLabel);
+  fillProfileForm();
+
+  document.getElementById('profile-form').addEventListener('submit', saveProfileDetails);
+  document.getElementById('email-form').addEventListener('submit', changeEmail);
+  document.getElementById('password-form').addEventListener('submit', changePassword);
+
+  // The Profile select and the header toggle are two views of one setting, so
+  // choosing here goes through the same path the toggle uses: setLang fires
+  // onLanguageChange, which re-renders the UI and writes the choice to the
+  // profile. Nothing is saved twice and nothing waits for Save Profile.
+  document.getElementById('p_language').addEventListener('change', (e) => {
+    if (e.target.value !== currentLang()) setLang(e.target.value);
+  });
+}
+
+/** Everything the page shows about the account, from CURRENT_PROFILE. */
+function fillProfileForm() {
   document.getElementById('p_first_name').value = CURRENT_PROFILE.first_name;
   document.getElementById('p_last_name').value = CURRENT_PROFILE.last_name;
   document.getElementById('p_company').value = CURRENT_PROFILE.company || '';
+  document.getElementById('p_job_title').value = CURRENT_PROFILE.job_title || '';
   document.getElementById('p_email').value = CURRENT_PROFILE.email;
-  document.getElementById('p_country').value = CURRENT_PROFILE.country;
+  document.getElementById('p_country').value = CURRENT_PROFILE.country || '';
   document.getElementById('p_phone').value = CURRENT_PROFILE.phone;
+  document.getElementById('p_language').value = currentLang();
 
-  document.getElementById('profile-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const { error } = await jericho.from('profiles').update({
-      first_name: document.getElementById('p_first_name').value.trim(),
-      last_name: document.getElementById('p_last_name').value.trim(),
-      company: document.getElementById('p_company').value.trim() || null,
-      country: document.getElementById('p_country').value.trim(),
-      phone: document.getElementById('p_phone').value.trim(),
-    }).eq('id', CURRENT_PROFILE.id);
-    if (error) { showError(errorMessage(error)); return; }
-    showSuccess(t('profile.saved'));
-  });
+  document.getElementById('p_role_value').textContent = roleLabel(CURRENT_PROFILE.role);
+  document.getElementById('p_status_value').textContent = statusLabel(CURRENT_PROFILE.status);
+}
 
-  document.getElementById('password-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const newPassword = document.getElementById('new_password').value;
-    const { error } = await jericho.auth.updateUser({ password: newPassword });
-    if (error) { showError(errorMessage(error)); return; }
-    showSuccess(t('profile.passwordUpdated'));
-    document.getElementById('password-form').reset();
+async function saveProfileDetails(e) {
+  e.preventDefault();
+  const updates = {
+    first_name: document.getElementById('p_first_name').value.trim(),
+    last_name: document.getElementById('p_last_name').value.trim(),
+    company: document.getElementById('p_company').value.trim() || null,
+    job_title: document.getElementById('p_job_title').value.trim() || null,
+    country: document.getElementById('p_country').value,
+    phone: document.getElementById('p_phone').value.trim(),
+  };
+
+  const { error } = await jericho.from('profiles').update(updates).eq('id', CURRENT_PROFILE.id);
+  if (error) { showError(errorMessage(error)); return; }
+
+  // Role, status and email are absent from `updates` on purpose: the database
+  // refuses them from this side (protect_profile_columns), and sending them
+  // anyway would make a rejected write look like a successful one.
+  Object.assign(CURRENT_PROFILE, updates);
+  document.getElementById('user-name').textContent =
+    `${CURRENT_PROFILE.first_name} ${CURRENT_PROFILE.last_name}`;
+  showSuccess(t('profile.saved'));
+}
+
+/** Prove the person at the keyboard knows the current password.
+ *
+ *  signInWithPassword is the only way to check it: Supabase has no "verify
+ *  password" call, and a wrong password here fails without disturbing the
+ *  session that is already open. A correct one issues a fresh session for the
+ *  same user, which is what the updateUser() that follows then uses. */
+async function reauthenticate(password) {
+  const { error } = await jericho.auth.signInWithPassword({
+    email: CURRENT_PROFILE.email,
+    password,
   });
+  return !error;
+}
+
+async function changeEmail(e) {
+  e.preventDefault();
+  const newEmail = document.getElementById('p_new_email').value.trim();
+  const password = document.getElementById('p_email_password').value;
+
+  if (newEmail.toLowerCase() === CURRENT_PROFILE.email.toLowerCase()) {
+    showError(t('profile.emailUnchanged')); return;
+  }
+  if (!await reauthenticate(password)) { showError(t('profile.wrongPassword')); return; }
+
+  const { error } = await jericho.auth.updateUser({ email: newEmail });
+  if (error) { showError(errorMessage(error)); return; }
+
+  // Nothing has moved yet. This project requires an email change to be
+  // confirmed from the new address: Auth holds it as pending and applies it
+  // when the link is followed. So the page keeps showing the address that
+  // still signs in, and says what has to happen next - telling someone their
+  // email is changed when it is not is how people lock themselves out.
+  //
+  // public.profiles.email is deliberately never written from here either. It
+  // mirrors auth.users through a trigger (sql/011), so whenever the change does
+  // land, the address a participant signs in with and the address they are
+  // mailed at move together.
+  // Clearing the two entered fields rather than form.reset(): the current
+  // address is displayed by a disabled input inside this same form, and reset()
+  // returns it to its (empty) HTML default, leaving the participant looking at
+  // a blank where their sign-in address should be.
+  document.getElementById('p_new_email').value = '';
+  document.getElementById('p_email_password').value = '';
+  showSuccess(t('profile.emailPending'));
+}
+
+async function changePassword(e) {
+  e.preventDefault();
+  const current = document.getElementById('current_password').value;
+  const next = document.getElementById('new_password').value;
+
+  if (next === current) { showError(t('profile.passwordSame')); return; }
+  if (!await reauthenticate(current)) { showError(t('profile.wrongPassword')); return; }
+
+  const { error } = await jericho.auth.updateUser({ password: next });
+  if (error) { showError(errorMessage(error)); return; }
+  document.getElementById('password-form').reset();
+  showSuccess(t('profile.passwordUpdated'));
 }
 
 // ------------------------------------------------- DOCUMENT REQUESTS ----

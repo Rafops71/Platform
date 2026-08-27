@@ -276,6 +276,10 @@ table.data-table th { color: var(--text-muted); font-size: 12px; text-transform:
 /* Nothing waiting is the good case and should not read as an alert. */
 .stat-tile.stat-zero .stat-value { color: var(--text-muted); }
 
+/* Role and status on the Profile page: shown, never editable. */
+.locked-row { display: flex; gap: 20px; flex-wrap: wrap; font-size: 13px; align-items: center; }
+.locked-row .badge { margin-left: 6px; }
+
 .filter-note {
   background: var(--blue-tint);
   border-radius: var(--radius);

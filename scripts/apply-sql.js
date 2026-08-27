@@ -41,6 +41,7 @@ const DEFAULT_ORDER = [
   '008_email_language.sql',
   '009_message_threading.sql',
   '010_terms_acceptance.sql',
+  '011_profile_self_service.sql',
   'seed_commodities.sql',
 ];
 
