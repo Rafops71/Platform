@@ -57,7 +57,15 @@ test.describe.serial('unit dropdowns are alphabetical', () => {
     await page.fill('#password', participant.password);
     await page.click('#login-btn');
     await page.waitForURL('**/app.html', { timeout: 20_000 });
+
+    // See the note in full-flow.spec.js: #user-name is filled in the same
+    // synchronous block that wires the tabs and populates the unit selects,
+    // so waiting on it is what makes both the click and the read below safe.
+    // Without it this spec read #price_unit back as an empty option list.
+    await expect(page.locator('#user-name')).not.toBeEmpty({ timeout: 20_000 });
+
     await page.click('button[data-screen="new-listing"]');
+    await expect(page.locator('#screen-new-listing')).toBeVisible({ timeout: 15_000 });
   });
 
   for (const selectId of ['unit', 'price_unit']) {

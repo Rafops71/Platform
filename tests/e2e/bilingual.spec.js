@@ -31,6 +31,14 @@ async function signIn(page, account, expectedPath) {
   await page.fill('#password', account.password);
   await page.click('#login-btn');
   await page.waitForURL(`**/${expectedPath}`, { timeout: 20_000 });
+
+  // waitForURL resolves on navigation, but the dashboard wires its handlers
+  // and fills its dropdowns inside an async DOMContentLoaded callback, after
+  // requireAuth() has awaited. Anything done in that window reads a page that
+  // is not ready: a nav click hits an unwired button, a select reads back
+  // empty. #user-name is set in the same synchronous block, before both, so a
+  // non-empty name means the page is built.
+  await expect(page.locator('#user-name')).not.toBeEmpty({ timeout: 20_000 });
 }
 
 test.describe.serial('bilingual participant interface', () => {

@@ -705,15 +705,21 @@ async function loadOperatorMailbox() {
         </div>` : ''}
     `;
     container.appendChild(row);
-  }
 
-  container.querySelectorAll('[data-forward]').forEach(b => b.addEventListener('click', () => openForwardModal(b)));
-  container.querySelectorAll('[data-reply]').forEach(b => b.addEventListener('click', () => openReplyModal(b)));
-  container.querySelectorAll('[data-ignore]').forEach(b => b.addEventListener('click', async () => {
-    const { error } = await jericho.from('messages').update({ status: 'ignored' }).eq('id', b.dataset.ignore);
-    if (error) { showError(errorMessage(error)); return; }
-    loadOperatorMailbox();
-  }));
+    // Wire the row now rather than after the loop. Every iteration awaits a
+    // listing lookup, so rows land on screen one at a time - wiring at the end
+    // leaves each of them visible, enabled and not yet listening, and a click
+    // in that window is swallowed with no feedback at all. It is the nav race
+    // the specs guard against, one layer down: the operator sees a button and
+    // presses it, and nothing happens.
+    row.querySelectorAll('[data-forward]').forEach(b => b.addEventListener('click', () => openForwardModal(b)));
+    row.querySelectorAll('[data-reply]').forEach(b => b.addEventListener('click', () => openReplyModal(b)));
+    row.querySelectorAll('[data-ignore]').forEach(b => b.addEventListener('click', async () => {
+      const { error } = await jericho.from('messages').update({ status: 'ignored' }).eq('id', b.dataset.ignore);
+      if (error) { showError(errorMessage(error)); return; }
+      loadOperatorMailbox();
+    }));
+  }
 }
 
 function wireForwardModal() {
