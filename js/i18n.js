@@ -190,6 +190,11 @@ const STRINGS = {
     'notifications.none': 'No notifications.',
 
     // ---- Profile ---------------------------------------------------------
+    'listings.staleNotice': 'You have not updated this listing in {days} days. Is it still available?',
+    'listings.stillAvailable': 'Yes, still available',
+    'listings.closeIt': 'No, close it',
+    'listings.renewed': 'Listing confirmed as current.',
+    'listings.closed': 'Listing closed.',
     'export.title': 'Your activity',
     'export.intro': 'Download everything you have done on the platform — your listings, your messages, document requests and answers, and changes to your account — as a spreadsheet file.',
     'export.download': 'Download CSV',
@@ -532,6 +537,11 @@ const STRINGS = {
     'notifications.none': 'No hay notificaciones.',
 
     // ---- Profile ---------------------------------------------------------
+    'listings.staleNotice': 'Hace {days} días que no actualiza esta publicación. ¿Sigue disponible?',
+    'listings.stillAvailable': 'Sí, sigue disponible',
+    'listings.closeIt': 'No, ciérrela',
+    'listings.renewed': 'Publicación confirmada como vigente.',
+    'listings.closed': 'Publicación cerrada.',
     'export.title': 'Su actividad',
     'export.intro': 'Descargue todo lo que ha hecho en la Plataforma —sus publicaciones, sus mensajes, las solicitudes de documentos y sus respuestas, y los cambios en su cuenta— en un archivo de hoja de cálculo.',
     'export.download': 'Descargar CSV',

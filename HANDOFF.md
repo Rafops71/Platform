@@ -28,15 +28,15 @@ directly. If you want it anyway:
 ## Current state
 
 **The live database is fully migrated.** Everything through
-`sql/013_activity_export.sql` is applied and verified present at the catalog
+`sql/014_listing_renewal.sql` is applied and verified present at the catalog
 level — not assumed, but read back: columns, foreign keys, check constraints,
 and indexes all confirmed.
 
 **Both test suites pass against the current code:**
 
 ```sh
-npm run test:sql      # 128 assertions, 0 failures
-npm run e2e           # 84 tests, 0 failures
+npm run test:sql      # 139 assertions, 0 failures
+npm run e2e           # 90 tests, 0 failures
 npm run verify-live   # READ-ONLY health check, safe on production
 ```
 
@@ -75,6 +75,19 @@ One consequence for tests: GoTrue validates the address the account *currently*
 holds, and rejects domains with no MX records — so an account created at
 `@example.invalid` (the suite default) can never change its address. Only
 `tests/e2e/profile.spec.js` overrides the fixture domain, to `resend.dev`.
+
+### One definition of "stale", used from both sides
+
+`STALE_LISTING_DAYS` and `staleListingCutoff()` live in `js/utils.js` and are
+shared by the Operator's stale count and the participant's "is this still
+available?" prompt. Two definitions would mean an Operator chasing a listing
+whose owner was never asked about it.
+
+`updated_at` is not writable from a browser — `protect_listing_columns()` sets
+it on every UPDATE — so renewing goes through `renew_listing()` (`sql/014`),
+which checks ownership itself because a definer function has no RLS behind it.
+This also catches out tests: a listing cannot be *made* stale by updating it, so
+fixtures insert an already-backdated row instead.
 
 ### The Operator workload overview
 

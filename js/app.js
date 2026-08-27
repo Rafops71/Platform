@@ -5,6 +5,14 @@ let COMMODITIES = [];
 let EDITING_LISTING_ID = null;
 let CONTACT_TARGET = null; // { listingId, referenceNumber, inReplyTo }
 
+// Both dashboard lists clear their container and then await before filling it,
+// so two renders overlapping append twice and the screen shows every listing
+// twice. That is not hypothetical: switching language while the first render is
+// still in flight does exactly this, and it is what an E2E run caught. Each
+// render takes a ticket, and only the newest one is allowed to write.
+let MY_LISTINGS_RENDER = 0;
+let SAVED_SEARCH_RENDER = 0;
+
 document.addEventListener('DOMContentLoaded', async () => {
   CURRENT_PROFILE = await requireAuth('participant');
   if (!CURRENT_PROFILE) return; // requireAuth already redirected
@@ -163,6 +171,7 @@ function showScreen(name) {
 
 // ---------------------------------------------------------- MY LISTINGS ----
 async function loadMyListings() {
+  const token = ++MY_LISTINGS_RENDER;
   const container = document.getElementById('my-listings-list');
   container.innerHTML = `<p class="empty-state">${t('common.loading')}</p>`;
 
@@ -175,7 +184,7 @@ async function loadMyListings() {
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
   if (!data.length) { container.innerHTML = `<p class="empty-state">${t('listings.none')}</p>`; return; }
 
-  container.innerHTML = '';
+  const fragment = document.createDocumentFragment();
   for (const listing of data) {
     const { count } = await jericho
       .from('document_checklist')
@@ -197,14 +206,31 @@ async function loadMyListings() {
         ${t('listings.updated', { date: formatDate(listing.updated_at) })}
       </div>
       <div class="list-row-meta">${count > 0 ? escapeHtml(t('listings.docsIndicated', { count })) : `<strong>${escapeHtml(t('listings.noDocsIndicated'))}</strong>`}</div>
+      ${isStaleListing(listing) ? `
+      <div class="stale-notice">
+        ${escapeHtml(t('listings.staleNotice', { days: STALE_LISTING_DAYS }))}
+        <div class="row" style="margin-top:8px;">
+          <button class="btn btn-primary btn-small" data-renew="${listing.id}">${escapeHtml(t('listings.stillAvailable'))}</button>
+          <button class="btn btn-secondary btn-small" data-close="${listing.id}">${escapeHtml(t('listings.closeIt'))}</button>
+        </div>
+      </div>` : ''}
       <div class="row" style="margin-top:4px;">
         <button class="btn btn-secondary btn-small" data-edit="${listing.id}">${escapeHtml(t('common.edit'))}</button>
         <button class="btn btn-danger btn-small" data-remove="${listing.id}">${escapeHtml(t('common.remove'))}</button>
       </div>
     `;
-    container.appendChild(row);
+    fragment.appendChild(row);
   }
 
+  // A newer render started while this one was fetching: its rows are the ones
+  // that belong on screen, and appending these would double the list.
+  if (token !== MY_LISTINGS_RENDER) return;
+  container.replaceChildren(fragment);
+
+  container.querySelectorAll('[data-renew]').forEach(b =>
+    b.addEventListener('click', () => renewListing(b.dataset.renew)));
+  container.querySelectorAll('[data-close]').forEach(b =>
+    b.addEventListener('click', () => closeListing(b.dataset.close)));
   container.querySelectorAll('[data-edit]').forEach(b =>
     b.addEventListener('click', () => editListing(b.dataset.edit)));
   container.querySelectorAll('[data-remove]').forEach(b =>
@@ -232,6 +258,31 @@ async function removeListing(id) {
   if (error) { showError(errorMessage(error)); return; }
   // Activity logging happens in the database (trg_log_listing_change).
   showSuccess(t('listings.removed'));
+  loadMyListings();
+}
+
+/** "Still available": the listing is current, nothing about it has changed.
+ *
+ *  The renewal is a database function rather than an UPDATE from here because
+ *  updated_at is what decides whether a listing is stale, and a browser able to
+ *  write it directly could keep a dormant offer looking fresh forever. Editing
+ *  the listing renews it too, through the same trigger - this is for the case
+ *  where there is nothing to edit. */
+async function renewListing(id) {
+  const { error } = await jericho.rpc('renew_listing', { p_listing_id: id });
+  if (error) { showError(errorMessage(error)); return; }
+  showSuccess(t('listings.renewed'));
+  loadMyListings();
+}
+
+/** The other honest answer to "is this still available": it is not. Closed
+ *  rather than deleted, so the reference number and its message history survive
+ *  - a counterparty who was talking to this listing should still be able to see
+ *  what it was. */
+async function closeListing(id) {
+  const { error } = await jericho.from('listings').update({ status: 'closed' }).eq('id', id);
+  if (error) { showError(errorMessage(error)); return; }
+  showSuccess(t('listings.closed'));
   loadMyListings();
 }
 
@@ -579,6 +630,7 @@ function searchLabel(row) {
 }
 
 async function loadSavedSearches() {
+  const token = ++SAVED_SEARCH_RENDER;
   const container = document.getElementById('saved-searches-list');
   container.innerHTML = `<p class="empty-state">${t('common.loading')}</p>`;
 
@@ -591,6 +643,7 @@ async function loadSavedSearches() {
   const { data: listings } = await jericho.rpc('get_public_listings');
   const all = listings || [];
 
+  if (token !== SAVED_SEARCH_RENDER) return;
   container.innerHTML = '';
   data.forEach(row => {
     const count = all.filter(l => listingMatches(l, row)).length;

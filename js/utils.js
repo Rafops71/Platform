@@ -231,6 +231,21 @@ const TERMS_SECTION_PARAGRAPHS = { 10: 9, 16: 6 };
 // gone and a lawyer has read the result.
 const TERMS_PLACEHOLDER_MARKER = 'PLACEHOLDER';
 
+// What counts as a stale listing: still available and untouched for 30 days.
+// Lives here rather than on either page because both use it - the Operator
+// overview counts them, the participant dashboard offers to renew them - and
+// two definitions would mean an Operator chasing a listing its owner was never
+// told about.
+const STALE_LISTING_DAYS = 30;
+
+function staleListingCutoff() {
+  return new Date(Date.now() - STALE_LISTING_DAYS * 24 * 60 * 60 * 1000).toISOString();
+}
+
+function isStaleListing(listing) {
+  return listing.status === 'available' && listing.updated_at < staleListingCutoff();
+}
+
 const INCOTERMS = ['EXW', 'FCA', 'FAS', 'FOB', 'CFR', 'CIF', 'CPT', 'CIP', 'DAP', 'DPU', 'DDP'];
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'ZAR'];
 

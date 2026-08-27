@@ -47,6 +47,7 @@ const SETUP = [
   'sql/011_profile_self_service.sql',
   'sql/012_saved_searches.sql',
   'sql/013_activity_export.sql',
+  'sql/014_listing_renewal.sql',
   'sql/seed_commodities.sql',
 ];
 
@@ -62,6 +63,7 @@ const SUITES = [
   'sql/tests/05_profile_self_service.sql',
   'sql/tests/06_saved_searches.sql',
   'sql/tests/07_activity_export.sql',
+  'sql/tests/08_listing_renewal.sql',
 ];
 
 /** Turn psql meta-commands into something a plain connection can run.

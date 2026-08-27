@@ -60,7 +60,9 @@ The order is:
     participant watchlist. Owner-only, Operators included.
 14. `sql/013_activity_export.sql` — `my_activity_export()`, the one query behind
     a participant's CSV of their own activity.
-15. `sql/seed_commodities.sql` — the standard commodity list. **Last**, because
+15. `sql/014_listing_renewal.sql` — `renew_listing()`, so a participant can say a
+    stale listing is still current without editing it.
+16. `sql/seed_commodities.sql` — the standard commodity list. **Last**, because
     step 8 reorders what it inserts.
 
 All files are safe to re-run (guarded with `if not exists` / `or replace`).
@@ -197,7 +199,7 @@ npm run e2e           # Playwright, against the LIVE Supabase project
 npm run e2e:headed    # the same, with a visible browser
 ```
 
-**Current: 128 SQL assertions and 84 E2E tests, all passing.**
+**Current: 139 SQL assertions and 90 E2E tests, all passing.**
 
 ### SQL security suite
 
@@ -241,7 +243,8 @@ notifications, notification email in the recipient's language, the bilingual
 participant interface, commodity management, the activity log, the match
 suggestion engine, the Operator workload overview, and participant
 self-service for profile details, email address and password, saved
-searches with a watchlist, and a participant's own activity export.
+searches with a watchlist, a participant's own activity export, and
+the stale-listing renewal prompt.
 
 **Known open items:**
 

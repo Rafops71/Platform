@@ -9,13 +9,9 @@ let REPLY_TARGET = null;     // { originalMessage }
 // screen itself drops it — the operator's own filtering wins over the tile's.
 let LISTINGS_STALE_ONLY = false;
 
-// What counts as a stale listing, in one place: still available and untouched
-// for 30 days. Both the count and the filtered table read it from here, so
-// they cannot drift apart and show a number that the screen then contradicts.
-const STALE_LISTING_DAYS = 30;
-function staleListingCutoff() {
-  return new Date(Date.now() - STALE_LISTING_DAYS * 24 * 60 * 60 * 1000).toISOString();
-}
+// STALE_LISTING_DAYS / staleListingCutoff() live in utils.js, shared with the
+// participant dashboard: the listings this screen counts as stale are exactly
+// the ones their owners are being asked to renew.
 
 document.addEventListener('DOMContentLoaded', async () => {
   CURRENT_PROFILE = await requireAuth('operator');

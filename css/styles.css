@@ -276,6 +276,18 @@ table.data-table th { color: var(--text-muted); font-size: 12px; text-transform:
 /* Nothing waiting is the good case and should not read as an alert. */
 .stat-tile.stat-zero .stat-value { color: var(--text-muted); }
 
+/* The "is this still available?" prompt on a listing nobody has touched in a
+   month. Amber rather than red: nothing is wrong, something is merely old. */
+.stale-notice {
+  background: var(--amber-tint);
+  border: 1px solid var(--amber);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--amber);
+}
+
 /* Role and status on the Profile page: shown, never editable. */
 .locked-row { display: flex; gap: 20px; flex-wrap: wrap; font-size: 13px; align-items: center; }
 .locked-row .badge { margin-left: 6px; }

@@ -44,6 +44,7 @@ const DEFAULT_ORDER = [
   '011_profile_self_service.sql',
   '012_saved_searches.sql',
   '013_activity_export.sql',
+  '014_listing_renewal.sql',
   'seed_commodities.sql',
 ];
 
