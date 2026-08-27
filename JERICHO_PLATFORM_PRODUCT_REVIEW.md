@@ -51,8 +51,8 @@ comes from knowing both sides and controlling the introduction.
 
 ### Operator
 
-The Operator role is held by the two people who run the platform, Rafael and
-Rodrigo. An Operator can:
+The Operator role is held by the two people who run the platform. An Operator
+can:
 
 - See **all** listings, with the real identity of every poster.
 - Approve or reject people who have registered and are waiting.
