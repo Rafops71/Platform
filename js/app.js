@@ -3,7 +3,7 @@
 let CURRENT_PROFILE = null;
 let COMMODITIES = [];
 let EDITING_LISTING_ID = null;
-let CONTACT_TARGET = null; // { listingId, referenceNumber }
+let CONTACT_TARGET = null; // { listingId, referenceNumber, inReplyTo }
 
 document.addEventListener('DOMContentLoaded', async () => {
   CURRENT_PROFILE = await requireAuth('participant');
@@ -57,7 +57,13 @@ function adoptProfileLanguage() {
   try { stored = localStorage.getItem(I18N_STORAGE_KEY); } catch { /* private window */ }
 
   if (!stored) {
-    setLang(profileLang);
+    // Only when it actually differs. setLang() re-renders the dropdowns and
+    // the active screen through onLanguageChange, and firing that on every
+    // load raced the initialisation already in flight below — two concurrent
+    // loadMyListings()/loadCommodities() calls writing the same containers,
+    // which showed up as lists intermittently failing to appear in the E2E
+    // suite. In the common case the two already agree and this does nothing.
+    if (profileLang !== currentLang()) setLang(profileLang);
   } else if (stored !== profileLang) {
     CURRENT_PROFILE.language = stored;
     jericho.from('profiles').update({ language: stored }).eq('id', CURRENT_PROFILE.id)
@@ -474,8 +480,11 @@ async function loadMailbox() {
     `;
     container.appendChild(row);
     if (!mine) {
+      // Passing the message being answered is what lets the operator route
+      // the reply back to whoever wrote it. Without it the forward target
+      // falls back to the listing owner, which on a reply is the sender.
       row.querySelector('[data-reply]').addEventListener('click', () =>
-        openContactModal(m.listing_id, refLabel || t('mailbox.listingFallback')));
+        openContactModal(m.listing_id, refLabel || t('mailbox.listingFallback'), m.id));
     }
   }
 }
@@ -486,8 +495,10 @@ function wireContactModal() {
   document.getElementById('contact-send-btn').addEventListener('click', sendContactMessage);
 }
 
-function openContactModal(listingId, refLabel) {
-  CONTACT_TARGET = { listingId, referenceNumber: refLabel };
+/** `inReplyTo` is the message being answered, or null for an opening enquiry
+ *  from the browse screen. */
+function openContactModal(listingId, refLabel, inReplyTo = null) {
+  CONTACT_TARGET = { listingId, referenceNumber: refLabel, inReplyTo };
   document.getElementById('contact-ref').textContent = refLabel;
   document.getElementById('contact-body').value = '';
   document.getElementById('contact-modal').classList.remove('hidden');
@@ -500,6 +511,7 @@ async function sendContactMessage() {
   const { error } = await jericho.from('messages').insert({
     sender_id: CURRENT_PROFILE.id,
     listing_id: CONTACT_TARGET.listingId || null,
+    in_reply_to: CONTACT_TARGET.inReplyTo || null,
     body, status: 'pending_review'
   });
   if (error) { showError(errorMessage(error)); return; }

@@ -2,7 +2,12 @@
 //
 //   browse anonymously -> contact -> operator sees it -> operator forwards
 //   -> owner reads it -> owner replies -> operator forwards the reply back
-//   -> the original enquirer reads it
+//   -> the original enquirer reads it -> and answers again
+//
+// The last two hops only work because of sql/009: forward targets used to be
+// derived from listings.user_id, which sent a reply back to its own author.
+// They now come from messages.in_reply_to, so the thread alternates for any
+// number of turns.
 //
 // This is the leg that had been run by hand. No email is involved anywhere:
 // posting a listing does queue email_outbox rows through
@@ -77,6 +82,14 @@ async function signIn(page, account, expectedPath) {
   // failing after the slower specs. #user-name is filled in the same
   // synchronous block as wireTabs(), so a non-empty name means it is safe.
   await expect(page.locator('#user-name')).not.toBeEmpty({ timeout: 20_000 });
+}
+
+/** Needed only where one test signs in as two people: requireAuth() bounces
+ *  an already-authenticated session off index.html, so the second signIn
+ *  would never find the login form. */
+async function signOut(page) {
+  await page.click('#logout-link');
+  await page.waitForURL('**/index.html', { timeout: 20_000 });
 }
 
 /** Switch screens and confirm the switch actually took. */
@@ -273,50 +286,102 @@ test.describe.serial('in-platform mailbox: browse -> contact -> forward -> reply
     await expect(row).toContainText(`Re: ${listingRef}`);
   });
 
-  // KNOWN GAP - the reply leg cannot complete through the UI.
-  //
-  // Every forward target is derived from the listing: loadOperatorMailbox()
-  // reads listings.user_id into data-owner, and openForwardModal() forwards
-  // there. That is right for an enquiry (the owner is who should receive it)
-  // and wrong for a reply, because the owner IS the reply's sender - so
-  // "Forward to Owner" would hand the message back to the person who wrote
-  // it. The operator's own "Reply" button is no help either: it targets
-  // m.sender_id, which is also the owner.
-  //
-  // So there is no action that routes the owner's answer to the participant
-  // who asked. This test pins that down deliberately rather than skipping the
-  // leg. It is written to PASS against today's behaviour, so if the routing is
-  // ever fixed this test fails loudly and gets rewritten as the happy path.
-  //
-  // Nothing is clicked here: forwarding would only file a nonsense row
-  // returning the message to its own author.
-  test('known gap: the operator cannot route the reply back to the enquirer', async ({ page }) => {
+  // This used to be a pinned gap. Forward targets were derived from
+  // listings.user_id, which is right for an enquiry and wrong for a reply -
+  // on a reply the listing owner IS the sender, so "Forward to Owner" handed
+  // the message back to its own author and nothing reached the enquirer.
+  // sql/009 added messages.in_reply_to and the operator now routes a reply to
+  // the sender of the message it answers. These are the happy path.
+  test('the operator is offered the enquirer, not the owner, as the reply target', async ({ page }) => {
     await signIn(page, operator, 'operator.html');
     await openScreen(page, 'mailbox');
     const row = page.locator('#operator-mailbox-list .list-row', { hasText: REPLY });
     await expect(row).toBeVisible({ timeout: 15_000 });
 
-    // The only forward target offered is the listing owner - who is the sender.
-    expect(await row.locator('[data-forward]').getAttribute('data-owner')).toBe(owner.profileId);
-    expect(await row.locator('[data-forward]').getAttribute('data-owner')).not.toBe(enquirer.profileId);
-    // The operator's Reply button points at the sender, i.e. the owner again.
-    expect(await row.locator('[data-reply]').getAttribute('data-sender')).toBe(owner.profileId);
-
-    // Consequently the enquirer has received nothing.
-    const { rows } = await query(
-      `select count(*)::int n from public.message_forward_log
-        where to_user_id = (select id from public.profiles where email = $1)`,
-      [enquirer.email]
-    );
-    expect(rows[0].n).toBe(0);
+    const forward = row.locator('[data-forward]');
+    expect(await forward.getAttribute('data-owner')).toBe(enquirer.profileId);
+    expect(await forward.getAttribute('data-owner')).not.toBe(owner.profileId);
+    expect(await forward.getAttribute('data-target-kind')).toBe('sender');
+    // And it says so, rather than claiming to forward to the listing owner.
+    await expect(forward).toContainText('Forward Reply');
   });
 
-  test('the enquirer does not see the reply, since it was never routed', async ({ page }) => {
+  test('the operator forwards the reply and the enquirer receives it', async ({ page }) => {
+    await signIn(page, operator, 'operator.html');
+    await openScreen(page, 'mailbox');
+    const row = page.locator('#operator-mailbox-list .list-row', { hasText: REPLY });
+    await row.locator('[data-forward]').click();
+
+    await expect(page.locator('#forward-modal')).toBeVisible();
+    // The modal names who it is actually going to.
+    await expect(page.locator('#forward-target-info')).toContainText(ENQUIRER_ID.first_name);
+    await page.click('#forward-confirm-btn');
+
+    await expect.poll(async () => {
+      const r = await query(
+        `select count(*)::int n from public.message_forward_log
+          where message_id = (select id from public.messages where body = $1)
+            and to_user_id = (select id from public.profiles where email = $2)`,
+        [REPLY, enquirer.email]
+      );
+      return r.rows[0].n;
+    }, { timeout: 20_000 }).toBe(1);
+
+    // It was never sent back to its own author.
+    const { rows } = await query(
+      `select count(*)::int n from public.message_forward_log
+        where message_id = (select id from public.messages where body = $1)
+          and to_user_id = (select id from public.profiles where email = $2)`,
+      [REPLY, owner.email]
+    );
+    expect(rows[0].n, 'the reply was forwarded back to its own sender').toBe(0);
+  });
+
+  test('the enquirer sees the answer, still without an identity', async ({ page }) => {
     await signIn(page, enquirer, 'app.html');
     await openScreen(page, 'mailbox');
-    // Their own enquiry is there; the owner's answer is not.
-    await expect(page.locator('#mailbox-list')).toContainText(ENQUIRY, { timeout: 15_000 });
-    await expect(page.locator('#mailbox-list')).not.toContainText(REPLY);
+    await expect(page.locator('#mailbox-list')).toContainText(REPLY, { timeout: 15_000 });
+    // Their own enquiry is still there too - this is a conversation now.
+    await expect(page.locator('#mailbox-list')).toContainText(ENQUIRY);
+
+    const mailbox = await page.locator('#mailbox-list').innerText();
+    for (const [field, secret] of Object.entries({ ...OWNER_ID, email: owner.email })) {
+      expect(mailbox, `the reply leaked the owner's ${field}: "${secret}"`).not.toContain(secret);
+    }
+  });
+
+  // The routing has to keep alternating, or it is just a special case for the
+  // second message rather than a working thread.
+  test('a third turn routes back to the owner again', async ({ page }) => {
+    const FOLLOW_UP = 'E2E mailbox: understood - can you hold 200 mt until Friday?';
+
+    await signIn(page, enquirer, 'app.html');
+    await openScreen(page, 'mailbox');
+    await page.locator('#mailbox-list .list-row', { hasText: REPLY }).locator('[data-reply]').click();
+    await expect(page.locator('#contact-modal')).toBeVisible();
+    await page.fill('#contact-body', FOLLOW_UP);
+    await page.click('#contact-send-btn');
+
+    await expect.poll(async () => {
+      const r = await query('select count(*)::int n from public.messages where body = $1', [FOLLOW_UP]);
+      return r.rows[0].n;
+    }, { timeout: 20_000 }).toBe(1);
+
+    // Threaded onto the owner's reply, so the operator's target is the owner.
+    const { rows } = await query(
+      `select parent.sender_id = (select id from public.profiles where email = $2) as targets_owner
+         from public.messages m join public.messages parent on parent.id = m.in_reply_to
+        where m.body = $1`,
+      [FOLLOW_UP, owner.email]
+    );
+    expect(rows[0] && rows[0].targets_owner, 'the follow-up is not threaded onto the reply').toBe(true);
+
+    await signOut(page);
+    await signIn(page, operator, 'operator.html');
+    await openScreen(page, 'mailbox');
+    const row = page.locator('#operator-mailbox-list .list-row', { hasText: FOLLOW_UP });
+    await expect(row).toBeVisible({ timeout: 15_000 });
+    expect(await row.locator('[data-forward]').getAttribute('data-owner')).toBe(owner.profileId);
   });
 
   test('no email was sent at any point in this flow', async () => {

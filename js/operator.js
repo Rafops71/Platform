@@ -652,6 +652,20 @@ async function loadOperatorMailbox() {
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
   if (!data.length) { container.innerHTML = '<p class="empty-state">No messages yet.</p>'; return; }
 
+  // Who wrote each message, so a reply's target can be resolved without a
+  // round trip: the operator's own query above already returned every row.
+  const senderOf = new Map(data.map(m => [m.id, m.sender_id]));
+
+  // Names for the forward modal. One query for every profile the mailbox
+  // might forward to, rather than one per message.
+  const targetIds = new Set();
+  for (const m of data) if (m.in_reply_to && senderOf.has(m.in_reply_to)) targetIds.add(senderOf.get(m.in_reply_to));
+  if (targetIds.size) {
+    const { data: profs } = await jericho.from('profiles')
+      .select('id,first_name,last_name').in('id', [...targetIds]);
+    (profs || []).forEach(p => ALL_PROFILES_BY_ID[p.id] = p);
+  }
+
   container.innerHTML = '';
   for (const m of data) {
     let refLabel = '(no listing)', ownerId = null;
@@ -659,6 +673,21 @@ async function loadOperatorMailbox() {
       const { data: l } = await jericho.from('listings').select('reference_number,user_id').eq('id', m.listing_id).maybeSingle();
       if (l) { refLabel = l.reference_number; ownerId = l.user_id; }
     }
+
+    // An opening enquiry goes to the listing owner. A reply goes to whoever
+    // wrote the message it answers — which on a reply is NOT the owner, since
+    // the owner is the one replying. Deriving this from the listing was the
+    // bug: it sent a reply back to its own author. See sql/009.
+    let targetId = ownerId;
+    let targetKind = 'owner';
+    if (m.in_reply_to && senderOf.has(m.in_reply_to)) {
+      targetId = senderOf.get(m.in_reply_to);
+      targetKind = 'sender';
+    }
+    const targetProfile = targetId ? ALL_PROFILES_BY_ID[targetId] : null;
+    const targetName = targetProfile
+      ? `${targetProfile.first_name} ${targetProfile.last_name}` : null;
+
     const row = document.createElement('div');
     row.className = 'list-row';
     row.innerHTML = `
@@ -670,7 +699,7 @@ async function loadOperatorMailbox() {
       <div class="list-row-meta">${formatDateTime(m.created_at)}</div>
       ${m.status === 'pending_review' ? `
         <div class="row" style="margin-top:4px;">
-          <button class="btn btn-primary btn-small" data-forward="${m.id}" data-listing="${m.listing_id || ''}" data-owner="${ownerId || ''}" data-ref="${escapeHtml(refLabel)}">Forward to Owner</button>
+          <button class="btn btn-primary btn-small" data-forward="${m.id}" data-listing="${m.listing_id || ''}" data-owner="${targetId || ''}" data-sender="${m.sender_id}" data-target-kind="${targetKind}" data-target-name="${escapeHtml(targetName || '')}" data-ref="${escapeHtml(refLabel)}">${targetKind === 'sender' ? 'Forward Reply' : 'Forward to Owner'}</button>
           <button class="btn btn-secondary btn-small" data-reply="${m.id}" data-sender="${m.sender_id}" data-listing2="${m.listing_id || ''}">Reply</button>
           <button class="btn btn-danger btn-small" data-ignore="${m.id}">Ignore</button>
         </div>` : ''}
@@ -693,9 +722,30 @@ function wireForwardModal() {
 }
 
 function openForwardModal(btn) {
-  if (!btn.dataset.owner) { showError('This message has no associated listing owner to forward to.'); return; }
-  FORWARD_TARGET = { messageId: btn.dataset.forward, listingId: btn.dataset.listing, toUserId: btn.dataset.owner, refLabel: btn.dataset.ref };
-  document.getElementById('forward-target-info').textContent = `Forwarding to the owner of ${FORWARD_TARGET.refLabel}.`;
+  if (!btn.dataset.owner) {
+    showError('There is nobody to forward this message to — it has no listing owner and is not a reply to anyone.');
+    return;
+  }
+  // A message must never be forwarded to the person who wrote it. This is the
+  // exact failure the old listing-derived target produced on every reply, so
+  // it is guarded rather than merely avoided.
+  if (btn.dataset.owner === btn.dataset.sender) {
+    showError('That would send this message back to the person who wrote it.');
+    return;
+  }
+
+  FORWARD_TARGET = {
+    messageId: btn.dataset.forward,
+    listingId: btn.dataset.listing,
+    toUserId: btn.dataset.owner,
+    refLabel: btn.dataset.ref,
+  };
+
+  const who = btn.dataset.targetName || 'the recipient';
+  document.getElementById('forward-target-info').textContent =
+    btn.dataset.targetKind === 'sender'
+      ? `Forwarding this reply to ${who}, who wrote the message it answers (${FORWARD_TARGET.refLabel}).`
+      : `Forwarding to the owner of ${FORWARD_TARGET.refLabel}.`;
   document.getElementById('forward-modal').classList.remove('hidden');
 }
 

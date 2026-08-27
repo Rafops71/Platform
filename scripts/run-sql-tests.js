@@ -42,6 +42,7 @@ const SETUP = [
   'sql/006_checklist_and_price_unit.sql',
   'sql/007_commodities_alphabetical.sql',
   'sql/008_email_language.sql',
+  'sql/009_message_threading.sql',
   'sql/seed_commodities.sql',
 ];
 
@@ -52,6 +53,7 @@ const SETUP = [
 const SUITES = [
   'sql/tests/01_security_suite.sql',
   'sql/tests/02_email_language.sql',
+  'sql/tests/03_message_threading.sql',
 ];
 
 /** Turn psql meta-commands into something a plain connection can run.
