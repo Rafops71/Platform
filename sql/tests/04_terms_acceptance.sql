@@ -26,7 +26,7 @@ values (
   jsonb_build_object(
     'first_name', 'Tess', 'last_name', 'English', 'phone', '+3200000001',
     'country', 'Belgium', 'language', 'en',
-    'terms_version', '1.0', 'terms_language', 'en'
+    'terms_version', '2.0', 'terms_language', 'en'
   )
 );
 
@@ -37,7 +37,7 @@ values (
   jsonb_build_object(
     'first_name', 'Tomas', 'last_name', 'Espanol', 'phone', '+3200000002',
     'country', 'Spain', 'language', 'es',
-    'terms_version', '1.0', 'terms_language', 'es'
+    'terms_version', '2.0', 'terms_language', 'es'
   )
 );
 
@@ -47,7 +47,7 @@ from public.terms_acceptances a
 join public.profiles p on p.id = a.profile_id
 where p.email = 'terms-en@example.invalid';
 
-select case when a.version = '1.0' then 'PASS' else 'FAIL got ' || coalesce(a.version, 'null') end
+select case when a.version = '2.0' then 'PASS' else 'FAIL got ' || coalesce(a.version, 'null') end
   as "T2 the accepted version is recorded"
 from public.terms_acceptances a
 join public.profiles p on p.id = a.profile_id
@@ -95,7 +95,7 @@ update public.terms_acceptances set version = 'tampered'
 where profile_id = (select id from public.profiles where email = 'terms-en@example.invalid');
 reset role; reset test.uid;
 
-select case when a.version = '1.0' then 'PASS' else 'FAIL got ' || a.version end
+select case when a.version = '2.0' then 'PASS' else 'FAIL got ' || a.version end
   as "T6 a participant cannot rewrite their own acceptance"
 from public.terms_acceptances a
 join public.profiles p on p.id = a.profile_id
@@ -113,6 +113,58 @@ join public.profiles p on p.id = a.profile_id
 where p.email = 'terms-en@example.invalid';
 
 \echo
+\echo '=========== A LATER VERSION ADDS TO THE HISTORY ==========='
+
+-- The uniqueness constraint is on (profile_id, version), not on profile_id, so
+-- accepting a newer version has to add a row rather than replace the old one.
+-- This matters now that a second version exists: the record of what someone
+-- agreed to in 2.0 must survive them later accepting 3.0, because the question
+-- asked afterwards is always "what were they bound by at the time".
+
+set role authenticated; set test.uid='a1a1a1a1-a1a1-a1a1-a1a1-a1a1a1a1a1a1';
+insert into public.terms_acceptances (profile_id, version, language)
+values (
+  (select id from public.profiles where email = 'terms-en@example.invalid'),
+  '3.0', 'en'
+);
+reset role; reset test.uid;
+
+select case when count(*) = 2 then 'PASS' else 'FAIL got ' || count(*) end
+  as "T10 accepting a later version adds a row rather than replacing"
+from public.terms_acceptances a
+join public.profiles p on p.id = a.profile_id
+where p.email = 'terms-en@example.invalid';
+
+select case when count(*) = 1 then 'PASS' else 'FAIL got ' || count(*) end
+  as "T11 the earlier acceptance survives unchanged"
+from public.terms_acceptances a
+join public.profiles p on p.id = a.profile_id
+where p.email = 'terms-en@example.invalid' and a.version = '2.0';
+
+-- And the same version cannot be recorded twice for the same participant. The
+-- insert below is expected to be rejected by the uniqueness constraint; the
+-- count that follows is what decides the result.
+set role authenticated; set test.uid='a1a1a1a1-a1a1-a1a1-a1a1-a1a1a1a1a1a1';
+insert into public.terms_acceptances (profile_id, version, language)
+values (
+  (select id from public.profiles where email = 'terms-en@example.invalid'),
+  '3.0', 'en'
+);
+reset role; reset test.uid;
+
+select case when count(*) = 2 then 'PASS' else 'FAIL got ' || count(*) end
+  as "T12 the same version cannot be recorded twice"
+from public.terms_acceptances a
+join public.profiles p on p.id = a.profile_id
+where p.email = 'terms-en@example.invalid';
+
+-- Leave only the registration acceptance behind, so the privacy checks below
+-- count what they were written to count.
+delete from public.terms_acceptances
+where version = '3.0'
+  and profile_id = (select id from public.profiles where email = 'terms-en@example.invalid');
+
+\echo
 \echo '=========== ACCEPTANCE IS PRIVATE ==========='
 
 -- The record carries no commercial detail, but it is tied to an identity, and
@@ -122,13 +174,13 @@ where p.email = 'terms-en@example.invalid';
 set role authenticated; set test.uid='a1a1a1a1-a1a1-a1a1-a1a1-a1a1a1a1a1a1';
 
 select case when count(*) = 0 then 'PASS' else 'FAIL saw ' || count(*) end
-  as "T8 a participant cannot read another participant's acceptance"
+  as "T13 a participant cannot read another participant's acceptance"
 from public.terms_acceptances a
 join public.profiles p on p.id = a.profile_id
 where p.email = 'terms-es@example.invalid';
 
 select case when count(*) = 1 then 'PASS' else 'FAIL got ' || count(*) end
-  as "T9 a participant can read their own acceptance"
+  as "T14 a participant can read their own acceptance"
 from public.terms_acceptances a
 join public.profiles p on p.id = a.profile_id
 where p.email = 'terms-en@example.invalid';

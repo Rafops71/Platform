@@ -203,11 +203,21 @@ function docTypeLabel(docType) {
 // Bump this whenever the terms.* strings in i18n.js change materially. Leaving
 // it alone after a substantive edit is the one thing that breaks the record:
 // two people would hold the same version string against different text.
-const TERMS_VERSION = '1.0';
+const TERMS_VERSION = '2.0';
 
 // The order the Terms sections are rendered in. Adding a section means adding
-// its number here and a terms.sN.title / terms.sN.body pair in both languages.
-const TERMS_SECTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+// its number here and a terms.sN.title plus either a terms.sN.body or the
+// numbered paragraphs below, in both languages. Renumbering means editing the
+// numbers inside the title strings too - they are part of the text.
+const TERMS_SECTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+
+// Sections whose body runs to more than one paragraph. A section listed here
+// has terms.sN.p1 … p{count} instead of a single terms.sN.body; one that is
+// not listed has the single body. Only the Privacy Notice needs this so far:
+// running "what is collected", "why", "who sees it", and retention together
+// into one block of text would make the part people most need to find the
+// hardest to read.
+const TERMS_SECTION_PARAGRAPHS = { 10: 7 };
 
 const INCOTERMS = ['EXW', 'FCA', 'FAS', 'FOB', 'CFR', 'CIF', 'CPT', 'CIP', 'DAP', 'DPU', 'DDP'];
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'ZAR'];

@@ -35,8 +35,8 @@ and indexes all confirmed.
 **Both test suites pass against the current code:**
 
 ```sh
-npm run test:sql      # 76 assertions, 0 failures
-npm run e2e           # 43 tests, 0 failures
+npm run test:sql      # 88 assertions, 0 failures
+npm run e2e           # 51 tests, 0 failures
 npm run verify-live   # READ-ONLY health check, safe on production
 ```
 
@@ -145,6 +145,17 @@ wire each row as you append it.**
    issue one query per row for related records. Fine at current volumes, not
    linear.
 
-5. **Legal and compliance gaps.** No Terms of Use, no record of terms acceptance
-   at registration, and no privacy notice covering the personal and company data
-   held. See `JERICHO_PLATFORM_PRODUCT_REVIEW.md` for the full list.
+5. **Legal and compliance gaps.** The Terms, the acceptance record, and the
+   Privacy Notice now exist (version 2.0, `sql/010`, section 10 of the terms).
+   What is still missing is the operating company itself: the terms name no
+   legal entity and no registered address, which a document choosing English law
+   and exclusive English jurisdiction ought to carry. A lawyer should also read
+   the non-circumvention clause at section 8 before it is relied on — a 24-month
+   commission tail is only worth what a court will enforce.
+
+   Existing participants hold an acceptance of version 1.0 and are deliberately
+   not being asked to re-accept 2.0. There is no re-acceptance prompt in the
+   dashboard; the mechanism supports one (the insert policy lets a participant
+   record a later version, and the uniqueness constraint is on
+   `(profile_id, version)` so the 1.0 row survives), but nothing drives it.
+   See `JERICHO_PLATFORM_PRODUCT_REVIEW.md` for the wider list.

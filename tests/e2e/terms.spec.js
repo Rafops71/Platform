@@ -61,11 +61,12 @@ test.describe.serial('Terms & Conditions', () => {
   test('the terms can be read without an account, in English', async ({ page }) => {
     await page.goto('/terms.html');
 
-    await expect(page.locator('#terms-heading')).toHaveText('Terms & Conditions and Disclaimer');
+    await expect(page.locator('#terms-heading'))
+      .toHaveText('Terms & Conditions, Disclaimer and Privacy Notice');
     await expect(page.locator('#terms-version')).toHaveText(`Version ${TERMS_VERSION}`);
 
-    // All twelve sections rendered, not just the first.
-    await expect(page.locator('#terms-body .terms-section')).toHaveCount(12);
+    // All fifteen sections rendered, not just the first.
+    await expect(page.locator('#terms-body .terms-section')).toHaveCount(15);
 
     const body = await page.locator('#terms-body').innerText();
     expect(body).toContain(EN_MARKER);
@@ -75,6 +76,40 @@ test.describe.serial('Terms & Conditions', () => {
     expect(body).toContain('must not attempt to identify');
     expect(body).toContain('To the fullest extent permitted by law');
     expect(body).toContain('at their sole discretion');
+
+    // The commercially load-bearing clauses. These are the reason the terms
+    // exist at all, so each is asserted by its operative words rather than by
+    // the section merely being present.
+    expect(body).toContain('It is not a public marketplace');
+    expect(body).toContain('may be suspended or revoked at any time without notice');
+    expect(body).toContain('entitled to the commission agreed between the parties during negotiation');
+    expect(body).toContain('twenty-four (24) months from the date the introduction is made');
+    expect(body).toContain('governed by English law');
+    expect(body).toContain('exclusive jurisdiction of the courts of England and Wales');
+  });
+
+  test('the Privacy Notice renders in full', async ({ page }) => {
+    await page.goto('/terms.html');
+
+    // Section 10 is the one section with several paragraphs rather than one,
+    // so a broken TERMS_SECTION_PARAGRAPHS would silently render a single
+    // paragraph and lose the rest. Count them, then check each covers what it
+    // is supposed to cover.
+    const privacy = page.locator('#terms-body .terms-section').nth(9);
+    await expect(privacy.locator('h3')).toHaveText('10. Privacy Notice');
+    await expect(privacy.locator('p')).toHaveCount(7);
+
+    const text = await privacy.innerText();
+    expect(text).toContain('What is collected');
+    expect(text).toContain('language preference');
+    expect(text).toContain('Why it is collected');
+    expect(text).toContain('audit trail');
+    expect(text).toContain('visible only to the Operators');
+    expect(text).toContain("Participants never see one another's identity");
+    expect(text).toContain('not sold, rented, or traded');
+    expect(text).toContain('How long it is kept');
+    expect(text).toContain('Operator access');
+    expect(text).toContain('brokerage and of security');
   });
 
   test('switching to Spanish translates the terms in place', async ({ page }) => {
@@ -82,17 +117,32 @@ test.describe.serial('Terms & Conditions', () => {
     await page.locator('.lang-btn', { hasText: 'ES' }).click();
 
     await expect(page.locator('#terms-heading'))
-      .toHaveText('Términos y Condiciones y Exención de Responsabilidad');
-    await expect(page.locator('#terms-body .terms-section')).toHaveCount(12);
+      .toHaveText('Términos y Condiciones, Exención de Responsabilidad y Aviso de Privacidad');
+    await expect(page.locator('#terms-body .terms-section')).toHaveCount(15);
 
     const body = await page.locator('#terms-body').innerText();
     expect(body).toContain(ES_MARKER);
     expect(body).toContain('diligencia debida');
     expect(body).toContain('En la máxima medida permitida por la ley');
 
+    // The same load-bearing clauses, in the language they will actually be
+    // read and relied on in.
+    expect(body).toContain('No es un mercado público');
+    expect(body).toContain('podrá suspenderse o revocarse en cualquier momento sin previo aviso');
+    expect(body).toContain('la comisión acordada entre las partes durante la negociación');
+    expect(body).toContain('veinticuatro (24) meses');
+    expect(body).toContain('se rigen por el Derecho inglés');
+    expect(body).toContain('jurisdicción exclusiva de los tribunales de Inglaterra y Gales');
+
+    // The Privacy Notice is translated too, not left in English.
+    expect(body).toContain('Aviso de Privacidad');
+    expect(body).toContain('Datos que se recogen');
+    expect(body).toContain('nunca conocen la identidad de los demás');
+
     // And no English left behind on a page claiming to be Spanish.
     expect(body).not.toContain(EN_MARKER);
-    expect(body).not.toContain('Terms & Conditions and Disclaimer');
+    expect(body).not.toContain('Terms & Conditions, Disclaimer and Privacy Notice');
+    expect(body).not.toContain('governed by English law');
   });
 
   test('the registration page requires acceptance and links to the terms', async ({ page }) => {

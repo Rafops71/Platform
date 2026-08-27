@@ -26,12 +26,22 @@ function renderTerms() {
 
     const h = document.createElement('h3');
     h.textContent = t(`terms.s${n}.title`);
-
-    const p = document.createElement('p');
-    p.textContent = t(`terms.s${n}.body`);
-
     section.appendChild(h);
-    section.appendChild(p);
+
+    // Most sections are a title and one paragraph. The ones listed in
+    // TERMS_SECTION_PARAGRAPHS - currently only the Privacy Notice - are
+    // split across terms.sN.p1 … pN instead.
+    const paragraphs = TERMS_SECTION_PARAGRAPHS[n];
+    const keys = paragraphs
+      ? Array.from({ length: paragraphs }, (_, i) => `terms.s${n}.p${i + 1}`)
+      : [`terms.s${n}.body`];
+
+    for (const key of keys) {
+      const p = document.createElement('p');
+      p.textContent = t(key);
+      section.appendChild(p);
+    }
+
     body.appendChild(section);
   }
 }
