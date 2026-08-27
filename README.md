@@ -188,7 +188,7 @@ npm run e2e           # Playwright, against the LIVE Supabase project
 npm run e2e:headed    # the same, with a visible browser
 ```
 
-**Current: 88 SQL assertions and 53 E2E tests, all passing.**
+**Current: 88 SQL assertions and 60 E2E tests, all passing.**
 
 ### SQL security suite
 
@@ -229,8 +229,8 @@ All features are implemented and verified against the live project: invitation
 flow, Operator approval, listings with reference numbers, the document
 checklist, the brokered mailbox with threaded replies, in-platform
 notifications, notification email in the recipient's language, the bilingual
-participant interface, commodity management, the activity log, and the match
-suggestion engine.
+participant interface, commodity management, the activity log, the match
+suggestion engine, and the Operator workload overview.
 
 **Known open items:**
 

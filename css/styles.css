@@ -245,6 +245,45 @@ table.data-table th { color: var(--text-muted); font-size: 12px; text-transform:
 .logo-row p { color: var(--text-muted); font-size: 13px; margin: 4px 0 0; }
 .notification-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--red); margin-left: 4px; }
 
+/* ---- Workload overview (operator) ----
+   Each tile is a button, not a card with a link inside it: the whole tile is
+   the target, which is what an operator glancing at a count expects to be able
+   to hit. auto-fit keeps them on one row on a desktop and stacks them on a
+   phone without a breakpoint of their own. */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+.stat-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+  text-align: left;
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-family: inherit;
+  min-height: 84px;
+}
+.stat-tile:hover { background: var(--blue-tint); border-color: var(--blue); }
+.stat-value { font-size: 28px; font-weight: 700; color: var(--blue-dark); line-height: 1.1; }
+.stat-label { font-size: 13px; color: var(--text-muted); }
+/* Nothing waiting is the good case and should not read as an alert. */
+.stat-tile.stat-zero .stat-value { color: var(--text-muted); }
+
+.filter-note {
+  background: var(--blue-tint);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  margin: 0 0 12px;
+  font-size: 13px;
+}
+
 /* Touch screens: keep every interactive control at a comfortable tap size. */
 @media (max-width: 700px) {
   button, .btn, input, select, textarea { min-height: 40px; }

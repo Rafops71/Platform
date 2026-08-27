@@ -19,7 +19,8 @@
 
 <nav class="tabs">
   <div class="container">
-    <button data-screen="approvals" class="active">Approvals<span id="approvals-dot" class="notification-dot hidden"></span></button>
+    <button data-screen="overview" class="active">Overview</button>
+    <button data-screen="approvals">Approvals<span id="approvals-dot" class="notification-dot hidden"></span></button>
     <button data-screen="listings">All Listings</button>
     <button data-screen="invitations">Invitations</button>
     <button data-screen="users">Users</button>
@@ -33,8 +34,44 @@
 
 <main class="container">
 
+  <!-- WORKLOAD OVERVIEW -->
+  <!-- Five counts of work waiting to be done, each a link to the screen where
+       it is done. Read-only: nothing here changes a row, and every count is a
+       head-only query the operator could already run by opening the tab. -->
+  <section id="screen-overview" class="screen active">
+    <div class="card">
+      <div class="flex-between">
+        <h2 class="mt-0">Workload</h2>
+        <button class="btn btn-secondary btn-small" id="overview-refresh-btn">Refresh</button>
+      </div>
+      <div class="stat-grid" id="overview-stats">
+        <button class="stat-tile" id="stat-approvals" data-goto="approvals">
+          <span class="stat-value" id="stat-approvals-value">—</span>
+          <span class="stat-label">Pending registrations</span>
+        </button>
+        <button class="stat-tile" id="stat-messages" data-goto="mailbox">
+          <span class="stat-value" id="stat-messages-value">—</span>
+          <span class="stat-label">Messages awaiting review</span>
+        </button>
+        <button class="stat-tile" id="stat-doc-requests" data-goto="doc-requests">
+          <span class="stat-value" id="stat-doc-requests-value">—</span>
+          <span class="stat-label">Document requests outstanding</span>
+        </button>
+        <button class="stat-tile" id="stat-matches" data-goto="matches">
+          <span class="stat-value" id="stat-matches-value">—</span>
+          <span class="stat-label">Match suggestions unreviewed</span>
+        </button>
+        <button class="stat-tile" id="stat-stale" data-goto="listings">
+          <span class="stat-value" id="stat-stale-value">—</span>
+          <span class="stat-label">Listings not updated in 30 days</span>
+        </button>
+      </div>
+      <p class="text-muted" id="overview-updated" style="font-size:13px;margin:12px 0 0;"></p>
+    </div>
+  </section>
+
   <!-- PENDING APPROVALS -->
-  <section id="screen-approvals" class="screen active">
+  <section id="screen-approvals" class="screen">
     <div class="card">
       <h2 class="mt-0">Pending Approvals</h2>
       <div id="approvals-list" class="stack"><p class="empty-state">Loading…</p></div>
@@ -45,6 +82,10 @@
   <section id="screen-listings" class="screen">
     <div class="card">
       <h2 class="mt-0">All Listings</h2>
+      <p class="filter-note hidden" id="listing-stale-note">
+        Showing available listings not updated in the last 30 days.
+        <a href="#" id="listing-stale-clear">Show all</a>
+      </p>
       <div class="row" style="margin-bottom:12px;">
         <select id="listing-filter-type"><option value="">All types</option><option value="sell">Sell</option><option value="buy">Buy</option></select>
         <select id="listing-filter-status"><option value="">All statuses</option></select>

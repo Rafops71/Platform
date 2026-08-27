@@ -4,6 +4,18 @@ let CURRENT_PROFILE = null;
 let ALL_PROFILES_BY_ID = {}; // cache for owner-name lookups
 let FORWARD_TARGET = null;   // { messageId, listingId, toUserId, refLabel }
 let REPLY_TARGET = null;     // { originalMessage }
+// Set when the Listings screen was opened from the Overview's stale tile, so
+// the table shows the same rows the count promised. Any Search or Clear on the
+// screen itself drops it — the operator's own filtering wins over the tile's.
+let LISTINGS_STALE_ONLY = false;
+
+// What counts as a stale listing, in one place: still available and untouched
+// for 30 days. Both the count and the filtered table read it from here, so
+// they cannot drift apart and show a number that the screen then contradicts.
+const STALE_LISTING_DAYS = 30;
+function staleListingCutoff() {
+  return new Date(Date.now() - STALE_LISTING_DAYS * 24 * 60 * 60 * 1000).toISOString();
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
   CURRENT_PROFILE = await requireAuth('operator');
@@ -14,6 +26,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('logout-link').addEventListener('click', (e) => { e.preventDefault(); logout(); });
 
   wireTabs();
+  wireOverview();
   wireInvitations();
   wireCommodities();
   wireDocRequests();
@@ -21,7 +34,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   wireReplyModal();
   populateStatusFilter();
 
-  await loadApprovals();
+  // The overview is the landing screen, and its approvals count is the same
+  // query the Approvals tab runs, so the tab's dot is set from here too.
+  await loadOverview();
 });
 
 function wireTabs() {
@@ -36,6 +51,7 @@ function showScreen(name) {
   document.getElementById(`screen-${name}`).classList.add('active');
   document.querySelector(`nav.tabs button[data-screen="${name}"]`).classList.add('active');
 
+  if (name === 'overview') loadOverview();
   if (name === 'approvals') loadApprovals();
   if (name === 'listings') { populateCommodityFilter(); loadListings(); }
   if (name === 'invitations') loadInvitations();
@@ -50,6 +66,77 @@ function showScreen(name) {
 async function logOpActivity(action, details = null) {
   try { await jericho.from('activity_log').insert({ user_id: CURRENT_PROFILE.id, action, details }); }
   catch (e) { console.warn('activity log failed (non-fatal):', e); }
+}
+
+// ---------------------------------------------------------- OVERVIEW ----
+// Five counts of work waiting, each linked to the screen where that work is
+// done. Read-only throughout: every query is head-only with an exact count, so
+// no rows cross the wire, and RLS decides what is counted exactly as it decides
+// what the corresponding tab would show. Nothing here needs a permission the
+// operator did not already have.
+
+/** The five counts, in tile order. `where` receives the table query and
+ *  narrows it to the rows that represent outstanding work. */
+const OVERVIEW_TILES = [
+  { id: 'approvals',    screen: 'approvals',    table: 'profiles',
+    where: (q) => q.eq('status', 'pending') },
+  { id: 'messages',     screen: 'mailbox',      table: 'messages',
+    where: (q) => q.eq('status', 'pending_review') },
+  { id: 'doc-requests', screen: 'doc-requests', table: 'document_requests',
+    where: (q) => q.eq('status', 'requested') },
+  { id: 'matches',      screen: 'matches',      table: 'matches',
+    where: (q) => q.eq('status', 'new') },
+  { id: 'stale',        screen: 'listings',     table: 'listings',
+    where: (q) => q.eq('status', 'available').lt('updated_at', staleListingCutoff()) },
+];
+
+function wireOverview() {
+  document.getElementById('overview-refresh-btn').addEventListener('click', loadOverview);
+
+  document.querySelectorAll('.stat-tile').forEach(tile => {
+    tile.addEventListener('click', () => {
+      // The stale tile is the one whose screen cannot show its own rows
+      // unaided - "not updated in 30 days" is not one of the filters on the
+      // Listings screen - so the flag is set before the screen loads.
+      LISTINGS_STALE_ONLY = tile.dataset.goto === 'listings';
+      showScreen(tile.dataset.goto);
+    });
+  });
+
+  document.getElementById('listing-stale-clear').addEventListener('click', (e) => {
+    e.preventDefault();
+    LISTINGS_STALE_ONLY = false;
+    loadListings();
+  });
+}
+
+async function loadOverview() {
+  const results = await Promise.all(OVERVIEW_TILES.map(async (tile) => {
+    const { count, error } = await tile.where(
+      jericho.from(tile.table).select('id', { count: 'exact', head: true })
+    );
+    return { tile, count, error };
+  }));
+
+  for (const { tile, count, error } of results) {
+    const el = document.getElementById(`stat-${tile.id}-value`);
+    const box = document.getElementById(`stat-${tile.id}`);
+    // A failed count must not read as zero work waiting. Show that it is
+    // unknown instead, and leave the tile clickable so the screen itself can
+    // report whatever went wrong.
+    el.textContent = error ? '—' : String(count);
+    box.classList.toggle('stat-zero', !error && count === 0);
+    box.title = error ? errorMessage(error) : '';
+  }
+
+  document.getElementById('overview-updated').textContent =
+    `Updated ${formatDateTime(new Date().toISOString())}`;
+
+  // The Approvals tab dot means the same thing as the first tile, so it is set
+  // here rather than only when that tab is opened.
+  const approvals = results.find(r => r.tile.id === 'approvals');
+  document.getElementById('approvals-dot')
+    .classList.toggle('hidden', !!approvals.error || approvals.count === 0);
 }
 
 // --------------------------------------------------------- APPROVALS ----
@@ -116,8 +203,12 @@ function populateStatusFilter() {
     incotermSelect.appendChild(opt);
   });
 
-  document.getElementById('listing-search-btn').addEventListener('click', loadListings);
+  document.getElementById('listing-search-btn').addEventListener('click', () => {
+    LISTINGS_STALE_ONLY = false;
+    loadListings();
+  });
   document.getElementById('listing-clear-btn').addEventListener('click', () => {
+    LISTINGS_STALE_ONLY = false;
     ['listing-filter-type','listing-filter-status','listing-filter-commodity',
      'listing-filter-incoterm','listing-filter-region','listing-filter-qty-min',
      'listing-filter-qty-max','listing-filter-date-from','listing-filter-date-to',
@@ -145,6 +236,11 @@ async function loadListings() {
   let query = jericho.from('listings')
     .select('*, profiles!listings_user_id_fkey(first_name,last_name,company)')
     .order('created_at', { ascending: false });
+
+  // Arrived here from the Overview's stale tile: same predicate as the count,
+  // announced above the table so the operator can see why rows are missing.
+  document.getElementById('listing-stale-note').classList.toggle('hidden', !LISTINGS_STALE_ONLY);
+  if (LISTINGS_STALE_ONLY) query = query.eq('status', 'available').lt('updated_at', staleListingCutoff());
 
   const type = document.getElementById('listing-filter-type').value;
   const status = document.getElementById('listing-filter-status').value;

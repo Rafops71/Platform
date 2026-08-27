@@ -36,7 +36,7 @@ and indexes all confirmed.
 
 ```sh
 npm run test:sql      # 88 assertions, 0 failures
-npm run e2e           # 53 tests, 0 failures
+npm run e2e           # 60 tests, 0 failures
 npm run verify-live   # READ-ONLY health check, safe on production
 ```
 
@@ -50,6 +50,28 @@ verified**, including real signup firing `handle_new_user`, `auth.uid()`
 resolving correctly under PostgREST, invitation tokens being consumed in one
 pass with email confirmation off, and the full invite → register → approve →
 listing → browse → contact → forward → reply path.
+
+### The Operator workload overview
+
+The Operator dashboard opens on an **Overview** tab: five counts of work
+waiting — pending registrations, messages awaiting review, outstanding document
+requests, unreviewed match suggestions, and available listings not updated in 30
+days — each tile a link to the screen where that work is done.
+
+It is read-only and adds no permission of its own: every count is a head-only
+`count: 'exact'` query on a table the Operator could already open, so RLS decides
+what is counted exactly as it decides what the tab would show. A count that
+errors renders `—` rather than `0`, because "nothing waiting" and "could not ask"
+must not look the same.
+
+Two things to know before changing it. The definition of stale lives once, in
+`staleListingCutoff()` / `STALE_LISTING_DAYS` in `js/operator.js`, and both the
+count and the filtered table read it from there — the Listings screen has no
+"not updated in N days" filter of its own, so the tile sets `LISTINGS_STALE_ONLY`
+and the screen announces the filter above the table. Any Search or Clear on that
+screen drops the flag, so the Operator's own filtering always wins. And the
+Approvals tab dot is now set from the overview's first count, so it appears
+before that tab has ever been opened.
 
 ## Things worth knowing before you change anything
 
