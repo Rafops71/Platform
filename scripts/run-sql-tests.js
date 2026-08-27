@@ -154,7 +154,42 @@ function readAssertion(res) {
   return { name, value, passed: value.startsWith('PASS') };
 }
 
+/** Delete data directories abandoned by earlier runs.
+ *
+ *  The cleanup in main()'s finally block retries, but on Windows the handle
+ *  Postgres holds on its data directory sometimes outlives all five attempts,
+ *  and the directory is orphaned. Each one is ~49 MB, so a few weeks of runs
+ *  quietly cost hundreds of megabytes of temp space.
+ *
+ *  Sweeping at startup does not race anything: by the time we are here the
+ *  previous run's server is long gone, so its handles are released. A
+ *  directory that still refuses to go is either genuinely locked or owned by
+ *  a concurrent run - both are somebody else's, so the error is swallowed and
+ *  the sweep moves on. It never touches the directory this run is about to
+ *  create, which does not exist yet. */
+function sweepStaleDataDirs() {
+  const tmp = os.tmpdir();
+  let swept = 0;
+  let entries;
+  try {
+    entries = fs.readdirSync(tmp);
+  } catch {
+    return; // an unreadable temp dir is not this script's problem
+  }
+  for (const name of entries) {
+    if (!name.startsWith('jericho-pgtest-')) continue;
+    try {
+      fs.rmSync(path.join(tmp, name), { recursive: true, force: true });
+      swept++;
+    } catch {
+      // Locked, or in use by a concurrent run. Leave it.
+    }
+  }
+  if (swept) console.log(`Swept ${swept} stale data director${swept === 1 ? 'y' : 'ies'} from a previous run.`);
+}
+
 async function main() {
+  sweepStaleDataDirs();
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'jericho-pgtest-'));
   const pg = new EmbeddedPostgres({
     databaseDir: dataDir,
