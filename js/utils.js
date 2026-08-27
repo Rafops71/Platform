@@ -203,9 +203,8 @@ const CURRENCIES = ['USD', 'EUR', 'GBP', 'ZAR'];
  *  and its "Price per" unit, which are deliberately independent — ore is
  *  quantified in metric tons but priced per DMTU, for instance. */
 const UNITS = [
-  'Grams', 'Kilograms', 'Metric tons', 'Pounds', 'Ounces',
-  'Liters', 'Cubic meters', 'Barrels', 'Gallons', 'Bushels',
-  'Dry Metric Ton Units (DMTU)',
+  'Barrels', 'Bushels', 'Cubic meters', 'Dry Metric Ton Units (DMTU)', 'Gallons', 'Grams',
+  'Kilograms', 'Liters', 'Metric tons', 'Ounces', 'Pounds',
 ];
 
 const COUNTRIES = [
