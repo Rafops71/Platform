@@ -58,6 +58,19 @@
         </div>
       </div>
 
+      <!-- Required. The `required` attribute blocks submission in the browser;
+           handleRegisterSubmit checks it again, and sql/010 records what was
+           accepted so the consent is provable afterwards. -->
+      <div class="terms-accept">
+        <label for="accept-terms" class="checkbox-row">
+          <input type="checkbox" id="accept-terms" required>
+          <span>
+            <span data-i18n="register.terms.accept">I have read and accept the</span>
+            <a href="terms.html" target="_blank" rel="noopener" id="terms-link" data-i18n="register.terms.link">Terms &amp; Conditions</a><span data-i18n="register.terms.suffix">.</span>
+          </span>
+        </label>
+      </div>
+
       <button type="submit" class="btn btn-primary btn-block" style="margin-top:18px;" id="register-btn" data-i18n="register.submit">Register</button>
     </form>
   </div>

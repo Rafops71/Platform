@@ -128,6 +128,17 @@ async function initRegisterPage() {
 
 async function handleRegisterSubmit(e) {
   e.preventDefault();
+
+  // The `required` attribute on the checkbox already stops the browser
+  // submitting, so reaching this branch means the form was submitted some
+  // other way. Checked again rather than assumed, because the whole point of
+  // the box is that nobody registers without it.
+  const acceptBox = document.getElementById('accept-terms');
+  if (!acceptBox || !acceptBox.checked) {
+    showError(t('register.terms.required'));
+    return;
+  }
+
   const btn = document.getElementById('register-btn');
   btn.disabled = true;
   btn.textContent = t('register.submitting');
@@ -146,9 +157,20 @@ async function handleRegisterSubmit(e) {
   // unexpected is folded to English by norm_lang() on the way in.
   const language = currentLang();
 
+  // The terms version and the language the terms were read in travel as
+  // signup metadata, because handle_new_user() writes the acceptance row in
+  // the same transaction that creates the profile (sql/010). Recording it
+  // from the browser afterwards would mean a registration could complete with
+  // no acceptance on file if that second call failed or was never made.
   const { data, error } = await jericho.auth.signUp({
     email, password,
-    options: { data: { first_name, last_name, company, country, phone, language } }
+    options: {
+      data: {
+        first_name, last_name, company, country, phone, language,
+        terms_version: TERMS_VERSION,
+        terms_language: language,
+      }
+    }
   });
 
   if (error) {

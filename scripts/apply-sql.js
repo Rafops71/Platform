@@ -40,6 +40,7 @@ const DEFAULT_ORDER = [
   '007_commodities_alphabetical.sql',
   '008_email_language.sql',
   '009_message_threading.sql',
+  '010_terms_acceptance.sql',
   'seed_commodities.sql',
 ];
 

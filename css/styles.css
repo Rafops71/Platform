@@ -295,3 +295,34 @@ table.data-table th { color: var(--text-muted); font-size: 12px; text-transform:
   margin-bottom: 8px;
   color: var(--text-muted, #667);
 }
+
+/* ---- Terms & Conditions ------------------------------------------------ */
+
+/* The acceptance row sits above the register button and its label wraps on a
+   narrow screen, so it aligns to the top rather than centring the checkbox
+   against two lines of text. */
+.terms-accept { margin-top: 18px; }
+.terms-accept .checkbox-row { align-items: flex-start; }
+.terms-accept .checkbox-row input[type="checkbox"] { margin-top: 10px; }
+.terms-accept a { text-decoration: underline; }
+
+/* The terms page is prose, not a form - wider than the auth shell and with a
+   measure that stays readable. */
+.terms-shell { max-width: 760px; }
+.terms-section { margin-top: 20px; }
+.terms-section h3 {
+  font-size: 14px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text);
+  margin: 0 0 6px;
+}
+.terms-section p { margin: 0; line-height: 1.6; }
+
+.app-footer {
+  text-align: center;
+  padding: 20px 16px 28px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.app-footer a { color: var(--text-muted); }

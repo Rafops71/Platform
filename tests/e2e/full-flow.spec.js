@@ -128,6 +128,10 @@ test.describe.serial('full participant lifecycle', () => {
     await page.fill('#password', invitedPassword);
     await page.selectOption('#country', 'Belgium');
     await page.fill('#phone', POSTER.phone);
+    // Required since sql/010. Without it the browser refuses to submit, and
+    // this test would fail on the navigation rather than on anything to do
+    // with registration. tests/e2e/terms.spec.js covers the refusal itself.
+    await page.check('#accept-terms');
     await page.click('#register-btn');
 
     await page.waitForURL('**/index.html**', { timeout: 20_000 });
