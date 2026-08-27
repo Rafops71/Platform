@@ -41,6 +41,18 @@
       </div>
       <div id="my-listings-list" class="stack"><p class="empty-state">Loading…</p></div>
     </div>
+
+    <!-- Saved searches and the watchlist are the same thing: a saved search
+         with only a commodity in it is "watch this commodity". Matches are
+         counted against the same anonymised view Browse reads, so a count says
+         a listing exists and nothing about who posted it. -->
+    <div class="card">
+      <div class="flex-between">
+        <h2 class="mt-0" data-i18n="saved.title">Saved searches &amp; watchlist</h2>
+        <button class="btn btn-secondary btn-small" data-goto="browse" data-i18n="saved.addFromBrowse">Save one from Browse</button>
+      </div>
+      <div id="saved-searches-list" class="stack"><p class="empty-state">Loading…</p></div>
+    </div>
   </section>
 
   <!-- NEW / EDIT LISTING -->
@@ -138,6 +150,7 @@
           <option value="closed" data-i18n="status.closed">Closed</option>
         </select>
         <button class="btn btn-secondary btn-small" id="browse-refresh-btn" data-i18n="common.apply">Apply</button>
+        <button class="btn btn-secondary btn-small" id="browse-save-search-btn" data-i18n="saved.save">Save this search</button>
       </div>
       <div id="browse-list" class="stack"><p class="empty-state">Loading…</p></div>
     </div>

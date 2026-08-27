@@ -42,6 +42,7 @@ const DEFAULT_ORDER = [
   '009_message_threading.sql',
   '010_terms_acceptance.sql',
   '011_profile_self_service.sql',
+  '012_saved_searches.sql',
   'seed_commodities.sql',
 ];
 

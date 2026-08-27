@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderLanguageToggle('lang-toggle');
 
   await loadMyListings();
+  await loadSavedSearches();
   await refreshNotificationDot();
   await refreshDocRequestDot();
 });
@@ -119,7 +120,11 @@ window.onLanguageChange = function (lang) {
 
   const active = document.querySelector('.screen.active');
   const screen = active ? active.id.replace('screen-', '') : 'my-listings';
-  if (screen === 'my-listings') loadMyListings();
+  // Saved searches carry composed labels ("Antimony · Sell Offer · Chile"),
+  // which are built at render time precisely so they follow the language - so
+  // they have to be rebuilt here, or they stay in whichever language they were
+  // first drawn in.
+  if (screen === 'my-listings') { loadMyListings(); loadSavedSearches(); }
   if (screen === 'browse') loadBrowseListings();
   if (screen === 'doc-requests') loadDocRequests();
   if (screen === 'mailbox') loadMailbox();
@@ -146,7 +151,7 @@ function showScreen(name) {
   const tabBtn = document.querySelector(`nav.tabs button[data-screen="${name}"]`);
   if (tabBtn) tabBtn.classList.add('active');
 
-  if (name === 'my-listings') loadMyListings();
+  if (name === 'my-listings') { loadMyListings(); loadSavedSearches(); }
   if (name === 'browse') loadBrowseListings();
   if (name === 'doc-requests') loadDocRequests();
   if (name === 'mailbox') loadMailbox();
@@ -408,6 +413,7 @@ async function submitListingForm(e) {
 // -------------------------------------------------------------- BROWSE ----
 function wireBrowse() {
   document.getElementById('browse-refresh-btn').addEventListener('click', loadBrowseListings);
+  document.getElementById('browse-save-search-btn').addEventListener('click', saveCurrentSearch);
 }
 
 async function loadBrowseListings() {
@@ -417,16 +423,10 @@ async function loadBrowseListings() {
   const { data, error } = await jericho.rpc('get_public_listings');
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
 
-  const typeFilter = document.getElementById('browse-filter-type').value;
-  const commodityFilter = document.getElementById('browse-filter-commodity').value.trim().toLowerCase();
-  const regionFilter = document.getElementById('browse-filter-region').value.trim().toLowerCase();
-  const statusFilter = document.getElementById('browse-filter-status').value;
-
-  let listings = data || [];
-  if (typeFilter) listings = listings.filter(l => l.type === typeFilter);
-  if (commodityFilter) listings = listings.filter(l => l.commodity.toLowerCase().includes(commodityFilter));
-  if (regionFilter) listings = listings.filter(l => (l.region || '').toLowerCase().includes(regionFilter));
-  if (statusFilter) listings = listings.filter(l => l.status === statusFilter);
+  // Same predicate the dashboard counts saved searches with, so a saved search
+  // reporting three matches shows those same three when it is opened.
+  const criteria = browseFilterCriteria();
+  const listings = (data || []).filter(l => listingMatches(l, criteria));
   listings.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
   if (!listings.length) { container.innerHTML = `<p class="empty-state">${t('browse.noMatch')}</p>`; return; }
@@ -461,6 +461,124 @@ async function loadBrowseListings() {
 
   container.querySelectorAll('[data-contact]').forEach(b =>
     b.addEventListener('click', () => openContactModal(b.dataset.contact, b.dataset.ref)));
+}
+
+// ------------------------------------------------- SAVED SEARCHES ----
+//
+// A saved search and a watched commodity are one thing: four optional criteria,
+// any of which may be empty. "Watch Copper" is a saved search with a commodity
+// and nothing else, and the dashboard shows both in the same list rather than
+// pretending they are different features.
+//
+// The criteria are stored; the label is not. A label written at save time would
+// be stuck in whichever language was in use then, so searchLabel() composes it
+// at render time and it follows the interface.
+
+/** The Browse filters as a saved search would store them: empty means "any",
+ *  and empty is always null, never '', so the uniqueness index can compare
+ *  them. */
+function browseFilterCriteria() {
+  const value = (id) => document.getElementById(id).value.trim();
+  return {
+    commodity: value('browse-filter-commodity') || null,
+    listing_type: value('browse-filter-type') || null,
+    region: value('browse-filter-region') || null,
+    listing_status: value('browse-filter-status') || null,
+  };
+}
+
+/** One place deciding whether a listing matches a set of criteria, used both by
+ *  Browse and by the dashboard's match counts. Two copies of this would be two
+ *  answers to "how many listings match", and the count on the dashboard is only
+ *  worth anything if it is the same one Browse would show. */
+function listingMatches(listing, c) {
+  if (c.listing_type && listing.type !== c.listing_type) return false;
+  if (c.commodity && !listing.commodity.toLowerCase().includes(c.commodity.toLowerCase())) return false;
+  if (c.region && !(listing.region || '').toLowerCase().includes(c.region.toLowerCase())) return false;
+  if (c.listing_status && listing.status !== c.listing_status) return false;
+  return true;
+}
+
+/** What a saved search is called, in the language on screen now. */
+function searchLabel(row) {
+  const parts = [];
+  if (row.commodity) parts.push(row.commodity);
+  if (row.listing_type) parts.push(row.listing_type === 'sell' ? t('form.sellOffer') : t('form.buyRequest'));
+  if (row.region) parts.push(countryLabel(row.region));
+  if (row.listing_status) parts.push(statusLabel(row.listing_status));
+  return parts.length ? parts.join(' · ') : t('saved.everything');
+}
+
+async function loadSavedSearches() {
+  const container = document.getElementById('saved-searches-list');
+  container.innerHTML = `<p class="empty-state">${t('common.loading')}</p>`;
+
+  const { data, error } = await jericho
+    .from('saved_searches').select('*').order('created_at', { ascending: false });
+  if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
+  if (!data.length) { container.innerHTML = `<p class="empty-state">${t('saved.none')}</p>`; return; }
+
+  // One call for every count, against the same anonymised view Browse reads.
+  const { data: listings } = await jericho.rpc('get_public_listings');
+  const all = listings || [];
+
+  container.innerHTML = '';
+  data.forEach(row => {
+    const count = all.filter(l => listingMatches(l, row)).length;
+    const el = document.createElement('div');
+    el.className = 'list-row';
+    el.innerHTML = `
+      <div class="list-row-top">
+        <span class="list-row-title">${escapeHtml(searchLabel(row))}</span>
+        <span class="badge ${count ? 'badge-green' : 'badge-grey'}">${escapeHtml(t('saved.matches', { count }))}</span>
+      </div>
+      <div class="row" style="margin-top:4px;">
+        <button class="btn btn-secondary btn-small" data-open-search="${row.id}">${escapeHtml(t('saved.open'))}</button>
+        <button class="btn btn-danger btn-small" data-remove-search="${row.id}">${escapeHtml(t('saved.remove'))}</button>
+      </div>
+    `;
+    container.appendChild(el);
+  });
+
+  const byId = new Map(data.map(r => [r.id, r]));
+  container.querySelectorAll('[data-open-search]').forEach(b =>
+    b.addEventListener('click', () => openSavedSearch(byId.get(b.dataset.openSearch))));
+  container.querySelectorAll('[data-remove-search]').forEach(b =>
+    b.addEventListener('click', () => removeSavedSearch(b.dataset.removeSearch)));
+}
+
+/** Put the saved criteria back into Browse and run it. */
+function openSavedSearch(row) {
+  if (!row) return;
+  document.getElementById('browse-filter-commodity').value = row.commodity || '';
+  document.getElementById('browse-filter-type').value = row.listing_type || '';
+  document.getElementById('browse-filter-region').value = row.region || '';
+  document.getElementById('browse-filter-status').value = row.listing_status || '';
+  showScreen('browse');
+}
+
+async function saveCurrentSearch() {
+  const criteria = browseFilterCriteria();
+
+  const { error } = await jericho.from('saved_searches')
+    .insert({ ...criteria, user_id: CURRENT_PROFILE.id });
+
+  if (error) {
+    // 23505 is the uniqueness index: the same search is already saved, which is
+    // not a failure worth a red toast full of Postgres.
+    if (error.code === '23505') { showError(t('saved.duplicate')); return; }
+    showError(errorMessage(error));
+    return;
+  }
+  showSuccess(t('saved.saved'));
+  loadSavedSearches();
+}
+
+async function removeSavedSearch(id) {
+  const { error } = await jericho.from('saved_searches').delete().eq('id', id);
+  if (error) { showError(errorMessage(error)); return; }
+  showSuccess(t('saved.removed'));
+  loadSavedSearches();
 }
 
 // ------------------------------------------------------------- MAILBOX ----

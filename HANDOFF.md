@@ -28,15 +28,15 @@ directly. If you want it anyway:
 ## Current state
 
 **The live database is fully migrated.** Everything through
-`sql/011_profile_self_service.sql` is applied and verified present at the catalog
+`sql/012_saved_searches.sql` is applied and verified present at the catalog
 level — not assumed, but read back: columns, foreign keys, check constraints,
 and indexes all confirmed.
 
 **Both test suites pass against the current code:**
 
 ```sh
-npm run test:sql      # 104 assertions, 0 failures
-npm run e2e           # 71 tests, 0 failures
+npm run test:sql      # 114 assertions, 0 failures
+npm run e2e           # 79 tests, 0 failures
 npm run verify-live   # READ-ONLY health check, safe on production
 ```
 
