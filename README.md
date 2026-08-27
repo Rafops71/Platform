@@ -58,7 +58,9 @@ The order is:
     entries for profile, email and password changes.
 13. `sql/012_saved_searches.sql` — saved searches, which double as the
     participant watchlist. Owner-only, Operators included.
-14. `sql/seed_commodities.sql` — the standard commodity list. **Last**, because
+14. `sql/013_activity_export.sql` — `my_activity_export()`, the one query behind
+    a participant's CSV of their own activity.
+15. `sql/seed_commodities.sql` — the standard commodity list. **Last**, because
     step 8 reorders what it inserts.
 
 All files are safe to re-run (guarded with `if not exists` / `or replace`).
@@ -195,7 +197,7 @@ npm run e2e           # Playwright, against the LIVE Supabase project
 npm run e2e:headed    # the same, with a visible browser
 ```
 
-**Current: 114 SQL assertions and 79 E2E tests, all passing.**
+**Current: 128 SQL assertions and 84 E2E tests, all passing.**
 
 ### SQL security suite
 
@@ -238,8 +240,8 @@ checklist, the brokered mailbox with threaded replies, in-platform
 notifications, notification email in the recipient's language, the bilingual
 participant interface, commodity management, the activity log, the match
 suggestion engine, the Operator workload overview, and participant
-self-service for profile details, email address and password, and saved
-searches with a watchlist.
+self-service for profile details, email address and password, saved
+searches with a watchlist, and a participant's own activity export.
 
 **Known open items:**
 

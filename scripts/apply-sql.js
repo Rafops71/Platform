@@ -43,6 +43,7 @@ const DEFAULT_ORDER = [
   '010_terms_acceptance.sql',
   '011_profile_self_service.sql',
   '012_saved_searches.sql',
+  '013_activity_export.sql',
   'seed_commodities.sql',
 ];
 

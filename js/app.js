@@ -463,6 +463,75 @@ async function loadBrowseListings() {
     b.addEventListener('click', () => openContactModal(b.dataset.contact, b.dataset.ref)));
 }
 
+// ------------------------------------------------ ACTIVITY EXPORT ----
+//
+// The participant's own record of what they have done here, as a CSV they can
+// open in a spreadsheet. CSV rather than PDF because the point is a file
+// somebody can read, sort and keep - a PDF would need a library, would not sort
+// and would not be any more readable.
+//
+// The rows come from my_activity_export() (sql/013), which filters on the
+// caller's own profile and takes no argument, so there is no id for this page
+// to get wrong. What the browser does here is formatting and nothing else.
+
+/** One CSV field: quoted always, with embedded quotes doubled.
+ *
+ *  Quoting everything rather than only what needs it is deliberate - a message
+ *  body can contain a comma, a newline, a quote, or all three, and a rule
+ *  applied to every field cannot be applied to the wrong one. */
+function csvField(value) {
+  return `"${String(value ?? '').replace(/"/g, '""')}"`;
+}
+
+function toCsv(headers, rows) {
+  // A BOM, because the audience opens CSVs in Excel, which otherwise reads
+  // UTF-8 as the local codepage and turns every accented character in a
+  // Spanish message body into mojibake.
+  return '﻿' + [headers, ...rows].map(r => r.map(csvField).join(',')).join('\r\n') + '\r\n';
+}
+
+/** Hand the file to the browser. The link is created, clicked and dropped
+ *  rather than left in the page, and the object URL is revoked after, so a
+ *  participant exporting twice does not accumulate blobs. */
+function downloadFile(filename, contents, mime = 'text/csv;charset=utf-8') {
+  const url = URL.createObjectURL(new Blob([contents], { type: mime }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+async function exportMyActivity() {
+  const button = document.getElementById('export-activity-btn');
+  button.disabled = true;
+  try {
+    const { data, error } = await jericho.rpc('my_activity_export');
+    if (error) { showError(errorMessage(error)); return; }
+    if (!data || !data.length) { showError(t('export.empty')); return; }
+
+    const headers = [
+      t('export.colDate'), t('export.colCategory'), t('export.colReference'),
+      t('export.colDetail'), t('export.colStatus'),
+    ];
+    const rows = data.map(r => [
+      formatDateTime(r.occurred_at),
+      t(`export.cat.${r.category}`),
+      r.reference || '',
+      r.detail || '',
+      r.status ? statusLabel(r.status) : '',
+    ]);
+
+    const stamp = new Date().toISOString().slice(0, 10);
+    downloadFile(`jericho-activity-${stamp}.csv`, toCsv(headers, rows));
+    showSuccess(t('export.done'));
+  } finally {
+    button.disabled = false;
+  }
+}
+
 // ------------------------------------------------- SAVED SEARCHES ----
 //
 // A saved search and a watched commodity are one thing: four optional criteria,
@@ -718,6 +787,7 @@ function wireProfile() {
   document.getElementById('profile-form').addEventListener('submit', saveProfileDetails);
   document.getElementById('email-form').addEventListener('submit', changeEmail);
   document.getElementById('password-form').addEventListener('submit', changePassword);
+  document.getElementById('export-activity-btn').addEventListener('click', exportMyActivity);
 
   // The Profile select and the header toggle are two views of one setting, so
   // choosing here goes through the same path the toggle uses: setLang fires
