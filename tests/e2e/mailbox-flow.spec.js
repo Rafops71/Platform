@@ -55,6 +55,8 @@ const LISTING = {
 
 const ENQUIRY = 'E2E mailbox: can you confirm the Sb assay and the loading port?';
 const REPLY = 'E2E mailbox reply: assay confirmed at 99.80, loading from Callao.';
+const FOLLOW_UP = 'E2E mailbox: understood - can you hold 200 mt until Friday?';
+const OP_REPLY = 'E2E mailbox operator reply: the seller can hold 200 mt until Friday 17:00.';
 
 let owner, enquirer, operator, listingRef, listingId;
 
@@ -353,8 +355,6 @@ test.describe.serial('in-platform mailbox: browse -> contact -> forward -> reply
   // The routing has to keep alternating, or it is just a special case for the
   // second message rather than a working thread.
   test('a third turn routes back to the owner again', async ({ page }) => {
-    const FOLLOW_UP = 'E2E mailbox: understood - can you hold 200 mt until Friday?';
-
     await signIn(page, enquirer, 'app.html');
     await openScreen(page, 'mailbox');
     await page.locator('#mailbox-list .list-row', { hasText: REPLY }).locator('[data-reply]').click();
@@ -382,6 +382,55 @@ test.describe.serial('in-platform mailbox: browse -> contact -> forward -> reply
     const row = page.locator('#operator-mailbox-list .list-row', { hasText: FOLLOW_UP });
     await expect(row).toBeVisible({ timeout: 15_000 });
     expect(await row.locator('[data-forward]').getAttribute('data-owner')).toBe(owner.profileId);
+  });
+
+  // The operator can also answer a message themselves, and that reply is a
+  // message like any other: it answers something, so it has to be threaded the
+  // same way. Left unthreaded it came back to this very mailbox as pending
+  // with a "Forward to Owner" button - the listing-derived target returning
+  // through the one path sql/009 did not touch - and the owner is not who the
+  // operator wrote it for.
+  test("the operator's own reply is threaded, delivered, and not left pending", async ({ page }) => {
+    await signIn(page, operator, 'operator.html');
+    await openScreen(page, 'mailbox');
+    const row = page.locator('#operator-mailbox-list .list-row', { hasText: FOLLOW_UP });
+    await expect(row).toBeVisible({ timeout: 15_000 });
+    await row.locator('[data-reply]').click();
+
+    await expect(page.locator('#reply-modal')).toBeVisible();
+    await page.fill('#reply-body', OP_REPLY);
+    await page.click('#reply-send-btn');
+
+    await expect.poll(async () => {
+      const r = await query('select count(*)::int n from public.messages where body = $1', [OP_REPLY]);
+      return r.rows[0].n;
+    }, { timeout: 20_000 }).toBe(1);
+
+    const { rows } = await query(
+      `select m.status,
+              parent.body as parent_body,
+              (select count(*)::int from public.message_forward_log f
+                where f.message_id = m.id
+                  and f.to_user_id = (select id from public.profiles where email = $2)) as to_enquirer,
+              (select count(*)::int from public.message_forward_log f
+                where f.message_id = m.id
+                  and f.to_user_id = (select id from public.profiles where email = $3)) as to_owner
+         from public.messages m
+         left join public.messages parent on parent.id = m.in_reply_to
+        where m.body = $1`,
+      [OP_REPLY, enquirer.email, owner.email]
+    );
+    const reply = rows[0];
+    expect(reply.parent_body, 'the operator reply is not threaded onto what it answers').toBe(FOLLOW_UP);
+    expect(reply.to_enquirer, 'the operator reply did not reach the person who asked').toBe(1);
+    expect(reply.to_owner, 'the operator reply was delivered to the listing owner').toBe(0);
+    expect(reply.status, 'a reply delivered in the same action is still shown as pending').toBe('forwarded');
+
+    // So the mailbox offers no second, wrong forward for it.
+    const opRow = page.locator('#operator-mailbox-list .list-row', { hasText: OP_REPLY });
+    await expect(opRow).toBeVisible({ timeout: 15_000 });
+    await expect(opRow).toContainText('Forwarded');
+    await expect(opRow.locator('[data-forward]')).toHaveCount(0);
   });
 
   test('no email was sent at any point in this flow', async () => {

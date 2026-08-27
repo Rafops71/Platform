@@ -780,8 +780,15 @@ async function confirmReply() {
   const body = document.getElementById('reply-body').value.trim();
   if (!body) { showError('Write a reply first.'); return; }
 
+  // The operator's own reply answers a specific message, so it carries the
+  // same in_reply_to link a participant's reply does. Leaving it null was the
+  // listing-derived target coming back through a different door: the reply
+  // would land in this very mailbox offering "Forward to Owner", and the owner
+  // is not who it was written for. See sql/009.
   const { data: newMsg, error: e1 } = await jericho.from('messages').insert({
-    sender_id: CURRENT_PROFILE.id, listing_id: REPLY_TARGET.listingId || null, body, status: 'pending_review'
+    sender_id: CURRENT_PROFILE.id, listing_id: REPLY_TARGET.listingId || null,
+    in_reply_to: REPLY_TARGET.originalMessageId || null,
+    body, status: 'pending_review'
   }).select('id').single();
   if (e1) { showError(errorMessage(e1)); return; }
 
@@ -790,6 +797,10 @@ async function confirmReply() {
   });
   if (e2) { showError(errorMessage(e2)); return; }
 
+  // Delivered in the same action, so it is not pending anything. Marked only
+  // after the forward log succeeded, the way confirmForward does it, so a
+  // failed log never leaves a message claiming to have been forwarded.
+  await jericho.from('messages').update({ status: 'forwarded' }).eq('id', newMsg.id);
   await jericho.from('messages').update({ status: 'replied' }).eq('id', REPLY_TARGET.originalMessageId);
   await jericho.from('notifications').insert({
     user_id: REPLY_TARGET.senderId, type: 'message_reply', message: 'An Operator replied to your message.'
