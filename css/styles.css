@@ -318,6 +318,24 @@ table.data-table th { color: var(--text-muted); font-size: 12px; text-transform:
   margin: 0 0 6px;
 }
 .terms-section p { margin: 0; line-height: 1.6; }
+/* Sections that run to several paragraphs (the Privacy Notice, the company
+   details) need the paragraphs to read as separate ones. */
+.terms-section p + p { margin-top: 10px; }
+
+/* The unfinished-document warning. Deliberately loud: these terms carry
+   placeholders where the operating company's identity belongs, and nobody
+   should reach the end of the page without having been told so. */
+.terms-placeholder-notice {
+  background: var(--amber-tint);
+  color: var(--amber);
+  border: 1px solid var(--amber);
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 600;
+}
 
 .app-footer {
   text-align: center;

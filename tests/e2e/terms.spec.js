@@ -65,8 +65,8 @@ test.describe.serial('Terms & Conditions', () => {
       .toHaveText('Terms & Conditions, Disclaimer and Privacy Notice');
     await expect(page.locator('#terms-version')).toHaveText(`Version ${TERMS_VERSION}`);
 
-    // All fifteen sections rendered, not just the first.
-    await expect(page.locator('#terms-body .terms-section')).toHaveCount(15);
+    // All sixteen sections rendered, not just the first.
+    await expect(page.locator('#terms-body .terms-section')).toHaveCount(16);
 
     const body = await page.locator('#terms-body').innerText();
     expect(body).toContain(EN_MARKER);
@@ -97,7 +97,7 @@ test.describe.serial('Terms & Conditions', () => {
     // is supposed to cover.
     const privacy = page.locator('#terms-body .terms-section').nth(9);
     await expect(privacy.locator('h3')).toHaveText('10. Privacy Notice');
-    await expect(privacy.locator('p')).toHaveCount(7);
+    await expect(privacy.locator('p')).toHaveCount(9);
 
     const text = await privacy.innerText();
     expect(text).toContain('What is collected');
@@ -110,6 +110,12 @@ test.describe.serial('Terms & Conditions', () => {
     expect(text).toContain('How long it is kept');
     expect(text).toContain('Operator access');
     expect(text).toContain('brokerage and of security');
+    // The controller and the complaints route are the two privacy details that
+    // depend on a company existing, so both are present and both are marked.
+    expect(text).toContain('Data controller');
+    expect(text).toContain('data controller legal name');
+    expect(text).toContain('Complaints');
+    expect(text).toContain('competent data protection supervisory authority');
   });
 
   test('switching to Spanish translates the terms in place', async ({ page }) => {
@@ -118,7 +124,7 @@ test.describe.serial('Terms & Conditions', () => {
 
     await expect(page.locator('#terms-heading'))
       .toHaveText('Términos y Condiciones, Exención de Responsabilidad y Aviso de Privacidad');
-    await expect(page.locator('#terms-body .terms-section')).toHaveCount(15);
+    await expect(page.locator('#terms-body .terms-section')).toHaveCount(16);
 
     const body = await page.locator('#terms-body').innerText();
     expect(body).toContain(ES_MARKER);
@@ -143,6 +149,64 @@ test.describe.serial('Terms & Conditions', () => {
     expect(body).not.toContain(EN_MARKER);
     expect(body).not.toContain('Terms & Conditions, Disclaimer and Privacy Notice');
     expect(body).not.toContain('governed by English law');
+  });
+
+  // The Terms name a governing law and claim a commission, but the company
+  // claiming them does not exist on paper yet. Every detail that is missing is
+  // written into the document as a marked placeholder rather than omitted, and
+  // the failure worth catching is one of them quietly losing its marking - a
+  // bracket filled in with something invented reads as finished when it is not.
+  test('every missing legal detail is rendered and marked as a placeholder', async ({ page }) => {
+    await page.goto('/terms.html');
+
+    const notice = page.locator('#terms-placeholder-notice');
+    await expect(notice).toBeVisible();
+    await expect(notice).toContainText('THIS DOCUMENT IS NOT YET COMPLETE');
+
+    const company = page.locator('#terms-body .terms-section').nth(15);
+    await expect(company.locator('h3')).toHaveText('16. The Operators: company details and notices');
+    await expect(company.locator('p')).toHaveCount(6);
+
+    const text = await company.innerText();
+    expect(text).toContain('operating company legal name');
+    expect(text).toContain('country of incorporation');
+    expect(text).toContain('company registration number');
+    expect(text).toContain('registered office address');
+    expect(text).toContain('trading address');
+    expect(text).toContain('VAT or tax registration number');
+    expect(text).toContain('legal notices email address');
+    expect(text).toContain('reviewed by a qualified lawyer');
+
+    // Nothing bracketed anywhere in the terms may be unmarked. This is the
+    // assertion that fails if someone fills a bracket with a working guess.
+    const body = await page.locator('#terms-body').innerText();
+    const bracketed = body.split('[').slice(1).map((part) => part.split(']')[0]);
+    expect(bracketed.length).toBeGreaterThanOrEqual(11);
+    for (const item of bracketed) expect(item).toContain('PLACEHOLDER');
+  });
+
+  test('the placeholders are marked in Spanish too', async ({ page }) => {
+    await page.goto('/terms.html');
+    await page.locator('.lang-btn', { hasText: 'ES' }).click();
+
+    await expect(page.locator('#terms-placeholder-notice'))
+      .toContainText('ESTE DOCUMENTO AÚN NO ESTÁ COMPLETO');
+
+    const company = page.locator('#terms-body .terms-section').nth(15);
+    await expect(company.locator('h3'))
+      .toHaveText('16. Los Operadores: datos de la sociedad y notificaciones');
+
+    const text = await company.innerText();
+    expect(text).toContain('razón social de la empresa operadora');
+    expect(text).toContain('domicilio social');
+    expect(text).toContain('número de registro mercantil');
+    expect(text).toContain('ser revisados por un abogado');
+    expect(text).not.toContain('operating company legal name');
+
+    const body = await page.locator('#terms-body').innerText();
+    const bracketed = body.split('[').slice(1).map((part) => part.split(']')[0]);
+    expect(bracketed.length).toBeGreaterThanOrEqual(11);
+    for (const item of bracketed) expect(item).toContain('PLACEHOLDER');
   });
 
   test('the registration page requires acceptance and links to the terms', async ({ page }) => {

@@ -246,6 +246,7 @@ const STRINGS = {
     'terms.heading': 'Terms & Conditions, Disclaimer and Privacy Notice',
     'terms.version': 'Version {version}',
     'terms.intro': 'These Terms & Conditions govern your access to and use of Jericho Platform, and include the Privacy Notice at section 10. By ticking the acceptance box and completing registration, you confirm that you have read, understood, and agree to be bound by them. If you do not agree, do not register and do not use the Platform.',
+    'terms.placeholderNotice': 'PLACEHOLDER — THIS DOCUMENT IS NOT YET COMPLETE. The legal details of the operating company, in section 16 and in the Privacy Notice at section 10, are placeholders. They must be completed, and these Terms reviewed by a qualified lawyer, before the Platform is opened to real Participants.',
     'terms.back': 'Back',
 
     'terms.s1.title': '1. Nature of the Platform',
@@ -283,6 +284,8 @@ const STRINGS = {
     'terms.s10.p5': 'Your data is not sold, rented, or traded, and it is not shared with third parties for their own purposes. It is disclosed only to the service providers used to run the Platform itself - hosting, database, and email delivery - which act on the Operators\' instructions, and where the Operators are required to disclose it by law or need to do so to establish, exercise, or defend a legal claim.',
     'terms.s10.p6': 'How long it is kept. Data is retained only for as long as it is needed to operate the Platform and to protect the Operators\' legal position, after which it is deleted or anonymised. Records that exist to evidence what was agreed - your acceptance of these Terms, and the audit trail of introductions made - are kept for as long as a claim arising from them could still be brought.',
     'terms.s10.p7': 'Operator access. The Operators may access all data held on the Platform, including listings, messages, and account details, for the purposes of brokerage and of security. This is inherent in how the Platform works: an Operator cannot introduce two Participants, or keep them anonymous to one another, without seeing what both have published and written.',
+    'terms.s10.p8': 'Data controller. The controller responsible for your personal data is [PLACEHOLDER — data controller legal name], of [PLACEHOLDER — data controller registered address]. Questions about your data, and requests to access, correct, or delete it, should be sent to [PLACEHOLDER — data protection contact email address].',
+    'terms.s10.p9': 'Complaints. If you believe your personal data has not been handled properly, you may raise it with the Operators using the contact details above, and you may complain to the competent supervisory authority, [PLACEHOLDER — competent data protection supervisory authority], at [PLACEHOLDER — supervisory authority address and contact details].',
 
     'terms.s11.title': '11. Limitation of liability',
     'terms.s11.body': 'To the fullest extent permitted by law, neither the Platform nor the Operators are liable for any loss or damage of any kind arising out of or in connection with your use of the Platform or with any dealing between Participants. This includes, without limitation, financial loss, loss of profit, loss of opportunity, loss of goodwill, business interruption, loss arising from a transaction that does not complete or completes on unfavourable terms, and loss caused by the act, omission, misrepresentation, default, insolvency, or fraud of any Participant or third party. The Operators are not liable for any indirect or consequential loss. Nothing in these Terms excludes or limits any liability that cannot lawfully be excluded or limited, including liability for fraud or for death or personal injury caused by negligence.',
@@ -298,6 +301,20 @@ const STRINGS = {
 
     'terms.s15.title': '15. Governing law and jurisdiction',
     'terms.s15.body': 'These Terms, and any dispute or claim arising out of or in connection with them or their subject matter (including non-contractual disputes or claims), are governed by English law. The parties submit to the exclusive jurisdiction of the courts of England and Wales.',
+
+    // Section 16 carries the operating company's identity. Every value in it is
+    // a PLACEHOLDER: the company does not exist on paper yet, and a document
+    // that chooses English law and claims a commission has to say who is
+    // claiming it. The placeholders are written into the rendered text on
+    // purpose rather than left blank - a blank reads as finished, and this is
+    // not finished. See terms.placeholderNotice, shown above section 1.
+    'terms.s16.title': '16. The Operators: company details and notices',
+    'terms.s16.p1': 'The Platform is operated by [PLACEHOLDER — operating company legal name] ("the Operators"), a company incorporated in [PLACEHOLDER — country of incorporation] under company registration number [PLACEHOLDER — company registration number].',
+    'terms.s16.p2': 'Registered office: [PLACEHOLDER — registered office address].',
+    'terms.s16.p3': 'Trading address, where different from the registered office: [PLACEHOLDER — trading address].',
+    'terms.s16.p4': 'VAT or tax registration number: [PLACEHOLDER — VAT or tax registration number].',
+    'terms.s16.p5': 'Notices under these Terms must be given in writing to [PLACEHOLDER — legal notices email address] and to the registered office above, and take effect on receipt.',
+    'terms.s16.p6': 'None of the details in this section has been completed. They are placeholders, and they must be replaced with the actual details of the operating company — and these Terms, including the non-circumvention clause at section 8 and the choice of English law at section 15, reviewed by a qualified lawyer — before the Platform is used with real Participants.',
 
     // ---- Acceptance at registration -------------------------------------
     'register.terms.accept': 'I have read and accept the',
@@ -526,6 +543,7 @@ const STRINGS = {
     'terms.heading': 'Términos y Condiciones, Exención de Responsabilidad y Aviso de Privacidad',
     'terms.version': 'Versión {version}',
     'terms.intro': 'Estos Términos y Condiciones regulan su acceso y uso de Jericho Platform, e incluyen el Aviso de Privacidad recogido en el apartado 10. Al marcar la casilla de aceptación y completar el registro, usted confirma que los ha leído, los ha comprendido y acepta quedar vinculado por ellos. Si no está de acuerdo, no se registre ni utilice la Plataforma.',
+    'terms.placeholderNotice': 'PLACEHOLDER — ESTE DOCUMENTO AÚN NO ESTÁ COMPLETO. Los datos legales de la empresa operadora, recogidos en el apartado 16 y en el Aviso de Privacidad del apartado 10, son PLACEHOLDER. Deben completarse, y estos Términos ser revisados por un abogado, antes de abrir la Plataforma a Participantes reales.',
     'terms.back': 'Volver',
 
     'terms.s1.title': '1. Naturaleza de la Plataforma',
@@ -563,6 +581,8 @@ const STRINGS = {
     'terms.s10.p5': 'Sus datos no se venden, alquilan ni ceden con fines comerciales, ni se comparten con terceros para finalidades propias de estos. Únicamente se comunican a los proveedores necesarios para el funcionamiento de la propia Plataforma —alojamiento, base de datos y envío de correo—, que actúan siguiendo las instrucciones de los Operadores, así como cuando exista obligación legal de comunicarlos o resulte necesario para formular, ejercer o defender reclamaciones.',
     'terms.s10.p6': 'Plazo de conservación. Los datos se conservan únicamente durante el tiempo necesario para operar la Plataforma y proteger la posición jurídica de los Operadores, transcurrido el cual se suprimen o se anonimizan. Los registros que acreditan lo acordado —su aceptación de estos Términos y la traza de las presentaciones realizadas— se conservan mientras pueda ejercitarse una reclamación derivada de ellos.',
     'terms.s10.p7': 'Acceso de los Operadores. Los Operadores podrán acceder a todos los datos alojados en la Plataforma, incluidas las publicaciones, los mensajes y los datos de cuenta, con fines de intermediación y de seguridad. Ello es inherente al funcionamiento de la Plataforma: un Operador no puede poner en contacto a dos Participantes, ni mantener su anonimato recíproco, sin conocer lo que ambos han publicado y escrito.',
+    'terms.s10.p8': 'Responsable del tratamiento. El responsable del tratamiento de sus datos personales es [PLACEHOLDER — razón social del responsable del tratamiento], con domicilio en [PLACEHOLDER — domicilio del responsable del tratamiento]. Las consultas sobre sus datos, así como las solicitudes de acceso, rectificación o supresión, deben dirigirse a [PLACEHOLDER — dirección de correo electrónico de protección de datos].',
+    'terms.s10.p9': 'Reclamaciones. Si considera que sus datos personales no han sido tratados correctamente, puede comunicarlo a los Operadores en la dirección indicada más arriba y presentar una reclamación ante la autoridad de control competente, [PLACEHOLDER — autoridad de control de protección de datos competente], en [PLACEHOLDER — dirección y datos de contacto de la autoridad de control].',
 
     'terms.s11.title': '11. Limitación de responsabilidad',
     'terms.s11.body': 'En la máxima medida permitida por la ley, ni la Plataforma ni los Operadores responderán por pérdidas o daños de cualquier naturaleza derivados del uso de la Plataforma o de cualquier relación entre Participantes. Ello incluye, sin carácter limitativo, pérdidas económicas, lucro cesante, pérdida de oportunidad, daño reputacional, interrupción de la actividad, pérdidas derivadas de operaciones que no lleguen a perfeccionarse o que se cierren en condiciones desfavorables, y pérdidas causadas por actos, omisiones, declaraciones inexactas, incumplimiento, insolvencia o fraude de cualquier Participante o tercero. Los Operadores no responderán por daños indirectos o consecuenciales. Nada en estos Términos excluye ni limita la responsabilidad que no pueda excluirse o limitarse legalmente, incluida la derivada de dolo o de fallecimiento o daños personales causados por negligencia.',
@@ -578,6 +598,15 @@ const STRINGS = {
 
     'terms.s15.title': '15. Legislación aplicable y jurisdicción',
     'terms.s15.body': 'Estos Términos, así como cualquier controversia o reclamación derivada de ellos o de su objeto, incluidas las de naturaleza extracontractual, se rigen por el Derecho inglés. Las partes se someten a la jurisdicción exclusiva de los tribunales de Inglaterra y Gales.',
+
+    // Igual que en inglés: todos los valores del apartado 16 son PLACEHOLDER.
+    'terms.s16.title': '16. Los Operadores: datos de la sociedad y notificaciones',
+    'terms.s16.p1': 'La Plataforma está operada por [PLACEHOLDER — razón social de la empresa operadora] («los Operadores»), sociedad constituida en [PLACEHOLDER — país de constitución] con número de registro mercantil [PLACEHOLDER — número de registro mercantil].',
+    'terms.s16.p2': 'Domicilio social: [PLACEHOLDER — domicilio social].',
+    'terms.s16.p3': 'Domicilio de actividad, si difiere del domicilio social: [PLACEHOLDER — domicilio de actividad].',
+    'terms.s16.p4': 'Número de identificación fiscal o de IVA: [PLACEHOLDER — número de identificación fiscal o de IVA].',
+    'terms.s16.p5': 'Las notificaciones previstas en estos Términos deberán realizarse por escrito a [PLACEHOLDER — dirección de correo electrónico para notificaciones legales] y al domicilio social indicado, y surtirán efecto en el momento de su recepción.',
+    'terms.s16.p6': 'Ninguno de los datos de este apartado ha sido completado. Son PLACEHOLDER y deben sustituirse por los datos reales de la empresa operadora —y estos Términos, incluidas la cláusula de no elusión del apartado 8 y la elección del Derecho inglés del apartado 15, ser revisados por un abogado— antes de utilizar la Plataforma con Participantes reales.',
 
     // ---- Aceptación en el registro --------------------------------------
     'register.terms.accept': 'He leído y acepto los',

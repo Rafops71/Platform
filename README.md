@@ -188,7 +188,7 @@ npm run e2e           # Playwright, against the LIVE Supabase project
 npm run e2e:headed    # the same, with a visible browser
 ```
 
-**Current: 88 SQL assertions and 51 E2E tests, all passing.**
+**Current: 88 SQL assertions and 53 E2E tests, all passing.**
 
 ### SQL security suite
 

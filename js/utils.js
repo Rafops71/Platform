@@ -203,21 +203,33 @@ function docTypeLabel(docType) {
 // Bump this whenever the terms.* strings in i18n.js change materially. Leaving
 // it alone after a substantive edit is the one thing that breaks the record:
 // two people would hold the same version string against different text.
-const TERMS_VERSION = '2.0';
+const TERMS_VERSION = '2.1';
 
 // The order the Terms sections are rendered in. Adding a section means adding
 // its number here and a terms.sN.title plus either a terms.sN.body or the
 // numbered paragraphs below, in both languages. Renumbering means editing the
 // numbers inside the title strings too - they are part of the text.
-const TERMS_SECTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+const TERMS_SECTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
 
 // Sections whose body runs to more than one paragraph. A section listed here
 // has terms.sN.p1 … p{count} instead of a single terms.sN.body; one that is
-// not listed has the single body. Only the Privacy Notice needs this so far:
-// running "what is collected", "why", "who sees it", and retention together
-// into one block of text would make the part people most need to find the
-// hardest to read.
-const TERMS_SECTION_PARAGRAPHS = { 10: 7 };
+// not listed has the single body. Two sections need it. The Privacy Notice,
+// because running "what is collected", "why", "who sees it", retention, the
+// controller and the complaints route together into one block of text would
+// make the part people most need to find the hardest to read. And section 16,
+// where each company detail is its own line so that a missing one is visible
+// as a gap rather than buried mid-sentence.
+const TERMS_SECTION_PARAGRAPHS = { 10: 9, 16: 6 };
+
+// Every legal detail the Terms need but the business does not have yet - the
+// operating company name, its registered address, the data controller, and the
+// rest - is written into the text as a bracketed PLACEHOLDER rather than left
+// blank or omitted, so that reading the document shows what is missing. This
+// marker is what the tests count: a placeholder that stops being marked, or a
+// section quietly filled in with something invented, is the failure mode worth
+// catching. Nothing here may reach real Participants until every occurrence is
+// gone and a lawyer has read the result.
+const TERMS_PLACEHOLDER_MARKER = 'PLACEHOLDER';
 
 const INCOTERMS = ['EXW', 'FCA', 'FAS', 'FOB', 'CFR', 'CIF', 'CPT', 'CIP', 'DAP', 'DPU', 'DDP'];
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'ZAR'];
