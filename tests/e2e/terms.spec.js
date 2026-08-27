@@ -143,6 +143,10 @@ test.describe.serial('Terms & Conditions', () => {
     // The Privacy Notice is translated too, not left in English.
     expect(body).toContain('Aviso de Privacidad');
     expect(body).toContain('Datos que se recogen');
+    // "cifrada" alone reads as encrypted, and encryption implies a key and so
+    // a way back. The passwords are hashed and the Operators cannot recover
+    // them, which is what the English says, so the Spanish has to say it too.
+    expect(body).toContain('cifrada e irreversible (hash)');
     expect(body).toContain('nunca conocen la identidad de los demás');
 
     // And no English left behind on a page claiming to be Spanish.

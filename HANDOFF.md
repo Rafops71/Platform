@@ -146,7 +146,7 @@ wire each row as you append it.**
    linear.
 
 5. **Legal and compliance gaps — blocks rollout.** The Terms, the acceptance
-   record, and the Privacy Notice exist (version 2.1, `sql/010`, section 10 of
+   record, and the Privacy Notice exist (version 2.2, `sql/010`, section 10 of
    the terms). What is still missing is the operating company itself, and as of
    version 2.1 every missing detail is written into the document as a marked
    `[PLACEHOLDER — …]` rather than omitted: section 16 carries the company
