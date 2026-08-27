@@ -288,6 +288,10 @@ table.data-table th { color: var(--text-muted); font-size: 12px; text-transform:
   color: var(--amber);
 }
 
+/* A period in which nothing happened. Still shown - a missing row would read
+   as "no data" rather than "no activity" - but not competing for attention. */
+tr.row-quiet td { color: var(--text-muted); }
+
 /* Role and status on the Profile page: shown, never editable. */
 .locked-row { display: flex; gap: 20px; flex-wrap: wrap; font-size: 13px; align-items: center; }
 .locked-row .badge { margin-left: 6px; }

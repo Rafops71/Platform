@@ -62,7 +62,9 @@ The order is:
     a participant's CSV of their own activity.
 15. `sql/014_listing_renewal.sql` — `renew_listing()`, so a participant can say a
     stale listing is still current without editing it.
-16. `sql/seed_commodities.sql` — the standard commodity list. **Last**, because
+16. `sql/015_operator_analytics.sql` — `reviewed_at` on messages and matches, and
+    `operator_analytics()`, the counts-over-time series behind the Analytics tab.
+17. `sql/seed_commodities.sql` — the standard commodity list. **Last**, because
     step 8 reorders what it inserts.
 
 All files are safe to re-run (guarded with `if not exists` / `or replace`).
@@ -199,7 +201,7 @@ npm run e2e           # Playwright, against the LIVE Supabase project
 npm run e2e:headed    # the same, with a visible browser
 ```
 
-**Current: 139 SQL assertions and 90 E2E tests, all passing.**
+**Current: 155 SQL assertions and 95 E2E tests, all passing.**
 
 ### SQL security suite
 
@@ -243,8 +245,8 @@ notifications, notification email in the recipient's language, the bilingual
 participant interface, commodity management, the activity log, the match
 suggestion engine, the Operator workload overview, and participant
 self-service for profile details, email address and password, saved
-searches with a watchlist, a participant's own activity export, and
-the stale-listing renewal prompt.
+searches with a watchlist, a participant's own activity export, the
+stale-listing renewal prompt, and Operator analytics.
 
 **Known open items:**
 

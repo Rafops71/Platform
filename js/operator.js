@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   wireTabs();
   wireOverview();
+  wireAnalytics();
   wireInvitations();
   wireCommodities();
   wireDocRequests();
@@ -56,12 +57,85 @@ function showScreen(name) {
   if (name === 'doc-requests') { loadListingsForDocRequest(); loadDocRequests(); }
   if (name === 'mailbox') loadOperatorMailbox();
   if (name === 'matches') loadMatches();
+  if (name === 'analytics') loadAnalytics();
   if (name === 'activity') loadActivityLog();
 }
 
 async function logOpActivity(action, details = null) {
   try { await jericho.from('activity_log').insert({ user_id: CURRENT_PROFILE.id, action, details }); }
   catch (e) { console.warn('activity log failed (non-fatal):', e); }
+}
+
+// --------------------------------------------------------- ANALYTICS ----
+//
+// Counts over time, straight from operator_analytics() (sql/015). The function
+// does the bucketing, including the empty periods, so this is a table renderer
+// and nothing else - no arithmetic here that the database has not already done,
+// because two places computing the same numbers is two numbers.
+
+const ANALYTICS_COLUMNS = [
+  'registrations', 'listings', 'messages_reviewed', 'introductions', 'matches_reviewed',
+];
+
+function wireAnalytics() {
+  document.getElementById('analytics-bucket').addEventListener('change', loadAnalytics);
+  document.getElementById('analytics-periods').addEventListener('change', loadAnalytics);
+}
+
+/** How a period is labelled depends on how long it is: a week and a day are a
+ *  date, a month is a month. */
+function analyticsPeriodLabel(isoDate, bucket) {
+  const date = new Date(isoDate + 'T00:00:00');
+  if (bucket === 'month') {
+    return date.toLocaleDateString(undefined, { year: 'numeric', month: 'long' });
+  }
+  return formatDate(isoDate);
+}
+
+async function loadAnalytics() {
+  const tbody = document.querySelector('#analytics-table tbody');
+  const tfoot = document.querySelector('#analytics-table tfoot');
+  tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Loading…</td></tr>';
+  tfoot.innerHTML = '';
+
+  const bucket = document.getElementById('analytics-bucket').value;
+  const periods = Number(document.getElementById('analytics-periods').value);
+
+  const { data, error } = await jericho.rpc('operator_analytics', {
+    p_bucket: bucket, p_periods: periods,
+  });
+  if (error) {
+    tbody.innerHTML = `<tr><td colspan="6" class="empty-state">${escapeHtml(errorMessage(error))}</td></tr>`;
+    return;
+  }
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No activity yet.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = '';
+  const totals = Object.fromEntries(ANALYTICS_COLUMNS.map(c => [c, 0]));
+
+  data.forEach(row => {
+    ANALYTICS_COLUMNS.forEach(c => { totals[c] += Number(row[c]); });
+    const busy = ANALYTICS_COLUMNS.some(c => Number(row[c]) > 0);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td data-label="Period">${escapeHtml(analyticsPeriodLabel(row.period_start, bucket))}</td>
+      ${ANALYTICS_COLUMNS.map(c => `<td data-label="${c}">${Number(row[c])}</td>`).join('')}
+    `;
+    // A period where nothing happened is information, not noise - but it should
+    // not compete with the periods where something did.
+    if (!busy) tr.classList.add('row-quiet');
+    tbody.appendChild(tr);
+  });
+
+  tfoot.innerHTML = `
+    <tr>
+      <th>Total</th>
+      ${ANALYTICS_COLUMNS.map(c => `<th>${totals[c]}</th>`).join('')}
+    </tr>
+  `;
 }
 
 // ---------------------------------------------------------- OVERVIEW ----

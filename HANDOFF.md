@@ -28,15 +28,15 @@ directly. If you want it anyway:
 ## Current state
 
 **The live database is fully migrated.** Everything through
-`sql/014_listing_renewal.sql` is applied and verified present at the catalog
+`sql/015_operator_analytics.sql` is applied and verified present at the catalog
 level — not assumed, but read back: columns, foreign keys, check constraints,
 and indexes all confirmed.
 
 **Both test suites pass against the current code:**
 
 ```sh
-npm run test:sql      # 139 assertions, 0 failures
-npm run e2e           # 90 tests, 0 failures
+npm run test:sql      # 155 assertions, 0 failures
+npm run e2e           # 95 tests, 0 failures
 npm run verify-live   # READ-ONLY health check, safe on production
 ```
 
@@ -75,6 +75,23 @@ One consequence for tests: GoTrue validates the address the account *currently*
 holds, and rejects domains with no MX records — so an account created at
 `@example.invalid` (the suite default) can never change its address. Only
 `tests/e2e/profile.spec.js` overrides the fixture domain, to `resend.dev`.
+
+### Analytics counts when the work was done, not when it arrived
+
+Three of the five analytics columns had no timestamp before `sql/015`: a message
+or a match said it had been reviewed without saying when. `reviewed_at` on both
+tables is written by a trigger at the first transition out of the unreviewed
+status, so a message that sat for a week counts in the week it was dealt with,
+and re-classifying it later is not a second review.
+
+Nothing was backfilled. Rows reviewed before the migration carry no date and
+appear in no period, because dating them from `created_at` would put the work on
+days it did not happen — which is exactly the question the column exists to stop
+answering wrongly.
+
+`operator_analytics()` is Operator-only, checked inside the function because a
+definer function has no RLS behind it. It returns a date and five integers and
+cannot carry an identity; an assertion checks the signature for that.
 
 ### One definition of "stale", used from both sides
 

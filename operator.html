@@ -28,6 +28,7 @@
     <button data-screen="doc-requests">Document Requests</button>
     <button data-screen="mailbox">Mailbox</button>
     <button data-screen="matches">Matches</button>
+    <button data-screen="analytics">Analytics</button>
     <button data-screen="activity">Activity Log</button>
   </div>
 </nav>
@@ -196,6 +197,52 @@
     <div class="card">
       <h2 class="mt-0">Match Suggestions</h2>
       <div id="matches-list" class="stack"><p class="empty-state">Loading…</p></div>
+    </div>
+  </section>
+
+  <!-- ANALYTICS -->
+  <!-- Counts over time, read-only. Five columns, one row per period, including
+       the periods where nothing happened - a missing row would read as "no
+       data" when it means "no activity". -->
+  <section id="screen-analytics" class="screen">
+    <div class="card">
+      <div class="flex-between">
+        <h2 class="mt-0">Analytics</h2>
+        <div class="row">
+          <select id="analytics-bucket" style="max-width:150px;">
+            <option value="week" selected>By week</option>
+            <option value="month">By month</option>
+            <option value="day">By day</option>
+          </select>
+          <select id="analytics-periods" style="max-width:150px;">
+            <option value="8">Last 8</option>
+            <option value="12" selected>Last 12</option>
+            <option value="26">Last 26</option>
+            <option value="52">Last 52</option>
+          </select>
+        </div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="data-table" id="analytics-table">
+          <thead>
+            <tr>
+              <th>Period</th>
+              <th>Registrations</th>
+              <th>New listings</th>
+              <th>Messages reviewed</th>
+              <th>Introductions</th>
+              <th>Matches reviewed</th>
+            </tr>
+          </thead>
+          <tbody><tr><td colspan="6" class="empty-state">Loading…</td></tr></tbody>
+          <tfoot></tfoot>
+        </table>
+      </div>
+      <p class="text-muted" style="font-size:13px;margin-top:12px;">
+        Reviews are counted on the day the Operator acted, not the day the work arrived —
+        so a message that sat for a week counts in the week it was dealt with. Anything
+        reviewed before this was recorded carries no date and appears in no period.
+      </p>
     </div>
   </section>
 
