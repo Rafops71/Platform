@@ -1,118 +1,150 @@
-# Handoff — continuing this build in a local Claude Code session
+# Handoff — picking this project up
 
-This file exists because the session that built the platform ran in a cloud
-sandbox whose network policy blocks `*.supabase.co`. Everything here was
-therefore verified against a **local** PostgreSQL, never against the live
-Supabase project. A local session can close that gap.
+This file is for whoever works on the Jericho Platform next, in a local session
+with access to the live Supabase project. It records what is done, what is
+verified, what is deliberately not built, and what is still open.
+
+For setup and deployment steps, see `README.md`. For a description of the
+product in business terms, see `JERICHO_PLATFORM_PRODUCT_REVIEW.md`; for a
+standalone technical description, `JERICHO_PLATFORM_AI_REVIEW.md`.
 
 ## Getting set up
 
 ```sh
 git clone https://github.com/Rafops71/Platform.git
 cd Platform
-cp .env.example .env      # then fill in the two secrets — see below
+cp .env.example .env      # then fill it in
+npm install
 ```
 
-Then start Claude Code in that directory and point it at this file.
+`.env` is git-ignored. Never commit it, never paste its contents into a chat.
+`README.md` has the variable table and which two grant full database access.
 
-### Filling in .env
-
-`.env` is git-ignored (verified: `git check-ignore .env` matches). Never commit
-it, never paste its contents into a chat.
-
-| Variable | Where to get it | Sensitivity |
-|---|---|---|
-| `SUPABASE_URL` | already filled in | public |
-| `SUPABASE_PUBLISHABLE_KEY` | already filled in | public — it is in `js/supabase-config.js` too |
-| `SUPABASE_SERVICE_ROLE_KEY` | Dashboard → Project Settings → API → service_role | **bypasses RLS — full access** |
-| `SUPABASE_DB_URL` | Dashboard → **Connect** → connection string | **full database access** |
-
-Copy `SUPABASE_DB_URL` exactly as the dashboard shows it. Supabase has changed
-the host and username format over time (direct vs. pooler, `postgres` vs.
-`postgres.<ref>`), so the dashboard is the authority — do not compose it by hand.
-
-`psql` is required:
+`psql` is **not** required — every script is Node and talks to Postgres
+directly. If you want it anyway:
 - macOS: `brew install libpq && brew link --force libpq`
 - Ubuntu/Debian: `sudo apt install postgresql-client`
 
-## Scripts (all tested end-to-end against a local PostgreSQL)
-
-```sh
-./scripts/apply-sql.sh                    # apply all SQL, in order
-./scripts/apply-sql.sh 002_updates.sql    # or just specific files
-./scripts/verify-live.sh                  # READ-ONLY health check — safe on production
-./scripts/bootstrap-operator.sh           # promote OPERATOR_EMAIL to Operator
-```
-
-`verify-live.sh` creates and changes nothing — it only reads catalog tables and
-counts rows. It reports whether each table exists and has RLS on, whether every
-security function and trigger is present, and specifically whether the two known
-bugs are fixed in the live database. That last check was itself tested by
-installing the broken policy and confirming the script flags it.
-
 ## Current state
 
-Applied to the live project already (by Rafael, manually):
-- `sql/schema.sql`
-- `sql/rls_policies.sql` — **an older version**, before the two fixes below
+**The live database is fully migrated.** Everything through
+`sql/009_message_threading.sql` is applied and verified present at the catalog
+level — not assumed, but read back: columns, foreign keys, check constraints,
+and indexes all confirmed.
 
-**Not yet applied to the live project:**
-- `sql/002_updates.sql` ← contains both bug fixes; required
-- `sql/seed_commodities.sql` ← the 22-commodity list
-
-So the first job in a local session is:
+**Both test suites pass against the current code:**
 
 ```sh
-./scripts/verify-live.sh      # expect: mailbox fix "NOT FIXED", commodities 0
-./scripts/apply-sql.sh 002_updates.sql seed_commodities.sql
-./scripts/verify-live.sh      # expect: both fixes "FIXED", commodities 22
+npm run test:sql      # 76 assertions, 0 failures
+npm run e2e           # 43 tests, 0 failures
+npm run verify-live   # READ-ONLY health check, safe on production
 ```
 
-Rafael's Operator account already exists and was promoted manually using a
-`set session_replication_role = replica;` workaround, which is no longer needed
-once `002_updates.sql` is applied.
+The E2E suite runs against the **live** Supabase project, because Supabase Auth
+is cloud-hosted and has no local stand-in. It creates prefixed fixtures and
+tears them down; read `tests/e2e/helpers/fixtures.js` before pointing it at
+anything whose contents matter.
 
-## The two bugs already found and fixed
+**Everything that was once listed here as "needs live verification" has been
+verified**, including real signup firing `handle_new_user`, `auth.uid()`
+resolving correctly under PostgREST, invitation tokens being consumed in one
+pass with email confirmation off, and the full invite → register → approve →
+listing → browse → contact → forward → reply path.
 
-Both were found by executing the SQL, not by reading it. Neither is visible on
-inspection.
+## Things worth knowing before you change anything
+
+### Three bugs found by executing, not by reading
+
+None of these was visible on inspection. They are the reason this project tests
+by running SQL and a real browser rather than by review.
 
 1. **Privilege escalation.** `protect_profile_columns` exempted callers using a
    `current_user` check. Inside a `SECURITY DEFINER` function `current_user` is
    the function's *owner*, not the caller — so the exemption applied to
    everyone, and a participant could set their own `role='operator'`. Now keyed
    on `auth.uid() IS NULL`.
+
 2. **Mailbox forwarding silently dead.** `messages_select` correlated on a bare
    `id`, which binds to `message_forward_log.id`, not `messages.id` — so the
    condition was `f.message_id = f.id`, never true. Operators could forward a
    message and the recipient would never see it.
 
-## What still needs live verification
+3. **Replies could not reach the person who asked.** Forward targets were
+   derived from `listings.user_id`, which is right for an opening enquiry and
+   wrong for a reply, because on a reply the listing owner *is* the sender —
+   "Forward to Owner" handed the message back to its own author. Fixed by
+   `sql/009`: `messages.in_reply_to` records what a message answers, and the
+   target comes from that. Null means an opening enquiry and still routes to the
+   owner; set means it routes to whoever wrote the parent. The thread then
+   alternates for any number of turns without special-casing who is "owner".
 
-The local test suite (`sql/tests/`, 38 PASS / 0 FAIL) uses a **stub** for
-`auth.users` and `auth.uid()`. These behaviours depend on the real Supabase Auth
-and have never been exercised:
+### Page-readiness races
 
-- [ ] Real signup through `register.html` fires `handle_new_user` and creates a
-      `pending` profile.
-- [ ] Supabase's real `auth.uid()` makes `is_operator()` / `current_profile_id()`
-      resolve correctly under PostgREST (the local stub reads a session GUC —
-      this is the single biggest untested assumption).
-- [ ] "Confirm email" being off really does return a session from `signUp()`, so
-      `mark_invitation_used` can consume the token in one pass.
-- [ ] A participant hitting the REST API directly cannot escalate — the local
-      tests used `SET ROLE`, which is close to but not identical to how
-      PostgREST switches roles.
-- [ ] End-to-end: invite → register → approve → create listing → browse
-      anonymously → contact → forward → reply.
-- [ ] Both GitHub Actions workflows actually succeed (`heartbeat`, `reminders`).
+`waitForURL` resolves the moment the browser navigates, but both dashboards do
+their setup inside an async `DOMContentLoaded` callback that first awaits
+`requireAuth()`. Between those two points the page exists and is wrong: tab
+buttons are not wired and the unit selects have no options. Work done in that
+window is not slow, it is silently incorrect — a nav click lands on an unwired
+button and disappears, a select reads back empty.
+
+Every spec now gates on `#user-name` being non-empty, which is filled in the
+same synchronous block as the wiring and the populate calls. **If you add a
+spec, gate it the same way.**
+
+The same shape existed one layer down in the app itself and was a real bug:
+`loadOperatorMailbox` awaits a listing lookup per message and appends rows as it
+goes, but wired the click handlers only after the whole loop — so every row was
+visible, enabled, and not listening for as long as the remaining lookups took.
+Rows are now wired as they are appended. **When rendering a list incrementally,
+wire each row as you append it.**
+
+### Suite-scoped gotchas
+
+- A session-scoped `insert ... select` in the SQL suites **fails silently**
+  under RLS: a participant cannot see the counterparty's profile or listing, so
+  the feeding SELECT is empty, every assertion reads an empty table, and nothing
+  raises. Suite 03 runs its setup on a direct connection for this reason. RLS
+  visibility is suite 01's job.
+- The SQL runner starts a throwaway Postgres and sweeps abandoned data
+  directories from earlier runs on startup, because Windows sometimes holds a
+  handle past the cleanup retries.
 
 ## Deliberately not built
 
-Email notifications (Section 12). Agreed scope is in-platform notifications
-only. Supabase Auth's built-in email covers auth flows (signup, password reset)
-but not custom notification email; wiring that up needs a provider decision.
+- **File upload / document exchange.** Documents are *declared* against a
+  checklist and *requested* through a workflow; files are never uploaded or
+  stored. Adding this is new work including storage, scanning, and access
+  control.
+- **Participant-to-participant direct messaging.** Central to the model, not an
+  oversight. Every message is brokered.
+- **Automatic listing expiry.** Only a 30-day reminder, plus a manual nudge.
+- **Automatic introductions.** The matching engine produces scored suggestions
+  for an Operator to act on, never an automatic connection.
 
-## Still needed from Rafael
+## Still open
 
-- Rodrigo's email, to create the second Operator account.
+1. **Verify the Resend sending domain.** Highest-value item. Until it is done,
+   the sandbox sender only delivers to the Resend account owner's own address —
+   any other recipient is rejected with an HTTP 403 saying testing emails can
+   only go to your own address. The pipeline is correct; this is an account
+   configuration step.
+
+2. **Decide the browse-versus-email disclosure question.** Browse deliberately
+   withholds `specification`, `price_conditions` and `notes` and generalises
+   origin to a region. The new-listing email sends all of them verbatim,
+   including exact origin, to every approved member. Not an identity leak, and it
+   does match the stated "full content" requirement — but it undoes the
+   information control browse is built around. **Needs a product decision**, not
+   a technical one.
+
+3. **Extract the duplicated E2E helpers.** Four specs carry near-identical
+   `signIn` / `openScreen` implementations; they belong in
+   `tests/e2e/helpers/`.
+
+4. **Review the per-row query pattern.** The mailbox and several list views
+   issue one query per row for related records. Fine at current volumes, not
+   linear.
+
+5. **Legal and compliance gaps.** No Terms of Use, no record of terms acceptance
+   at registration, and no privacy notice covering the personal and company data
+   held. See `JERICHO_PLATFORM_PRODUCT_REVIEW.md` for the full list.

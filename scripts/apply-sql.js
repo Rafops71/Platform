@@ -24,6 +24,25 @@ const { Client } = require('pg');
 
 const ROOT = path.join(__dirname, '..');
 
+// The full apply order for a fresh database. Numbered migrations must follow
+// schema and policies, and the commodity seed goes last because 007 reorders
+// what it inserts. This list is the same one scripts/run-sql-tests.js applies
+// before running the suite - if a migration is added to one and not the other,
+// the tests stop describing the database anyone actually deploys.
+const DEFAULT_ORDER = [
+  'schema.sql',
+  'rls_policies.sql',
+  '002_updates.sql',
+  '003_email_notifications.sql',
+  '004_email_outbox_retry.sql',
+  '005_confirmed_updates.sql',
+  '006_checklist_and_price_unit.sql',
+  '007_commodities_alphabetical.sql',
+  '008_email_language.sql',
+  '009_message_threading.sql',
+  'seed_commodities.sql',
+];
+
 function loadEnv() {
   const envPath = path.join(ROOT, '.env');
   if (!fs.existsSync(envPath)) {
@@ -50,9 +69,7 @@ async function main() {
   loadEnv();
 
   const files = process.argv.slice(2);
-  const targets = files.length
-    ? files
-    : ['schema.sql', 'rls_policies.sql', '002_updates.sql', 'seed_commodities.sql'];
+  const targets = files.length ? files : DEFAULT_ORDER;
 
   const dbUrl = process.env.SUPABASE_DB_URL;
   const at = dbUrl.indexOf('@');

@@ -288,6 +288,20 @@ async function main() {
 }
 
 main().catch(err => {
-  console.error('\nERROR:', err.message);
+  // embedded-postgres can reject with no value at all, notably when the server
+  // fails to start. Reading .message off that throws inside the handler, which
+  // replaced the real failure with a TypeError and sent whoever hit it looking
+  // in entirely the wrong place.
+  const detail = (err && (err.message || err.code)) || err || 'no error detail was provided';
+  console.error('\nERROR:', detail);
+
+  // The common cause is a postmaster from an earlier run that outlived its
+  // cleanup and still owns the port. Say so, rather than leaving it to be
+  // deduced from the Postgres log above.
+  console.error(
+    `\nIf the server failed to start, check whether port ${PORT} is still held ` +
+    `by a Postgres left over from an earlier run, and stop it. ` +
+    `Set SQL_TEST_PORT to use a different port.`
+  );
   process.exit(1);
 });
