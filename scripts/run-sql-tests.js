@@ -41,10 +41,18 @@ const SETUP = [
   'sql/005_confirmed_updates.sql',
   'sql/006_checklist_and_price_unit.sql',
   'sql/007_commodities_alphabetical.sql',
+  'sql/008_email_language.sql',
   'sql/seed_commodities.sql',
 ];
 
-const SUITE = 'sql/tests/01_security_suite.sql';
+// Each suite runs against the same freshly-built database, in order. 02
+// depends on nothing 01 leaves behind — it creates its own users — but it
+// does read email_outbox, so it filters by its own addresses rather than
+// counting rows globally.
+const SUITES = [
+  'sql/tests/01_security_suite.sql',
+  'sql/tests/02_email_language.sql',
+];
 
 /** Turn psql meta-commands into something a plain connection can run.
  *  \echo 'text' becomes a select whose single column carries the heading;
@@ -188,34 +196,36 @@ async function main() {
     // asserts the row was left alone. Running the file as a single query put
     // all of it in one transaction, where the first expected error aborted
     // every assertion after it.
-    const suiteSql = translateMetaCommands(fs.readFileSync(path.join(ROOT, SUITE), 'utf8'));
+    for (const suite of SUITES) {
+      const suiteSql = translateMetaCommands(fs.readFileSync(path.join(ROOT, suite), 'utf8'));
 
-    for (const statement of splitStatements(suiteSql)) {
-      let res;
-      try {
-        res = await client.query(statement);
-      } catch (err) {
-        // Expected rejections land here. They are the point of the test, and
-        // the assertion that follows is what decides pass or fail. Run with
-        // SQL_TEST_VERBOSE=1 to see them — an assertion failing for a boring
-        // reason (a renamed value the suite still uses) looks identical to a
-        // real regression until you can read the error underneath it.
-        if (process.env.SQL_TEST_VERBOSE) {
-          console.log(`  · rejected: ${err.message}`);
-          console.log(`      ${statement.replace(/\s+/g, ' ').slice(0, 120)}`);
+      for (const statement of splitStatements(suiteSql)) {
+        let res;
+        try {
+          res = await client.query(statement);
+        } catch (err) {
+          // Expected rejections land here. They are the point of the test, and
+          // the assertion that follows is what decides pass or fail. Run with
+          // SQL_TEST_VERBOSE=1 to see them — an assertion failing for a boring
+          // reason (a renamed value the suite still uses) looks identical to a
+          // real regression until you can read the error underneath it.
+          if (process.env.SQL_TEST_VERBOSE) {
+            console.log(`  · rejected: ${err.message}`);
+            console.log(`      ${statement.replace(/\s+/g, ' ').slice(0, 120)}`);
+          }
+          continue;
         }
-        continue;
-      }
 
-      const item = readAssertion(res);
-      if (!item) continue;
-      if (item.heading !== undefined) {
-        console.log(item.heading ? `\n${item.heading}` : '');
-      } else if (item.passed) {
-        console.log(`  PASS  ${item.name}`);
-      } else {
-        failed++;
-        console.log(`  FAIL  ${item.name}  ->  ${item.value}`);
+        const item = readAssertion(res);
+        if (!item) continue;
+        if (item.heading !== undefined) {
+          console.log(item.heading ? `\n${item.heading}` : '');
+        } else if (item.passed) {
+          console.log(`  PASS  ${item.name}`);
+        } else {
+          failed++;
+          console.log(`  FAIL  ${item.name}  ->  ${item.value}`);
+        }
       }
     }
   } finally {

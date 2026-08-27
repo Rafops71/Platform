@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadCommodities();
   renderDocChecklist();
 
+  adoptProfileLanguage();
   applyTranslations();
   renderLanguageToggle('lang-toggle');
 
@@ -36,12 +37,51 @@ document.addEventListener('DOMContentLoaded', async () => {
   await refreshDocRequestDot();
 });
 
+/** Reconcile the account's stored language with this browser's.
+ *
+ *  The toggle writes to localStorage, which never leaves the device, but
+ *  notification emails are rendered from profiles.language. Without this, a
+ *  participant who registered in Spanish would open the app on a second
+ *  device to an English interface while still receiving Spanish email.
+ *
+ *  Which one wins depends on whether this browser has an explicit choice:
+ *  no stored value means the account's language is adopted; an explicit local
+ *  toggle is the more recent statement of intent and is written back instead.
+ *  Note this reads localStorage directly rather than through currentLang(),
+ *  which cannot tell "never chose" apart from "chose English". */
+function adoptProfileLanguage() {
+  const profileLang = CURRENT_PROFILE && CURRENT_PROFILE.language;
+  if (!profileLang) return;
+
+  let stored = null;
+  try { stored = localStorage.getItem(I18N_STORAGE_KEY); } catch { /* private window */ }
+
+  if (!stored) {
+    setLang(profileLang);
+  } else if (stored !== profileLang) {
+    CURRENT_PROFILE.language = stored;
+    jericho.from('profiles').update({ language: stored }).eq('id', CURRENT_PROFILE.id)
+      .then(({ error }) => { if (error) console.warn('Could not save language preference:', error.message); });
+  }
+}
+
 /** Called by i18n.js after the participant switches language. Static text is
  *  already handled by applyTranslations(); this re-renders everything drawn
  *  from data — the dropdown labels and whichever screen is on show — so the
  *  page changes language in place rather than needing a reload that would
  *  lose a half-filled form. */
-window.onLanguageChange = function () {
+window.onLanguageChange = function (lang) {
+  // Persist the choice to the profile as well as localStorage. localStorage
+  // only ever reaches this browser, and notification emails are composed in
+  // the database (sql/008), which can only read a stored column. Fire and
+  // forget: a failure here must not block the UI from switching, and the next
+  // toggle will try again.
+  if (CURRENT_PROFILE && lang && lang !== CURRENT_PROFILE.language) {
+    CURRENT_PROFILE.language = lang;
+    jericho.from('profiles').update({ language: lang }).eq('id', CURRENT_PROFILE.id)
+      .then(({ error }) => { if (error) console.warn('Could not save language preference:', error.message); });
+  }
+
   populateSelect('unit', UNITS, true, unitLabel);
   populateSelect('price_unit', UNITS, true, unitLabel);
   populateSelect('location', COUNTRIES, true, countryLabel);

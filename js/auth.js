@@ -140,9 +140,15 @@ async function handleRegisterSubmit(e) {
   const country = document.getElementById('country').value.trim();
   const phone = document.getElementById('phone').value.trim();
 
+  // The language they actually filled this form in becomes their stored
+  // preference, and handle_new_user() copies it onto the profile. It is what
+  // every later notification email is rendered in — see sql/008. Anything
+  // unexpected is folded to English by norm_lang() on the way in.
+  const language = currentLang();
+
   const { data, error } = await jericho.auth.signUp({
     email, password,
-    options: { data: { first_name, last_name, company, country, phone } }
+    options: { data: { first_name, last_name, company, country, phone, language } }
   });
 
   if (error) {

@@ -258,10 +258,11 @@ function invitationLink(token) {
  *  session (RLS with no policies), so this goes through a security-definer
  *  RPC — see sql/005_invitation_emails.sql. The link is built here because
  *  only the browser knows the origin the platform is served from. */
-async function emailInvitation(email, token) {
+async function emailInvitation(email, token, lang) {
   const { error } = await jericho.rpc('queue_invitation_email', {
     p_to_email: email,
     p_link: invitationLink(token),
+    p_lang: lang,
   });
   if (error) { showError(`Invitation saved, but the email could not be queued: ${errorMessage(error)}`); return false; }
   return true;
@@ -269,16 +270,20 @@ async function emailInvitation(email, token) {
 
 async function createInvitation() {
   const email = document.getElementById('invite-email').value.trim().toLowerCase() || null;
+  const language = document.getElementById('invite-language').value || 'en';
   const token = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
 
-  const { error } = await jericho.from('invitations').insert({ token, email, created_by: CURRENT_PROFILE.id });
+  const { error } = await jericho.from('invitations').insert({ token, email, language, created_by: CURRENT_PROFILE.id });
   if (error) { showError(errorMessage(error)); return; }
-  await logOpActivity('invitation_created', { email });
+  await logOpActivity('invitation_created', { email, language });
 
   const link = invitationLink(token);
   let emailNote = '';
   if (email) {
-    if (await emailInvitation(email, token)) emailNote = `<br><span class="text-muted">Invitation email queued to ${escapeHtml(email)}.</span>`;
+    if (await emailInvitation(email, token, language)) {
+      const langName = language === 'es' ? 'Spanish' : 'English';
+      emailNote = `<br><span class="text-muted">Invitation email queued to ${escapeHtml(email)} in ${langName}.</span>`;
+    }
   } else {
     emailNote = '<br><span class="text-muted">No email address given — nothing was sent. Copy the link and pass it on yourself.</span>';
   }
