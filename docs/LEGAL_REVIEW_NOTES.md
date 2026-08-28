@@ -1,10 +1,14 @@
 # Legal Review Notes
 
 Points for a qualified lawyer to examine in the Terms & Conditions and Privacy
-Notice (currently **v2.2**, in `js/i18n.js`, rendered by `terms.html`).
+Notice (currently **v2.3**, in `js/i18n.js`, rendered by `terms.html`).
 
-**Nothing in the legal text has been changed.** This is a list of questions, not
-edits.
+**Mostly this is a list of questions, not edits.** The two exceptions are A1
+and A2: on 2026-08-28 Rafael asked for those two to be corrected, so the
+Privacy Notice text *was* changed for them and `TERMS_VERSION` went to 2.3.
+Both were factual corrections — the notice was describing a system that was not
+the one in the database — and both are still marked for a lawyer's sign-off.
+Everything else below is untouched.
 
 **Who wrote this:** an engineer who has read the Terms against the code that
 implements them. That is the one useful thing this document offers — several
@@ -22,50 +26,72 @@ Priority is a rough ordering for the lawyer's attention, not a legal judgement.
 These are factual mismatches, verifiable from the code, and they should be
 corrected regardless of what a lawyer says about anything else.
 
-### A1 — The Privacy Notice's list of collected data is incomplete · HIGH
+### A1 — The Privacy Notice's list of collected data was incomplete · **FIXED 2026-08-28** (still needs lawyer sign-off)
 
-`terms.s10.p2` lists: first name, last name, company, country, telephone, email,
-hashed password, language preference — then listings, messages, document
-declarations, and activity records.
+As it read up to v2.2, `terms.s10.p2` listed: first name, last name, company,
+country, telephone, email, hashed password, language preference — then listings,
+messages, document declarations, and activity records.
 
-The database stores more than that:
+The database stored more than that:
 
-| Stored | In the notice? |
-| --- | --- |
-| `profiles.job_title` | **No.** Added in `sql/011`, after the notice was written |
-| `saved_searches` (a participant's saved criteria and watchlist) | **No.** Added in `sql/012` |
-| `notifications` (per-user message records) | **No** |
-| `email_outbox` (recipient addresses, full listing content, delivery state and errors) | **No** |
+| Stored | Was in the notice? | Now |
+| --- | --- | --- |
+| `profiles.job_title` | **No.** Added in `sql/011`, after the notice was written | Listed |
+| `saved_searches` (a participant's saved criteria and watchlist) | **No.** Added in `sql/012` | Listed |
+| `notifications` (per-user message records) | **No** | Listed |
+| `email_outbox` (recipient addresses, full listing content, delivery state and errors) | **No** | Listed |
 
 Under GDPR Art. 13 the notice has to describe the categories of data actually
 processed. Two of these arrived in migrations after the text was drafted, which
 is exactly how this kind of drift happens.
 
+**What changed.** `terms.s10.p2` now names all four, in both languages, and four
+assertions in `tests/e2e/terms.spec.js` pin them so the list cannot quietly fall
+behind again. **A lawyer should still confirm the wording is adequate for
+Art. 13** — this was a factual correction by an engineer, not a drafting
+exercise.
+
 > Worth deciding at the same time: **whose job is it to update the notice when a
 > migration adds a personal-data column?** Today nothing connects the two, and
 > `sql/011` and `sql/012` both slipped through.
 
-### A2 — "No other Participant is shown your name" is stated absolutely, but introductions exist · HIGH
+### A2 — "No other Participant is shown your name" was stated absolutely, but introductions exist · **FIXED 2026-08-28** (still needs lawyer sign-off)
 
-`terms.s10.p4`: *"Participants never see one another's identity… No other
-Participant is shown your name, company, country, telephone number, or email
-address."*
+As it read up to v2.2, `terms.s10.p4` said: *"Participants never see one
+another's identity… No other Participant is shown your name, company, country,
+telephone number, or email address."*
 
-That is true of the platform software. It is **not** true of the service: the
+That was true of the platform software. It was **not** true of the service: the
 entire purpose is that Operators eventually introduce two parties to each other
 by name, and `docs/OPERATOR_SOP.md` §8 describes exactly that step. The
 introduction happens by email, outside the platform, which is why the code can
 honestly claim what it claims — but the Privacy Notice is a notice about the
 service, not about the software.
 
-As written, a participant could reasonably read p4 as a promise that their
-identity is never disclosed to another participant, and then be introduced.
+As written, a participant could reasonably have read p4 as a promise that their
+identity is never disclosed to another participant, and then been introduced.
 
 The SOP requires both parties to consent before an introduction, so the practice
-is sound. **The notice does not mention that the disclosure happens at all.**
-A lawyer should say whether p4 needs a carve-out describing introductions as a
-disclosure, and whether the consent the SOP collects is the right mechanism and
-should be recorded in the platform rather than in an Operator's mailbox.
+was sound — but the notice did not mention that the disclosure happens at all.
+
+**What changed.** `terms.s10.p4` now qualifies the absolute sentence with
+"through the Platform", and describes the introduction as the one exception:
+the Operators ask each party separately, disclose identity and contact details
+to the other if and only if both agree, do so by email outside the Platform,
+and the participant may decline. Both languages; asserted in
+`tests/e2e/terms.spec.js`.
+
+**Still open for the lawyer:**
+
+- Is "we will ask you and you may decline" the right *mechanism*, or does this
+  disclosure need consent captured under GDPR Art. 6/7 with a record of it?
+- **The consent is currently recorded nowhere.** It lives in whatever an
+  Operator's mailbox happens to contain. If the lawyer wants it evidenced, the
+  platform would need to store it — `terms_acceptances` shows the pattern
+  already exists.
+- Section 8's commission is triggered by an introduction, so the record of who
+  agreed to what, and when, is commercially load-bearing as well as a data
+  protection question.
 
 ### A3 — Sub-processors and international transfers are not addressed · HIGH
 
@@ -273,8 +299,9 @@ database — so completing the Terms creates no re-consent problem.
 
 1. **Company details** (section 16) — several questions cannot be answered
    without them.
-2. **A1, A2, A3** — the factual mismatches. Cheap, and they change what the
-   lawyer is reviewing.
+2. **A3** — the remaining factual mismatch (sub-processors and international
+   transfers). A1 and A2 are fixed in the text; they now need review rather
+   than drafting.
 3. **C1 and C5** — the two clauses with the most money attached.
 4. **B1–B4** — the data protection set, as one conversation.
 5. **D1–D5** — mechanics and boilerplate.

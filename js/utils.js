@@ -203,7 +203,7 @@ function docTypeLabel(docType) {
 // Bump this whenever the terms.* strings in i18n.js change materially. Leaving
 // it alone after a substantive edit is the one thing that breaks the record:
 // two people would hold the same version string against different text.
-const TERMS_VERSION = '2.2';
+const TERMS_VERSION = '2.3';
 
 // The order the Terms sections are rendered in. Adding a section means adding
 // its number here and a terms.sN.title plus either a terms.sN.body or the

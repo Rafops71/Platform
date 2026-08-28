@@ -107,6 +107,24 @@ test.describe.serial('Terms & Conditions', () => {
     expect(text).toContain('audit trail');
     expect(text).toContain('visible only to the Operators');
     expect(text).toContain("Participants never see one another's identity");
+
+    // The notice has to list what is actually stored. job_title arrived in
+    // sql/011 and saved searches in sql/012, both after this text was first
+    // written, and both were missing from it until 2026-08-28 - the notice
+    // does not update itself when a migration adds a column.
+    expect(text).toContain('job title');
+    expect(text).toContain('searches and commodity watchlists');
+    expect(text).toContain('notifications generated for you');
+    expect(text).toContain('emails the Platform sends you');
+
+    // Anonymity between Participants is the rule, but an introduction breaks
+    // it deliberately and with consent, and a Privacy Notice that promised
+    // anonymity without ever mentioning that would be describing the software
+    // rather than the service. Both halves are asserted: that identity IS
+    // disclosed on an introduction, and that it takes both parties agreeing.
+    expect(text).toContain('agree to be introduced');
+    expect(text).toContain('If, and only if, both of you agree');
+    expect(text).toContain('you may decline');
     expect(text).toContain('not sold, rented, or traded');
     expect(text).toContain('How long it is kept');
     expect(text).toContain('Operator access');
@@ -149,6 +167,14 @@ test.describe.serial('Terms & Conditions', () => {
     // them, which is what the English says, so the Spanish has to say it too.
     expect(body).toContain('cifrada e irreversible (hash)');
     expect(body).toContain('nunca conocen la identidad de los demás');
+
+    // The same two corrections as the English notice, in the language they
+    // will actually be relied on in - an accurate list of what is stored, and
+    // the introduction exception to anonymity.
+    expect(body).toContain('su cargo');
+    expect(body).toContain('listas de seguimiento');
+    expect(body).toContain('acepta ser presentado');
+    expect(body).toContain('Si, y solo si, ambos aceptan');
 
     // And no English left behind on a page claiming to be Spanish.
     expect(body).not.toContain(EN_MARKER);
