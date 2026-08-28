@@ -49,6 +49,7 @@ const SETUP = [
   'sql/013_activity_export.sql',
   'sql/014_listing_renewal.sql',
   'sql/015_operator_analytics.sql',
+  'sql/016_rate_limits.sql',
   'sql/seed_commodities.sql',
 ];
 
@@ -66,6 +67,7 @@ const SUITES = [
   'sql/tests/07_activity_export.sql',
   'sql/tests/08_listing_renewal.sql',
   'sql/tests/09_operator_analytics.sql',
+  'sql/tests/10_rate_limits.sql',
 ];
 
 /** Turn psql meta-commands into something a plain connection can run.

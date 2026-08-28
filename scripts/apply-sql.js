@@ -46,6 +46,7 @@ const DEFAULT_ORDER = [
   '013_activity_export.sql',
   '014_listing_renewal.sql',
   '015_operator_analytics.sql',
+  '016_rate_limits.sql',
   'seed_commodities.sql',
 ];
 
