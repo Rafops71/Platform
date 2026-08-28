@@ -122,10 +122,16 @@ marking it:
 
 | Placeholder | Where the answer comes from |
 | --- | --- |
-| `[PLACEHOLDER — database hosting region]` | Supabase Dashboard → Project Settings → General → Region. Not discoverable from the database: the server reports UTC and nothing about its location. |
+| `[PLACEHOLDER — database hosting region]` | Supabase Dashboard → Project Settings → General → Region. Not discoverable from inside the database: the server reports UTC and nothing about its location. **Evidence pending confirmation (2026-08-29):** the DB host resolves to `2a05:d012:7a:e02:…`, which AWS's published `ip-ranges.json` places in `2a05:d012::/36` = **`eu-west-3` (Paris)**. That is DNS inference, not the dashboard value — confirm before it goes into the text. |
 | `[PLACEHOLDER — international transfer safeguard…]` | Depends on where the controller is established, which is itself a section 16 placeholder, and on what is actually in the Supabase and Resend terms. |
 
 Placeholders per language therefore go from **12 to 14**.
+
+**If `eu-west-3` is confirmed**, the database is inside the EEA and the transfer
+exposure narrows to Resend and GitHub Actions, both US-established. The wording
+of `terms.s10.p6` already attributes the transfer to those two rather than to
+the database, so it holds either way — but the lawyer should know which of the
+three providers the safeguard actually has to cover.
 
 **Still open for the lawyer:**
 
