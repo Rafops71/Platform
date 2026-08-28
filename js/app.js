@@ -184,13 +184,21 @@ async function loadMyListings() {
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
   if (!data.length) { container.innerHTML = `<p class="empty-state">${t('listings.none')}</p>`; return; }
 
+  // How many documents each listing indicates, in one query rather than a
+  // head-count per row. Counting the returned rows client-side costs one id
+  // per ticked document — a listing has at most a handful — and saves a round
+  // trip per listing.
+  const docCounts = new Map();
+  const { data: ticked } = await jericho
+    .from('document_checklist')
+    .select('listing_id')
+    .eq('indicated', true)
+    .in('listing_id', data.map(l => l.id));
+  (ticked || []).forEach(d => docCounts.set(d.listing_id, (docCounts.get(d.listing_id) || 0) + 1));
+
   const fragment = document.createDocumentFragment();
   for (const listing of data) {
-    const { count } = await jericho
-      .from('document_checklist')
-      .select('id', { count: 'exact', head: true })
-      .eq('listing_id', listing.id)
-      .eq('indicated', true);
+    const count = docCounts.get(listing.id) || 0;
 
     const row = document.createElement('div');
     row.className = 'list-row';
@@ -718,14 +726,13 @@ async function loadMailbox() {
 
   if (!messages.length) { container.innerHTML = `<p class="empty-state">${t('mailbox.none')}</p>`; return; }
 
+  // Reference numbers in one query rather than one per message.
+  const refByListing = await referenceNumbersFor(messages.map(m => m.listing_id));
+
   container.innerHTML = '';
   for (const m of messages) {
     const mine = m.sender_id === CURRENT_PROFILE.id;
-    let refLabel = '';
-    if (m.listing_id) {
-      const { data: l } = await jericho.from('listings').select('reference_number').eq('id', m.listing_id).maybeSingle();
-      if (l) refLabel = l.reference_number;
-    }
+    const refLabel = refByListing.get(m.listing_id) || '';
     const row = document.createElement('div');
     row.className = 'list-row';
     row.innerHTML = `

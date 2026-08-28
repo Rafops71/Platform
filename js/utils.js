@@ -381,3 +381,28 @@ function roleLabel(role) {
   }
   return role === 'operator' ? 'Operator' : 'Participant';
 }
+
+/** Reference numbers for a set of listing ids, in ONE query.
+ *
+ *  Several screens render a list whose rows each name a listing: document
+ *  requests, both mailboxes, matches. Each of them used to resolve that name
+ *  with its own `.eq('id', …)` inside the render loop, so a mailbox of forty
+ *  messages opened forty round trips and painted its rows one at a time.
+ *
+ *  Ids may repeat and may be null; both are handled here so callers can pass
+ *  a raw column straight in. Returns a Map, so a missing listing (deleted, or
+ *  not visible under RLS) is an absent key rather than a silent undefined on
+ *  an object literal — callers distinguish "no listing" from "listing gone".
+ *
+ *  @param {Array<string|null>} ids
+ *  @returns {Promise<Map<string, string>>} listing id → reference_number
+ */
+async function referenceNumbersFor(ids) {
+  const unique = [...new Set((ids || []).filter(Boolean))];
+  const out = new Map();
+  if (!unique.length) return out;
+  const { data } = await jericho
+    .from('listings').select('id,reference_number').in('id', unique);
+  (data || []).forEach(l => out.set(l.id, l.reference_number));
+  return out;
+}

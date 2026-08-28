@@ -793,14 +793,17 @@ async function loadDocRequests() {
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
   if (!data.length) { container.innerHTML = '<p class="empty-state">No document requests yet.</p>'; return; }
 
+  // Resolve reference numbers in one query rather than one per row.
+  const refByListing = await referenceNumbersFor(data.map(r => r.listing_id));
+
   container.innerHTML = '';
   for (const r of data) {
-    const { data: listing } = await jericho.from('listings').select('reference_number').eq('id', r.listing_id).maybeSingle();
+    const ref = refByListing.get(r.listing_id);
     const row = document.createElement('div');
     row.className = 'list-row';
     row.innerHTML = `
       <div class="list-row-top">
-        <span class="list-row-title">${escapeHtml(r.doc_type)} — ${listing ? escapeHtml(listing.reference_number) : 'listing removed'}</span>
+        <span class="list-row-title">${escapeHtml(r.doc_type)} — ${ref ? escapeHtml(ref) : 'listing removed'}</span>
         <span class="badge ${r.status === 'confirmed' ? 'badge-green' : r.status === 'unavailable' ? 'badge-red' : 'badge-amber'}">${statusLabel(r.status)}</span>
       </div>
       <div class="list-row-meta">Requested ${formatDateTime(r.requested_at)}${r.responded_at ? ' · Responded ' + formatDateTime(r.responded_at) : ''}</div>
@@ -814,6 +817,14 @@ async function loadOperatorMailbox() {
   const container = document.getElementById('operator-mailbox-list');
   container.innerHTML = '<p class="empty-state">Loading…</p>';
 
+  // NOTE: unbounded. This fetches every message ever sent and renders all of
+  // them. The per-row queries that used to make that slow are gone, but the
+  // fetch itself still grows without limit, and so does the DOM. Paginating it
+  // is not a batching change - it needs a page size, controls, and a decision
+  // about whether "pending_review" rows should always be on the first page -
+  // so it is left alone deliberately rather than half-done here. The same is
+  // true of loadMailbox() in js/app.js and loadActivityLog() below, which at
+  // least caps itself at 200.
   const { data, error } = await jericho.from('messages').select('*').order('created_at', { ascending: false });
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
   if (!data.length) { container.innerHTML = '<p class="empty-state">No messages yet.</p>'; return; }
@@ -832,11 +843,22 @@ async function loadOperatorMailbox() {
     (profs || []).forEach(p => ALL_PROFILES_BY_ID[p.id] = p);
   }
 
+  // Reference number and owner for every listing named in the mailbox, in one
+  // query. This needs user_id as well as reference_number, so it cannot use
+  // referenceNumbersFor().
+  const listingById = new Map();
+  const listingIds = [...new Set(data.map(m => m.listing_id).filter(Boolean))];
+  if (listingIds.length) {
+    const { data: ls } = await jericho
+      .from('listings').select('id,reference_number,user_id').in('id', listingIds);
+    (ls || []).forEach(l => listingById.set(l.id, l));
+  }
+
   container.innerHTML = '';
   for (const m of data) {
     let refLabel = '(no listing)', ownerId = null;
     if (m.listing_id) {
-      const { data: l } = await jericho.from('listings').select('reference_number,user_id').eq('id', m.listing_id).maybeSingle();
+      const l = listingById.get(m.listing_id);
       if (l) { refLabel = l.reference_number; ownerId = l.user_id; }
     }
 
@@ -872,12 +894,11 @@ async function loadOperatorMailbox() {
     `;
     container.appendChild(row);
 
-    // Wire the row now rather than after the loop. Every iteration awaits a
-    // listing lookup, so rows land on screen one at a time - wiring at the end
-    // leaves each of them visible, enabled and not yet listening, and a click
-    // in that window is swallowed with no feedback at all. It is the nav race
-    // the specs guard against, one layer down: the operator sees a button and
-    // presses it, and nothing happens.
+    // Wire each row as it is built. The loop no longer awaits anything - the
+    // listing lookup above is now a single batched query - so this could just
+    // as well run after it; keeping it per-row means a row is never on screen
+    // with its buttons enabled and not yet listening, which is the state that
+    // used to swallow a click silently when every iteration awaited.
     row.querySelectorAll('[data-forward]').forEach(b => b.addEventListener('click', () => openForwardModal(b)));
     row.querySelectorAll('[data-reply]').forEach(b => b.addEventListener('click', () => openReplyModal(b)));
     row.querySelectorAll('[data-ignore]').forEach(b => b.addEventListener('click', async () => {
@@ -990,10 +1011,20 @@ async function loadMatches() {
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
   if (!data.length) { container.innerHTML = '<p class="empty-state">No match suggestions.</p>'; return; }
 
+  // Both sides of every match in one query rather than two per row.
+  const sideById = new Map();
+  const sideIds = [...new Set(data.flatMap(m => [m.listing_a_id, m.listing_b_id]).filter(Boolean))];
+  if (sideIds.length) {
+    const { data: ls } = await jericho
+      .from('listings').select('id,reference_number,commodity,type').in('id', sideIds);
+    (ls || []).forEach(l => sideById.set(l.id, l));
+  }
+
   container.innerHTML = '';
   for (const m of data) {
-    const { data: a } = await jericho.from('listings').select('reference_number,commodity,type').eq('id', m.listing_a_id).maybeSingle();
-    const { data: b } = await jericho.from('listings').select('reference_number,commodity,type').eq('id', m.listing_b_id).maybeSingle();
+    const a = sideById.get(m.listing_a_id);
+    const b = sideById.get(m.listing_b_id);
+    // A match whose listing has since been deleted is skipped, as before.
     if (!a || !b) continue;
     const row = document.createElement('div');
     row.className = 'list-row';
