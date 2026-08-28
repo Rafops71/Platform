@@ -1,11 +1,10 @@
 # Legal Review Notes
 
 Points for a qualified lawyer to examine in the Terms & Conditions and Privacy
-Notice (currently **v2.3**, in `js/i18n.js`, rendered by `terms.html`).
+Notice (currently **v2.4**, in `js/i18n.js`, rendered by `terms.html`).
 
-**Mostly this is a list of questions, not edits.** The two exceptions are A1
-and A2: on 2026-08-28 Rafael asked for those two to be corrected, so the
-Privacy Notice text *was* changed for them and `TERMS_VERSION` went to 2.3.
+**Mostly this is a list of questions, not edits.** The exceptions are A1, A2 and A3: on 2026-08-28 Rafael asked for those to be corrected, so the
+Privacy Notice text *was* changed for them and `TERMS_VERSION` went to 2.4.
 Both were factual corrections — the notice was describing a system that was not
 the one in the database — and both are still marked for a lawyer's sign-off.
 Everything else below is untouched.
@@ -93,7 +92,7 @@ and the participant may decline. Both languages; asserted in
   agreed to what, and when, is commercially load-bearing as well as a data
   protection question.
 
-### A3 — Sub-processors and international transfers are not addressed · HIGH
+### A3 — Sub-processors and international transfers were not addressed · **PARTLY FIXED 2026-08-28** (the legal determination is still open)
 
 `terms.s10.p5` refers generically to *"hosting, database, and email delivery"*
 providers. In fact:
@@ -103,13 +102,41 @@ providers. In fact:
   a participant's email address.
 - **GitHub Actions** runs the scheduled jobs, with database credentials.
 
-There is no mention of **where** personal data is processed, of transfers
+There was no mention of **where** personal data is processed, of transfers
 outside the UK/EEA, or of any transfer mechanism (adequacy, SCCs, IDTA). Given a
 US email provider and a Spanish-language interface aimed at participants who may
-be in the EU, this looks like a genuine gap rather than a drafting nicety.
+be in the EU, this was a genuine gap rather than a drafting nicety.
 
-A lawyer should also advise whether the sub-processors need naming, and whether
-a processor agreement with each is required.
+**What changed.** A new paragraph, `terms.s10.p6` "Where your data is
+processed", names all three providers and says what each does, and states that
+email delivery and the scheduled tasks are performed by providers established in
+the United States — so an email to a participant transfers their address and the
+message content outside the UK and the EEA. `terms.s10.p5` now points forward to
+it. Section 10 went from 9 paragraphs to 10, so `TERMS_SECTION_PARAGRAPHS` and
+the old p6–p9 were renumbered to p7–p10; the controller is now **p9** and
+complaints **p10**.
+
+**Two new placeholders, deliberately.** These are legal or account facts that
+cannot be established from the code, and inventing either would be worse than
+marking it:
+
+| Placeholder | Where the answer comes from |
+| --- | --- |
+| `[PLACEHOLDER — database hosting region]` | Supabase Dashboard → Project Settings → General → Region. Not discoverable from the database: the server reports UTC and nothing about its location. |
+| `[PLACEHOLDER — international transfer safeguard…]` | Depends on where the controller is established, which is itself a section 16 placeholder, and on what is actually in the Supabase and Resend terms. |
+
+Placeholders per language therefore go from **12 to 14**.
+
+**Still open for the lawyer:**
+
+- Whether a processor agreement (DPA) is in place with Supabase and with Resend,
+  and whether GitHub needs one. Nobody has checked; the repository cannot show
+  it either way.
+- Whether naming three providers is sufficient, or a maintained sub-processor
+  list with a change-notification commitment is required.
+- Whether GitHub Actions should be described as a processor at all. It runs
+  scheduled jobs holding database credentials, so it can reach personal data,
+  but it stores none itself. It is named here on the cautious reading.
 
 ---
 
@@ -124,7 +151,7 @@ is legitimate interests, those interests must be spelled out.
 
 ### B2 — The list of data subject rights is partial · MEDIUM
 
-`terms.s10.p8` offers *access, correct, delete*. Not mentioned: restriction of
+`terms.s10.p9` (p8 before the v2.4 renumber) offers *access, correct, delete*. Not mentioned: restriction of
 processing, objection, data portability, and the right not to be subject to
 automated decision-making. The right to complain to a supervisory authority
 **is** covered (p9).
@@ -153,7 +180,7 @@ Section 15 chooses English law. If the operating company is established in the
 UK and offers the service to participants in the EU — which the Spanish-language
 interface suggests is intended — then **UK GDPR and EU GDPR may both apply**,
 and an EU representative under Art. 27 may be required. The supervisory
-authority placeholder in p9 is currently singular; there may need to be two.
+authority placeholder in p10 is currently singular; there may need to be two.
 
 This cannot be resolved until the section 16 company details exist, so it is
 naturally a question for the same conversation.
@@ -276,11 +303,11 @@ for the individuals acting as Operators.
 
 ## E. Standing blocker
 
-**The Terms cannot go live in their current state.** Twelve placeholders per
+**The Terms cannot go live in their current state.** Fourteen placeholders per
 language remain — section 16 (company legal name, incorporation, registration
 number, registered office, trading address, VAT number, notices address) and the
-Privacy Notice p8/p9 (data controller name and address, data protection contact,
-supervisory authority).
+Privacy Notice p9/p10 (data controller name and address, data protection contact,
+supervisory authority), plus the two transfer placeholders added in A3.
 
 `terms.s16.p6` says so in the rendered text, and an amber banner appears above
 the Terms. Two E2E tests assert that every bracketed span is marked
@@ -299,9 +326,9 @@ database — so completing the Terms creates no re-consent problem.
 
 1. **Company details** (section 16) — several questions cannot be answered
    without them.
-2. **A3** — the remaining factual mismatch (sub-processors and international
-   transfers). A1 and A2 are fixed in the text; they now need review rather
-   than drafting.
+2. **A1, A2, A3** are all corrected in the text and now need review rather than
+   drafting. A3 carries two live questions with it: is there a DPA with
+   Supabase and Resend, and what transfer safeguard should be named?
 3. **C1 and C5** — the two clauses with the most money attached.
 4. **B1–B4** — the data protection set, as one conversation.
 5. **D1–D5** — mechanics and boilerplate.

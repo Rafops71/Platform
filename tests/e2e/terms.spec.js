@@ -98,7 +98,7 @@ test.describe.serial('Terms & Conditions', () => {
     // is supposed to cover.
     const privacy = page.locator('#terms-body .terms-section').nth(9);
     await expect(privacy.locator('h3')).toHaveText('10. Privacy Notice');
-    await expect(privacy.locator('p')).toHaveCount(9);
+    await expect(privacy.locator('p')).toHaveCount(10);
 
     const text = await privacy.innerText();
     expect(text).toContain('What is collected');
@@ -125,6 +125,18 @@ test.describe.serial('Terms & Conditions', () => {
     expect(text).toContain('agree to be introduced');
     expect(text).toContain('If, and only if, both of you agree');
     expect(text).toContain('you may decline');
+
+    // Sub-processors and where the data goes. Naming them is fact and is
+    // asserted; the hosting region and the transfer safeguard are legal
+    // determinations nobody here can make, so they are marked placeholders and
+    // the placeholder test below is what keeps them honest.
+    expect(text).toContain('Where your data is processed');
+    expect(text).toContain('Supabase');
+    expect(text).toContain('Resend');
+    expect(text).toContain('GitHub Actions');
+    expect(text).toContain('database hosting region');
+    expect(text).toContain('international transfer safeguard');
+    expect(text).toContain('outside the United Kingdom and the European Economic Area');
     expect(text).toContain('not sold, rented, or traded');
     expect(text).toContain('How long it is kept');
     expect(text).toContain('Operator access');
@@ -175,6 +187,9 @@ test.describe.serial('Terms & Conditions', () => {
     expect(body).toContain('listas de seguimiento');
     expect(body).toContain('acepta ser presentado');
     expect(body).toContain('Si, y solo si, ambos aceptan');
+    expect(body).toContain('Dónde se tratan sus datos');
+    expect(body).toContain('región de alojamiento de la base de datos');
+    expect(body).toContain('garantía para transferencias internacionales');
 
     // And no English left behind on a page claiming to be Spanish.
     expect(body).not.toContain(EN_MARKER);
