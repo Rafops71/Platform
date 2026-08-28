@@ -793,8 +793,9 @@ async function loadDocRequests() {
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
   if (!data.length) { container.innerHTML = '<p class="empty-state">No document requests yet.</p>'; return; }
 
-  // Resolve reference numbers in one query rather than one per row.
-  const refByListing = await referenceNumbersFor(data.map(r => r.listing_id));
+  // Resolve reference numbers in one batched query rather than one per row.
+  const { refs: refByListing, error: refError } = await referenceNumbersFor(data.map(r => r.listing_id));
+  if (refError) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(refError))}</p>`; return; }
 
   container.innerHTML = '';
   for (const r of data) {
@@ -843,14 +844,16 @@ async function loadOperatorMailbox() {
     (profs || []).forEach(p => ALL_PROFILES_BY_ID[p.id] = p);
   }
 
-  // Reference number and owner for every listing named in the mailbox, in one
-  // query. This needs user_id as well as reference_number, so it cannot use
-  // referenceNumbersFor().
+  // Reference number and owner for every listing named in the mailbox,
+  // batched. This needs user_id as well as reference_number, so it cannot use
+  // referenceNumbersFor(). Chunked for the same reason that helper is — the
+  // message list is unbounded, so this id list is too.
   const listingById = new Map();
   const listingIds = [...new Set(data.map(m => m.listing_id).filter(Boolean))];
-  if (listingIds.length) {
-    const { data: ls } = await jericho
-      .from('listings').select('id,reference_number,user_id').in('id', listingIds);
+  for (const part of chunked(listingIds)) {
+    const { data: ls, error: lErr } = await jericho
+      .from('listings').select('id,reference_number,user_id').in('id', part);
+    if (lErr) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(lErr))}</p>`; return; }
     (ls || []).forEach(l => listingById.set(l.id, l));
   }
 
@@ -1011,21 +1014,24 @@ async function loadMatches() {
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
   if (!data.length) { container.innerHTML = '<p class="empty-state">No match suggestions.</p>'; return; }
 
-  // Both sides of every match in one query rather than two per row.
+  // Both sides of every match in one batched query rather than two per row.
   const sideById = new Map();
   const sideIds = [...new Set(data.flatMap(m => [m.listing_a_id, m.listing_b_id]).filter(Boolean))];
-  if (sideIds.length) {
-    const { data: ls } = await jericho
-      .from('listings').select('id,reference_number,commodity,type').in('id', sideIds);
+  for (const part of chunked(sideIds)) {
+    const { data: ls, error: sErr } = await jericho
+      .from('listings').select('id,reference_number,commodity,type').in('id', part);
+    if (sErr) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(sErr))}</p>`; return; }
     (ls || []).forEach(l => sideById.set(l.id, l));
   }
 
   container.innerHTML = '';
+  let shown = 0;
   for (const m of data) {
     const a = sideById.get(m.listing_a_id);
     const b = sideById.get(m.listing_b_id);
     // A match whose listing has since been deleted is skipped, as before.
     if (!a || !b) continue;
+    shown++;
     const row = document.createElement('div');
     row.className = 'list-row';
     row.innerHTML = `
@@ -1041,6 +1047,15 @@ async function loadMatches() {
     `;
     container.appendChild(row);
   }
+
+  // Every match referenced a listing we could not resolve. Saying so beats an
+  // empty panel that looks identical to "no matches" - the rows exist, we just
+  // could not name them.
+  if (!shown) {
+    container.innerHTML = '<p class="empty-state">Matches exist but their listings could not be loaded. Refresh to try again.</p>';
+    return;
+  }
+
   container.querySelectorAll('[data-review]').forEach(b => b.addEventListener('click', () => updateMatchStatus(b.dataset.review, 'reviewed')));
   container.querySelectorAll('[data-dismiss]').forEach(b => b.addEventListener('click', () => updateMatchStatus(b.dataset.dismiss, 'dismissed')));
 }

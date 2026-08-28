@@ -184,17 +184,28 @@ async function loadMyListings() {
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
   if (!data.length) { container.innerHTML = `<p class="empty-state">${t('listings.none')}</p>`; return; }
 
-  // How many documents each listing indicates, in one query rather than a
-  // head-count per row. Counting the returned rows client-side costs one id
-  // per ticked document — a listing has at most a handful — and saves a round
-  // trip per listing.
+  // How many documents each listing indicates, batched rather than one
+  // head-count per row.
+  //
+  // The chunk size matters here and is not the usual IN_CHUNK_SIZE. This query
+  // returns one ROW PER TICKED DOCUMENT, not one per listing, and PostgREST
+  // silently caps a response at 1000 rows. With 13 document types a chunk of
+  // 100 listings could ask for 1300 rows and get 1000 back, with no error and
+  // no ordering — so the listings that fell off the end would render "no
+  // documents indicated" while their checklist rows sat in the database. The
+  // head-count this replaced was exact at any volume; 50 keeps the batched
+  // version exact too (50 x 13 = 650, comfortably under the cap).
+  const DOC_CHUNK = 50;
   const docCounts = new Map();
-  const { data: ticked } = await jericho
-    .from('document_checklist')
-    .select('listing_id')
-    .eq('indicated', true)
-    .in('listing_id', data.map(l => l.id));
-  (ticked || []).forEach(d => docCounts.set(d.listing_id, (docCounts.get(d.listing_id) || 0) + 1));
+  for (const part of chunked(data.map(l => l.id), DOC_CHUNK)) {
+    const { data: ticked, error: docError } = await jericho
+      .from('document_checklist')
+      .select('listing_id')
+      .eq('indicated', true)
+      .in('listing_id', part);
+    if (docError) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(docError))}</p>`; return; }
+    (ticked || []).forEach(d => docCounts.set(d.listing_id, (docCounts.get(d.listing_id) || 0) + 1));
+  }
 
   const fragment = document.createDocumentFragment();
   for (const listing of data) {
@@ -720,14 +731,11 @@ async function loadMailbox() {
     .from('messages').select('*').order('created_at', { ascending: false });
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
 
-  const { data: forwardsToMe } = await jericho
-    .from('message_forward_log').select('message_id').eq('to_user_id', CURRENT_PROFILE.id);
-  const forwardedIds = new Set((forwardsToMe || []).map(f => f.message_id));
-
   if (!messages.length) { container.innerHTML = `<p class="empty-state">${t('mailbox.none')}</p>`; return; }
 
-  // Reference numbers in one query rather than one per message.
-  const refByListing = await referenceNumbersFor(messages.map(m => m.listing_id));
+  // Reference numbers in one batched query rather than one per message.
+  const { refs: refByListing, error: refError } = await referenceNumbersFor(messages.map(m => m.listing_id));
+  if (refError) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(refError))}</p>`; return; }
 
   container.innerHTML = '';
   for (const m of messages) {

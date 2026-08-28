@@ -382,7 +382,27 @@ function roleLabel(role) {
   return role === 'operator' ? 'Operator' : 'Participant';
 }
 
-/** Reference numbers for a set of listing ids, in ONE query.
+/** How many ids to put in one `.in(…)` filter.
+ *
+ *  supabase-js sends a select as a GET, and `.in()` serialises into the query
+ *  string as `id=in.(uuid,uuid,…)` — about 37 bytes per UUID. A few hundred
+ *  ids and the URL exceeds the proxy's header buffer, which comes back as a
+ *  414 rather than as data. PostgREST also caps a response at 1000 rows by
+ *  default, silently, so a batch must stay well under that too.
+ *
+ *  100 keeps the URL near 4 KB and the response far below the row cap, while
+ *  still turning N queries into N/100.
+ */
+const IN_CHUNK_SIZE = 100;
+
+/** Split a list into chunks of at most `size`. */
+function chunked(list, size = IN_CHUNK_SIZE) {
+  const out = [];
+  for (let i = 0; i < list.length; i += size) out.push(list.slice(i, i + size));
+  return out;
+}
+
+/** Reference numbers for a set of listing ids, batched.
  *
  *  Several screens render a list whose rows each name a listing: document
  *  requests, both mailboxes, matches. Each of them used to resolve that name
@@ -390,19 +410,25 @@ function roleLabel(role) {
  *  messages opened forty round trips and painted its rows one at a time.
  *
  *  Ids may repeat and may be null; both are handled here so callers can pass
- *  a raw column straight in. Returns a Map, so a missing listing (deleted, or
- *  not visible under RLS) is an absent key rather than a silent undefined on
- *  an object literal — callers distinguish "no listing" from "listing gone".
+ *  a raw column straight in.
+ *
+ *  Returns the error rather than swallowing it. That matters more than it
+ *  looks: an empty Map from a failed query is indistinguishable from "none of
+ *  these listings exist", and the caller then tells the operator the listings
+ *  were *deleted* when in fact one network call failed. A Map plus an error is
+ *  the difference between "gone" and "could not ask".
  *
  *  @param {Array<string|null>} ids
- *  @returns {Promise<Map<string, string>>} listing id → reference_number
+ *  @returns {Promise<{refs: Map<string,string>, error: any}>}
  */
 async function referenceNumbersFor(ids) {
   const unique = [...new Set((ids || []).filter(Boolean))];
-  const out = new Map();
-  if (!unique.length) return out;
-  const { data } = await jericho
-    .from('listings').select('id,reference_number').in('id', unique);
-  (data || []).forEach(l => out.set(l.id, l.reference_number));
-  return out;
+  const refs = new Map();
+  for (const part of chunked(unique)) {
+    const { data, error } = await jericho
+      .from('listings').select('id,reference_number').in('id', part);
+    if (error) return { refs, error };
+    (data || []).forEach(l => refs.set(l.id, l.reference_number));
+  }
+  return { refs, error: null };
 }
