@@ -12,6 +12,7 @@
 
 const { test, expect } = require('@playwright/test');
 const { createAccount, cleanup, assertConfigured } = require('./helpers/fixtures');
+const { signIn } = require('./helpers/session');
 const { query } = require('../../scripts/db');
 
 const STALE_DAYS = 30;
@@ -70,17 +71,6 @@ async function insertListing(profileId, commodity, createdDays, updatedDays) {
   return rows[0];
 }
 
-async function signIn(page) {
-  await page.goto('/index.html');
-  await page.fill('#email', operator.email);
-  await page.fill('#password', operator.password);
-  await page.click('#login-btn');
-  await page.waitForURL('**/operator.html', { timeout: 20_000 });
-  // The tab handlers are wired in the same synchronous block that fills the
-  // name, so a non-empty name means a click will not be dropped.
-  await expect(page.locator('#user-name')).not.toBeEmpty({ timeout: 20_000 });
-}
-
 /** The number showing on one tile, once it has stopped being a placeholder. */
 async function tileValue(page, id) {
   const value = page.locator(`#stat-${id}-value`);
@@ -96,7 +86,7 @@ async function count(sql, params = []) {
 test.describe.serial('operator workload overview', () => {
 
   test('the overview is the screen an operator lands on', async ({ page }) => {
-    await signIn(page);
+    await signIn(page, operator, 'operator.html');
 
     await expect(page.locator('#screen-overview')).toBeVisible();
     await expect(page.locator('nav.tabs button[data-screen="overview"]')).toHaveClass(/active/);
@@ -105,7 +95,7 @@ test.describe.serial('operator workload overview', () => {
   });
 
   test('every count agrees with the database and includes this run', async ({ page }) => {
-    await signIn(page);
+    await signIn(page, operator, 'operator.html');
 
     const pending = await count(
       "select count(*)::int n from public.profiles where status = 'pending'");
@@ -137,7 +127,7 @@ test.describe.serial('operator workload overview', () => {
   });
 
   test('the pending-registration count also drives the Approvals tab dot', async ({ page }) => {
-    await signIn(page);
+    await signIn(page, operator, 'operator.html');
     // A pending registration exists, so the dot is showing before the
     // Approvals tab has ever been opened - which is the point of setting it
     // from the overview rather than from loadApprovals().
@@ -145,7 +135,7 @@ test.describe.serial('operator workload overview', () => {
   });
 
   test('each tile opens the screen where that work is done', async ({ page }) => {
-    await signIn(page);
+    await signIn(page, operator, 'operator.html');
 
     for (const [tile, screen] of [
       ['approvals', 'approvals'],
@@ -163,7 +153,7 @@ test.describe.serial('operator workload overview', () => {
   });
 
   test('the stale tile shows the listings it counted, and nothing fresher', async ({ page }) => {
-    await signIn(page);
+    await signIn(page, operator, 'operator.html');
     await page.click('#stat-stale');
 
     const table = page.locator('#listings-table');
@@ -180,7 +170,7 @@ test.describe.serial('operator workload overview', () => {
   });
 
   test('searching by hand drops the stale filter', async ({ page }) => {
-    await signIn(page);
+    await signIn(page, operator, 'operator.html');
     await page.click('#stat-stale');
     await expect(page.locator('#listing-stale-note')).toBeVisible();
 
@@ -194,7 +184,7 @@ test.describe.serial('operator workload overview', () => {
 
   test('the overview writes nothing', async ({ page }) => {
     const before = await count('select count(*)::int n from public.activity_log');
-    await signIn(page);
+    await signIn(page, operator, 'operator.html');
     await tileValue(page, 'approvals');
     await page.click('#overview-refresh-btn');
     await tileValue(page, 'approvals');

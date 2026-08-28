@@ -15,6 +15,7 @@
 
 const { test, expect } = require('@playwright/test');
 const { createAccount, cleanup, assertConfigured } = require('./helpers/fixtures');
+const { signIn, openScreen } = require('./helpers/session');
 
 // Every unit that must survive the sort. DMTU is listed here explicitly
 // because it is the one with a parenthetical and the one most likely to be
@@ -52,20 +53,12 @@ async function optionValues(page, selectId) {
 test.describe.serial('unit dropdowns are alphabetical', () => {
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/index.html');
-    await page.fill('#email', participant.email);
-    await page.fill('#password', participant.password);
-    await page.click('#login-btn');
-    await page.waitForURL('**/app.html', { timeout: 20_000 });
-
-    // See the note in full-flow.spec.js: #user-name is filled in the same
-    // synchronous block that wires the tabs and populates the unit selects,
-    // so waiting on it is what makes both the click and the read below safe.
-    // Without it this spec read #price_unit back as an empty option list.
-    await expect(page.locator('#user-name')).not.toBeEmpty({ timeout: 20_000 });
-
-    await page.click('button[data-screen="new-listing"]');
-    await expect(page.locator('#screen-new-listing')).toBeVisible({ timeout: 15_000 });
+    // signIn() waits for #user-name, which is what makes the click and the
+    // read below safe: the unit selects are populated in that same
+    // synchronous block. Without that wait this spec read #price_unit back as
+    // an empty option list. See tests/e2e/helpers/session.js.
+    await signIn(page, participant);
+    await openScreen(page, 'new-listing');
   });
 
   for (const selectId of ['unit', 'price_unit']) {

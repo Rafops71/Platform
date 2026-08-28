@@ -11,6 +11,7 @@
 const fs = require('fs');
 const { test, expect } = require('@playwright/test');
 const { createAccount, cleanup, assertConfigured } = require('./helpers/fixtures');
+const { signIn } = require('./helpers/session');
 const { query } = require('../../scripts/db');
 
 let me, other, operator;
@@ -68,15 +69,6 @@ async function insertListing(profileId, commodity) {
     [profileId, commodity]
   );
   return rows[0].reference_number;
-}
-
-async function signIn(page, account) {
-  await page.goto('/index.html');
-  await page.fill('#email', account.email);
-  await page.fill('#password', account.password);
-  await page.click('#login-btn');
-  await page.waitForURL('**/app.html', { timeout: 20_000 });
-  await expect(page.locator('#user-name')).not.toBeEmpty({ timeout: 20_000 });
 }
 
 /** Click Download and read what the browser was handed. */

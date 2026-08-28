@@ -10,6 +10,7 @@
 
 const { test, expect } = require('@playwright/test');
 const { createAccount, cleanup, assertConfigured } = require('./helpers/fixtures');
+const { signIn } = require('./helpers/session');
 const { query } = require('../../scripts/db');
 
 let owner, operator;
@@ -50,15 +51,6 @@ async function listing(ref) {
   const { rows } = await query(
     'select * from public.listings where reference_number = $1', [ref]);
   return rows[0];
-}
-
-async function signIn(page, account, path = 'app.html') {
-  await page.goto('/index.html');
-  await page.fill('#email', account.email);
-  await page.fill('#password', account.password);
-  await page.click('#login-btn');
-  await page.waitForURL(`**/${path}`, { timeout: 20_000 });
-  await expect(page.locator('#user-name')).not.toBeEmpty({ timeout: 20_000 });
 }
 
 function rowFor(page, ref) {

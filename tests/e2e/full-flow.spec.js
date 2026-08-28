@@ -15,6 +15,7 @@
 
 const { test, expect } = require('@playwright/test');
 const { createAccount, cleanup, assertConfigured } = require('./helpers/fixtures');
+const { openScreen, signIn, signOut } = require('./helpers/session');
 const { query } = require('../../scripts/db');
 
 // Distinctive so a match in the page can only have come from the profile —
@@ -58,41 +59,12 @@ test.afterAll(async () => {
   await cleanup();
 });
 
-/** Sign in through the real form and wait for the post-login redirect. */
-async function signIn(page, email, password, expectedPath) {
-  await page.goto('/index.html');
-  await page.fill('#email', email);
-  await page.fill('#password', password);
-  await page.click('#login-btn');
-  await page.waitForURL(`**/${expectedPath}`, { timeout: 20_000 });
-
-  // waitForURL resolves on navigation, but both dashboards wire their tab
-  // handlers inside an async DOMContentLoaded callback, after requireAuth()
-  // has awaited. A nav click landing in that window hits an unwired button and
-  // is silently dropped - the test then fails somewhere further down, on a
-  // screen that never opened. #user-name is filled in the same synchronous
-  // block as wireTabs(), so a non-empty name means the handlers are attached.
-  await expect(page.locator('#user-name')).not.toBeEmpty({ timeout: 20_000 });
-}
-
-/** Switch screens and confirm the switch actually took, rather than assuming
- *  the click landed. */
-async function openScreen(page, name) {
-  await page.click(`button[data-screen="${name}"]`);
-  await expect(page.locator(`#screen-${name}`)).toBeVisible({ timeout: 15_000 });
-}
-
-async function signOut(page) {
-  await page.click('#logout-link');
-  await page.waitForURL('**/index.html', { timeout: 20_000 });
-}
-
 test.describe.serial('full participant lifecycle', () => {
 
   test('operator creates an invitation and it is emailed', async ({ page }) => {
     invitedEmail = `jericho-e2e-invited-${Date.now()}@example.invalid`;
 
-    await signIn(page, operator.email, operator.password, 'operator.html');
+    await signIn(page, operator, 'operator.html');
     await openScreen(page, 'invitations');
     await page.fill('#invite-email', invitedEmail);
     await page.click('#create-invite-btn');
@@ -158,7 +130,7 @@ test.describe.serial('full participant lifecycle', () => {
   });
 
   test('operator approves the registration', async ({ page }) => {
-    await signIn(page, operator.email, operator.password, 'operator.html');
+    await signIn(page, operator, 'operator.html');
     await openScreen(page, 'approvals');
 
     const { rows } = await query('select id from public.profiles where email = $1', [invitedEmail]);
@@ -177,7 +149,7 @@ test.describe.serial('full participant lifecycle', () => {
   });
 
   test('approved participant posts a listing', async ({ page }) => {
-    await signIn(page, invitedEmail, invitedPassword, 'app.html');
+    await signIn(page, { email: invitedEmail, password: invitedPassword }, 'app.html');
     await openScreen(page, 'new-listing');
 
     await page.check('input[name="type"][value="sell"]');
@@ -220,7 +192,7 @@ test.describe.serial('full participant lifecycle', () => {
   });
 
   test('browse shows full detail but never the poster identity', async ({ page }) => {
-    await signIn(page, browser2.email, browser2.password, 'app.html');
+    await signIn(page, browser2, 'app.html');
     await openScreen(page, 'browse');
 
     const card = page.locator('.list-row', { hasText: listingRef });
@@ -256,7 +228,7 @@ test.describe.serial('full participant lifecycle', () => {
   test('participant contacts the listing, operator forwards, owner receives', async ({ page }) => {
     const messageText = 'E2E enquiry: is the Sb assay certificate available?';
 
-    await signIn(page, browser2.email, browser2.password, 'app.html');
+    await signIn(page, browser2, 'app.html');
     await openScreen(page, 'browse');
     await page.locator('.list-row', { hasText: listingRef }).locator('[data-contact]').click();
     await page.fill('#contact-body', messageText);
@@ -269,7 +241,7 @@ test.describe.serial('full participant lifecycle', () => {
     await signOut(page);
 
     // Operator forwards it to the listing owner.
-    await signIn(page, operator.email, operator.password, 'operator.html');
+    await signIn(page, operator, 'operator.html');
     await openScreen(page, 'mailbox');
 
     const { rows: msg } = await query('select id from public.messages where body = $1', [messageText]);
@@ -285,7 +257,7 @@ test.describe.serial('full participant lifecycle', () => {
     // The owner must actually see it. This is the leg that a real bug once
     // broke — messages_select correlated on the wrong id, so forwarded
     // messages silently never arrived.
-    await signIn(page, invitedEmail, invitedPassword, 'app.html');
+    await signIn(page, { email: invitedEmail, password: invitedPassword }, 'app.html');
     await openScreen(page, 'mailbox');
     await expect(page.locator('#mailbox-list')).toContainText(messageText, { timeout: 15_000 });
 

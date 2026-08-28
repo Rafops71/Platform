@@ -24,6 +24,7 @@
 
 const { test, expect } = require('@playwright/test');
 const { createAccount, cleanup, assertConfigured } = require('./helpers/fixtures');
+const { openScreen, signIn, signOut } = require('./helpers/session');
 const { query } = require('../../scripts/db');
 
 // Deliberately unusable as a substring of anything else on the page, so a
@@ -69,36 +70,6 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => { await cleanup(); });
-
-async function signIn(page, account, expectedPath) {
-  await page.goto('/index.html');
-  await page.fill('#email', account.email);
-  await page.fill('#password', account.password);
-  await page.click('#login-btn');
-  await page.waitForURL(`**/${expectedPath}`, { timeout: 20_000 });
-
-  // waitForURL resolves on navigation, but both dashboards wire their tab
-  // handlers inside an async DOMContentLoaded callback, after requireAuth()
-  // has awaited. A nav click landing in that window hits an unwired button
-  // and is silently dropped - which showed up as this suite passing alone and
-  // failing after the slower specs. #user-name is filled in the same
-  // synchronous block as wireTabs(), so a non-empty name means it is safe.
-  await expect(page.locator('#user-name')).not.toBeEmpty({ timeout: 20_000 });
-}
-
-/** Needed only where one test signs in as two people: requireAuth() bounces
- *  an already-authenticated session off index.html, so the second signIn
- *  would never find the login form. */
-async function signOut(page) {
-  await page.click('#logout-link');
-  await page.waitForURL('**/index.html', { timeout: 20_000 });
-}
-
-/** Switch screens and confirm the switch actually took. */
-async function openScreen(page, name) {
-  await page.click(`button[data-screen="${name}"]`);
-  await expect(page.locator(`#screen-${name}`)).toBeVisible({ timeout: 15_000 });
-}
 
 test.describe.serial('in-platform mailbox: browse -> contact -> forward -> reply', () => {
 

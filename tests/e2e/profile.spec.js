@@ -13,6 +13,7 @@
 
 const { test, expect } = require('@playwright/test');
 const { createAccount, cleanup, assertConfigured, testEmail } = require('./helpers/fixtures');
+const { openScreen, signIn } = require('./helpers/session');
 const { query } = require('../../scripts/db');
 
 // GoTrue validates the address the account CURRENTLY holds when it processes
@@ -40,20 +41,6 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => { await cleanup(); });
-
-async function signIn(page) {
-  await page.goto('/index.html');
-  await page.fill('#email', currentEmail);
-  await page.fill('#password', currentPassword);
-  await page.click('#login-btn');
-  await page.waitForURL('**/app.html', { timeout: 20_000 });
-  await expect(page.locator('#user-name')).not.toBeEmpty({ timeout: 20_000 });
-}
-
-async function openProfile(page) {
-  await page.click('button[data-screen="profile"]');
-  await expect(page.locator('#screen-profile')).toBeVisible({ timeout: 15_000 });
-}
 
 async function profileRow() {
   const { rows } = await query('select * from public.profiles where id = $1', [account.profileId]);
@@ -89,8 +76,8 @@ async function canSignIn(email, password) {
 test.describe.serial('participant profile', () => {
 
   test('the page shows the account as it stands', async ({ page }) => {
-    await signIn(page);
-    await openProfile(page);
+    await signIn(page, { email: currentEmail, password: currentPassword });
+    await openScreen(page, 'profile');
 
     await expect(page.locator('#p_first_name')).toHaveValue('Prue');
     await expect(page.locator('#p_last_name')).toHaveValue('File');
@@ -113,8 +100,8 @@ test.describe.serial('participant profile', () => {
   });
 
   test('saving the details writes every field, including the new job title', async ({ page }) => {
-    await signIn(page);
-    await openProfile(page);
+    await signIn(page, { email: currentEmail, password: currentPassword });
+    await openScreen(page, 'profile');
 
     await page.fill('#p_first_name', 'Prudence');
     await page.fill('#p_last_name', 'Filed');
@@ -156,7 +143,7 @@ test.describe.serial('participant profile', () => {
   });
 
   test('a participant cannot change their own role or status', async ({ page }) => {
-    await signIn(page);
+    await signIn(page, { email: currentEmail, password: currentPassword });
     // Sent the way a tampered page would send it, since the point is that the
     // database refuses it and not that the form omits the fields.
     const result = await page.evaluate(async () => {
@@ -173,8 +160,8 @@ test.describe.serial('participant profile', () => {
   });
 
   test('the language preference switches the interface and is stored', async ({ page }) => {
-    await signIn(page);
-    await openProfile(page);
+    await signIn(page, { email: currentEmail, password: currentPassword });
+    await openScreen(page, 'profile');
 
     await page.selectOption('#p_language', 'es');
 
@@ -197,8 +184,8 @@ test.describe.serial('participant profile', () => {
   });
 
   test('an email change is refused without the current password', async ({ page }) => {
-    await signIn(page);
-    await openProfile(page);
+    await signIn(page, { email: currentEmail, password: currentPassword });
+    await openScreen(page, 'profile');
 
     await page.fill('#p_new_email', testEmail('profile-nope', EMAIL_DOMAIN));
     await page.fill('#p_email_password', 'not-the-password');
@@ -211,8 +198,8 @@ test.describe.serial('participant profile', () => {
 
   test('with the current password it is accepted, and held pending confirmation', async ({ page }) => {
     const newEmail = testEmail('profile-moved', EMAIL_DOMAIN);
-    await signIn(page);
-    await openProfile(page);
+    await signIn(page, { email: currentEmail, password: currentPassword });
+    await openScreen(page, 'profile');
 
     await page.fill('#p_new_email', newEmail);
     await page.fill('#p_email_password', currentPassword);
@@ -265,8 +252,8 @@ test.describe.serial('participant profile', () => {
   });
 
   test('a password change is refused without the current password', async ({ page }) => {
-    await signIn(page);
-    await openProfile(page);
+    await signIn(page, { email: currentEmail, password: currentPassword });
+    await openScreen(page, 'profile');
 
     await page.fill('#current_password', 'not-the-password');
     await page.fill('#new_password', 'Rejected-12345');
@@ -279,8 +266,8 @@ test.describe.serial('participant profile', () => {
 
   test('with the current password it is changed, and logged', async ({ page }) => {
     const newPassword = `Pw-changed-${Date.now()}`;
-    await signIn(page);
-    await openProfile(page);
+    await signIn(page, { email: currentEmail, password: currentPassword });
+    await openScreen(page, 'profile');
 
     await page.fill('#current_password', currentPassword);
     await page.fill('#new_password', newPassword);
@@ -305,8 +292,8 @@ test.describe.serial('participant profile', () => {
   test('the changed credentials are what the participant signs in with', async ({ page }) => {
     // The whole point, asserted through the front door: the address and the
     // password the page reported are the ones that now open the account.
-    await signIn(page);
-    await openProfile(page);
+    await signIn(page, { email: currentEmail, password: currentPassword });
+    await openScreen(page, 'profile');
     await expect(page.locator('#p_email')).toHaveValue(currentEmail);
   });
 });

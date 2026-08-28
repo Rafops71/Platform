@@ -18,6 +18,7 @@ const path = require('path');
 const { test, expect } = require('@playwright/test');
 const { createAccount, cleanup, assertConfigured, testEmail, testPassword } = require('./helpers/fixtures');
 const { query } = require('../../scripts/db');
+const { signIn } = require('./helpers/session');
 
 // Read from the source rather than restating it, so that bumping
 // TERMS_VERSION without updating this file cannot quietly pass.
@@ -316,12 +317,7 @@ test.describe.serial('Terms & Conditions', () => {
   });
 
   test('an approved participant can reach the terms again from the dashboard', async ({ page }) => {
-    await page.goto('/index.html');
-    await page.fill('#email', approved.email);
-    await page.fill('#password', approved.password);
-    await page.click('#login-btn');
-    await page.waitForURL('**/app.html', { timeout: 20_000 });
-    await expect(page.locator('#user-name')).not.toBeEmpty({ timeout: 20_000 });
+    await signIn(page, approved);
 
     const link = page.locator('#footer-terms-link');
     await expect(link).toBeVisible();

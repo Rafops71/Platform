@@ -10,6 +10,7 @@
 
 const { test, expect } = require('@playwright/test');
 const { createAccount, cleanup, assertConfigured } = require('./helpers/fixtures');
+const { signIn, openScreen } = require('./helpers/session');
 const { query } = require('../../scripts/db');
 
 let operator, participant;
@@ -45,18 +46,8 @@ test.beforeAll(async () => {
 
 test.afterAll(async () => { await cleanup(); });
 
-async function signIn(page, account, path) {
-  await page.goto('/index.html');
-  await page.fill('#email', account.email);
-  await page.fill('#password', account.password);
-  await page.click('#login-btn');
-  await page.waitForURL(`**/${path}`, { timeout: 20_000 });
-  await expect(page.locator('#user-name')).not.toBeEmpty({ timeout: 20_000 });
-}
-
 async function openAnalytics(page) {
-  await page.click('button[data-screen="analytics"]');
-  await expect(page.locator('#screen-analytics')).toBeVisible({ timeout: 15_000 });
+  await openScreen(page, 'analytics');
   await expect(page.locator('#analytics-table tbody tr').first())
     .not.toContainText('Loading', { timeout: 15_000 });
 }

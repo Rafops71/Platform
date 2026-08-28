@@ -10,6 +10,7 @@
 
 const { test, expect } = require('@playwright/test');
 const { createAccount, cleanup, assertConfigured } = require('./helpers/fixtures');
+const { openScreen, signIn } = require('./helpers/session');
 const { query } = require('../../scripts/db');
 
 // Both are in the seeded commodity list, because the Browse filter is a
@@ -42,20 +43,6 @@ async function insertListing(profileId, type, commodity, region) {
      values ($1, $2, $3, 100, 'Metric tons', 'FOB', $4, 'available', public.next_reference($2))`,
     [profileId, type, commodity, region]
   );
-}
-
-async function signIn(page, account) {
-  await page.goto('/index.html');
-  await page.fill('#email', account.email);
-  await page.fill('#password', account.password);
-  await page.click('#login-btn');
-  await page.waitForURL('**/app.html', { timeout: 20_000 });
-  await expect(page.locator('#user-name')).not.toBeEmpty({ timeout: 20_000 });
-}
-
-async function openScreen(page, name) {
-  await page.click(`button[data-screen="${name}"]`);
-  await expect(page.locator(`#screen-${name}`)).toBeVisible({ timeout: 15_000 });
 }
 
 /** How many listings match a set of criteria, asked of the database with the
