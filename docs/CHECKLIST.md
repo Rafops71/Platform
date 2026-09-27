@@ -2,10 +2,22 @@
 
 Every core function this platform is supposed to perform, in plain words.
 
-This file is the source of truth for the `@checklist` test group. One test per
-item, named `ItemNN_what_it_checks`. `npm run checklist` prints a tick/cross
-table against this list and **fails if any item has no passing test** — so an
-item added here without a test breaks the build, on purpose.
+This file is the source of truth for the checks. `npm run checklist` prints a
+tick/cross table against this list and **fails if any item has no passing
+check** — so an item added here without one breaks the build, on purpose.
+
+Evidence comes from both suites, and the table says which proved each item:
+
+- **db** — an assertion in `sql/tests` named `Tn ItemNN …`. Where the
+  prohibitions belong: row-level security, the rate limits, what one account
+  cannot read. Proving those through a browser would test the screen, not the
+  rule.
+- **ui** — a Playwright test titled `ItemNN_what_it_checks`, tagged
+  `@checklist`. Where the flows belong: the things a person does.
+
+An item may be proven by either or both. It may not be proven by a suite that
+did not run — if one fails to start, the report is INCOMPLETE and fails, rather
+than quietly ticking from the other half.
 
 Items marked **MUST NOT** are prohibitions. They are the most valuable tests in
 the suite: this platform's product is controlled disclosure, so proving a thing

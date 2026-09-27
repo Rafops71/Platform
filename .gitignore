@@ -21,3 +21,6 @@ blob-report/
 # Report from the last checklist run — regenerated, never committed.
 checklist-results.json
 dist/
+
+# Cached suite output for the checklist report — regenerated, never committed.
+checklist-sql.txt
