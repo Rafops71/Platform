@@ -1,0 +1,119 @@
+name: CI
+
+# The gate. Nothing is published unless every function on docs/CHECKLIST.md has
+# a passing test, so a crossed function blocks the build rather than producing
+# an artifact nobody checked.
+#
+# Two suites, deliberately split by what they need:
+#
+#   database  — sql/tests, run against a real PostgreSQL that embedded-postgres
+#               downloads here. Needs no secrets, so it also runs on forks.
+#   checklist — the @checklist browser group, run against the live Supabase
+#               project because Supabase Auth is cloud-hosted and has no local
+#               stand-in. Needs secrets, so it cannot run on a fork's PR.
+#
+# The package job depends on both. That dependency is the gate; removing it
+# removes the point of this file.
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch: {}
+
+concurrency:
+  # The checklist suite writes to the shared live database. Two runs at once
+  # would race each other's fixtures, so newer pushes cancel older runs.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  database:
+    name: Database tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Run sql/tests
+        run: npm run test:sql
+
+  checklist:
+    name: Function checklist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+
+      - name: Confirm the secrets this suite needs are present
+        # Without this the suite fails deep inside a fixture with an unhelpful
+        # auth error. Say plainly which secret is missing instead.
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          missing=
+          for name in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY SUPABASE_DB_URL SUPABASE_ANON_KEY; do
+            if [ -z "${!name}" ]; then missing="$missing $name"; fi
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository secret(s):$missing"
+            echo "Settings -> Secrets and variables -> Actions -> New repository secret"
+            exit 1
+          fi
+          echo "All four secrets are present."
+
+      - name: Install the browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Tick/cross table
+        # scripts/serve.js is started by playwright.config.js — nothing to start
+        # here. Exits non-zero if any function is crossed or unproven.
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          OPERATOR_EMAIL: ${{ secrets.OPERATOR_EMAIL }}
+        run: npm run checklist
+
+      - name: Keep the failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: checklist-failure
+          # Traces and screenshots from a failed run can contain session tokens
+          # and test-account contents. Short retention, and never committed.
+          path: |
+            checklist-results.json
+            test-results/
+          retention-days: 5
+          if-no-files-found: ignore
+
+  package:
+    name: Build artifact
+    needs: [database, checklist]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Package the site
+        # Reached only when both suites are green. A crossed function means this
+        # job never runs and no artifact exists to deploy.
+        run: |
+          mkdir -p dist
+          cp -r css js *.html dist/
+          echo "${{ github.sha }}" > dist/REVISION
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site-${{ github.sha }}
+          path: dist/
+          retention-days: 14

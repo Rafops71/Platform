@@ -17,3 +17,7 @@ test-results/
 playwright-report/
 blob-report/
 .playwright/
+
+# Report from the last checklist run — regenerated, never committed.
+checklist-results.json
+dist/

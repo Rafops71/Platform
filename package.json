@@ -13,7 +13,8 @@
     "test:sql": "node scripts/run-sql-tests.js",
     "e2e": "playwright test",
     "e2e:headed": "playwright test --headed",
-    "e2e:ui": "playwright test --ui"
+    "e2e:ui": "playwright test --ui",
+    "checklist": "node scripts/checklist-report.js"
   },
   "dependencies": {
     "pg": "^8.13.1"
