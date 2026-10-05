@@ -56,7 +56,7 @@ select public.renew_listing((select id from public.listings where reference_numb
 reset role; reset test.uid;
 
 select case when updated_at > now() - interval '1 minute' then 'PASS' else 'FAIL' end
-  as "T2 renewing moves updated_at to now"
+  as "T2 Item37 renewing moves updated_at to now"
 from public.listings where reference_number = 'SELL-RENEW-MINE';
 
 -- Renewing says "still current", not "changed": everything else stays put, or
@@ -83,7 +83,7 @@ rollback to savepoint before_foreign_renewal;
 reset role; reset test.uid;
 
 select case when updated_at < now() - interval '30 days' then 'PASS' else 'FAIL' end
-  as "T5 another participant cannot renew a listing that is not theirs"
+  as "T5 Item39 another participant cannot renew a listing that is not theirs"
 from public.listings where reference_number = 'SELL-RENEW-THEIRS';
 
 select case when count(*) = 1 then 'PASS' else 'FAIL got ' || count(*) end
@@ -101,7 +101,7 @@ update public.listings set updated_at = now() + interval '365 days'
 reset role; reset test.uid;
 
 select case when updated_at < now() + interval '1 minute' then 'PASS' else 'FAIL' end
-  as "T7 a participant cannot backdate or forward-date updated_at"
+  as "T7 Item38 a participant cannot backdate or forward-date updated_at"
 from public.listings where reference_number = 'SELL-RENEW-THEIRS';
 
 \echo

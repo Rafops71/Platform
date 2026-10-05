@@ -89,7 +89,7 @@ reset role; reset test.uid;
 set role authenticated; set test.uid='d1d1d1d1-d1d1-d1d1-d1d1-d1d1d1d1d1d1';
 
 select case when count(*) = 1 then 'PASS' else 'FAIL got ' || count(*) end
-  as "T1 my own listing is exported"
+  as "T1 Item34 my own listing is exported"
 from public.my_activity_export()
 where category = 'listing' and reference = 'SELL-EXPORT-MINE';
 
@@ -126,7 +126,7 @@ from public.my_activity_export() where occurred_at is null;
 \echo '=========== AND NOTHING OF ANYBODY ELSE ==========='
 
 select case when count(*) = 0 then 'PASS' else 'FAIL leaked ' || count(*) || ' rows' end
-  as "T8 another participant's listing is not in my export"
+  as "T8 Item35 another participant's listing is not in my export"
 from public.my_activity_export() where reference = 'SELL-EXPORT-THEIRS' and category = 'listing';
 
 -- The enquiry they sent about MY listing is theirs, not mine. It reaches me
@@ -151,7 +151,7 @@ from public.my_activity_export() where reference = 'SELL-EXPORT-THEIRS' and cate
 -- The forward went to the exporter, so the sender does not get it back as a
 -- received message on top of the sent one.
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
-  as "T12 a forward to someone else is not in the sender's export"
+  as "T12 Item36 a forward to someone else is not in the sender's export"
 from public.my_activity_export() where category = 'message_received';
 
 reset role; reset test.uid;

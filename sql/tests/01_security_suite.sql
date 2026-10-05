@@ -21,19 +21,19 @@ update public.profiles set email='hijack@example.com' where user_id='44444444-44
 reset role; reset test.uid;
 select case when role='participant' and status='pending' and email='mallory@example.com'
             then 'PASS' else 'FAIL (role='||role||' status='||status||' email='||email||')' end
-       as "T4 participant cannot escalate role/status/email"
+       as "T4 Item11 participant cannot escalate role/status/email"
 from public.profiles where user_id='44444444-4444-4444-4444-444444444444';
 
 set role authenticated; set test.uid='22222222-2222-2222-2222-222222222222';
 update public.profiles set company='Alice Trading' where user_id='22222222-2222-2222-2222-222222222222';
 reset role; reset test.uid;
-select case when company='Alice Trading' then 'PASS' else 'FAIL' end as "T5 participant CAN edit own allowed fields"
+select case when company='Alice Trading' then 'PASS' else 'FAIL' end as "T5 Item10 participant CAN edit own allowed fields"
 from public.profiles where user_id='22222222-2222-2222-2222-222222222222';
 
 set role authenticated; set test.uid='11111111-1111-1111-1111-111111111111';
 update public.profiles set status='approved' where email='mallory@example.com';
 reset role; reset test.uid;
-select case when status='approved' then 'PASS' else 'FAIL' end as "T6 operator CAN approve a participant"
+select case when status='approved' then 'PASS' else 'FAIL' end as "T6 Item04 operator CAN approve a participant"
 from public.profiles where email='mallory@example.com';
 
 \echo ''
@@ -51,14 +51,14 @@ insert into public.listings (user_id, type, commodity, quantity, unit, incoterm,
 reset role; reset test.uid;
 \set QUIET off
 
-select case when count(*)=2 then 'PASS' else 'FAIL' end as "T7 participants can create listings" from public.listings;
+select case when count(*)=2 then 'PASS' else 'FAIL' end as "T7 Item14 participants can create listings" from public.listings;
 select string_agg(reference_number,', ' order by reference_number) as "T8 reference number format" from public.listings;
 
 set role authenticated; set test.uid='33333333-3333-3333-3333-333333333333';
 select case when count(*)=1 then 'PASS' else 'FAIL (saw '||count(*)||')' end
-  as "T9 direct listings read shows ONLY own rows" from public.listings;
+  as "T9 Item50 direct listings read shows ONLY own rows" from public.listings;
 select case when count(*)=2 then 'PASS' else 'FAIL' end
-  as "T10 get_public_listings shows all listings" from public.get_public_listings();
+  as "T10 Item18 get_public_listings shows all listings" from public.get_public_listings();
 reset role; reset test.uid;
 
 -- The anonymity guarantee, as confirmed 2026-08-26: participants see every
@@ -68,7 +68,7 @@ reset role; reset test.uid;
 select case when (
     select count(*) from json_object_keys(to_json((select l from public.get_public_listings() l limit 1)))
      where json_object_keys in ('user_id','email','first_name','last_name','company','phone')
-  ) = 0 then 'PASS' else 'FAIL' end as "T11a public view exposes no poster identity";
+  ) = 0 then 'PASS' else 'FAIL' end as "T11a Item19 public view exposes no poster identity";
 
 select case when (
     select count(*) from json_object_keys(to_json((select l from public.get_public_listings() l limit 1)))
@@ -79,7 +79,7 @@ set role authenticated; set test.uid='44444444-4444-4444-4444-444444444444';
 update public.listings set status='closed' where reference_number='SELL-26-001';
 reset role; reset test.uid;
 select case when status='available' then 'PASS' else 'FAIL' end
-  as "T12 non-owner cannot modify another's listing" from public.listings where reference_number='SELL-26-001';
+  as "T12 Item16 non-owner cannot modify another's listing" from public.listings where reference_number='SELL-26-001';
 
 set role authenticated; set test.uid='22222222-2222-2222-2222-222222222222';
 \set QUIET on
@@ -133,7 +133,7 @@ reset role; reset test.uid;
 
 set role authenticated; set test.uid='22222222-2222-2222-2222-222222222222';
 select case when count(*)=0 then 'PASS' else 'FAIL — leaked '||count(*) end
-  as "T25 owner CANNOT read the message before it is forwarded" from public.messages;
+  as "T25 Item26 owner CANNOT read the message before it is forwarded" from public.messages;
 reset role; reset test.uid;
 
 set role authenticated; set test.uid='11111111-1111-1111-1111-111111111111';
@@ -149,12 +149,12 @@ reset role; reset test.uid;
 
 set role authenticated; set test.uid='22222222-2222-2222-2222-222222222222';
 select case when count(*)=1 then 'PASS' else 'FAIL' end
-  as "T27 owner CAN read it AFTER the operator forwards" from public.messages;
+  as "T27 Item27 owner CAN read it AFTER the operator forwards" from public.messages;
 -- The anonymity guarantee: the forwarded message must not reveal who sent it.
 select case when not exists (
     select 1 from public.messages m join public.profiles p on p.id=m.sender_id
   ) then 'PASS' else 'FAIL — sender profile is joinable' end
-  as "T28 recipient cannot resolve the sender's identity";
+  as "T28 Item29 recipient cannot resolve the sender's identity";
 reset role; reset test.uid;
 
 \echo ''
@@ -165,7 +165,7 @@ select case when count(*)=0 then 'PASS' else 'FAIL — participant read '||count
 reset role; reset test.uid;
 set role authenticated; set test.uid='11111111-1111-1111-1111-111111111111';
 select case when count(*)>0 then 'PASS' else 'FAIL' end
-  as "T30 operator CAN read the activity log" from public.activity_log;
+  as "T30 Item41 operator CAN read the activity log" from public.activity_log;
 select case when count(*)>0 then 'PASS' else 'FAIL' end
   as "T31 operator CAN read match suggestions" from public.matches;
 reset role; reset test.uid;
@@ -179,7 +179,7 @@ reset role; reset test.uid;
 set role authenticated; set test.uid='22222222-2222-2222-2222-222222222222';
 insert into public.document_checklist (listing_id, doc_type, indicated)
  select id,'Assay Report',true from public.listings where reference_number='SELL-26-001';
-select case when count(*)=1 then 'PASS' else 'FAIL' end as "T33 owner can write own checklist" from public.document_checklist;
+select case when count(*)=1 then 'PASS' else 'FAIL' end as "T33 Item31 owner can write own checklist" from public.document_checklist;
 reset role; reset test.uid;
 set role authenticated; set test.uid='33333333-3333-3333-3333-333333333333';
 select case when count(*)=0 then 'PASS' else 'FAIL — leaked' end
@@ -232,7 +232,7 @@ select public.mark_invitation_used('valid-token-abc') as second_use;
 reset role; reset test.uid;
 
 select case when used_at is not null then 'PASS' else 'FAIL' end
-  as "T23 token marked used exactly once" from public.invitations where token='valid-token-abc';
+  as "T23 Item02 token marked used exactly once" from public.invitations where token='valid-token-abc';
 
 
 \echo '=========== DOCUMENT REQUESTS ==========='
@@ -255,7 +255,7 @@ update public.document_requests set status='confirmed', responded_at=now(), doc_
 reset role; reset test.uid;
 select case when status='confirmed' and doc_type='SGS report' then 'PASS'
             else 'FAIL (status='||status||' doc_type='||doc_type||')' end
-  as "T28 participant may respond but not rewrite the request" from public.document_requests;
+  as "T28 Item32 participant may respond but not rewrite the request" from public.document_requests;
 
 select case when exists(select 1 from public.notifications n join public.profiles p on p.id=n.user_id
   where p.role='operator' and n.type='document_request_response') then 'PASS' else 'FAIL' end

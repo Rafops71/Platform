@@ -213,7 +213,7 @@ select case when subject like 'Nueva Solicitud de compra — Cobalt (%'
                  and position('Observaciones' in body_text) > 0
                  and position('buzón' in body_text) > 0
             then 'PASS' else 'FAIL ('||coalesce(subject,'no row')||')' end
-  as "E19 Spanish participant gets the Spanish listing email"
+  as "E19 Item48 Spanish participant gets the Spanish listing email"
 from public.email_outbox
 where to_email='edward@example.com' and subject like '%Cobalt%';
 

@@ -44,7 +44,7 @@ the suite: this platform's product is controlled disclosure, so proving a thing
 | 17 | Commodities and units are listed alphabetically, in the chosen language | does |
 | 18 | A member can browse other members' listings | does |
 | 19 | Browse never reveals who posted a listing | MUST NOT |
-| 20 | Browse generalises exact origin to a region | MUST NOT |
+| 20 | Browse hides nothing but the poster's identity — verified, not assumed | does |
 | 21 | A member can filter and search Browse | does |
 | 22 | A member can save a search, and a bare commodity acts as a watchlist | does |
 | 23 | A saved search reports the same count Browse then shows | does |
@@ -78,14 +78,18 @@ the suite: this platform's product is controlled disclosure, so proving a thing
 
 ## Open questions on this list
 
-**Item 20 — contested.** `HANDOFF.md` states that Browse withholds
-`specification`, `price_conditions` and `notes`. It does not:
-`get_public_listings()` returns all three to every authenticated member. Only
-the exact origin is generalised, and item 20 is written to that — the behaviour
-the code actually has. Whether the wider disclosure is intended is a product
-decision, recorded as open item 2 in `HANDOFF.md`. If it is decided that those
-three fields should be withheld, this list gains an item and the function
-changes; until then the test proves what is true, not what a document claims.
+**Item 20 — the documents are wrong, and so was an earlier reading of them.**
+`HANDOFF.md` states that Browse withholds `specification`, `price_conditions`
+and `notes`, and generalises origin to a region. Neither is true.
+`get_public_listings()` returns all three fields verbatim, and the origin is
+returned unchanged — the column is merely aliased to `region`. Checked against
+live data: a listing with origin `belgium` is shown as region `belgium`.
+
+So Browse withholds exactly one thing: the poster's identity. Item 20 is
+written to that, because a test must assert what the code does. Whether this is
+the intended disclosure is a product decision, open as item 2 in `HANDOFF.md`.
+If origin should really be coarsened, that is new work and a new item — not a
+test to be written as though it already passed.
 
 **Items 48 and 49 — may not be verifiable yet.** The Resend sending domain is
 unverified, so mail only reaches the account owner's own address. These are

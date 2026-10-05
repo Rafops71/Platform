@@ -53,7 +53,7 @@ values ((select id from public.profiles where email = 'watcher@example.invalid')
 reset role; reset test.uid;
 
 select case when count(*) = 2 then 'PASS' else 'FAIL got ' || count(*) end
-  as "T1 a participant can save a search and a watched commodity"
+  as "T1 Item22 a participant can save a search and a watched commodity"
 from public.saved_searches s
 join public.profiles p on p.id = s.user_id
 where p.email = 'watcher@example.invalid';
@@ -63,7 +63,7 @@ where p.email = 'watcher@example.invalid';
 
 set role authenticated; set test.uid='c2c2c2c2-c2c2-c2c2-c2c2-c2c2c2c2c2c2';
 select case when count(*) = 0 then 'PASS' else 'FAIL read ' || count(*) || ' rows' end
-  as "T2 another participant cannot read a saved search"
+  as "T2 Item24 another participant cannot read a saved search"
 from public.saved_searches;
 reset role; reset test.uid;
 
@@ -72,7 +72,7 @@ reset role; reset test.uid;
 -- show around.
 set role authenticated; set test.uid='c3c3c3c3-c3c3-c3c3-c3c3-c3c3c3c3c3c3';
 select case when count(*) = 0 then 'PASS' else 'FAIL read ' || count(*) || ' rows' end
-  as "T3 an Operator cannot read a participant's saved searches either"
+  as "T3 Item25 an Operator cannot read a participant's saved searches either"
 from public.saved_searches;
 reset role; reset test.uid;
 
