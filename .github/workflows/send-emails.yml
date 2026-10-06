@@ -9,9 +9,14 @@ name: Listing Email Notifications
 #   SUPABASE_DB_URL     — same one used by apply-sql / verify-live
 #   RESEND_API_KEY       — from https://resend.com/api-keys
 #   LISTING_EMAIL_FROM    — a sender verified with Resend
+#
+# Until those secrets exist the job SKIPS rather than fails. It used to fail,
+# and at every five minutes that was 288 failure notifications a day to the
+# repository owner's inbox for a queue that had two rows in it, both from
+# August. A missing secret is a configuration state, not an incident.
 on:
   schedule:
-    - cron: '*/5 * * * *'   # every 5 minutes
+    - cron: '*/15 * * * *'   # every 15 minutes
   workflow_dispatch: {}
 
 jobs:
@@ -23,7 +28,28 @@ jobs:
         with:
           node-version: 20
       - run: npm install
-      - run: node scripts/send-listing-emails.js
+
+      - name: Are the secrets configured?
+        id: secrets
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          LISTING_EMAIL_FROM: ${{ secrets.LISTING_EMAIL_FROM }}
+        run: |
+          missing=
+          for name in SUPABASE_DB_URL RESEND_API_KEY LISTING_EMAIL_FROM; do
+            if [ -z "${!name}" ]; then missing="$missing $name"; fi
+          done
+          if [ -n "$missing" ]; then
+            echo "ready=no" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipped — no mail can be sent until these repository secrets are set:$missing (Settings > Secrets and variables > Actions)"
+          else
+            echo "ready=yes" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Flush the email queue
+        if: steps.secrets.outputs.ready == 'yes'
+        run: node scripts/send-listing-emails.js
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
