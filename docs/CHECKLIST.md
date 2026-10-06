@@ -75,6 +75,8 @@ the suite: this platform's product is controlled disclosure, so proving a thing
 | 48 | Emails are sent in the recipient's own language | does |
 | 49 | An email that fails to send is retried, not silently dropped | does |
 | 50 | No member can read another member's private data by any route | MUST NOT |
+| 51 | A caller with no account can reach nothing but their own invitation token | MUST NOT |
+| 52 | The audit log and the Operator feed cannot be written by hand | MUST NOT |
 
 ## Open questions on this list
 
