@@ -80,6 +80,7 @@ the suite: this platform's product is controlled disclosure, so proving a thing
 | 50 | No member can read another member's private data by any route | MUST NOT |
 | 51 | A caller with no account can reach nothing but their own invitation token | MUST NOT |
 | 52 | The audit log and the Operator feed cannot be written by hand | MUST NOT |
+| 53 | A member can be deleted: their own content goes, the record of what happened stays, and the other party is untouched | does |
 
 ## Open questions on this list
 
