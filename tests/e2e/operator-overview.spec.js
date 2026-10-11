@@ -94,7 +94,7 @@ test.describe.serial('operator workload overview', () => {
     await expect(page.locator('#overview-updated')).toContainText('Updated');
   });
 
-  test('every count agrees with the database and includes this run', async ({ page }) => {
+  test('Item40 every count agrees with the database and includes this run', async ({ page }) => {
     await signIn(page, operator, 'operator.html');
 
     const pending = await count(

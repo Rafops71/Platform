@@ -102,7 +102,7 @@ test.describe.serial('saved searches and watchlist', () => {
     await expect(saved).toContainText('Chile');
   });
 
-  test('the match count is the number of listings Browse then shows', async ({ page }) => {
+  test('Item23 the match count is the number of listings Browse then shows', async ({ page }) => {
     const expected = await expectedMatches({ commodity: COMMODITY, listing_type: 'sell', region: 'Chile' });
     expect(expected).toBeGreaterThanOrEqual(1);   // this run's own listing
 

@@ -13,8 +13,13 @@
 //         This is where the prohibitions belong: row-level security, the rate
 //         limits, what one account cannot read. Proving those through a browser
 //         would test the screen, not the rule.
-//   ui  — the Playwright `@checklist` group. A test titled `ItemNN_…` counts.
+//   ui  — the Playwright suite. A test whose title contains `ItemNN` counts.
 //         This is where the flows belong: the things a person does.
+//
+// The browser half runs the WHOLE suite rather than a tagged subset. A tag is
+// a second thing to keep in step with the title, and a test that proves an item
+// while sitting outside the tagged group would be silently uncounted — the one
+// failure mode this report exists to prevent.
 //
 // An item may be proven by either or both. What it may NOT be is proven by a
 // suite that did not run: if a suite fails to start, every item is reported
@@ -66,10 +71,10 @@ function readChecklist() {
 }
 
 function runBrowserSuite() {
-  console.log(`${DIM}Running the @checklist browser group …${OFF}`);
+  console.log(`${DIM}Running the browser suite …${OFF}`);
   const res = spawnSync(
     'npx',
-    ['playwright', 'test', '--grep', '@checklist', '--reporter', 'json'],
+    ['playwright', 'test', '--reporter', 'json'],
     { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, shell: process.platform === 'win32' },
   );
   // Playwright exits non-zero when tests fail. That is expected: a failure is a
@@ -124,10 +129,10 @@ function collectBrowser(raw, found) {
   }
   const walk = (suite) => {
     for (const spec of suite.specs || []) {
-      const m = String(spec.title).match(/^Item(\d{2})_(\S+)/);
+      const m = String(spec.title).match(/\bItem(\d{2})\b/);
       if (!m) continue;
       const cell = bucket(found, m[1], 'ui');
-      cell.names.push(m[2]);
+      cell.names.push(String(spec.title).slice(0, 60));
       const statuses = (spec.tests || []).flatMap((t) => t.results || []).map((r) => r.status);
       if (statuses.length && statuses.every((s) => s === 'skipped')) cell.skip++;
       else if (spec.ok) cell.pass++;

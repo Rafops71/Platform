@@ -183,7 +183,7 @@ test.describe.serial('participant profile', () => {
     await expect.poll(async () => (await profileRow()).language, { timeout: 15_000 }).toBe('en');
   });
 
-  test('an email change is refused without the current password', async ({ page }) => {
+  test('Item12 an email change is refused without the current password', async ({ page }) => {
     await signIn(page, { email: currentEmail, password: currentPassword });
     await openScreen(page, 'profile');
 
@@ -251,7 +251,7 @@ test.describe.serial('participant profile', () => {
     currentEmail = newEmail;
   });
 
-  test('a password change is refused without the current password', async ({ page }) => {
+  test('Item13 a password change is refused without the current password', async ({ page }) => {
     await signIn(page, { email: currentEmail, password: currentPassword });
     await openScreen(page, 'profile');
 
