@@ -103,6 +103,15 @@ jobs:
           OPERATOR_EMAIL: ${{ secrets.OPERATOR_EMAIL }}
         run: npm run checklist
 
+      - name: Why it failed
+        # The table says which function is crossed; it does not say why. The
+        # error itself sits in checklist-results.json, which only ever left
+        # here as a zipped artifact — and an artifact is no use to anyone
+        # reading the log, which is where a failure is actually read. Print
+        # the real error, with its file and line, into the log instead.
+        if: failure()
+        run: npm run why || true
+
       - name: Keep the failure evidence
         if: failure()
         uses: actions/upload-artifact@v4
