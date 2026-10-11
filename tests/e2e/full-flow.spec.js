@@ -14,7 +14,7 @@
 'use strict';
 
 const { test, expect } = require('@playwright/test');
-const { createAccount, cleanup, assertConfigured } = require('./helpers/fixtures');
+const { createAccount, cleanup, assertConfigured, RUN_PREFIX } = require('./helpers/fixtures');
 const { openScreen, signIn, signOut } = require('./helpers/session');
 const { query } = require('../../scripts/db');
 
@@ -62,7 +62,7 @@ test.afterAll(async () => {
 test.describe.serial('full participant lifecycle', () => {
 
   test('Item01 operator creates an invitation and it is emailed', async ({ page }) => {
-    invitedEmail = `jericho-e2e-invited-${Date.now()}@example.invalid`;
+    invitedEmail = `${RUN_PREFIX}invited-${Date.now()}@example.invalid`;
 
     await signIn(page, operator, 'operator.html');
     await openScreen(page, 'invitations');

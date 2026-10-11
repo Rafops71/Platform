@@ -16,16 +16,33 @@ name: CI
 # removes the point of this file.
 
 on:
+  # A branch push and that branch's pull request are the same commit, so
+  # running both doubles the load on the one live database for no extra
+  # coverage. Pushes are gated on main; branches are gated through their PR.
   push:
-    branches: ['**']
+    branches: [main]
   pull_request:
   workflow_dispatch: {}
 
 concurrency:
-  # The checklist suite writes to the shared live database. Two runs at once
-  # would race each other's fixtures, so newer pushes cancel older runs.
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # The checklist suite writes to the shared live Supabase project, and its
+  # teardown removes every jericho-e2e- account it can see. Two runs at once
+  # therefore delete each other's fixtures mid-test: the signed-in account
+  # disappears and sign-in stops redirecting, listings vanish and their
+  # foreign keys fail, match counts come back zero. That is exactly what
+  # happened on 2026-10-11, when three runs overlapped between 15:43 and
+  # 15:52 and eleven unrelated tests failed.
+  #
+  # The group deliberately has NO ${{ github.ref }} in it. The previous
+  # version did, which looked like a guard but was not one: a push run is
+  # refs/heads/x and a pull_request run is refs/pull/N/merge, so they landed
+  # in different groups and ran side by side.
+  #
+  # cancel-in-progress is false: a run that is already talking to the
+  # database should finish and clean up after itself, not be killed halfway
+  # and leave its accounts behind. Later runs queue instead.
+  group: ci-live-database
+  cancel-in-progress: false
 
 jobs:
   database:

@@ -13,7 +13,7 @@
 'use strict';
 
 const { test, expect } = require('@playwright/test');
-const { createAccount, cleanup, assertConfigured } = require('./helpers/fixtures');
+const { createAccount, cleanup, assertConfigured, RUN_PREFIX } = require('./helpers/fixtures');
 const { openScreen, signIn } = require('./helpers/session');
 const { query } = require('../../scripts/db');
 
@@ -159,7 +159,7 @@ test.describe.serial('notification emails follow the recipient language', () => 
   });
 
   test('the operator can send an invitation in Spanish', async ({ page }) => {
-    const invited = `jericho-e2e-invited-es-${Date.now()}@example.invalid`;
+    const invited = `${RUN_PREFIX}invited-es-${Date.now()}@example.invalid`;
 
     await signIn(page, operator, 'operator.html');
     await openScreen(page, 'invitations');
@@ -193,7 +193,7 @@ test.describe.serial('notification emails follow the recipient language', () => 
   test('nothing in this spec was actually sent', async () => {
     const { rows } = await query(
       'select count(*)::int n from public.email_outbox where sent_at is not null and to_email like $1',
-      ['jericho-e2e-%']
+      [`${RUN_PREFIX}%`]
     );
     expect(rows[0].n).toBe(0);
   });
