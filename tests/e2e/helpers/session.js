@@ -75,18 +75,72 @@ async function openScreen(page, name) {
  *  into the database's or the form's own words.
  */
 async function submitListing(page, selector = '#listing-submit-btn') {
+  // Counted before and after, not merely looked for. An error toast lives about
+  // four seconds, so a leftover one from an earlier step was enough to make
+  // this report a refusal that never happened - a flake introduced by the very
+  // helper meant to explain flakes. Only a NEW toast counts.
+  const toasts = page.locator('.toast-error');
+  const before = await toasts.count();
+
   await page.click(selector);
 
-  const toast = page.locator('.toast-error').first();
-  const refused = await toast
-    .waitFor({ state: 'visible', timeout: 2500 })
+  const refused = await page
+    .waitForFunction((n) => document.querySelectorAll('.toast-error').length > n, before, { timeout: 2500 })
     .then(() => true)
     .catch(() => false);
 
   if (refused) {
-    const said = (await toast.textContent().catch(() => null)) || '(the toast vanished before it could be read)';
+    const said = (await toasts.last().textContent().catch(() => null)) || '(the toast vanished before it could be read)';
     throw new Error(`The listing form refused the submit: "${said.trim()}"`);
   }
 }
 
-module.exports = { signIn, signOut, openScreen, submitListing, NAV_TIMEOUT, SCREEN_TIMEOUT };
+
+/** Choose a commodity, and make sure the choice actually stuck.
+ *
+ *  Two different failures live here, both already seen.
+ *
+ *  The list arrives after the screen opens, so reading the options once and
+ *  asserting immediately fails on a dropdown that is merely still loading.
+ *  Hence the poll.
+ *
+ *  And the select is REBUILT when that fetch lands, which silently discards a
+ *  choice made a moment earlier. bilingual.spec.js hit exactly that: it picked
+ *  the commodity first, filled eight more fields, and the form then refused
+ *  the submit with "Seleccione o especifique una materia prima" - the only
+ *  field it lost was the first one set. So the choice is read back and made
+ *  again if it did not hold.
+ */
+async function pickCommodity(page, name) {
+  const select = page.locator('#commodity-select');
+
+  // Values, not labels: selectOption is given the canonical English value and
+  // the labels can be translated, so matching on what is displayed would break
+  // the moment this runs in Spanish.
+  await expect
+    .poll(async () => select.locator('option').evaluateAll((os) => os.map((o) => o.value)), {
+      timeout: 20_000,
+      message:
+        `"${name}" never appeared in the commodity dropdown. The list comes from ` +
+        'sql/seed_commodities.sql and these tests pick from it, so either the ' +
+        'seed changed, or this test names something the platform does not trade, ' +
+        'or the screen never loaded the list at all.',
+    })
+    .toContain(name);
+
+  await select.selectOption(name);
+
+  // Not belt and braces: a redraw between the two lines above is the whole
+  // reason this function exists.
+  await expect
+    .poll(async () => select.inputValue(), {
+      timeout: 10_000,
+      message: `The commodity dropdown would not hold "${name}" - it is being redrawn after the choice.`,
+    })
+    .toBe(name);
+}
+
+module.exports = {
+  signIn, signOut, openScreen, submitListing, pickCommodity,
+  NAV_TIMEOUT, SCREEN_TIMEOUT,
+};

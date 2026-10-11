@@ -53,6 +53,7 @@ const SETUP = [
   'sql/015_operator_analytics.sql',
   'sql/016_rate_limits.sql',
   'sql/017_lock_down_function_access.sql',
+  'sql/018_profile_deletion.sql',
   'sql/seed_commodities.sql',
 ];
 
@@ -75,6 +76,10 @@ const SUITES = [
   // every migration has been applied, which it does — SETUP finishes first.
   'sql/tests/11_function_access.sql',
   'sql/tests/12_remaining_gaps.sql',
+  // 13 deletes a member, so it runs last: its fixture leaves the shared
+  // database short of one profile and a listing, and an earlier suite that
+  // counted rows globally would see the gap.
+  'sql/tests/13_profile_deletion.sql',
 ];
 
 /** Turn psql meta-commands into something a plain connection can run.

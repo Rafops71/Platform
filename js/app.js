@@ -330,6 +330,16 @@ async function loadCommodities() {
   const select = document.getElementById('commodity-select');
   if (error) { console.error(error); return; }
 
+  // Whatever the member had chosen, remembered across the rebuild below.
+  //
+  // This function replaces the whole <select>, and it runs again whenever the
+  // language changes or the list is refreshed - so a member who picked a
+  // commodity and then carried on filling the form silently lost that choice
+  // and was told "choose a commodity" on submitting a form that looked
+  // complete. The browser suite caught it: the Spanish listing test failed on
+  // the one field it set first and none of the eight it set afterwards.
+  const chosen = select.value;
+
   COMMODITIES = sortCommodities(data);
   select.innerHTML = `<option value="">${escapeHtml(t('form.commoditySelect'))}</option>`;
   COMMODITIES.forEach(c => {
@@ -340,6 +350,12 @@ async function loadCommodities() {
   const otherOpt = document.createElement('option');
   otherOpt.value = '__other__'; otherOpt.textContent = t('form.commodityOther');
   select.appendChild(otherOpt);
+
+  // Restored only if it is still on offer: an operator who removed a commodity
+  // mid-session should not have it quietly re-selected.
+  if (chosen && Array.from(select.options).some(o => o.value === chosen)) {
+    select.value = chosen;
+  }
 
   // The Browse filter offers the same curated list, plus whatever free-text
   // commodities actually exist on listings (added via "Other").

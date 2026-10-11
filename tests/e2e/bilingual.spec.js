@@ -12,7 +12,7 @@
 
 const { test, expect } = require('@playwright/test');
 const { createAccount, cleanup, assertConfigured } = require('./helpers/fixtures');
-const { signIn, submitListing } = require('./helpers/session');
+const { signIn, submitListing, pickCommodity } = require('./helpers/session');
 const { query } = require('../../scripts/db');
 
 let participant, operator;
@@ -92,7 +92,7 @@ test.describe.serial('bilingual participant interface', () => {
     await expect(page.locator('#unit option[value="Metric tons"]')).toHaveText('Toneladas métricas');
 
     await page.check('input[name="type"][value="sell"]');
-    await page.selectOption('#commodity-select', 'Antimony');
+    await pickCommodity(page, 'Antimony');
     await page.fill('#quantity', '750');
     await page.selectOption('#unit', 'Metric tons');
     await page.selectOption('#incoterm', 'FOB');
