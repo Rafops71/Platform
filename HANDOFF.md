@@ -236,6 +236,39 @@ Two things learned getting there, both worth keeping:
   saved, and CI runs it on failure so the reason is in the log rather than
   inside a zipped artifact.
 
+## Volume and concurrency
+
+`npm run stress` builds a market on a throwaway PostgreSQL — 200 members, 2000
+listings, 2000 messages by default, sizes settable with `STRESS_MEMBERS`,
+`STRESS_LISTINGS`, `STRESS_MESSAGES`, `STRESS_CONCURRENCY` — then checks that
+the prohibitions still hold at that volume, times the screens members actually
+read, posts from 24 sessions at the same instant, and deletes the lot. It needs
+no credentials and leaves nothing behind, because the server itself is deleted.
+CI runs it as its own job.
+
+It found two things on its first run, both now fixed:
+
+- **The flood limit could be beaten by doing it all at once.** 24 parallel
+  inserts, 24 accepted, limit 20. Fixed in `sql/019` with a per-member advisory
+  lock; the run now reports 20 accepted and 4 refused.
+- **Ten foreign keys had no index**, so every cascade was a full scan.
+  Deleting 200 members with everything they owned took 198 seconds. With
+  `sql/020` it takes 1.8. Both applied to the live project on 2026-10-11.
+
+Measured after both fixes, at 200 members and 2000 listings: Browse 31ms,
+Operator figures 76ms, activity export 4ms, deleting 200 members 1.8s.
+
+**One thing deliberately not changed, because it is a product decision.**
+Posting a listing takes about 46ms, and that is almost all
+`generate_matches_for_listing()`: it loops over every opposite-type listing in
+the same commodity and, for each pair, inserts one notification *per approved
+Operator*. About 56 writes per listing posted, and it grows with the number of
+listings in that commodity. At 2000 listings it is unnoticeable to a member. At
+20,000 a post would take around half a second and the notifications table would
+hold millions of rows. Adding an index did not help — the cost is the fan-out
+inside the loop, not the lookup. Whether Operators should get one notification
+per match, a digest, or none, is a question about how the platform should work.
+
 ## Still open
 
 1. **Verify the Resend sending domain.** Highest-value item. Until it is done,

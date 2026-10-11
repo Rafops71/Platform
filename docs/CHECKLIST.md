@@ -97,6 +97,14 @@ the intended disclosure is a product decision, open as item 2 in `HANDOFF.md`.
 If origin should really be coarsened, that is new work and a new item — not a
 test to be written as though it already passed.
 
+**Item 46 — also proven under concurrency.** The database and browser suites
+each use a single connection, and this prohibition cannot fail on one
+connection. `npm run stress` posts from 24 sessions at the same instant, which
+is how the hole was found on 2026-10-11: all 24 were accepted against a limit
+of 20, because each counted the others' rows before any had committed.
+`sql/019` serialises the check per member. A prohibition that holds only when
+nobody hurries is not a prohibition.
+
 **Items 48 and 49 — may not be verifiable yet.** The Resend sending domain is
 unverified, so mail only reaches the account owner's own address. These are
 marked `blocked` in the report rather than ticked. A blocked item fails the

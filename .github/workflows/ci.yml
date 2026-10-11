@@ -58,6 +58,24 @@ jobs:
       - name: Run sql/tests
         run: npm run test:sql
 
+  stress:
+    name: Volume and concurrency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Volume and concurrency
+        # Runs against a throwaway PostgreSQL the harness downloads and starts,
+        # so it needs no secrets and nothing to clean up afterwards. It found
+        # the rate-limit race on its first run: 24 parallel inserts all
+        # accepted against a limit of 20, which no single-connection test could
+        # have seen.
+        run: npm run stress
+
   checklist:
     name: Function checklist
     runs-on: ubuntu-latest
@@ -127,7 +145,7 @@ jobs:
 
   package:
     name: Build artifact
-    needs: [database, checklist]
+    needs: [database, checklist, stress]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
