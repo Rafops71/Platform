@@ -75,16 +75,22 @@ async function openScreen(page, name) {
  *  into the database's or the form's own words.
  */
 async function submitListing(page, selector = '#listing-submit-btn') {
+  // Counted before and after, not merely looked for. An error toast lives about
+  // four seconds, so a leftover one from an earlier step was enough to make
+  // this report a refusal that never happened - a flake introduced by the very
+  // helper meant to explain flakes. Only a NEW toast counts.
+  const toasts = page.locator('.toast-error');
+  const before = await toasts.count();
+
   await page.click(selector);
 
-  const toast = page.locator('.toast-error').first();
-  const refused = await toast
-    .waitFor({ state: 'visible', timeout: 2500 })
+  const refused = await page
+    .waitForFunction((n) => document.querySelectorAll('.toast-error').length > n, before, { timeout: 2500 })
     .then(() => true)
     .catch(() => false);
 
   if (refused) {
-    const said = (await toast.textContent().catch(() => null)) || '(the toast vanished before it could be read)';
+    const said = (await toasts.last().textContent().catch(() => null)) || '(the toast vanished before it could be read)';
     throw new Error(`The listing form refused the submit: "${said.trim()}"`);
   }
 }

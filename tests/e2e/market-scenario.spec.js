@@ -36,11 +36,18 @@ const BUYER_TWO  = { first_name: 'Orsolya',   last_name: 'Kettlewick',  company:
 const LISTING_ONE = { ref: 'SELL-MKT-0001', commodity: 'Iron Ore',    origin: 'Chile' };
 const LISTING_TWO = { ref: 'SELL-MKT-0002', commodity: 'Zinc Ingots', origin: 'Peru'  };
 
-// Each enquiry names its own deal, so a thread appearing in the wrong mailbox
-// is unmistakable rather than a judgement call.
-const ENQUIRY_ONE = 'E2E market: Fairweather asks Brixmoor about the iron ore, 5000 mt, March laycan.';
-const ENQUIRY_TWO = 'E2E market: Kettlewick asks Valdenhoek about the zinc ingots, 800 mt, prompt.';
-const REPLY_ONE   = 'E2E market: Brixmoor can hold 5000 mt until the 20th.';
+// Each message identifies its own deal, so a thread appearing in the wrong
+// mailbox is unmistakable rather than a judgement call.
+//
+// And not one of them names a participant. The first version did - "Fairweather
+// asks Brixmoor about the iron ore" - and the privacy check failed on the
+// seller's own screen, because the buyer's name was in the message the buyer
+// had written. The platform was behaving correctly and the fixture was the
+// leak. A test for "the counterparty is never named" cannot put the
+// counterparty's name in the evidence.
+const ENQUIRY_ONE = 'E2E market deal one: interested in the iron ore, 5000 mt, March laycan, CIF Qingdao.';
+const ENQUIRY_TWO = 'E2E market deal two: interested in the zinc ingots, 800 mt, prompt shipment.';
+const REPLY_ONE   = 'E2E market deal one: can hold 5000 mt until the 20th, subject to LC at sight.';
 
 let operator, sellerOne, sellerTwo, buyerOne, buyerTwo;
 
