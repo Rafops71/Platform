@@ -9,6 +9,18 @@ let REPLY_TARGET = null;     // { originalMessage }
 // screen itself drops it — the operator's own filtering wins over the tile's.
 let LISTINGS_STALE_ONLY = false;
 
+// Which render of the listings table is the current one.
+//
+// loadListings() awaits twice before it writes, so two calls can be in flight
+// at once and the LAST to finish wins - which may be the FIRST one started.
+// That is not hypothetical: arriving from the stale tile and then pressing
+// Search starts exactly that pair, and the operator was left looking at the
+// stale-filtered rows with the note already hidden, as though the search had
+// returned almost nothing. The participant dashboard guards its two lists the
+// same way (MY_LISTINGS_RENDER, SAVED_SEARCH_RENDER in js/app.js); this screen
+// had been missed.
+let LISTINGS_RENDER = 0;
+
 // STALE_LISTING_DAYS / staleListingCutoff() live in utils.js, shared with the
 // participant dashboard: the listings this screen counts as stale are exactly
 // the ones their owners are being asked to renew.
@@ -300,6 +312,7 @@ async function populateCommodityFilter() {
 }
 
 async function loadListings() {
+  const token = ++LISTINGS_RENDER;
   const tbody = document.querySelector('#listings-table tbody');
   tbody.innerHTML = '<tr><td colspan="10" class="empty-state">Loading…</td></tr>';
 
@@ -307,10 +320,15 @@ async function loadListings() {
     .select('*, profiles!listings_user_id_fkey(first_name,last_name,company)')
     .order('created_at', { ascending: false });
 
+  // Read once, here, and used again when the rows are written. Toggling the
+  // note at the top and reading the flag again later let the note and the rows
+  // disagree: a second call could hide the note while the first call's
+  // stale-filtered rows arrived after it.
+  const staleOnly = LISTINGS_STALE_ONLY;
+
   // Arrived here from the Overview's stale tile: same predicate as the count,
   // announced above the table so the operator can see why rows are missing.
-  document.getElementById('listing-stale-note').classList.toggle('hidden', !LISTINGS_STALE_ONLY);
-  if (LISTINGS_STALE_ONLY) query = query.eq('status', 'available').lt('updated_at', staleListingCutoff());
+  if (staleOnly) query = query.eq('status', 'available').lt('updated_at', staleListingCutoff());
 
   const type = document.getElementById('listing-filter-type').value;
   const status = document.getElementById('listing-filter-status').value;
@@ -337,6 +355,7 @@ async function loadListings() {
   if (region) query = query.or(`origin.ilike.%${region}%,destination.ilike.%${region}%`);
 
   const { data, error } = await query;
+  if (token !== LISTINGS_RENDER) return;   // a newer render started while this waited
   if (error) { tbody.innerHTML = `<tr><td colspan="10" class="empty-state">${escapeHtml(errorMessage(error))}</td></tr>`; return; }
 
   // Which listings have at least one ticked document — fetched in one query
@@ -347,11 +366,16 @@ async function loadListings() {
       .from('document_checklist').select('listing_id')
       .eq('indicated', true).in('listing_id', data.map(l => l.id));
     (checked || []).forEach(c => withDocs.add(c.listing_id));
+    if (token !== LISTINGS_RENDER) return;
   }
 
   let rows = data;
   if (docsFilter === 'yes') rows = rows.filter(l => withDocs.has(l.id));
   if (docsFilter === 'no') rows = rows.filter(l => !withDocs.has(l.id));
+
+  // The note belongs to the rows about to be written, not to whatever the flag
+  // says now.
+  document.getElementById('listing-stale-note').classList.toggle('hidden', !staleOnly);
 
   if (!rows.length) { tbody.innerHTML = '<tr><td colspan="10" class="empty-state">No listings match.</td></tr>'; return; }
 

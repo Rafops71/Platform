@@ -269,6 +269,30 @@ hold millions of rows. Adding an index did not help — the cost is the fan-out
 inside the loop, not the lookup. Whether Operators should get one notification
 per match, a digest, or none, is a question about how the platform should work.
 
+## A pattern worth knowing: the last write wins
+
+`js/app.js` guards two of its lists with a render token
+(`MY_LISTINGS_RENDER`, `SAVED_SEARCH_RENDER`) because a loader that awaits
+before it writes can be overtaken: start two, and whichever finishes last owns
+the screen, even if it was the one started first.
+
+`js/operator.js` had been missed. `loadListings()` awaits twice and then writes
+the table, and two of its controls fire back to back — arriving from the
+Overview's stale tile calls it, and pressing Search calls it again. The
+operator was then left looking at the stale-filtered rows with the note
+already hidden, as though their search had found almost nothing. Fixed on
+2026-10-11 with the same token, plus reading the stale flag once so the note
+always describes the rows actually on screen.
+
+**Every other loader on that screen has the same shape** — `loadApprovals`,
+`loadInvitations`, `loadUsers`, `loadDocRequests`, `loadOperatorMailbox`,
+`loadMatches`, `loadActivityLog`, `loadAnalytics` all await and then write with
+no token. None has been seen to fail, because each is normally triggered once
+per screen. `loadOperatorMailbox` is the most exposed, with four awaits and a
+refresh button alongside the forward and reply actions. If one of these ever
+shows stale or half-updated content, this is the first thing to look at, and
+the fix is four lines.
+
 ## Still open
 
 1. **Verify the Resend sending domain.** Highest-value item. Until it is done,
