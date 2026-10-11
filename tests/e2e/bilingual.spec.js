@@ -61,7 +61,7 @@ test.describe.serial('bilingual participant interface', () => {
     await expect(page.locator('.logo-row p')).toHaveText('Complete su registro');
   });
 
-  test('the participant dashboard translates, including navigation and forms', async ({ page }) => {
+  test('Item47 the participant dashboard translates, including navigation and forms', async ({ page }) => {
     await signIn(page, participant, 'app.html');
 
     // Arrives in English (default) …

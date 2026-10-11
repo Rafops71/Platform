@@ -269,7 +269,7 @@ test.describe.serial('Terms & Conditions', () => {
     await expect(link).toHaveAttribute('target', '_blank');
   });
 
-  test('registration is refused while the box is unticked', async ({ page }) => {
+  test('Item07 registration is refused while the box is unticked', async ({ page }) => {
     const invite = await createInvitation('en');
     await page.goto(invite.link);
     await expect(page.locator('#register-card')).toBeVisible();

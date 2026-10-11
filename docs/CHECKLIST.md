@@ -12,8 +12,11 @@ Evidence comes from both suites, and the table says which proved each item:
   prohibitions belong: row-level security, the rate limits, what one account
   cannot read. Proving those through a browser would test the screen, not the
   rule.
-- **ui** — a Playwright test titled `ItemNN_what_it_checks`, tagged
-  `@checklist`. Where the flows belong: the things a person does.
+- **ui** — a Playwright test whose title contains `ItemNN`. Where the flows
+  belong: the things a person does. The whole suite runs, not a tagged subset:
+  a tag is a second thing to keep in step with the title, and a test that
+  proves an item while sitting outside the tagged group would go silently
+  uncounted — the one failure this report exists to prevent.
 
 An item may be proven by either or both. It may not be proven by a suite that
 did not run — if one fails to start, the report is INCOMPLETE and fails, rather

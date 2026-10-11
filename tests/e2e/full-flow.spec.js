@@ -61,7 +61,7 @@ test.afterAll(async () => {
 
 test.describe.serial('full participant lifecycle', () => {
 
-  test('operator creates an invitation and it is emailed', async ({ page }) => {
+  test('Item01 operator creates an invitation and it is emailed', async ({ page }) => {
     invitedEmail = `jericho-e2e-invited-${Date.now()}@example.invalid`;
 
     await signIn(page, operator, 'operator.html');
@@ -86,7 +86,7 @@ test.describe.serial('full participant lifecycle', () => {
     process.env.E2E_INVITE_LINK = link;
   });
 
-  test('invited person registers through the invitation link', async ({ page }) => {
+  test('Item03 invited person registers through the invitation link', async ({ page }) => {
     const link = process.env.E2E_INVITE_LINK;
     invitedPassword = 'Pw-e2e-invited-1';
 
@@ -119,7 +119,7 @@ test.describe.serial('full participant lifecycle', () => {
     expect(mail).toHaveLength(1);
   });
 
-  test('a pending participant cannot sign in', async ({ page }) => {
+  test('Item06 a pending participant cannot sign in', async ({ page }) => {
     await page.goto('/index.html');
     await page.fill('#email', invitedEmail);
     await page.fill('#password', invitedPassword);

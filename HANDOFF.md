@@ -35,8 +35,9 @@ and indexes all confirmed.
 **Both test suites pass against the current code:**
 
 ```sh
-npm run test:sql      # 155 assertions, 0 failures
-npm run e2e           # 95 tests, 0 failures
+npm run test:sql      # 192 assertions, 0 failures
+npm run e2e           # 95 tests — needs .env; see "What blocks the rest" below
+npm run checklist     # tick/cross table against docs/CHECKLIST.md: 37 of 52
 npm run verify-live   # READ-ONLY health check, safe on production
 ```
 
@@ -198,6 +199,28 @@ wire each row as you append it.**
 - **Automatic introductions.** The matching engine produces scored suggestions
   for an Operator to act on, never an automatic connection.
 
+## What blocks the rest
+
+`npm run test:sql` and `npm run checklist --db-only` run anywhere, including a
+cloud container, with no credentials: the suite downloads its own PostgreSQL.
+PostgreSQL refuses to run as root, so in a container run it as the `postgres`
+user — nothing needs to be installed and no permission needs changing:
+
+```sh
+su postgres -s /bin/bash -c 'export TMPDIR=/tmp HOME=/tmp; cd '"$PWD"' && npm run test:sql'
+```
+
+The browser suite cannot. It needs `.env` with `SUPABASE_SERVICE_ROLE_KEY` (to
+create and delete its own throwaway accounts) and `SUPABASE_DB_URL` (to read
+back what the application wrote). Verified empirically, not assumed: with only
+the public URL and publishable key, every spec stops at
+`SUPABASE_DB_URL not set`.
+
+That is why the checklist sits at 37 of 52. The 15 unproven functions are all
+screen behaviour — signing in, the registration form, filtering, language
+switching — and every one of them needs those two secrets, as repository
+secrets for CI or in a local `.env`.
+
 ## Still open
 
 1. **Verify the Resend sending domain.** Highest-value item. Until it is done,
@@ -206,21 +229,27 @@ wire each row as you append it.**
    only go to your own address. The pipeline is correct; this is an account
    configuration step.
 
-2. **Decide the browse-versus-email disclosure question.** Browse deliberately
+2. **Decide how much Browse should disclose.** This entry used to say Browse
    withholds `specification`, `price_conditions` and `notes` and generalises
-   origin to a region. The new-listing email sends all of them verbatim,
-   including exact origin, to every approved member. Not an identity leak, and it
-   does match the stated "full content" requirement — but it undoes the
-   information control browse is built around. **Needs a product decision**, not
-   a technical one.
+   origin to a region. **It does neither.** `get_public_listings()` returns all
+   three fields verbatim and returns the origin unchanged — the column is only
+   aliased to `region`. Checked against live data: a listing whose origin is
+   `belgium` is shown as region `belgium`.
 
-3. **Extract the duplicated E2E helpers.** Four specs carry near-identical
-   `signIn` / `openScreen` implementations; they belong in
-   `tests/e2e/helpers/`.
+   So Browse withholds exactly one thing: the poster's identity. The
+   new-listing email discloses the same fields, so the two are consistent —
+   the question is whether this is the intended level, not whether they
+   disagree. **Needs a product decision**, not a technical one. Checklist item
+   20 is written to what the code does; if origin should really be coarsened,
+   that is new work and a new item.
 
-4. **Review the per-row query pattern.** The mailbox and several list views
-   issue one query per row for related records. Fine at current volumes, not
-   linear.
+3. ~~**Extract the duplicated E2E helpers.**~~ Done in `6d10a32` —
+   `tests/e2e/helpers/session.js` now holds `signIn` / `openScreen` and six
+   specs were stripped of their copies.
+
+4. ~~**Review the per-row query pattern.**~~ Done in `9583b21` and `81d3ede` —
+   the per-row lookups are batched, and the batching is chunked so it stays
+   safe at volume and reports honestly when a lookup fails.
 
 5. **Legal and compliance gaps — blocks rollout.** The Terms, the acceptance
    record, and the Privacy Notice exist (version 2.2, `sql/010`, section 10 of

@@ -78,7 +78,7 @@ test.describe.serial('unit dropdowns are alphabetical', () => {
     });
   }
 
-  test('the Spanish labels follow the same option order', async ({ page }) => {
+  test('Item17 the Spanish labels follow the same option order', async ({ page }) => {
     await page.click('#lang-toggle .lang-btn >> nth=1');
     // Translating must not reorder or drop options — only relabel them.
     for (const selectId of ['unit', 'price_unit']) {
