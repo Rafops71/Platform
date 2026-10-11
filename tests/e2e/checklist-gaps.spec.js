@@ -189,8 +189,33 @@ test.describe.serial('the functions no browser test covered', () => {
   });
 
   test('Item21 a member can filter Browse down to one commodity', async ({ page }) => {
+    // Alpha's listing was withdrawn in Item15, so this test posts its own
+    // second one. Without it the filter has a single listing to work on, and
+    // a filter tested against one row proves nothing: any filter at all,
+    // including a broken one, leaves that row alone.
+    await signIn(page, alpha, 'app.html');
+    await openScreen(page, 'new-listing');
+    await page.check('input[name="type"][value="sell"]');
+    await pickCommodity(page, MINE.commodity);
+    await page.fill('#quantity', MINE.quantity);
+    await page.selectOption('#unit', MINE.unit);
+    await page.selectOption('#incoterm', MINE.incoterm);
+    await page.selectOption('#location', MINE.origin);
+    await page.fill('#notes', MINE.notes);
+    await submitListing(page);
+
+    await expect.poll(async () => {
+      const r = await query(
+        'select count(*)::int as n from public.listings where user_id = (select id from public.profiles where email = $1)',
+        [alpha.email],
+      );
+      return r.rows[0].n;
+    }, { timeout: 20_000 }).toBe(1);
+
+    await signOut(page);
+
     // Beta posts something different, so the filter has two things to choose
-    // between. A filter tested against a single listing proves nothing.
+    // between.
     await signIn(page, beta, 'app.html');
     await openScreen(page, 'new-listing');
     await page.check('input[name="type"][value="sell"]');
@@ -211,14 +236,24 @@ test.describe.serial('the functions no browser test covered', () => {
     }, { timeout: 20_000 }).toBe(1);
 
     await openScreen(page, 'browse');
-    const browse = page.locator('#screen-browse');
-    await expect(browse).toContainText(THEIRS.commodity, { timeout: 15_000 });
 
+    // The results, not the whole screen. #browse-filter-commodity is itself
+    // inside #screen-browse and carries an <option> for every commodity the
+    // platform trades, Iron Ore included — so asserting the screen does not
+    // contain "Iron Ore" could never pass, and asserting that it does contain
+    // "Zinc Ingots" passed off the dropdown without a single result being
+    // rendered. Both assertions were about the filter, not the listings.
+    const results = page.locator('#browse-list');
+    await expect(results).toContainText(THEIRS.commodity, { timeout: 15_000 });
+    await expect(results).toContainText(MINE.commodity);
+
+    // Apply has to be pressed: js/app.js reloads Browse on the button's click
+    // and nothing listens for a change on the select itself.
     await page.selectOption('#browse-filter-commodity', THEIRS.commodity);
-    await expect(browse).toContainText(THEIRS.commodity);
-    // Alpha's listing was withdrawn in the previous test, so the sharper check
-    // is that filtering to Zinc Ingots does not leave Iron Ore on screen.
-    await expect(browse).not.toContainText(MINE.commodity);
+    await page.click('#browse-refresh-btn');
+
+    await expect(results).toContainText(THEIRS.commodity);
+    await expect(results).not.toContainText(MINE.commodity);
   });
 
   test('Item30 a member sees only their own conversations in the mailbox', async ({ page }) => {
