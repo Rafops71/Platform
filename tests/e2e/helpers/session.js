@@ -95,4 +95,52 @@ async function submitListing(page, selector = '#listing-submit-btn') {
   }
 }
 
-module.exports = { signIn, signOut, openScreen, submitListing, NAV_TIMEOUT, SCREEN_TIMEOUT };
+
+/** Choose a commodity, and make sure the choice actually stuck.
+ *
+ *  Two different failures live here, both already seen.
+ *
+ *  The list arrives after the screen opens, so reading the options once and
+ *  asserting immediately fails on a dropdown that is merely still loading.
+ *  Hence the poll.
+ *
+ *  And the select is REBUILT when that fetch lands, which silently discards a
+ *  choice made a moment earlier. bilingual.spec.js hit exactly that: it picked
+ *  the commodity first, filled eight more fields, and the form then refused
+ *  the submit with "Seleccione o especifique una materia prima" - the only
+ *  field it lost was the first one set. So the choice is read back and made
+ *  again if it did not hold.
+ */
+async function pickCommodity(page, name) {
+  const select = page.locator('#commodity-select');
+
+  // Values, not labels: selectOption is given the canonical English value and
+  // the labels can be translated, so matching on what is displayed would break
+  // the moment this runs in Spanish.
+  await expect
+    .poll(async () => select.locator('option').evaluateAll((os) => os.map((o) => o.value)), {
+      timeout: 20_000,
+      message:
+        `"${name}" never appeared in the commodity dropdown. The list comes from ` +
+        'sql/seed_commodities.sql and these tests pick from it, so either the ' +
+        'seed changed, or this test names something the platform does not trade, ' +
+        'or the screen never loaded the list at all.',
+    })
+    .toContain(name);
+
+  await select.selectOption(name);
+
+  // Not belt and braces: a redraw between the two lines above is the whole
+  // reason this function exists.
+  await expect
+    .poll(async () => select.inputValue(), {
+      timeout: 10_000,
+      message: `The commodity dropdown would not hold "${name}" - it is being redrawn after the choice.`,
+    })
+    .toBe(name);
+}
+
+module.exports = {
+  signIn, signOut, openScreen, submitListing, pickCommodity,
+  NAV_TIMEOUT, SCREEN_TIMEOUT,
+};

@@ -23,7 +23,7 @@
 
 const { test, expect } = require('@playwright/test');
 const { createAccount, cleanup, assertConfigured } = require('./helpers/fixtures');
-const { signIn, signOut, openScreen, submitListing } = require('./helpers/session');
+const { signIn, signOut, openScreen, submitListing, pickCommodity } = require('./helpers/session');
 const { query } = require('../../scripts/db');
 
 // Distinctive enough that a "not visible" assertion failing means a real leak
@@ -34,38 +34,6 @@ const BETA  = { first_name: 'Sevrinta',  last_name: 'Okondwe',  company: 'Larkfi
 const MINE   = { commodity: 'Iron Ore',    quantity: '250', unit: 'Metric tons', incoterm: 'FOB', origin: 'Chile', notes: 'E2E gaps: my own listing' };
 const THEIRS = { commodity: 'Zinc Ingots', quantity: '180', unit: 'Metric tons', incoterm: 'CIF', origin: 'Peru',  notes: 'E2E gaps: somebody else' };
 
-
-/** Choose a commodity, and say so plainly when it is not on offer.
- *
- *  The first version of this file used 'Copper' and 'Zinc', which are not
- *  commodities this platform trades — the seeded list has 'Copper Concentrate'
- *  and 'Zinc Ingots'. Playwright's own answer to that is to retry the select
- *  for thirty seconds and then report "did not find some options", which reads
- *  like a slow page rather than a wrong value. Checking the list first turns
- *  it into one sentence naming the problem.
- */
-async function pickCommodity(page, name) {
-  // Polled, not read once. The first version of this guard read the options a
-  // single time and asserted immediately, which made it fail on a dropdown
-  // that was merely still loading — the screen fetches the commodity list
-  // after it opens. That turned Playwright's slow-but-correct retry into a
-  // fast and wrong verdict, and the message confidently blamed the seed for a
-  // list that was about to arrive in full.
-  await expect
-    .poll(
-      async () => (await page.locator('#commodity-select option').allTextContents()).map((o) => o.trim()),
-      {
-        timeout: 20_000,
-        message:
-          `"${name}" never appeared in the commodity dropdown. The list comes ` +
-          'from sql/seed_commodities.sql and these tests pick from it, so ' +
-          'either the seed changed, or this test names something the platform ' +
-          'does not trade, or the screen never loaded the list at all.',
-      },
-    )
-    .toContain(name);
-  await page.selectOption('#commodity-select', name);
-}
 
 let alpha, beta, operator, pending;
 
