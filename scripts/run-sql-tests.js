@@ -23,11 +23,13 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const net = require('net');
 const { Client } = require('pg');
 const EmbeddedPostgres = require('embedded-postgres').default || require('embedded-postgres');
 
 const ROOT = path.join(__dirname, '..');
-const PORT = Number(process.env.SQL_TEST_PORT || 55432);
+const DEFAULT_PORT = 55432;
+let PORT = DEFAULT_PORT;   // settled by choosePort() before anything starts
 
 // Order matters: the stub defines the auth schema the rest depends on, then
 // the base schema, then every migration in sequence, then seed data.
@@ -207,7 +209,54 @@ function sweepStaleDataDirs() {
   if (swept) console.log(`Swept ${swept} stale data director${swept === 1 ? 'y' : 'ies'} from a previous run.`);
 }
 
+/** Is this port free to listen on right now? */
+function portIsFree(port) {
+  return new Promise((resolve) => {
+    const probe = net.createServer();
+    probe.once('error', () => resolve(false));
+    probe.once('listening', () => probe.close(() => resolve(true)));
+    probe.listen(port, '127.0.0.1');
+  });
+}
+
+/** The port to run on.
+ *
+ *  A run that dies before its finally block — Ctrl-C, a killed terminal, a
+ *  Windows handle that outlives the process — leaves a PostgreSQL listening on
+ *  the old port, and every later run then fails at startup with "could not
+ *  create any TCP/IP sockets". That is a confusing way to be told the suite
+ *  never ran, and it happened twice in one afternoon.
+ *
+ *  So the default port is a preference, not a requirement: if it is taken, walk
+ *  up until something is free. An explicitly set SQL_TEST_PORT is honoured as
+ *  given, because someone who names a port wants that port and should be told
+ *  plainly when it is unavailable rather than quietly moved elsewhere.
+ */
+async function choosePort() {
+  if (process.env.SQL_TEST_PORT) {
+    const wanted = Number(process.env.SQL_TEST_PORT);
+    if (!(await portIsFree(wanted))) {
+      throw new Error(
+        `SQL_TEST_PORT=${wanted} is already in use. Something is listening there — ` +
+        'most likely a PostgreSQL left behind by an earlier run. Stop it, or unset ' +
+        'SQL_TEST_PORT and a free port will be chosen automatically.'
+      );
+    }
+    return wanted;
+  }
+  for (let port = DEFAULT_PORT; port < DEFAULT_PORT + 40; port += 1) {
+    if (await portIsFree(port)) {
+      if (port !== DEFAULT_PORT) {
+        console.log(`Port ${DEFAULT_PORT} is busy — using ${port} instead.`);
+      }
+      return port;
+    }
+  }
+  throw new Error(`No free port between ${DEFAULT_PORT} and ${DEFAULT_PORT + 39}.`);
+}
+
 async function main() {
+  PORT = await choosePort();
   sweepStaleDataDirs();
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'jericho-pgtest-'));
   const pg = new EmbeddedPostgres({
