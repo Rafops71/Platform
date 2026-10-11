@@ -15,5 +15,18 @@
       "Bash(npx playwright --version)",
       "Bash(node --check *)"
     ]
+  },
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/verify-reminder.js",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
   }
 }
