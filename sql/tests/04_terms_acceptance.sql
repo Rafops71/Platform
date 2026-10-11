@@ -48,7 +48,7 @@ join public.profiles p on p.id = a.profile_id
 where p.email = 'terms-en@example.invalid';
 
 select case when a.version = '2.0' then 'PASS' else 'FAIL got ' || coalesce(a.version, 'null') end
-  as "T2 the accepted version is recorded"
+  as "T2 Item08 the accepted version is recorded"
 from public.terms_acceptances a
 join public.profiles p on p.id = a.profile_id
 where p.email = 'terms-en@example.invalid';

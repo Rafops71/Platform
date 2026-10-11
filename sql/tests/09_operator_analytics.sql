@@ -49,7 +49,7 @@ reset role; reset test.uid;
 set role authenticated; set test.uid='f1f1f1f1-f1f1-f1f1-f1f1-f1f1f1f1f1f1';
 
 select case when count(*) = 4 then 'PASS' else 'FAIL got ' || count(*) end
-  as "T1 an Operator gets one row per period asked for"
+  as "T1 Item42 an Operator gets one row per period asked for"
 from public.operator_analytics('week', 4);
 
 -- Empty periods are rows too. Without them a table of counts has gaps that read

@@ -80,7 +80,7 @@ end $$;
 rollback to savepoint before_flood;
 
 select case when count(*) = 30 then 'PASS' else 'FAIL — got ' || count(*) end
-  as "T2 the thirty-first is refused and nothing is stored"
+  as "T2 Item46 the thirty-first is refused and nothing is stored"
 from public.messages m
 join public.profiles p on p.id = m.sender_id
 where p.email = 'rl-flooder@example.invalid';

@@ -2,9 +2,13 @@
 // Chromium, so nothing needs to be installed on the machine running it —
 // which is the point: this project is developed on a machine with no Chrome.
 //
-//   npx playwright test              # headless
-//   npx playwright test --headed     # watch it happen
-//   npx playwright test --ui         # interactive runner
+//   npm run e2e                      # headless
+//   npm run e2e:headed               # watch it happen
+//   npm run e2e:ui                   # interactive runner
+//
+// Nothing has to be started by hand first. The `webServer` block below launches
+// scripts/serve.js, waits for it to answer, and stops it again afterwards. Set
+// E2E_BASE_URL to point the suite at an already-running server instead.
 //
 // The suite talks to the LIVE Supabase project, because Supabase Auth is
 // cloud-hosted and there is no local stand-in for it. Every account, listing
@@ -39,4 +43,23 @@ module.exports = defineConfig({
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
   ],
+
+  // Start the site ourselves rather than assuming someone already did. Before
+  // this existed the suite silently required a separate terminal running a
+  // static server on port 8000; forgetting it produced a wall of timeouts that
+  // looked like application failures. Skipped entirely when E2E_BASE_URL is
+  // set, so pointing the suite at a deployed environment still works.
+  webServer: process.env.E2E_BASE_URL
+    ? undefined
+    : {
+        command: 'node scripts/serve.js',
+        url: BASE_URL,
+        // Locally, reuse a server that is already up — re-running the suite in
+        // a loop should not fight over the port. In CI there is never one to
+        // reuse, and a port that unexpectedly answers means something is wrong.
+        reuseExistingServer: !process.env.CI,
+        timeout: 30_000,
+        stdout: 'ignore',
+        stderr: 'pipe',
+      },
 });

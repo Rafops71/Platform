@@ -50,6 +50,7 @@ const SETUP = [
   'sql/014_listing_renewal.sql',
   'sql/015_operator_analytics.sql',
   'sql/016_rate_limits.sql',
+  'sql/017_lock_down_function_access.sql',
   'sql/seed_commodities.sql',
 ];
 
@@ -68,6 +69,10 @@ const SUITES = [
   'sql/tests/08_listing_renewal.sql',
   'sql/tests/09_operator_analytics.sql',
   'sql/tests/10_rate_limits.sql',
+  // 11 asserts who may CALL a function, not what one returns. It must run after
+  // every migration has been applied, which it does — SETUP finishes first.
+  'sql/tests/11_function_access.sql',
+  'sql/tests/12_remaining_gaps.sql',
 ];
 
 /** Turn psql meta-commands into something a plain connection can run.
