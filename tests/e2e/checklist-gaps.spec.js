@@ -31,8 +31,29 @@ const { query } = require('../../scripts/db');
 const ALPHA = { first_name: 'Quenvarro', last_name: 'Dalmeshi', company: 'Brightmoor Alloys BV', phone: '+32471555111' };
 const BETA  = { first_name: 'Sevrinta',  last_name: 'Okondwe',  company: 'Larkfield Ores SPRL',  phone: '+32471555222' };
 
-const MINE   = { commodity: 'Copper', quantity: '250', unit: 'Metric tons', incoterm: 'FOB', origin: 'Chile', notes: 'E2E gaps: my own listing' };
-const THEIRS = { commodity: 'Zinc',   quantity: '180', unit: 'Metric tons', incoterm: 'CIF', origin: 'Peru',  notes: 'E2E gaps: somebody else' };
+const MINE   = { commodity: 'Iron Ore',    quantity: '250', unit: 'Metric tons', incoterm: 'FOB', origin: 'Chile', notes: 'E2E gaps: my own listing' };
+const THEIRS = { commodity: 'Zinc Ingots', quantity: '180', unit: 'Metric tons', incoterm: 'CIF', origin: 'Peru',  notes: 'E2E gaps: somebody else' };
+
+
+/** Choose a commodity, and say so plainly when it is not on offer.
+ *
+ *  The first version of this file used 'Copper' and 'Zinc', which are not
+ *  commodities this platform trades — the seeded list has 'Copper Concentrate'
+ *  and 'Zinc Ingots'. Playwright's own answer to that is to retry the select
+ *  for thirty seconds and then report "did not find some options", which reads
+ *  like a slow page rather than a wrong value. Checking the list first turns
+ *  it into one sentence naming the problem.
+ */
+async function pickCommodity(page, name) {
+  const offered = await page.locator('#commodity-select option').allTextContents();
+  expect(
+    offered.map((o) => o.trim()),
+    `"${name}" is not in the commodity dropdown. The list comes from ` +
+    'sql/seed_commodities.sql and these tests pick from it, so either the seed ' +
+    'changed or this test is naming something the platform does not trade.',
+  ).toContain(name);
+  await page.selectOption('#commodity-select', name);
+}
 
 let alpha, beta, operator, pending;
 
@@ -94,7 +115,7 @@ test.describe.serial('the functions no browser test covered', () => {
 
     await openScreen(page, 'new-listing');
     await page.check('input[name="type"][value="sell"]');
-    await page.selectOption('#commodity-select', MINE.commodity);
+    await pickCommodity(page, MINE.commodity);
     await page.fill('#quantity', MINE.quantity);
     await page.selectOption('#unit', MINE.unit);
     await page.selectOption('#incoterm', MINE.incoterm);
@@ -149,7 +170,7 @@ test.describe.serial('the functions no browser test covered', () => {
     await signIn(page, beta, 'app.html');
     await openScreen(page, 'new-listing');
     await page.check('input[name="type"][value="sell"]');
-    await page.selectOption('#commodity-select', THEIRS.commodity);
+    await pickCommodity(page, THEIRS.commodity);
     await page.fill('#quantity', THEIRS.quantity);
     await page.selectOption('#unit', THEIRS.unit);
     await page.selectOption('#incoterm', THEIRS.incoterm);
