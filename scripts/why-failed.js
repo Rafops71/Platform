@@ -33,14 +33,20 @@ const walk = (suite) => {
       file: (suite.file || suite.title || '').split(/[\\/]/).pop(),
       line: spec.line,
       title: spec.title,
-      // The first line of the message is the assertion; the rest is usually a
-      // diff or a locator dump that repeats it at length.
+      // Generous, because the useful part is often not at the front.
+      //
+      // This was four lines and 300 characters, which read well for an
+      // assertion that explains itself in one line - and then silently cut off
+      // the evidence a test had gone out of its way to attach. The operator
+      // overview test prints the table's actual contents when it cannot find a
+      // row, and every one of those characters was being discarded here, by
+      // the very tool whose job is to show the cause.
       why: String(err.message || '(no message recorded)')
         .replace(/\u001b\[[0-9;]*m/g, '')
         .split('\n')
         .map((l) => l.trim())
         .filter(Boolean)
-        .slice(0, 4)
+        .slice(0, 14)
         .join(' | '),
     });
   }
@@ -57,5 +63,5 @@ console.log(`${failures.length} failing test(s):\n`);
 for (const f of failures) {
   console.log(`${f.file}:${f.line}`);
   console.log(`  ${f.title}`);
-  console.log(`  -> ${f.why.slice(0, 300)}\n`);
+  console.log(`  -> ${f.why.slice(0, 1600)}\n`);
 }
