@@ -222,9 +222,16 @@ table so forwarded messages never arrived.
 
 `tests/e2e/` drives a real browser against the **live** Supabase project,
 because Supabase Auth is cloud-hosted and has no local stand-in. Every account,
-listing, and message it creates is prefixed `jericho-e2e-` and torn down again,
-and a test asserts the teardown actually happened. Playwright ships its own
-Chromium, so no system browser is needed.
+listing, and message it creates is prefixed `jericho-e2e-<run tag>-` and torn
+down again, and a test asserts the teardown actually happened. The run tag
+matters: teardown deletes only accounts carrying its own tag, so two runs
+sharing the one live project — CI and a laptop, say — cannot delete each
+other's fixtures mid-test. Accounts abandoned by a killed run are swept once
+they are over two hours old. Playwright ships its own Chromium, so no system
+browser is needed.
+
+CI serialises these runs as well, through a single `ci-live-database`
+concurrency group, because one database cannot serve two runs at once.
 
 It covers the full lifecycle (invite → register → approve → listing → browse →
 contact → forward → reply), the brokered mailbox in depth including multi-turn

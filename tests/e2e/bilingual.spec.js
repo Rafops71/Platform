@@ -12,7 +12,7 @@
 
 const { test, expect } = require('@playwright/test');
 const { createAccount, cleanup, assertConfigured } = require('./helpers/fixtures');
-const { signIn } = require('./helpers/session');
+const { signIn, submitListing } = require('./helpers/session');
 const { query } = require('../../scripts/db');
 
 let participant, operator;
@@ -101,7 +101,7 @@ test.describe.serial('bilingual participant interface', () => {
     await page.selectOption('#currency', 'USD');
     await page.selectOption('#price_unit', 'Metric tons');
     await page.check('#doc-checklist input[value="Assay Report"]');
-    await page.click('#listing-submit-btn');
+    await submitListing(page);
 
     await expect.poll(async () => {
       const r = await query(

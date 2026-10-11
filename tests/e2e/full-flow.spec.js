@@ -14,8 +14,8 @@
 'use strict';
 
 const { test, expect } = require('@playwright/test');
-const { createAccount, cleanup, assertConfigured } = require('./helpers/fixtures');
-const { openScreen, signIn, signOut } = require('./helpers/session');
+const { createAccount, cleanup, assertConfigured, RUN_PREFIX } = require('./helpers/fixtures');
+const { openScreen, signIn, signOut, submitListing } = require('./helpers/session');
 const { query } = require('../../scripts/db');
 
 // Distinctive so a match in the page can only have come from the profile —
@@ -62,7 +62,7 @@ test.afterAll(async () => {
 test.describe.serial('full participant lifecycle', () => {
 
   test('Item01 operator creates an invitation and it is emailed', async ({ page }) => {
-    invitedEmail = `jericho-e2e-invited-${Date.now()}@example.invalid`;
+    invitedEmail = `${RUN_PREFIX}invited-${Date.now()}@example.invalid`;
 
     await signIn(page, operator, 'operator.html');
     await openScreen(page, 'invitations');
@@ -168,7 +168,7 @@ test.describe.serial('full participant lifecycle', () => {
     await page.check('#doc-checklist input[value="Certificate of Analysis (COA)"]');
     await page.check('#doc-checklist input[value="KYC Documentation"]');
 
-    await page.click('#listing-submit-btn');
+    await submitListing(page);
 
     await expect.poll(async () => {
       const r = await query(

@@ -23,8 +23,8 @@
 'use strict';
 
 const { test, expect } = require('@playwright/test');
-const { createAccount, cleanup, assertConfigured } = require('./helpers/fixtures');
-const { openScreen, signIn, signOut } = require('./helpers/session');
+const { createAccount, cleanup, assertConfigured, RUN_PREFIX } = require('./helpers/fixtures');
+const { openScreen, signIn, signOut, submitListing } = require('./helpers/session');
 const { query } = require('../../scripts/db');
 
 // Deliberately unusable as a substring of anything else on the page, so a
@@ -87,7 +87,7 @@ test.describe.serial('in-platform mailbox: browse -> contact -> forward -> reply
     await page.fill('#price_conditions', LISTING.price);
     await page.selectOption('#currency', LISTING.currency);
     await page.fill('#notes', LISTING.notes);
-    await page.click('#listing-submit-btn');
+    await submitListing(page);
 
     await expect.poll(async () => {
       const r = await query(
@@ -409,7 +409,7 @@ test.describe.serial('in-platform mailbox: browse -> contact -> forward -> reply
     // in this flow flushed them, and no message became an email.
     const { rows } = await query(
       'select count(*)::int n from public.email_outbox where sent_at is not null and to_email like $1',
-      ['jericho-e2e-%']
+      [`${RUN_PREFIX}%`]
     );
     expect(rows[0].n).toBe(0);
   });
@@ -425,7 +425,7 @@ test('6. teardown removes every test account and all its data', async () => {
        (select count(*)::int from public.profiles where email like $1) profiles,
        (select count(*)::int from public.messages where body in ($2, $3)) messages,
        (select count(*)::int from public.email_outbox where to_email like $1) outbox`,
-    ['jericho-e2e-%', ENQUIRY, REPLY]
+    [`${RUN_PREFIX}%`, ENQUIRY, REPLY]
   );
   expect(rows[0]).toMatchObject({ profiles: 0, messages: 0, outbox: 0 });
 });
