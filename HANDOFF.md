@@ -216,10 +216,25 @@ back what the application wrote). Verified empirically, not assumed: with only
 the public URL and publishable key, every spec stops at
 `SUPABASE_DB_URL not set`.
 
-That is why the checklist sits at 37 of 52. The 15 unproven functions are all
-screen behaviour — signing in, the registration form, filtering, language
-switching — and every one of them needs those two secrets, as repository
-secrets for CI or in a local `.env`.
+Those two secrets are now set as repository secrets, so **the checklist stands
+at 52 of 52, proven in CI** (run 33, 2026-10-11, commit 6659a28 — all three
+jobs green and a build artifact produced). It read 37 of 52 while the secrets
+were missing, because the fifteen unproven functions were all screen behaviour
+and every one of them needs them.
+
+Two things learned getting there, both worth keeping:
+
+- **One live database cannot serve two test runs.** Teardown deleted every
+  `jericho-e2e-` account it could see, so overlapping runs deleted each
+  other's fixtures mid-test. CI now serialises on a single
+  `ci-live-database` concurrency group, and each run tags its own accounts
+  and deletes only those. Symptoms were eleven failures that moved between
+  runs — a signed-in account vanishing, foreign keys failing, match counts
+  of zero.
+- **A crossed function used to say nothing about why.** `npm run why` prints
+  the real error, with file and line, from the report the failing run already
+  saved, and CI runs it on failure so the reason is in the log rather than
+  inside a zipped artifact.
 
 ## Still open
 
