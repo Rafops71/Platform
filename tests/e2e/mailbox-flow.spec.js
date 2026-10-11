@@ -24,7 +24,7 @@
 
 const { test, expect } = require('@playwright/test');
 const { createAccount, cleanup, assertConfigured, RUN_PREFIX } = require('./helpers/fixtures');
-const { openScreen, signIn, signOut } = require('./helpers/session');
+const { openScreen, signIn, signOut, submitListing } = require('./helpers/session');
 const { query } = require('../../scripts/db');
 
 // Deliberately unusable as a substring of anything else on the page, so a
@@ -87,7 +87,7 @@ test.describe.serial('in-platform mailbox: browse -> contact -> forward -> reply
     await page.fill('#price_conditions', LISTING.price);
     await page.selectOption('#currency', LISTING.currency);
     await page.fill('#notes', LISTING.notes);
-    await page.click('#listing-submit-btn');
+    await submitListing(page);
 
     await expect.poll(async () => {
       const r = await query(

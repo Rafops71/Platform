@@ -14,7 +14,7 @@
 
 const { test, expect } = require('@playwright/test');
 const { createAccount, cleanup, assertConfigured, RUN_PREFIX } = require('./helpers/fixtures');
-const { openScreen, signIn } = require('./helpers/session');
+const { openScreen, signIn, submitListing } = require('./helpers/session');
 const { query } = require('../../scripts/db');
 
 const LISTING = {
@@ -96,7 +96,7 @@ test.describe.serial('notification emails follow the recipient language', () => 
     await page.fill('#specification', LISTING.specification);
     await page.selectOption('#incoterm', LISTING.incoterm);
     await page.selectOption('#location', LISTING.origin);
-    await page.click('#listing-submit-btn');
+    await submitListing(page);
 
     await expect.poll(async () => {
       const r = await query(

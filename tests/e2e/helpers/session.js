@@ -66,4 +66,27 @@ async function openScreen(page, name) {
   await expect(page.locator(`#screen-${name}`)).toBeVisible({ timeout: SCREEN_TIMEOUT });
 }
 
-module.exports = { signIn, signOut, openScreen, NAV_TIMEOUT, SCREEN_TIMEOUT };
+/** Submit the listing form, and say what it refused rather than what followed.
+ *
+ *  A refused submit shows an error toast (js/utils.js showToast) which removes
+ *  itself after about four seconds. Nothing reads it, so the only evidence a
+ *  test ever saw was a later "expected 1 listing, got 0" — the symptom, with
+ *  the cause already gone from the page. Catching the toast here turns that
+ *  into the database's or the form's own words.
+ */
+async function submitListing(page, selector = '#listing-submit-btn') {
+  await page.click(selector);
+
+  const toast = page.locator('.toast-error').first();
+  const refused = await toast
+    .waitFor({ state: 'visible', timeout: 2500 })
+    .then(() => true)
+    .catch(() => false);
+
+  if (refused) {
+    const said = (await toast.textContent().catch(() => null)) || '(the toast vanished before it could be read)';
+    throw new Error(`The listing form refused the submit: "${said.trim()}"`);
+  }
+}
+
+module.exports = { signIn, signOut, openScreen, submitListing, NAV_TIMEOUT, SCREEN_TIMEOUT };
