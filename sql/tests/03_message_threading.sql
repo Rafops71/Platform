@@ -61,7 +61,7 @@ from public.messages where body='TH reply';
 select case when parent.sender_id = (select id from public.profiles where email='thasker@example.com')
                  and parent.sender_id <> reply.sender_id
             then 'PASS' else 'FAIL' end
-  as "M3 a reply routes to the parent's sender, not the listing owner"
+  as "M3 Item28 a reply routes to the parent's sender, not the listing owner"
 from public.messages reply
 join public.messages parent on parent.id = reply.in_reply_to
 where reply.body='TH reply';
@@ -84,7 +84,7 @@ insert into public.messages (sender_id, listing_id, body, status, in_reply_to)
 
 select case when parent.sender_id = (select id from public.profiles where email='thowner@example.com')
             then 'PASS' else 'FAIL' end
-  as "M5 the next turn routes back to the other party"
+  as "M5 Item28 the next turn routes back to the other party"
 from public.messages reply
 join public.messages parent on parent.id = reply.in_reply_to
 where reply.body='TH second turn';

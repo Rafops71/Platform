@@ -72,6 +72,7 @@ const SUITES = [
   // 11 asserts who may CALL a function, not what one returns. It must run after
   // every migration has been applied, which it does — SETUP finishes first.
   'sql/tests/11_function_access.sql',
+  'sql/tests/12_remaining_gaps.sql',
 ];
 
 /** Turn psql meta-commands into something a plain connection can run.

@@ -73,7 +73,7 @@ select case when (
 select case when (
     select count(*) from json_object_keys(to_json((select l from public.get_public_listings() l limit 1)))
      where json_object_keys in ('specification','price_conditions','price_unit','currency','notes','region')
-  ) = 6 then 'PASS' else 'FAIL' end as "T11b public view exposes full commercial detail";
+  ) = 6 then 'PASS' else 'FAIL' end as "T11b Item20 public view exposes full commercial detail, identity aside";
 
 set role authenticated; set test.uid='44444444-4444-4444-4444-444444444444';
 update public.listings set status='closed' where reference_number='SELL-26-001';
