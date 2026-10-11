@@ -1,0 +1,72 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node scripts/q.js \"select *)",
+      "Bash(node scripts/q.js --json \"select *)",
+      "Bash(npm run q -- \"select *)",
+      "Bash(node scripts/verify-live.js)",
+      "Bash(npm run verify-live)",
+      "Bash(node scripts/run-sql-tests.js)",
+      "Bash(npm run test:sql)",
+      "Bash(node scripts/send-listing-emails.js --dry-run)",
+      "Bash(npm run e2e)",
+      "Bash(npm run e2e:headed)",
+      "Bash(npx playwright test *)",
+      "Bash(npx playwright --version)",
+      "Bash(node --check *)",
+      "Bash(git *)",
+      "Bash(gh api *)",
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(node *)",
+      "Bash(python3 *)",
+      "Bash(su postgres *)",
+      "Bash(curl *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(sed *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(find *)",
+      "Bash(ls *)",
+      "Bash(wc *)",
+      "Bash(diff *)",
+      "Bash(jq *)",
+      "Bash(mkdir *)",
+      "Bash(cp *)",
+      "Bash(mv *)",
+      "Bash(echo *)",
+      "Bash(id *)",
+      "Bash(df *)",
+      "Bash(unzip *)",
+      "Edit(sql/**)",
+      "Edit(scripts/**)",
+      "Edit(tests/**)",
+      "Edit(js/**)",
+      "Edit(css/**)",
+      "Edit(docs/**)",
+      "Edit(.github/**)",
+      "Edit(*.md)",
+      "Edit(*.html)",
+      "Edit(package.json)"
+    ],
+    "deny": [
+      "Bash(rm -rf /*)",
+      "Bash(rm -rf ~*)"
+    ]
+  },
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/verify-reminder.js",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
