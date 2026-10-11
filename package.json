@@ -15,7 +15,8 @@
     "e2e:headed": "playwright test --headed",
     "e2e:ui": "playwright test --ui",
     "checklist": "node scripts/checklist-report.js",
-    "why": "node scripts/why-failed.js"
+    "why": "node scripts/why-failed.js",
+    "stress": "node scripts/stress-test.js"
   },
   "dependencies": {
     "pg": "^8.13.1"

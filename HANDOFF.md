@@ -236,6 +236,63 @@ Two things learned getting there, both worth keeping:
   saved, and CI runs it on failure so the reason is in the log rather than
   inside a zipped artifact.
 
+## Volume and concurrency
+
+`npm run stress` builds a market on a throwaway PostgreSQL — 200 members, 2000
+listings, 2000 messages by default, sizes settable with `STRESS_MEMBERS`,
+`STRESS_LISTINGS`, `STRESS_MESSAGES`, `STRESS_CONCURRENCY` — then checks that
+the prohibitions still hold at that volume, times the screens members actually
+read, posts from 24 sessions at the same instant, and deletes the lot. It needs
+no credentials and leaves nothing behind, because the server itself is deleted.
+CI runs it as its own job.
+
+It found two things on its first run, both now fixed:
+
+- **The flood limit could be beaten by doing it all at once.** 24 parallel
+  inserts, 24 accepted, limit 20. Fixed in `sql/019` with a per-member advisory
+  lock; the run now reports 20 accepted and 4 refused.
+- **Ten foreign keys had no index**, so every cascade was a full scan.
+  Deleting 200 members with everything they owned took 198 seconds. With
+  `sql/020` it takes 1.8. Both applied to the live project on 2026-10-11.
+
+Measured after both fixes, at 200 members and 2000 listings: Browse 31ms,
+Operator figures 76ms, activity export 4ms, deleting 200 members 1.8s.
+
+**One thing deliberately not changed, because it is a product decision.**
+Posting a listing takes about 46ms, and that is almost all
+`generate_matches_for_listing()`: it loops over every opposite-type listing in
+the same commodity and, for each pair, inserts one notification *per approved
+Operator*. About 56 writes per listing posted, and it grows with the number of
+listings in that commodity. At 2000 listings it is unnoticeable to a member. At
+20,000 a post would take around half a second and the notifications table would
+hold millions of rows. Adding an index did not help — the cost is the fan-out
+inside the loop, not the lookup. Whether Operators should get one notification
+per match, a digest, or none, is a question about how the platform should work.
+
+## A pattern worth knowing: the last write wins
+
+`js/app.js` guards two of its lists with a render token
+(`MY_LISTINGS_RENDER`, `SAVED_SEARCH_RENDER`) because a loader that awaits
+before it writes can be overtaken: start two, and whichever finishes last owns
+the screen, even if it was the one started first.
+
+`js/operator.js` had been missed. `loadListings()` awaits twice and then writes
+the table, and two of its controls fire back to back — arriving from the
+Overview's stale tile calls it, and pressing Search calls it again. The
+operator was then left looking at the stale-filtered rows with the note
+already hidden, as though their search had found almost nothing. Fixed on
+2026-10-11 with the same token, plus reading the stale flag once so the note
+always describes the rows actually on screen.
+
+**Every other loader on that screen has the same shape** — `loadApprovals`,
+`loadInvitations`, `loadUsers`, `loadDocRequests`, `loadOperatorMailbox`,
+`loadMatches`, `loadActivityLog`, `loadAnalytics` all await and then write with
+no token. None has been seen to fail, because each is normally triggered once
+per screen. `loadOperatorMailbox` is the most exposed, with four awaits and a
+refresh button alongside the forward and reply actions. If one of these ever
+shows stale or half-updated content, this is the first thing to look at, and
+the fix is four lines.
+
 ## Still open
 
 1. **Verify the Resend sending domain.** Highest-value item. Until it is done,
