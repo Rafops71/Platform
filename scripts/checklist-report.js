@@ -277,6 +277,25 @@ function main() {
     process.exit(1);
   }
 
+  // A failing test that carries no ItemNN is still a failing test. This block
+  // used only to print such failures and then fall through to PASS, which
+  // meant a red test could ship an artifact as long as it was not tied to a
+  // checklist item — the opposite of what the gate is for. The message two
+  // screens up already said "a failure here is still a real failure"; now the
+  // exit code says it too.
+  if (strays.failed.length) {
+    console.log(
+      `\n${RED}${BOLD}FAIL${OFF} — ${strays.failed.length} browser test(s) failed ` +
+      'that are not tied to a checklist item:\n'
+    );
+    for (const t of strays.failed) console.log(`  ${RED}•${OFF} ${t}`);
+    console.log(
+      `\n${DIM}Every function on the checklist is proven, but the suite is not green.${OFF}\n` +
+      `${DIM}No build artifact should be produced from this state. Run npm run why.${OFF}`
+    );
+    process.exit(1);
+  }
+
   if (dbOnly || uiOnly) {
     console.log(`${YELLOW}${BOLD}PARTIAL${OFF} — only the ${dbOnly ? 'database' : 'browser'} half was checked.`);
     process.exit(0);

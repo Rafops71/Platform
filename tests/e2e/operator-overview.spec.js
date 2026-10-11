@@ -179,7 +179,24 @@ test.describe.serial('operator workload overview', () => {
     // subtract rows from every search they then run.
     await page.click('#listing-search-btn');
     await expect(page.locator('#listing-stale-note')).toBeHidden();
-    await expect(page.locator('#listings-table')).toContainText(freshRef, { timeout: 15_000 });
+
+    // Polled with the table's own contents in the message. This assertion has
+    // failed intermittently - twice in three runs on 2026-10-11, passing in
+    // between - and a bare toContainText timeout says only that the reference
+    // was absent, never what WAS there. The cause is still unknown, so the
+    // next failure is made to carry its own evidence instead of another guess:
+    // an empty table means the reload never returned, a table of other rows
+    // means a filter is still being applied, and the stale row alone means the
+    // predicate outlived the note being hidden.
+    await expect
+      .poll(async () => (await page.locator('#listings-table').innerText()).replace(/\s+/g, ' ').slice(0, 400), {
+        timeout: 15_000,
+        message:
+          `The listings table never showed the fresh listing ${freshRef} after a ` +
+          'manual search. Its contents at the end of the wait are below; the ' +
+          `stale one is ${staleRef}.`,
+      })
+      .toContain(freshRef);
   });
 
   test('the overview writes nothing', async ({ page }) => {

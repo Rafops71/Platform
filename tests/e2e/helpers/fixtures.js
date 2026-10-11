@@ -30,6 +30,35 @@ const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 // whatever the previous value created, so it is deliberately boring.
 const E2E_PREFIX = 'jericho-e2e-';
 
+// Every account also carries a run tag, and teardown only ever deletes
+// accounts carrying THIS run's tag.
+//
+// Why: the suite runs against one live Supabase project, and teardown used to
+// delete every jericho-e2e- account it could see. Two runs overlapping — CI
+// and a laptop, or two CI runs — therefore deleted each other's fixtures
+// halfway through. On 2026-10-11 three CI runs overlapped and eleven
+// unrelated tests failed: the signed-in account had been removed underneath
+// them, so sign-in never redirected, listings lost their foreign keys, and
+// match counts came back zero. The failures moved around between runs, which
+// is what a race looks like from the outside.
+//
+// GITHUB_RUN_ID keeps the tag stable across processes on CI. Locally a random
+// tag is enough: Playwright runs this suite in one worker (workers: 1), so the
+// module is loaded once and every spec in the run shares it.
+const RUN_TAG =
+  process.env.E2E_RUN_TAG ||
+  (process.env.GITHUB_RUN_ID
+    ? `ci${process.env.GITHUB_RUN_ID}x${process.env.GITHUB_RUN_ATTEMPT || 1}`
+    : `local${crypto.randomBytes(4).toString('hex')}`);
+
+const RUN_PREFIX = `${E2E_PREFIX}${RUN_TAG}-`;
+
+// A run killed mid-test (a cancelled CI job, a closed laptop) leaves its
+// accounts behind, and nothing else will ever claim them. Teardown sweeps
+// those too, but only once they are old enough that no live run could still
+// be using them.
+const ORPHAN_AGE = '2 hours';
+
 /** Unique address for one test run. The domain never receives anything, since
  *  these accounts are created pre-confirmed.
  *
@@ -40,7 +69,7 @@ const E2E_PREFIX = 'jericho-e2e-';
  *  account created at .invalid cannot change its address at all. Teardown keys
  *  on the prefix and not the domain, so overriding it stays safe. */
 function testEmail(label, domain = 'example.invalid') {
-  return `${E2E_PREFIX}${label}-${crypto.randomBytes(4).toString('hex')}@${domain}`;
+  return `${RUN_PREFIX}${label}-${crypto.randomBytes(4).toString('hex')}@${domain}`;
 }
 
 function testPassword() {
@@ -125,9 +154,13 @@ async function createAccount({ label, role = 'participant', status = 'approved',
 async function cleanup() {
   const client = await connect();
   try {
+    // This run's accounts, plus orphans an earlier run left behind and is far
+    // too old to still be using. Never another live run's accounts.
     const { rows: profiles } = await client.query(
-      'select id, user_id from public.profiles where email like $1',
-      [`${E2E_PREFIX}%`]
+      `select id, user_id from public.profiles
+        where email like $1
+           or (email like $2 and created_at < now() - interval '${ORPHAN_AGE}')`,
+      [`${RUN_PREFIX}%`, `${E2E_PREFIX}%`]
     );
     const ids = profiles.map(p => p.id);
     const userIds = profiles.map(p => p.user_id);
@@ -178,12 +211,17 @@ async function cleanup() {
       await admin(`/users/${id}`, { method: 'DELETE' });
     }
 
+    // Checks THIS run's tag only. Asserting on the whole jericho-e2e- prefix
+    // would fail whenever another run is legitimately in flight, which is a
+    // false alarm about someone else's accounts rather than a real leak.
     const { rows: left } = await client.query(
       'select count(*)::int n from public.profiles where email like $1',
-      [`${E2E_PREFIX}%`]
+      [`${RUN_PREFIX}%`]
     );
     if (left[0].n > 0) {
-      throw new Error(`Teardown incomplete: ${left[0].n} test profile(s) still in the database`);
+      throw new Error(
+        `Teardown incomplete: ${left[0].n} test profile(s) tagged ${RUN_TAG} still in the database`
+      );
     }
 
     return { profiles: ids.length };
@@ -192,4 +230,7 @@ async function cleanup() {
   }
 }
 
-module.exports = { E2E_PREFIX, testEmail, testPassword, createAccount, cleanup, assertConfigured };
+module.exports = {
+  E2E_PREFIX, RUN_PREFIX, RUN_TAG,
+  testEmail, testPassword, createAccount, cleanup, assertConfigured,
+};
