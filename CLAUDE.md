@@ -43,6 +43,17 @@ Adding a function to the checklist without a test breaks the build on purpose.
 
 - Never say something works unless a check was run and its output said so.
   "It should work now" is not acceptable. A clean parse proves nothing.
+- The same standard applies to every factual claim, not only to code. Where a
+  menu is in a third-party dashboard, what a service's current limits are, what
+  a product calls a thing this month — look it up with a tool that can see it
+  now, or say plainly that it cannot be checked from here. A confident sentence
+  about a button that moved last quarter costs the owner more time than
+  admitting the uncertainty, and the owner reads on a small screen with little
+  patience for being sent somewhere that does not exist.
+- Prefer a route that needs no screen at all. A verifiable value, a direct URL
+  taken from current documentation, or a command beats a described click path,
+  because the first three can be checked before they are handed over and the
+  last cannot.
 - Before pushing, run the suites the change could have disturbed and show the
   output. Where they cannot be run — no `.env`, or a cloud container where
   PostgreSQL will not start as root — say so plainly and do not tick anything.
