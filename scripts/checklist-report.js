@@ -119,6 +119,13 @@ function bucket(found, key, source) {
   return row[source];
 }
 
+/** Browser tests that failed or were skipped but carry no item number.
+ *  Kept separately because they explain the table: Playwright runs a serial
+ *  describe in order and skips the rest once one test fails, so an untagged
+ *  failure shows up as unexplained "skipped" rows against items that were
+ *  never reached. Without this, the reader sees a blocked item and no cause. */
+const strays = { failed: [], skipped: [] };
+
 function collectBrowser(raw, found) {
   let report;
   try {
@@ -129,8 +136,14 @@ function collectBrowser(raw, found) {
   }
   const walk = (suite) => {
     for (const spec of suite.specs || []) {
+      const statusesAll = (spec.tests || []).flatMap((t) => t.results || []).map((r) => r.status);
+      const allSkipped = statusesAll.length > 0 && statusesAll.every((st) => st === 'skipped');
       const m = String(spec.title).match(/\bItem(\d{2})\b/);
-      if (!m) continue;
+      if (!m) {
+        if (!spec.ok && !allSkipped) strays.failed.push(String(spec.title).slice(0, 78));
+        else if (allSkipped) strays.skipped.push(String(spec.title).slice(0, 78));
+        continue;
+      }
       const cell = bucket(found, m[1], 'ui');
       cell.names.push(String(spec.title).slice(0, 60));
       const statuses = (spec.tests || []).flatMap((t) => t.results || []).map((r) => r.status);
@@ -232,6 +245,17 @@ function main() {
       console.log(`  Item${o} — ${[...r.db.names, ...r.ui.names].slice(0, 3).join('; ')}`);
     }
     crosses.push(`checks reference unlisted item(s): ${orphans.join(', ')}`);
+  }
+
+  if (strays.failed.length || strays.skipped.length) {
+    console.log(`\n${DIM}Browser tests not on the checklist:${OFF}`);
+    for (const t of strays.failed)  console.log(`  ${RED}failed${OFF}   ${t}`);
+    for (const t of strays.skipped.slice(0, 12)) console.log(`  ${YELLOW}skipped${OFF}  ${t}`);
+    if (strays.skipped.length > 12) console.log(`  ${DIM}… and ${strays.skipped.length - 12} more skipped${OFF}`);
+    if (strays.failed.length) {
+      console.log(`${DIM}  A failure here is still a real failure. It also explains skipped items:${OFF}`);
+      console.log(`${DIM}  a serial spec stops at the first failure, so later tests never run.${OFF}`);
+    }
   }
 
   const ticked = [...verdicts.values()].filter((v) => v === 'pass').length;
