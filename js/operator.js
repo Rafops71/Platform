@@ -89,6 +89,13 @@ const ANALYTICS_COLUMNS = [
   'registrations', 'listings', 'messages_reviewed', 'introductions', 'matches_reviewed',
 ];
 
+// Last-write-wins guard. Both selects fire `change`, so changing the bucket and
+// then the period puts two requests in flight at once, and whichever ANSWER
+// arrives last paints the table - not whichever was asked for last. Every
+// render checks it still holds the newest token before writing anything, so a
+// slower earlier reply is dropped instead of overwriting a newer one.
+let ANALYTICS_RENDER = 0;
+
 function wireAnalytics() {
   document.getElementById('analytics-bucket').addEventListener('change', loadAnalytics);
   document.getElementById('analytics-periods').addEventListener('change', loadAnalytics);
@@ -105,17 +112,22 @@ function analyticsPeriodLabel(isoDate, bucket) {
 }
 
 async function loadAnalytics() {
+  const token = ++ANALYTICS_RENDER;
   const tbody = document.querySelector('#analytics-table tbody');
   const tfoot = document.querySelector('#analytics-table tfoot');
   tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Loading…</td></tr>';
   tfoot.innerHTML = '';
 
+  // Read both controls once, up front, so the rows rendered below and the
+  // labels put on them come from the same request rather than from whatever
+  // the selects happen to hold by the time the answer arrives.
   const bucket = document.getElementById('analytics-bucket').value;
   const periods = Number(document.getElementById('analytics-periods').value);
 
   const { data, error } = await jericho.rpc('operator_analytics', {
     p_bucket: bucket, p_periods: periods,
   });
+  if (token !== ANALYTICS_RENDER) return;
   if (error) {
     tbody.innerHTML = `<tr><td colspan="6" class="empty-state">${escapeHtml(errorMessage(error))}</td></tr>`;
     return;
