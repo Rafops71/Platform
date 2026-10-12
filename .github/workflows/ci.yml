@@ -60,6 +60,12 @@ jobs:
       # fail in seconds, on forks too, not after an eight-minute browser suite.
       - name: Stale-render guards
         run: npm run check:guards
+      # The suite below applies scripts/pg-harness.js's list. If that differs
+      # from what a deployment applies, every assertion can pass against a
+      # database nobody runs - which is exactly what happened on 2026-10-12,
+      # when five migrations were tested and never deployed.
+      - name: Migration lists agree
+        run: npm run check:migrations
       - name: Run sql/tests
         run: npm run test:sql
 

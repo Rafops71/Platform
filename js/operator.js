@@ -1133,18 +1133,26 @@ async function loadActivityLog() {
 
   // A window onto the log, not a filter on what it keeps. Read once, so the
   // rows rendered and the line describing them come from the same request.
-  const days = document.getElementById('activity-since').value;
+  // Number() rather than the raw value, and checked: the control is a select
+  // with fixed options, so this cannot be a non-number today - but if it ever
+  // became free text, NaN would make an Invalid Date, Supabase would be sent
+  // the string "Invalid Date", and the screen would say "nothing in this
+  // period" while holding thousands of rows. A screen that is confidently
+  // empty is the failure this whole file has been about. Falling back to
+  // everything is the honest default: it shows too much, never too little.
+  const days = Number(document.getElementById('activity-since').value);
+  const windowDays = Number.isFinite(days) && days > 0 ? days : null;
 
   let query = jericho.from('activity_log').select('*').order('created_at', { ascending: false }).limit(200);
-  if (days) {
-    const since = new Date(Date.now() - Number(days) * 86400000).toISOString();
+  if (windowDays) {
+    const since = new Date(Date.now() - windowDays * 86400000).toISOString();
     query = query.gte('created_at', since);
   }
   const { data, error } = await query;
   if (!fresh()) return;
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
   if (!data.length) {
-    container.innerHTML = days
+    container.innerHTML = windowDays
       ? '<p class="empty-state">Nothing in this period. Choose a longer one to see more.</p>'
       : '<p class="empty-state">No activity yet.</p>';
     return;

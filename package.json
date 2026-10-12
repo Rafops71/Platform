@@ -17,6 +17,7 @@
     "checklist": "node scripts/checklist-report.js",
     "why": "node scripts/why-failed.js",
     "check:guards": "node scripts/check-render-guards.js",
+    "check:migrations": "node scripts/check-migration-lists.js",
     "stress": "node scripts/stress-test.js"
   },
   "dependencies": {
