@@ -103,12 +103,67 @@ async function admin(path, options = {}) {
   return res.status === 204 ? null : res.json();
 }
 
+/** Write the invitation a fixture account needs in order to exist.
+ *
+ *  No-op on an empty database: there is nobody to attribute an invitation to,
+ *  and handle_new_user() lets the first account through for exactly that
+ *  reason. Anywhere else - including the live project - an invitation is
+ *  required and this creates one.
+ *
+ *  It deliberately fails loudly if there is no Operator to attribute it to on
+ *  a non-empty database. That state means something is wrong with the
+ *  database the suite is pointed at, and quietly carrying on would turn it
+ *  into a confusing failure thirty assertions later. */
+async function inviteFixture(email) {
+  const client = await connect();
+  try {
+    const { rows: [state] } = await client.query(
+      `select
+         (select count(*)::int from public.profiles) as profiles,
+         (select id from public.profiles
+           where role = 'operator' and status = 'approved'
+           order by created_at limit 1) as inviter`
+    );
+    if (state.profiles === 0) return;   // bootstrap
+    if (!state.inviter) {
+      throw new Error(
+        'No approved Operator exists to write fixture invitations, but the ' +
+        'database is not empty. The suite cannot create accounts in that state.'
+      );
+    }
+    await client.query(
+      `insert into public.invitations (token, email, created_by, expires_at)
+       values ($1, $2, $3, now() + interval '1 day')`,
+      [`e2e-${crypto.randomBytes(12).toString('hex')}`, email, state.inviter]
+    );
+  } finally {
+    await client.end();
+  }
+}
+
 /** Create a confirmed auth user. The on_auth_user_created trigger builds the
  *  matching profile as a pending participant; `role` and `status` here are
  *  applied afterwards over SQL, exactly as an operator approval would. */
 async function createAccount({ label, role = 'participant', status = 'approved', meta = {}, domain }) {
   const email = testEmail(label, domain);
   const password = testPassword();
+
+  // sql/024 made registration invitation-only, enforced by handle_new_user().
+  // These fixtures obey that rule rather than being exempted from it: an
+  // exemption would mean the suite stops describing the system anybody
+  // actually runs, which is the mistake this project already made once with
+  // the migration lists.
+  //
+  // So every fixture account gets a real invitation first, written by an
+  // existing Operator, exactly as a real member's would be. It is deleted
+  // again by cleanup(), which already removes invitations by this prefix.
+  //
+  // Skipped only when the database has no profiles at all - the bootstrap
+  // case, where the first account needs no invitation because there is nobody
+  // to have sent one. That never happens against the live project, which has
+  // had profiles since August; it is what lets a throwaway database build a
+  // world from nothing.
+  await inviteFixture(email);
 
   const user = await admin('/users', {
     method: 'POST',

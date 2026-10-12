@@ -29,18 +29,22 @@
 \echo
 \echo '=============== THE ACTIVITY LOG PURGE REMOVES ONLY ORPHANS ==============='
 
+select public.test_invite('purge-operator@example.invalid');
+select public.test_invite('purge-member@example.invalid');
+select public.test_invite('purge-operator@example.invalid');
 insert into auth.users (id, email, raw_user_meta_data)
-values (
-  'a0a0a0a0-0000-4000-8000-00000000000a'::uuid,
+values
+('a0a0a0a0-0000-4000-8000-00000000000a'::uuid,
   'purge-operator@example.invalid',
   jsonb_build_object('first_name', 'Olive', 'last_name', 'Keeper',
-                     'phone', '+3200000071', 'country', 'Belgium', 'language', 'en')
-), (
-  'a0a0a0a0-0000-4000-8000-00000000000b'::uuid,
+                     'phone', '+3200000071', 'country', 'Belgium', 'language', 'en'));
+select public.test_invite('purge-member@example.invalid');
+insert into auth.users (id, email, raw_user_meta_data)
+values
+('a0a0a0a0-0000-4000-8000-00000000000b'::uuid,
   'purge-member@example.invalid',
   jsonb_build_object('first_name', 'Mina', 'last_name', 'Poster',
-                     'phone', '+3200000072', 'country', 'Belgium', 'language', 'en')
-);
+                     'phone', '+3200000072', 'country', 'Belgium', 'language', 'en'));
 
 update public.profiles set role = 'operator', status = 'approved'
  where email = 'purge-operator@example.invalid';

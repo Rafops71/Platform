@@ -83,6 +83,7 @@ the suite: this platform's product is controlled disclosure, so proving a thing
 | 53 | A member can be deleted: their own content goes, the record of what happened stays, and the other party is untouched | does |
 | 54 | A member who has forgotten their password can set a new one, and the old one stops working | does |
 | 55 | The reset form never reveals whether an address has an account | MUST NOT |
+| 56 | Nobody can create an account without a valid invitation | MUST NOT |
 
 ## Open questions on this list
 

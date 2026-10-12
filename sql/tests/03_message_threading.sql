@@ -11,10 +11,15 @@
 \pset pager off
 \set QUIET on
 
+select public.test_invite('thowner@example.com');
+select public.test_invite('thasker@example.com');
+select public.test_invite('thowner@example.com');
 insert into auth.users (id, email, raw_user_meta_data) values
- ('bbbbbbbb-0000-0000-0000-000000000001','thowner@example.com',
-    '{"first_name":"Thea","last_name":"Owner","country":"Chile","phone":"+56"}'),
- ('bbbbbbbb-0000-0000-0000-000000000002','thasker@example.com',
+('bbbbbbbb-0000-0000-0000-000000000001','thowner@example.com',
+    '{"first_name":"Thea","last_name":"Owner","country":"Chile","phone":"+56"}');
+select public.test_invite('thasker@example.com');
+insert into auth.users (id, email, raw_user_meta_data) values
+('bbbbbbbb-0000-0000-0000-000000000002','thasker@example.com',
     '{"first_name":"Ravi","last_name":"Asker","country":"India","phone":"+91"}');
 update public.profiles set status='approved'
  where email in ('thowner@example.com','thasker@example.com');

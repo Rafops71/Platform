@@ -66,6 +66,7 @@ from refs where g = 7;
 
 -- And the references are actually usable: UNIQUE is what the old function
 -- tripped over, so insert them rather than only comparing strings.
+select public.test_invite('ref-overflow@example.invalid');
 insert into auth.users (id, email, raw_user_meta_data)
 values ('b0b0b0b0-0000-4000-8000-00000000000a'::uuid,
         'ref-overflow@example.invalid',

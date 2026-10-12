@@ -18,14 +18,25 @@
 \pset pager off
 \set QUIET on
 
+select public.test_invite('sofia@example.com');
+select public.test_invite('edward@example.com');
+select public.test_invite('noprefs@example.com');
+select public.test_invite('omar@example.com');
+select public.test_invite('sofia@example.com');
 insert into auth.users (id, email, raw_user_meta_data) values
- ('aaaaaaaa-0000-0000-0000-000000000001','sofia@example.com',
-    '{"first_name":"Sofia","last_name":"Ruiz","country":"Spain","phone":"+34","language":"es"}'),
- ('aaaaaaaa-0000-0000-0000-000000000002','edward@example.com',
-    '{"first_name":"Edward","last_name":"Hale","country":"United Kingdom","phone":"+44","language":"en"}'),
- ('aaaaaaaa-0000-0000-0000-000000000003','noprefs@example.com',
-    '{"first_name":"Nadia","last_name":"Prefs","country":"Belgium","phone":"+32"}'),
- ('aaaaaaaa-0000-0000-0000-000000000004','omar@example.com',
+('aaaaaaaa-0000-0000-0000-000000000001','sofia@example.com',
+    '{"first_name":"Sofia","last_name":"Ruiz","country":"Spain","phone":"+34","language":"es"}');
+select public.test_invite('edward@example.com');
+insert into auth.users (id, email, raw_user_meta_data) values
+('aaaaaaaa-0000-0000-0000-000000000002','edward@example.com',
+    '{"first_name":"Edward","last_name":"Hale","country":"United Kingdom","phone":"+44","language":"en"}');
+select public.test_invite('noprefs@example.com');
+insert into auth.users (id, email, raw_user_meta_data) values
+('aaaaaaaa-0000-0000-0000-000000000003','noprefs@example.com',
+    '{"first_name":"Nadia","last_name":"Prefs","country":"Belgium","phone":"+32"}');
+select public.test_invite('omar@example.com');
+insert into auth.users (id, email, raw_user_meta_data) values
+('aaaaaaaa-0000-0000-0000-000000000004','omar@example.com',
     '{"first_name":"Omar","last_name":"Diaz","country":"Spain","phone":"+34","language":"es"}');
 
 -- Omar is an operator who genuinely prefers Spanish in the UI.
@@ -117,6 +128,7 @@ where to_email='noprefs@example.com' and subject like '%not approved%';
 
 -- Rejection in Spanish, via a fresh account so the decision trigger fires once.
 \set QUIET on
+select public.test_invite('rechazado@example.com');
 insert into auth.users (id, email, raw_user_meta_data) values
  ('aaaaaaaa-0000-0000-0000-000000000005','rechazado@example.com',
     '{"first_name":"Rita","last_name":"Vela","country":"Spain","phone":"+34","language":"es"}');

@@ -17,6 +17,7 @@
 \echo
 \echo '=========== ACTIVITY EXPORT ==========='
 
+select public.test_invite('exporter@example.invalid');
 insert into auth.users (id, email, raw_user_meta_data)
 values (
   'd1d1d1d1-d1d1-d1d1-d1d1-d1d1d1d1d1d1'::uuid,
@@ -25,6 +26,7 @@ values (
                      'phone', '+3200000031', 'country', 'Belgium', 'language', 'en')
 );
 
+select public.test_invite('exporter-other@example.invalid');
 insert into auth.users (id, email, raw_user_meta_data)
 values (
   'd2d2d2d2-d2d2-d2d2-d2d2-d2d2d2d2d2d2'::uuid,
@@ -33,6 +35,7 @@ values (
                      'phone', '+3200000032', 'country', 'Spain', 'language', 'es')
 );
 
+select public.test_invite('exporter-op@example.invalid');
 insert into auth.users (id, email, raw_user_meta_data)
 values (
   'd3d3d3d3-d3d3-d3d3-d3d3-d3d3d3d3d3d3'::uuid,

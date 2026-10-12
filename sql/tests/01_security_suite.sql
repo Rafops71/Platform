@@ -1,10 +1,21 @@
 \pset pager off
 \set QUIET on
+select public.test_invite('OPERATOR@Example.com');
+select public.test_invite('alice@example.com');
+select public.test_invite('bob@example.com');
+select public.test_invite('mallory@example.com');
+select public.test_invite('OPERATOR@Example.com');
 insert into auth.users (id, email, raw_user_meta_data) values
- ('11111111-1111-1111-1111-111111111111','OPERATOR@Example.com','{"first_name":"Rafael","last_name":"E","country":"BE","phone":"+32"}'),
- ('22222222-2222-2222-2222-222222222222','alice@example.com','{"first_name":"Alice","last_name":"A","country":"ZA","phone":"+27"}'),
- ('33333333-3333-3333-3333-333333333333','bob@example.com','{"first_name":"Bob","last_name":"B","country":"CN","phone":"+86"}'),
- ('44444444-4444-4444-4444-444444444444','mallory@example.com','{"first_name":"Mal","last_name":"M","country":"XX","phone":"+0"}');
+('11111111-1111-1111-1111-111111111111','OPERATOR@Example.com','{"first_name":"Rafael","last_name":"E","country":"BE","phone":"+32"}');
+select public.test_invite('alice@example.com');
+insert into auth.users (id, email, raw_user_meta_data) values
+('22222222-2222-2222-2222-222222222222','alice@example.com','{"first_name":"Alice","last_name":"A","country":"ZA","phone":"+27"}');
+select public.test_invite('bob@example.com');
+insert into auth.users (id, email, raw_user_meta_data) values
+('33333333-3333-3333-3333-333333333333','bob@example.com','{"first_name":"Bob","last_name":"B","country":"CN","phone":"+86"}');
+select public.test_invite('mallory@example.com');
+insert into auth.users (id, email, raw_user_meta_data) values
+('44444444-4444-4444-4444-444444444444','mallory@example.com','{"first_name":"Mal","last_name":"M","country":"XX","phone":"+0"}');
 update public.profiles set role='operator', status='approved' where email='operator@example.com';
 update public.profiles set status='approved' where email in ('alice@example.com','bob@example.com');
 \set QUIET off
@@ -216,8 +227,15 @@ select case when count(*)=0 then 'PASS' else 'FAIL — participant read '||count
 reset role;
 
 set role authenticated; set test.uid='11111111-1111-1111-1111-111111111111';
-select case when count(*)=2 then 'PASS' else 'FAIL' end
-  as "T22 operator CAN list invitations" from public.invitations;
+-- Counted by token rather than as a total. The totals changed when sql/024
+-- made registration invitation-only and every fixture account in these suites
+-- started needing one of its own; the BEHAVIOUR being proven - that an
+-- operator can read invitations where a participant read none - did not.
+-- Scoping to the two this file created on purpose keeps the assertion about
+-- that behaviour instead of about how many fixtures happen to exist.
+select case when count(*)=2 then 'PASS' else 'FAIL — operator saw ' || count(*) || ' of 2' end
+  as "T22 operator CAN list invitations" from public.invitations
+ where token in ('valid-token-abc', 'expired-token');
 reset role; reset test.uid;
 
 \echo '--- expired token is rejected on use ---'
