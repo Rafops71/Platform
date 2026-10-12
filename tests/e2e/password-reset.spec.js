@@ -71,7 +71,21 @@ async function canSignIn(email, password) {
     headers: { apikey: SUPABASE_PUBLISHABLE_KEY_FOR_TEST, 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
   });
-  return res.status === 200;
+  if (res.status === 200) return true;
+
+  // Anything that is not "wrong password" must NOT be reported as "wrong
+  // password". The first version of this helper returned `status === 200`,
+  // so a rate limit, an outage or a typo in the URL all came back as a
+  // confident false - and the test then announced that a password did not
+  // work when nothing of the sort had been established. A test that lies in
+  // the quiet direction is worse than no test.
+  const body = await res.text();
+  const refused = res.status === 400 &&
+    /invalid[_ ]login|invalid[_ ]credentials|invalid[_ ]grant/i.test(body);
+  if (refused) return false;
+  throw new Error(
+    `sign-in could not be judged: Supabase answered ${res.status} ` +
+    `${body.slice(0, 200)}. This is not evidence about the password.`);
 }
 
 // The publishable key is what a browser uses; read from the page's own config
