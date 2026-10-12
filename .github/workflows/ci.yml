@@ -66,6 +66,12 @@ jobs:
       # when five migrations were tested and never deployed.
       - name: Migration lists agree
         run: npm run check:migrations
+      # js/reset.js called initLanguage(), a function that has never existed.
+      # It parsed cleanly and threw on load in the browser, so the recovery
+      # page never checked the link and never said the link was bad. Two CI
+      # runs were spent on the symptom.
+      - name: Every call resolves
+        run: npm run check:calls
       - name: Run sql/tests
         run: npm run test:sql
 

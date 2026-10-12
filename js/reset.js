@@ -36,7 +36,15 @@
 'use strict';
 
 document.addEventListener('DOMContentLoaded', () => {
-  initLanguage();
+  // applyTranslations() + renderLanguageToggle() is what every other page
+  // calls. This file called initLanguage(), which does not exist anywhere in
+  // the codebase: a ReferenceError on load, thrown BEFORE initReset() ever
+  // ran. The page therefore never checked the link and never wrote a verdict,
+  // so it sat on the HTML's own "Checking the link…" forever - which is
+  // exactly what Item54 caught twice. A clean parse proves nothing; nothing
+  // here is called until a browser calls it.
+  applyTranslations();
+  renderLanguageToggle('lang-toggle');
   initReset();
 });
 
@@ -44,6 +52,24 @@ document.addEventListener('DOMContentLoaded', () => {
 let RECOVERY_READY = false;
 
 async function initReset() {
+  try {
+    await checkLinkAndWireForm();
+  } catch (err) {
+    // Anything unexpected still has to end in an honest sentence. A page that
+    // throws halfway through looks identical to one that is still working,
+    // and a person waits on it indefinitely. Refusing the link is the safe
+    // failure: it costs them one more link, not a password typed into a form
+    // that was never going to save it.
+    console.error(err);
+    const status = document.getElementById('reset-status');
+    const form = document.getElementById('reset-form');
+    status.textContent = t('reset.linkInvalid');
+    status.classList.remove('hidden');
+    form.classList.add('hidden');
+  }
+}
+
+async function checkLinkAndWireForm() {
   const form = document.getElementById('reset-form');
   const status = document.getElementById('reset-status');
 
