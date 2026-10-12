@@ -482,3 +482,28 @@ function renderToken(name) {
   const mine = (RENDER_TOKENS[name] = (RENDER_TOKENS[name] || 0) + 1);
   return () => mine === RENDER_TOKENS[name];
 }
+
+// ------------------------------------------------- PERSON NAMES ----
+
+/** A person's display name, never blank.
+ *
+ *  Accounts created before the name fields were collected hold an empty
+ *  first_name and last_name, and `${first} ${last}` then renders as a single
+ *  space - a row with a status badge, an email and an empty heading, which
+ *  reads as a broken screen rather than as missing data. The live Operator
+ *  account is exactly this case.
+ *
+ *  Falls back to the email, then to a plain marker. The email fallback is
+ *  safe ONLY because every caller is either an Operator screen - where the
+ *  Operator may see both parties by design - or a person's own header. It
+ *  must never be used to render one member's name to another member: Browse
+ *  and the participant mailbox deliberately name nobody, and this would
+ *  undo that.
+ *
+ *  @param {{first_name?: string, last_name?: string, email?: string}} p
+ *  @returns {string} */
+function personName(p) {
+  if (!p) return 'Unknown';
+  const name = `${p.first_name || ''} ${p.last_name || ''}`.trim();
+  return name || p.email || 'No name given';
+}
