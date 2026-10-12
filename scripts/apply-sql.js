@@ -47,13 +47,27 @@ const DEFAULT_ORDER = [
   '014_listing_renewal.sql',
   '015_operator_analytics.sql',
   '016_rate_limits.sql',
+  '017_lock_down_function_access.sql',
+  '018_profile_deletion.sql',
+  '019_rate_limit_race.sql',
+  '020_foreign_key_indexes.sql',
+  '021_activity_log_orphan_purge.sql',
   'seed_commodities.sql',
 ];
 
 function loadEnv() {
+  // An already-set SUPABASE_DB_URL wins and needs no file. On a CI runner the
+  // credential arrives as a repository secret in the environment and there is
+  // no .env to read - demanding one there failed a migration run that had
+  // everything it needed. A local .env still fills the gap when it exists.
+  if (process.env.SUPABASE_DB_URL) return;
+
   const envPath = path.join(ROOT, '.env');
   if (!fs.existsSync(envPath)) {
-    console.error('ERROR: no .env file. Run:  cp .env.example .env  and fill it in.');
+    console.error(
+      'ERROR: no SUPABASE_DB_URL in the environment and no .env file.\n' +
+      'Locally:  cp .env.example .env  and fill it in.'
+    );
     process.exit(1);
   }
   for (const line of fs.readFileSync(envPath, 'utf8').split(/\r?\n/)) {
