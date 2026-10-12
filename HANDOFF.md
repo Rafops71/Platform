@@ -269,6 +269,30 @@ hold millions of rows. Adding an index did not help — the cost is the fan-out
 inside the loop, not the lookup. Whether Operators should get one notification
 per match, a digest, or none, is a question about how the platform should work.
 
+## The thousandth listing stopped the platform, and nothing predicted it
+
+`next_reference()` ended with `lpad(v_seq::text, 3, '0')`. PostgreSQL's `lpad`
+truncates as well as pads: `lpad('1012', 3, '0')` is `'101'`.
+`listings.reference_number` is UNIQUE, so from the 1000th sell listing of a
+year onward every reference collided with one already issued and the insert was
+**refused**. Not degraded — refused. Nobody could post a listing for the rest of
+the year.
+
+It was latent from the day the function was written. It surfaced on 2026-10-12
+because the volume tests had pushed `SELL-26` to 1012, after which five browser
+tests failed at once with the same duplicate-key error. Fixed in `sql/022`,
+which pads below 1000 and lets the number grow a digit above it, so every
+reference already quoted to a counterparty stays exactly as it was.
+
+Two things worth keeping from this:
+
+- **No suite had ever issued a thousand of anything.** The volume work was
+  asked for to see whether screens held up; what it actually found was a cliff
+  nobody knew existed. `sql/tests/15_reference_overflow.sql` now walks the
+  counter over that boundary deliberately.
+- **A wider pad would have been the tempting fix and the worse one.** It moves
+  the cliff rather than removing it.
+
 ## The stale-render guard, and why it is enforced by a script
 
 A loader that awaits before it writes can be overtaken. Start two, and the
@@ -325,6 +349,24 @@ double-clicked action; no data is written twice, because the database
 constraints and the rate limits are what stop that, not the button.
 
 ## Still open
+
+0a. **`GROQ_API_KEY` is not set, so the independent reviewer is silent.**
+    `.github/workflows/review.yml` asks a model that did not write the code to
+    read every pull request and post what it thinks. Without the secret,
+    `scripts/review-pr.js` says so in the run log and exits 0 — by design: a
+    missing second opinion must never look like a broken build. The owner has
+    the key (the same Groq account his email client uses); only he can add it,
+    because a session's GitHub access does not extend to repository secrets.
+
+    Read `scripts/review-pr.js`'s header before changing anything there. Three
+    limits in it were measured on real runs, not assumed: the free tier allows
+    8,000 tokens a minute (39,166 characters of diff was refused outright);
+    `gpt-oss-120b` reasons out of the same budget and returned an EMPTY review
+    at 700 answer tokens; and `llama-3.3-70b-versatile` 404s on this account.
+
+    Its first review found five things: one worth fixing, two confidently
+    wrong. That ratio is the reason it posts a comment and cannot fail a build,
+    and the reason nobody should promote it to a gate later.
 
 0. **No email is being sent at all. Nothing.** Verified 2026-10-12 in the
    workflow's own log, run 274:

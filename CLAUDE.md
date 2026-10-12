@@ -39,6 +39,19 @@ happen is worth more than proving a button worked.
 
 Adding a function to the checklist without a test breaks the build on purpose.
 
+## The second opinion
+
+`.github/workflows/review.yml` asks a model that did not write the code to read
+every pull request and comment. It exists because the owner said the obvious
+thing out loud: Claude cannot be judge, jury and executioner on its own work.
+
+It is an opinion and nothing more. It cannot fail a build, and promoting it to
+a gate would be a mistake: its first review raised five points, of which one
+was worth acting on and two were confidently wrong — stated as plainly as the
+true one. Read what it says, check each claim against the code, and act on what
+survives. The same standard applies to it as to Claude: nothing is true because
+something fluent said it.
+
 ## Reporting rules
 
 - Never say something works unless a check was run and its output said so.
