@@ -19,6 +19,7 @@
     "check:guards": "node scripts/check-render-guards.js",
     "check:migrations": "node scripts/check-migration-lists.js",
     "hygiene": "node scripts/verify-live.js",
+    "timings": "node scripts/timings.js",
     "stress": "node scripts/stress-test.js"
   },
   "dependencies": {
