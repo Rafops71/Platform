@@ -40,7 +40,14 @@
               id="reset-btn" data-i18n="reset.save">Save the new password</button>
     </form>
 
-    <p id="reset-status" class="list-row-meta" data-i18n="reset.checking">Checking the link…</p>
+    <!-- No data-i18n here on purpose. This line is written by js/reset.js and
+         CHANGES - "checking", then either nothing (the form appears) or a
+         verdict about a bad link. A data-i18n tag means the translation pass
+         can put the original text back over the top of whatever the script
+         decided, which is exactly what happened: the verdict was set and then
+         silently reverted to "Checking the link…", and the page sat there
+         looking busy forever. The script sets both states itself. -->
+    <p id="reset-status" class="list-row-meta">Checking the link…</p>
 
     <p class="text-center" style="font-size:13px; margin-top:16px; margin-bottom:0;">
       <a href="index.html" data-i18n="reset.backToSignIn">Back to sign in</a>

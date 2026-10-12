@@ -47,6 +47,11 @@ async function initReset() {
   const form = document.getElementById('reset-form');
   const status = document.getElementById('reset-status');
 
+  // Written here rather than carried on a data-i18n attribute, because this
+  // line changes and an attribute would let the translation pass overwrite
+  // whatever this function decides. See the comment in reset.html.
+  status.textContent = t('reset.checking');
+
   // The client reads the fragment on load, but the event can land before or
   // after this listener depending on timing, so BOTH paths are handled: the
   // event below, and the explicit check after it.
