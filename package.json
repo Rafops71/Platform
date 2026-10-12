@@ -16,6 +16,7 @@
     "e2e:ui": "playwright test --ui",
     "checklist": "node scripts/checklist-report.js",
     "why": "node scripts/why-failed.js",
+    "check:guards": "node scripts/check-render-guards.js",
     "stress": "node scripts/stress-test.js"
   },
   "dependencies": {

@@ -269,29 +269,60 @@ hold millions of rows. Adding an index did not help — the cost is the fan-out
 inside the loop, not the lookup. Whether Operators should get one notification
 per match, a digest, or none, is a question about how the platform should work.
 
-## A pattern worth knowing: the last write wins
+## The stale-render guard, and why it is enforced by a script
 
-`js/app.js` guards two of its lists with a render token
-(`MY_LISTINGS_RENDER`, `SAVED_SEARCH_RENDER`) because a loader that awaits
-before it writes can be overtaken: start two, and whichever finishes last owns
-the screen, even if it was the one started first.
+A loader that awaits before it writes can be overtaken. Start two, and the
+container is painted by whichever ANSWER arrives last, which is not
+necessarily the question asked last — so the screen shows rows for a request
+the member has moved on from, while the controls show the one they chose.
+Nothing on the page admits the disagreement, which is what makes it worse
+than a crash.
 
-`js/operator.js` had been missed. `loadListings()` awaits twice and then writes
-the table, and two of its controls fire back to back — arriving from the
-Overview's stale tile calls it, and pressing Search calls it again. The
-operator was then left looking at the stale-filtered rows with the note
-already hidden, as though their search had found almost nothing. Fixed on
-2026-10-11 with the same token, plus reading the stale flag once so the note
-always describes the rows actually on screen.
+It shipped twice.
 
-**Every other loader on that screen has the same shape** — `loadApprovals`,
-`loadInvitations`, `loadUsers`, `loadDocRequests`, `loadOperatorMailbox`,
-`loadMatches`, `loadActivityLog`, `loadAnalytics` all await and then write with
-no token. None has been seen to fail, because each is normally triggered once
-per screen. `loadOperatorMailbox` is the most exposed, with four awaits and a
-refresh button alongside the forward and reply actions. If one of these ever
-shows stale or half-updated content, this is the first thing to look at, and
-the fix is four lines.
+`js/operator.js loadListings()` awaits twice and then writes the table, and
+two of its controls fire back to back: arriving from the Overview's stale tile
+calls it, pressing Search calls it again. The operator was left looking at the
+stale-filtered rows with the note already hidden, as though their search had
+found almost nothing. Fixed 2026-10-11.
+
+`loadAnalytics()` was then caught by **CI run 50**: the test asked for 8
+monthly periods and the table held 26 weekly rows. Those are the figures an
+Operator reads to decide what needs attention.
+
+At that point this file said the same shape existed in eight other loaders
+and that none had been seen to fail. One just had. Finding a class of bug one
+instance at a time, over weeks, is the actual defect — so the whole class was
+closed in one pass on 2026-10-12:
+
+- `renderToken()` in `js/utils.js` is the single guard. Keyed by name, so two
+  screens cannot share a counter and cancel each other.
+- **All 22 loaders** across `js/app.js` and `js/operator.js` take a token on
+  entry and check it after every await, before writing anything. The four that
+  had bespoke counters (`MY_LISTINGS_RENDER`, `SAVED_SEARCH_RENDER`,
+  `LISTINGS_RENDER`, `ANALYTICS_RENDER`) were converted to it, so there is one
+  pattern to look for rather than three.
+- Two of those four turned out to be guarded late, after their error and
+  empty-state writes. A stale answer could still paint "no listings" over a
+  good list. Both now check straight after each await.
+- `scripts/check-render-guards.js` (`npm run check:guards`) parses both files
+  and fails if any `load*` / `refresh*` / `populate*` function writes the DOM
+  after an await without the guard. It runs in the **Database tests** job,
+  which needs no secrets, so it fails in seconds and on forks rather than
+  after an eight-minute browser suite.
+
+### The known gap
+
+The check covers loaders, not action handlers. Eight functions —
+`submitListingForm`, `editListing`, `saveProfileDetails`, `changeEmail`,
+`createInvitation`, `addCommodity`, `confirmForward`, `confirmReply` — also
+write the DOM after an await, but what they write is one status line about one
+action. The right guard there is to stop the second submit, not to drop the
+second answer, and that is a different change: disabling the button for the
+duration of the request. **Not done, and not covered by the guard check.**
+Worst case today is a status line that flaps between two answers to the same
+double-clicked action; no data is written twice, because the database
+constraints and the rate limits are what stop that, not the button.
 
 ## Still open
 

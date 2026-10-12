@@ -10,8 +10,6 @@ let CONTACT_TARGET = null; // { listingId, referenceNumber, inReplyTo }
 // twice. That is not hypothetical: switching language while the first render is
 // still in flight does exactly this, and it is what an E2E run caught. Each
 // render takes a ticket, and only the newest one is allowed to write.
-let MY_LISTINGS_RENDER = 0;
-let SAVED_SEARCH_RENDER = 0;
 
 document.addEventListener('DOMContentLoaded', async () => {
   CURRENT_PROFILE = await requireAuth('participant');
@@ -171,7 +169,7 @@ function showScreen(name) {
 
 // ---------------------------------------------------------- MY LISTINGS ----
 async function loadMyListings() {
-  const token = ++MY_LISTINGS_RENDER;
+  const fresh = renderToken('app:loadMyListings');
   const container = document.getElementById('my-listings-list');
   container.innerHTML = `<p class="empty-state">${t('common.loading')}</p>`;
 
@@ -180,6 +178,7 @@ async function loadMyListings() {
     .select('*')
     .eq('user_id', CURRENT_PROFILE.id)
     .order('created_at', { ascending: false });
+  if (!fresh()) return;
 
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
   if (!data.length) { container.innerHTML = `<p class="empty-state">${t('listings.none')}</p>`; return; }
@@ -203,6 +202,7 @@ async function loadMyListings() {
       .select('listing_id')
       .eq('indicated', true)
       .in('listing_id', part);
+    if (!fresh()) return;
     if (docError) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(docError))}</p>`; return; }
     (ticked || []).forEach(d => docCounts.set(d.listing_id, (docCounts.get(d.listing_id) || 0) + 1));
   }
@@ -243,7 +243,7 @@ async function loadMyListings() {
 
   // A newer render started while this one was fetching: its rows are the ones
   // that belong on screen, and appending these would double the list.
-  if (token !== MY_LISTINGS_RENDER) return;
+  if (!fresh()) return;
   container.replaceChildren(fragment);
 
   container.querySelectorAll('[data-renew]').forEach(b =>
@@ -326,7 +326,9 @@ function renderDocChecklist(selected = {}) {
 }
 
 async function loadCommodities() {
+  const fresh = renderToken('app:loadCommodities');
   const { data, error } = await jericho.from('commodities').select('*');
+  if (!fresh()) return;
   const select = document.getElementById('commodity-select');
   if (error) { console.error(error); return; }
 
@@ -503,10 +505,12 @@ function wireBrowse() {
 }
 
 async function loadBrowseListings() {
+  const fresh = renderToken('app:loadBrowseListings');
   const container = document.getElementById('browse-list');
   container.innerHTML = `<p class="empty-state">${t('common.loading')}</p>`;
 
   const { data, error } = await jericho.rpc('get_public_listings');
+  if (!fresh()) return;
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
 
   // Same predicate the dashboard counts saved searches with, so a saved search
@@ -665,12 +669,13 @@ function searchLabel(row) {
 }
 
 async function loadSavedSearches() {
-  const token = ++SAVED_SEARCH_RENDER;
+  const fresh = renderToken('app:loadSavedSearches');
   const container = document.getElementById('saved-searches-list');
   container.innerHTML = `<p class="empty-state">${t('common.loading')}</p>`;
 
   const { data, error } = await jericho
     .from('saved_searches').select('*').order('created_at', { ascending: false });
+  if (!fresh()) return;
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
   if (!data.length) { container.innerHTML = `<p class="empty-state">${t('saved.none')}</p>`; return; }
 
@@ -678,7 +683,7 @@ async function loadSavedSearches() {
   const { data: listings } = await jericho.rpc('get_public_listings');
   const all = listings || [];
 
-  if (token !== SAVED_SEARCH_RENDER) return;
+  if (!fresh()) return;
   container.innerHTML = '';
   data.forEach(row => {
     const count = all.filter(l => listingMatches(l, row)).length;
@@ -740,17 +745,20 @@ async function removeSavedSearch(id) {
 
 // ------------------------------------------------------------- MAILBOX ----
 async function loadMailbox() {
+  const fresh = renderToken('app:loadMailbox');
   const container = document.getElementById('mailbox-list');
   container.innerHTML = `<p class="empty-state">${t('common.loading')}</p>`;
 
   const { data: messages, error } = await jericho
     .from('messages').select('*').order('created_at', { ascending: false });
+  if (!fresh()) return;
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
 
   if (!messages.length) { container.innerHTML = `<p class="empty-state">${t('mailbox.none')}</p>`; return; }
 
   // Reference numbers in one batched query rather than one per message.
   const { refs: refByListing, error: refError } = await referenceNumbersFor(messages.map(m => m.listing_id));
+  if (!fresh()) return;
   if (refError) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(refError))}</p>`; return; }
 
   container.innerHTML = '';
@@ -813,6 +821,7 @@ async function sendContactMessage() {
 
 // --------------------------------------------------------- NOTIFICATIONS ----
 async function loadNotifications() {
+  const fresh = renderToken('app:loadNotifications');
   const container = document.getElementById('notifications-list');
   container.innerHTML = `<p class="empty-state">${t('common.loading')}</p>`;
 
@@ -820,6 +829,7 @@ async function loadNotifications() {
     .from('notifications').select('*')
     .eq('user_id', CURRENT_PROFILE.id)
     .order('created_at', { ascending: false });
+  if (!fresh()) return;
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
 
   if (!data.length) { container.innerHTML = `<p class="empty-state">${t('notifications.none')}</p>`; return; }
@@ -849,9 +859,11 @@ async function loadNotifications() {
 }
 
 async function refreshNotificationDot() {
+  const fresh = renderToken('app:refreshNotificationDot');
   const { count } = await jericho
     .from('notifications').select('id', { count: 'exact', head: true })
     .eq('user_id', CURRENT_PROFILE.id).eq('is_read', false);
+  if (!fresh()) return;
   document.getElementById('notif-dot').classList.toggle('hidden', !count);
 }
 
@@ -985,6 +997,7 @@ async function changePassword(e) {
 // or marking it unavailable. No file upload at this stage.
 
 async function loadDocRequests() {
+  const fresh = renderToken('app:loadDocRequests');
   const container = document.getElementById('doc-requests-list');
   container.innerHTML = `<p class="empty-state">${t('common.loading')}</p>`;
 
@@ -993,6 +1006,7 @@ async function loadDocRequests() {
     .select('*')
     .eq('participant_id', CURRENT_PROFILE.id)
     .order('requested_at', { ascending: false });
+  if (!fresh()) return;
 
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
   if (!data.length) { container.innerHTML = `<p class="empty-state">${t('docreq.none')}</p>`; return; }
@@ -1003,6 +1017,7 @@ async function loadDocRequests() {
   if (listingIds.length) {
     const { data: listings } = await jericho
       .from('listings').select('id,reference_number').in('id', listingIds);
+    if (!fresh()) return;
     (listings || []).forEach(l => { refByListing[l.id] = l.reference_number; });
   }
 
@@ -1051,8 +1066,10 @@ async function respondToDocRequest(requestId, status) {
 }
 
 async function refreshDocRequestDot() {
+  const fresh = renderToken('app:refreshDocRequestDot');
   const { count } = await jericho
     .from('document_requests').select('id', { count: 'exact', head: true })
     .eq('participant_id', CURRENT_PROFILE.id).eq('status', 'requested');
+  if (!fresh()) return;
   document.getElementById('docreq-dot').classList.toggle('hidden', !count);
 }
