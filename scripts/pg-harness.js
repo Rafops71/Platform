@@ -56,6 +56,7 @@ const SETUP = [
   'sql/020_foreign_key_indexes.sql',
   'sql/021_activity_log_orphan_purge.sql',
   'sql/022_reference_number_overflow.sql',
+  'sql/023_purge_orphaned_feeds.sql',
   'sql/seed_commodities.sql',
 ];
 
