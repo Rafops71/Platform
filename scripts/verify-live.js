@@ -194,6 +194,77 @@ async function main() {
       ).rows
     );
 
+    // ------------------------------------------------------- HYGIENE ----
+    //
+    // Everything above this point asks whether the database is SHAPED right.
+    // This asks whether it is CLEAN, which is a different question and the one
+    // nothing was asking.
+    //
+    // It matters because the test suites cannot answer it. They prove
+    // behaviour - a member can post, Browse names nobody, a deletion deletes -
+    // and every one of them passed on 2026-10-12 while the owner's Notifications
+    // screen held 4,776 entries of which six were real. "The gate is green" and
+    // "your database is clean" are different claims, and they had been reported
+    // as one.
+    //
+    // Each row here is a count that should be zero on a quiet database. A
+    // non-zero one is not necessarily an emergency - a test run in flight will
+    // show leftovers that its own teardown is about to remove - so this prints
+    // what it found and says plainly that a run in progress explains it.
+    heading('HYGIENE — these should all be zero on a quiet database');
+    const hygiene = (
+      await client.query(`
+        select 'test accounts left behind' as check, count(*)::int as rows
+          from public.profiles where email like 'jericho-e2e-%'
+        union all
+        select 'listings owned by nobody', count(*)::int
+          from public.listings l
+         where not exists (select 1 from public.profiles p where p.id = l.user_id)
+        union all
+        select 'notifications about something gone', count(*)::int
+          from public.notifications n
+         where n.related_id is not null
+           and not exists (select 1 from public.listings l where l.id = n.related_id)
+           and not exists (select 1 from public.profiles p where p.id = n.related_id)
+           and not exists (select 1 from public.messages m where m.id = n.related_id)
+        union all
+        select 'activity rows about something gone', count(*)::int
+          from public.activity_log a
+         where a.user_id is null
+           and ((jsonb_exists(a.details, 'profile_id')
+                 and not exists (select 1 from public.profiles p
+                                  where p.id = (a.details->>'profile_id')::uuid))
+             or (jsonb_exists(a.details, 'listing_id')
+                 and not exists (select 1 from public.listings l
+                                  where l.id = (a.details->>'listing_id')::uuid)))
+        union all
+        select 'mail queued to a test address', count(*)::int
+          from public.email_outbox
+         where sent_at is null and (to_email like 'jericho-e2e-%'
+                                 or to_email like '%@example.invalid')
+        union all
+        select 'mail stuck in the queue over a day', count(*)::int
+          from public.email_outbox
+         where sent_at is null and failed_at is null
+           and created_at < now() - interval '1 day';
+      `)
+    ).rows;
+    printTable(hygiene);
+
+    const dirty = hygiene.filter((r) => r.rows > 0);
+    if (dirty.length) {
+      console.log('');
+      console.log('  Not clean. ' + dirty.map((r) => `${r.rows} ${r.check}`).join('; ') + '.');
+      console.log('  A test run in flight explains leftovers of its own, and its');
+      console.log('  teardown will clear them; anything still here when nothing is');
+      console.log('  running is residue. The Operator\'s "Clean up old test entries"');
+      console.log('  button removes the two "about something gone" kinds.');
+      process.exitCode = 1;
+    } else {
+      console.log('');
+      console.log('  Clean.');
+    }
+
     heading('OPERATOR ACCOUNTS');
     printTable(
       (

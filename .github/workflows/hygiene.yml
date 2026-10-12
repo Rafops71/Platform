@@ -1,0 +1,52 @@
+name: Live database hygiene
+
+# Asks once a day whether the live database is CLEAN. Nothing else asks.
+#
+# WHY THIS EXISTS
+#
+# The suites prove behaviour: a member can post, Browse names nobody, a
+# deletion deletes. They do not look at the state of the owner's actual
+# database, and they cannot - they run against fixtures they created and tore
+# down. On 2026-10-12 every gate was green while his Notifications screen held
+# 4,776 entries of which six were real, and it was the owner asking for another
+# run, not any check, that found it. The same morning found 12,382 orphaned
+# rows in the activity log.
+#
+# "The gate is green" and "your database is clean" are different claims. This
+# is the second one, asked on a schedule so that nobody has to remember.
+#
+# It is read-only. scripts/verify-live.js only SELECTs and counts; it creates
+# nothing, changes nothing, and cannot delete. Clearing what it reports is the
+# Operator's own button, pressed by a person.
+
+on:
+  schedule:
+    # 06:40 UTC. Off the hour deliberately: scheduled jobs pile up at :00 and
+    # get delayed, and nothing here needs a punctual minute.
+    - cron: '40 6 * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  # The same group as CI, so this can never run while the browser suite is
+  # mid-test. Its fixtures exist on purpose for those few minutes and would be
+  # reported as residue, which is how a useful check becomes one everybody
+  # learns to ignore.
+  group: ci-live-database
+  cancel-in-progress: false
+
+jobs:
+  hygiene:
+    name: Is the live database clean
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+
+      - name: Count what should be zero
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: node scripts/verify-live.js
