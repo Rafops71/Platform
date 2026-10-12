@@ -60,6 +60,7 @@ const SUITES = [
   // counted rows globally would see the gap.
   'sql/tests/13_profile_deletion.sql',
   'sql/tests/14_activity_log_purge.sql',
+  'sql/tests/15_reference_overflow.sql',
 ];
 
 /** An assertion is any single-row result whose first column is named "Tn …"

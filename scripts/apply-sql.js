@@ -52,6 +52,7 @@ const DEFAULT_ORDER = [
   '019_rate_limit_race.sql',
   '020_foreign_key_indexes.sql',
   '021_activity_log_orphan_purge.sql',
+  '022_reference_number_overflow.sql',
   'seed_commodities.sql',
 ];
 
