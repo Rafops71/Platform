@@ -180,3 +180,107 @@ from public.activity_log
 where action = 'activity_log_purged' and (details->>'rows_removed')::int = 2;
 
 reset test.uid;
+
+-- ============ THE SAME RULE, ACROSS THE OTHER TWO FEED TABLES ============
+--
+-- sql/023. The activity log was cleaned and the other feeds were not, and the
+-- full stress run found 4,770 orphaned notifications on the live project -
+-- every one addressed to the owner's own Operator account, because
+-- notifications cascade from the profile they are ADDRESSED TO and not the
+-- thing they are ABOUT. Same shape, different table, found a day later.
+
+\echo
+\echo '=========== THE PURGE COVERS THE OPERATOR FEED AND THE OUTBOX ==========='
+
+-- The identity was reset above. Without it current_profile_id() is null and
+-- the purge refuses - correctly, and the first version of this section did
+-- exactly that, then measured the refusal as a result of zero.
+set test.uid = 'a0a0a0a0-0000-4000-8000-00000000000a';
+
+-- Addressed to a LIVE operator, about a listing that is gone: the exact row
+-- that survived every teardown.
+insert into public.notifications (user_id, type, message, related_id)
+values ((select id from public.profiles where email = 'purge-operator@example.invalid'),
+        'new_listing', 'A listing that no longer exists',
+        'dead0000-0000-4000-8000-0000000000aa'::uuid);
+
+-- Addressed to the same live operator, about a listing that is still there.
+-- This one must survive, and it is the whole point of the rule.
+insert into public.notifications (user_id, type, message, related_id)
+values ((select id from public.profiles where email = 'purge-operator@example.invalid'),
+        'new_listing', 'A listing that is still here',
+        (select id from public.listings where reference_number = 'SELL-PURGE-LIVE'));
+
+-- No target at all: points at nothing by design, not by deletion.
+insert into public.notifications (user_id, type, message, related_id)
+values ((select id from public.profiles where email = 'purge-operator@example.invalid'),
+        'system', 'Nothing in particular', null);
+
+-- Queued mail about a listing that is gone cannot be created at all: a
+-- foreign key on related_listing_id refuses it. That is why the purge has no
+-- email_outbox branch, and proving the refusal is worth more than proving a
+-- delete that could never run.
+do $$
+begin
+  insert into public.email_outbox (to_email, subject, body_text, related_listing_id)
+  values ('nobody@example.invalid', 'About a vanished listing', 'body',
+          'dead0000-0000-4000-8000-0000000000bb'::uuid);
+  raise exception 'NOTREFUSED';
+exception
+  when foreign_key_violation then null;   -- what we want
+  when others then
+    if sqlerrm = 'NOTREFUSED' then
+      raise exception 'the outbox accepted mail about a listing that does not exist';
+    end if;
+    raise;
+end $$;
+
+-- Queued mail about a listing that is still there: must survive.
+insert into public.email_outbox (to_email, subject, body_text, related_listing_id)
+values ('somebody@example.invalid', 'About a live listing', 'body',
+        (select id from public.listings where reference_number = 'SELL-PURGE-LIVE'));
+
+create temporary table purge2 as select public.purge_orphaned_activity() as removed;
+
+select case when removed = 1 then 'PASS' else 'FAIL removed ' || removed end
+  as "T11 the purge removes the orphaned notification"
+from purge2;
+
+select case when count(*) = 0 then 'PASS' else 'FAIL got ' || count(*) end
+  as "T12 the notification about a vanished listing is gone"
+from public.notifications where related_id = 'dead0000-0000-4000-8000-0000000000aa';
+
+-- Counted as "at least the one added here", not "exactly one": creating the
+-- fixture listing already fired trg_notify_new_listing for every operator, so
+-- rows about it existed before this section began. An absolute count here is
+-- the same mistake this file's first version made twice.
+select case when count(*) >= 1 then 'PASS' else 'FAIL got ' || count(*) end
+  as "T13 the notification about a LIVE listing survives"
+from public.notifications
+where related_id = (select id from public.listings where reference_number = 'SELL-PURGE-LIVE')
+  and message = 'A listing that is still here';
+
+select case when count(*) = 1 then 'PASS' else 'FAIL got ' || count(*) end
+  as "T14 a notification with no target at all survives"
+from public.notifications where related_id is null and type = 'system';
+
+select case when count(*) = 0 then 'PASS' else 'FAIL got ' || count(*) end
+  as "T15 the outbox holds no mail about a listing that does not exist"
+from public.email_outbox where related_listing_id = 'dead0000-0000-4000-8000-0000000000bb';
+
+select case when count(*) = 1 then 'PASS' else 'FAIL got ' || count(*) end
+  as "T16 queued mail about a LIVE listing survives"
+from public.email_outbox
+where related_listing_id = (select id from public.listings where reference_number = 'SELL-PURGE-LIVE')
+  and subject = 'About a live listing';
+
+-- The receipt now says which table each removal came from, so a future reader
+-- can tell a feed problem from an audit-trail problem without guessing.
+select case when (details->>'notifications')::int = 1
+            then 'PASS' else 'FAIL ' || details::text end
+  as "T17 the receipt breaks the count down by table"
+from public.activity_log
+where action = 'activity_log_purged'
+order by created_at desc limit 1;
+
+reset test.uid;

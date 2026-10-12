@@ -173,6 +173,25 @@ async function cleanup() {
     const { rows: listingRows } = await client.query(listings, [ids]);
     const listingIds = listingRows.map(l => l.id);
 
+    // The Operator's feed, before the listings go.
+    //
+    // notifications cascade from the profile they are ADDRESSED TO, not the
+    // thing they are ABOUT. trg_notify_new_listing writes a row to every
+    // Operator - a REAL account - for every listing a test member posts, so
+    // deleting the fixtures never touched them. By 2026-10-12 the owner's own
+    // feed held 4,776 entries of which six were real, 1,390 of them from a
+    // single day's runs. Exactly the shape the activity log had, in a table
+    // nobody had looked at.
+    await client.query(
+      `delete from public.notifications
+        where user_id = any($1)
+           or related_id in (${listings})
+           or related_id = any($1)
+           or related_id in (select id from public.messages
+                              where sender_id = any($1) or listing_id in (${listings}))`,
+      [ids]
+    );
+
     // Outbox first — a queued test email left behind would be sent for real
     // on the next flush of the outbox.
     await client.query(
@@ -263,6 +282,20 @@ async function cleanup() {
     if (trail[0].n > 0) {
       throw new Error(
         `Teardown incomplete: ${trail[0].n} activity row(s) from run ${RUN_TAG} left in the log`
+      );
+    }
+
+    // The same question of the Operator's feed. Asked by id rather than by
+    // tag, because these rows are addressed to a real account and carry no
+    // trace of which run caused them.
+    const { rows: feed } = await client.query(
+      `select count(*)::int n from public.notifications
+        where related_id = any($1) or user_id = any($1)`,
+      [ids]
+    );
+    if (feed[0].n > 0) {
+      throw new Error(
+        `Teardown incomplete: ${feed[0].n} notification(s) from run ${RUN_TAG} left in the Operator feed`
       );
     }
 

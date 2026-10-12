@@ -132,6 +132,14 @@ jobs:
           OPERATOR_EMAIL: ${{ secrets.OPERATOR_EMAIL }}
         run: npm run checklist
 
+      # Printed on success, not only on failure. The timings are most useful
+      # exactly when nothing is broken: they are what next month's run gets
+      # compared against. Before this they were written into
+      # checklist-results.json and thrown away on every green run.
+      - name: What the volume tests measured
+        if: success()
+        run: npm run timings || true
+
       - name: Why it failed
         # The table says which function is crossed; it does not say why. The
         # error itself sits in checklist-results.json, which only ever left

@@ -53,6 +53,7 @@ const DEFAULT_ORDER = [
   '020_foreign_key_indexes.sql',
   '021_activity_log_orphan_purge.sql',
   '022_reference_number_overflow.sql',
+  '023_purge_orphaned_feeds.sql',
   'seed_commodities.sql',
 ];
 

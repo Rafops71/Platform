@@ -304,12 +304,47 @@ tr.row-quiet td { color: var(--text-muted); }
   font-size: 13px;
 }
 
-/* Touch screens: keep every interactive control at a comfortable tap size. */
+/* Touch screens: keep every interactive control at a comfortable tap size.
+ *
+ * This block existed and still missed two whole kinds of control, which
+ * tests/e2e/on-a-phone.spec.js found the first time it ran on a 390px screen:
+ *
+ *   - .lang-btn sets `min-height: 0`, and being more specific than the plain
+ *     `button` selector below it WON. The EN / ES toggle measured 19px.
+ *   - the list is buttons and form fields. A LINK is neither, so #logout-link
+ *     and the footer's Terms link measured 15px - and signing out is not an
+ *     optional control.
+ *
+ * Both are now named explicitly rather than relying on a general rule that
+ * demonstrably did not reach them. Sizes come from padding and line-height as
+ * well as min-height, because min-height alone leaves the clickable box the
+ * right height and the text crammed against the top of it.
+ */
 @media (max-width: 700px) {
   button, .btn, input, select, textarea { min-height: 40px; }
   .btn-small { min-height: 36px; }
   input[type="checkbox"], input[type="radio"] { min-height: 20px; }
   nav.tabs button { min-height: 44px; }
+
+  /* Links that act as controls. Inline-block because a plain inline <a> has
+     no height of its own to set - it is as tall as its text and nothing the
+     stylesheet says about height applies. */
+  a#logout-link,
+  footer a,
+  .list-row a {
+    display: inline-block;
+    min-height: 36px;
+    line-height: 36px;
+    padding: 0 4px;
+  }
+
+  /* Specific enough to beat .lang-btn's own min-height: 0, which is right on
+     a desktop header and wrong under a thumb. */
+  .lang-toggle .lang-btn {
+    min-height: 34px;
+    padding: 6px 10px;
+    font-size: 12px;
+  }
 }
 
 /* ---------------------------------------------------------------------------
