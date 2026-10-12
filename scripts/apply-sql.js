@@ -61,7 +61,10 @@ function loadEnv() {
   // credential arrives as a repository secret in the environment and there is
   // no .env to read - demanding one there failed a migration run that had
   // everything it needed. A local .env still fills the gap when it exists.
-  if (process.env.SUPABASE_DB_URL) return;
+  if (process.env.SUPABASE_DB_URL) {
+    process.env.JERICHO_DB_SOURCE = 'the environment';
+    return;
+  }
 
   const envPath = path.join(ROOT, '.env');
   if (!fs.existsSync(envPath)) {
@@ -96,7 +99,14 @@ async function main() {
   const dbUrl = process.env.SUPABASE_DB_URL;
   const at = dbUrl.indexOf('@');
   const scheme = dbUrl.slice(0, dbUrl.indexOf(':'));
+  // Which database, AND where the address came from. The second half matters
+  // now that an existing SUPABASE_DB_URL wins over .env: a stale value left in
+  // a shell would silently take precedence over the file somebody had just
+  // edited, and migrations would run against the wrong project with nothing on
+  // screen to say so. Raised by the independent reviewer on PR #14, and the
+  // one point of five worth acting on.
   console.log(`Target: ${scheme}://...@${dbUrl.slice(at + 1)}`);
+  console.log(`Address taken from: ${process.env.JERICHO_DB_SOURCE || 'the .env file'}`);
   console.log('');
 
   const client = new Client({
