@@ -28,21 +28,39 @@ const REPORT = 'checklist-results.json';
 // seeding summaries that say what those timings were measured against.
 const INTERESTING = /^\s*(\d+)\s*ms\s+\S|seeded |Operator screens:|rows\b.*\bin\b.*ms/;
 
-function collect(node, out) {
+/** Walk the report, carrying the nearest enclosing title down with us.
+ *
+ *  The first version of this looked for `stdout` and `title` on the SAME
+ *  object and found nothing, on a run where the tests had printed plenty.
+ *  Playwright's shape is suites > specs > tests > results, and `stdout` lives
+ *  on a RESULT, which has no title of its own - the title is two or three
+ *  levels up. Hence the inherited title rather than a same-object match. */
+function collect(node, out, title) {
   if (!node || typeof node !== 'object') return out;
   if (Array.isArray(node)) {
-    node.forEach(n => collect(n, out));
+    node.forEach(n => collect(n, out, title));
     return out;
   }
-  // Playwright records stdout as [{ text }] or [{ buffer }] per test result.
-  if (Array.isArray(node.stdout) && node.title) {
+
+  const here = typeof node.title === 'string' && node.title ? node.title : title;
+
+  // stdout chunks are [{ text }] or [{ buffer }]; a buffer is base64.
+  if (Array.isArray(node.stdout)) {
     const text = node.stdout
-      .map(c => (typeof c === 'string' ? c : c.text || ''))
+      .map(c => {
+        if (typeof c === 'string') return c;
+        if (c && typeof c.text === 'string') return c.text;
+        if (c && typeof c.buffer === 'string') {
+          try { return Buffer.from(c.buffer, 'base64').toString('utf8'); } catch { return ''; }
+        }
+        return '';
+      })
       .join('');
     const lines = text.split('\n').filter(l => INTERESTING.test(l));
-    if (lines.length) out.push({ title: node.title, lines });
+    if (lines.length) out.push({ title: here || '(unnamed test)', lines });
   }
-  Object.values(node).forEach(v => collect(v, out));
+
+  Object.values(node).forEach(v => collect(v, out, here));
   return out;
 }
 
@@ -59,7 +77,7 @@ try {
   process.exit(0);
 }
 
-const found = collect(report, []);
+const found = collect(report, [], null);
 if (!found.length) {
   console.log('The suite printed no measurements this run.');
   process.exit(0);
