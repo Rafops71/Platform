@@ -1,0 +1,215 @@
+// Forgetting a password, and getting back in.
+//
+// Before this flow existed there was no way back into an account at all. The
+// owner lost his own password and it took somebody with a service key to let
+// him in again - which is not a recovery path, it is a person. With email not
+// yet sending and no second Operator to ask, that person would eventually not
+// be available, and he would be locked out of his own platform.
+//
+// WHAT THIS PROVES, AND HOW, WITHOUT WORKING EMAIL
+//
+// The whole loop is tested, link included. The admin API's generate_link
+// returns the real recovery URL instead of mailing it, so the browser can
+// follow exactly the link a member would receive. Nothing is faked: it is the
+// same token, the same redirect, the same page, and the test finishes by
+// SIGNING IN with the new password. A reset that cannot be signed in with has
+// not worked, whatever the screen said.
+//
+// Supabase Auth sends that email itself rather than through this project's
+// outbox, which is why recovery works while LISTING_EMAIL_FROM and
+// RESEND_API_KEY are still unset. Recovery must not depend on the part of the
+// system that is broken.
+//
+// THE PROHIBITION
+//
+// The most important assertion here is not that the reset works. It is that
+// the form says the SAME thing for an address with an account and an address
+// without one. This platform's membership is private and invitation-only -
+// that secrecy is the product - so a form that distinguishes the two lets
+// anybody test whether a given company trades here, one guess at a time.
+
+'use strict';
+
+const { test, expect } = require('@playwright/test');
+const { createAccount, cleanup, assertConfigured, testPassword } = require('./helpers/fixtures');
+const { query } = require('../../scripts/db');
+
+const NEW_PASSWORD = 'Reset-Me-9f2kd-New';
+
+const MEMBER = { first_name: 'Henrike', last_name: 'Baumgartner', company: 'Baumgartner Handel', phone: '+32471560001' };
+
+let member;
+
+/** The real recovery link, obtained the way the mail server would get it.
+ *
+ *  generate_link does everything the "send a reset email" path does except
+ *  put it in an envelope, so the token, its expiry and its one-use nature are
+ *  all genuine. Using it here is the difference between testing the flow and
+ *  testing a mock of it. */
+async function recoveryLinkFor(email, redirectTo) {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const res = await fetch(`${url}/auth/v1/admin/generate_link`, {
+    method: 'POST',
+    headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'recovery', email, redirect_to: redirectTo }),
+  });
+  const body = await res.json();
+  if (!res.ok || !body.action_link) {
+    throw new Error(`could not generate a recovery link: ${res.status} ${JSON.stringify(body).slice(0, 200)}`);
+  }
+  return body.action_link;
+}
+
+/** Can this email and password actually sign in? The only honest definition
+ *  of "the reset worked". Asked of the API directly rather than through the
+ *  UI, so a redirect or a cached session cannot make a failure look like a
+ *  success. */
+async function canSignIn(email, password) {
+  const res = await fetch(`${process.env.SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+    method: 'POST',
+    headers: { apikey: SUPABASE_PUBLISHABLE_KEY_FOR_TEST, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  return res.status === 200;
+}
+
+// The publishable key is what a browser uses; read from the page's own config
+// so this test cannot drift from what the site actually ships.
+const SUPABASE_PUBLISHABLE_KEY_FOR_TEST = require('fs')
+  .readFileSync(require('path').join(__dirname, '../../js/supabase-config.js'), 'utf8')
+  .match(/SUPABASE_PUBLISHABLE_KEY\s*=\s*'([^']+)'/)[1];
+
+test.beforeAll(async () => {
+  test.setTimeout(120_000);
+  assertConfigured();
+  await cleanup();
+  member = await createAccount({ label: 'reset', role: 'participant', status: 'approved', meta: MEMBER });
+});
+
+test.afterAll(async () => { await cleanup(); });
+
+test.describe.serial('forgetting a password', () => {
+
+  test('Item54 the sign-in page offers a way back in', async ({ page }) => {
+    await page.goto('/index.html');
+    const link = page.locator('#forgot-link');
+    await expect(link, 'there is no way to ask for a new password').toBeVisible({ timeout: 15_000 });
+
+    await link.click();
+    await expect(page.locator('#forgot-panel')).toBeVisible();
+    await expect(page.locator('#forgot-email')).toBeVisible();
+  });
+
+  test('Item54 the address typed into sign-in is carried across', async ({ page }) => {
+    // Small thing, and the reason people give up: somebody who has just failed
+    // to sign in should not have to type their address again.
+    await page.goto('/index.html');
+    await page.fill('#email', member.email);
+    await page.click('#forgot-link');
+    await expect(page.locator('#forgot-email')).toHaveValue(member.email);
+  });
+
+  test('Item55 the answer is the same for an address with an account and one without', async ({ page }) => {
+    // THE PROHIBITION. Two requests, one real address and one invented, and
+    // the words on screen must be identical. Anything that differs - the text,
+    // a delay long enough to notice, an error - turns this form into a way of
+    // asking "does this company trade here?".
+    await page.goto('/index.html');
+    await page.click('#forgot-link');
+    await page.fill('#forgot-email', member.email);
+    await page.click('#forgot-send-btn');
+    await expect(page.locator('#forgot-done')).toBeVisible({ timeout: 20_000 });
+    const known = (await page.locator('#forgot-done').innerText()).trim();
+
+    await page.goto('/index.html');
+    await page.click('#forgot-link');
+    await page.fill('#forgot-email', 'nobody-at-all-9f2kd@example.invalid');
+    await page.click('#forgot-send-btn');
+    await expect(page.locator('#forgot-done')).toBeVisible({ timeout: 20_000 });
+    const unknown = (await page.locator('#forgot-done').innerText()).trim();
+
+    expect(unknown, 'the reply differs for a known and an unknown address, which leaks who is a member')
+      .toBe(known);
+    expect(known.length, 'the confirmation says nothing at all').toBeGreaterThan(10);
+  });
+
+  test('Item54 a bad link is refused, and says so instead of showing a form', async ({ page }) => {
+    // Opening the page with no recovery session at all: an expired link, a
+    // used one, or somebody who simply navigated here. Showing the password
+    // form in that state would invite a person to type a new password into
+    // something that was never going to save it.
+    await page.goto('/reset.html');
+    await expect(page.locator('#reset-status')).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator('#reset-form')).toBeHidden();
+    const said = await page.locator('#reset-status').innerText();
+    expect(said.toLowerCase()).toMatch(/expired|used|not valid|no es válido|caducado/);
+  });
+
+  test('Item54 a real link sets a new password, and the old one stops working', async ({ page, baseURL }) => {
+    test.setTimeout(120_000);
+
+    // Proof that the starting state is the one being changed.
+    expect(await canSignIn(member.email, testPassword()),
+      'the fixture cannot sign in with its own password, so this test proves nothing')
+      .toBe(true);
+
+    const link = await recoveryLinkFor(member.email, new URL('/reset.html', baseURL).href);
+
+    await page.goto(link);
+    // Supabase verifies the token and redirects to reset.html with a session.
+    await expect(page.locator('#reset-form'), 'the recovery link did not open the password form')
+      .toBeVisible({ timeout: 30_000 });
+
+    await page.fill('#new-password', NEW_PASSWORD);
+    await page.fill('#confirm-password', NEW_PASSWORD);
+    await page.click('#reset-btn');
+
+    // It signs out and returns to sign-in on purpose: a recovery link must not
+    // double as a way in, and the person may not be on their own machine.
+    await expect(page.locator('#notice')).toBeVisible({ timeout: 25_000 });
+    await expect(page).toHaveURL(/index\.html\?reset=1/);
+
+    // The only honest definition of success.
+    expect(await canSignIn(member.email, NEW_PASSWORD),
+      'the new password does not work, whatever the screen said')
+      .toBe(true);
+    expect(await canSignIn(member.email, testPassword()),
+      'the OLD password still works after a reset')
+      .toBe(false);
+  });
+
+  test('Item54 the same link cannot be used twice', async ({ page, baseURL }) => {
+    test.setTimeout(120_000);
+    // A recovery link sits in an inbox, possibly for years. One use only is
+    // what stops an old email being a permanent key to the account.
+    const link = await recoveryLinkFor(member.email, new URL('/reset.html', baseURL).href);
+
+    await page.goto(link);
+    await expect(page.locator('#reset-form')).toBeVisible({ timeout: 30_000 });
+    await page.fill('#new-password', NEW_PASSWORD + 'A');
+    await page.fill('#confirm-password', NEW_PASSWORD + 'A');
+    await page.click('#reset-btn');
+    await expect(page).toHaveURL(/index\.html\?reset=1/, { timeout: 25_000 });
+
+    // Same link again, in a clean context so no session is carried over.
+    const second = await page.context().browser().newContext();
+    const fresh = await second.newPage();
+    await fresh.goto(link);
+    await expect(fresh.locator('#reset-form'),
+      'a used recovery link still opens the password form').toBeHidden({ timeout: 30_000 });
+    await second.close();
+  });
+
+  test('Item54 the whole flow is there in Spanish too', async ({ page }) => {
+    // A Spanish-speaking member is the one most likely to need this and least
+    // able to guess their way through an English page.
+    await page.goto('/index.html');
+    await page.evaluate(() => { try { localStorage.setItem('jericho.language', 'es'); } catch (e) {} });
+    await page.reload();
+    await page.click('#forgot-link');
+    const panel = await page.locator('#forgot-panel').innerText();
+    expect(panel, 'the recovery panel is still English when the interface is Spanish')
+      .toMatch(/contraseña|enlace/i);
+  });
+});

@@ -38,7 +38,15 @@ async function initLoginPage() {
   } else if (getQueryParam('blocked') === '1') {
     notice.textContent = t('login.blocked');
     notice.classList.remove('hidden');
+  } else if (getQueryParam('reset') === '1') {
+    // reset.html sends them back here after signing them out, so the last
+    // thing they see is a confirmation and a form that proves the new
+    // password works while they are still sitting in front of it.
+    notice.textContent = t('login.resetOk');
+    notice.classList.remove('hidden');
   }
+
+  wireForgotPassword();
 
   document.getElementById('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -201,4 +209,67 @@ async function handleRegisterSubmit(e) {
 
   await jericho.auth.signOut();
   window.location.href = 'index.html?pending=1';
+}
+
+/** "Forgotten your password?" — request a link that sets a new one.
+ *
+ *  THE ANSWER IS ALWAYS THE SAME, whether or not the address has an account.
+ *  This is the whole reason the code below looks like it ignores errors. On a
+ *  private, invitation-only platform, a form that says "no such account" for
+ *  one address and "email sent" for another lets anybody test whether a given
+ *  company trades here - which is exactly the thing members are promised is
+ *  secret. The secrecy IS the product, so account enumeration is not a
+ *  theoretical weakness here; it leaks the membership list one guess at a time.
+ *
+ *  Supabase Auth sends this email itself, not through our own outbox, so it
+ *  works even while LISTING_EMAIL_FROM and RESEND_API_KEY are unset. That is
+ *  deliberate: recovery must not depend on the part of the system that is
+ *  broken, or the first time anyone needs it will be the time it cannot help.
+ */
+function wireForgotPassword() {
+  const link = document.getElementById('forgot-link');
+  const panel = document.getElementById('forgot-panel');
+  const form = document.getElementById('forgot-form');
+  const done = document.getElementById('forgot-done');
+  if (!link || !panel || !form) return;
+
+  link.addEventListener('click', (e) => {
+    e.preventDefault();
+    panel.classList.remove('hidden');
+    // Carry across whatever they already typed: somebody who has just failed
+    // to sign in has their address in the box above, and asking for it twice
+    // is the kind of small rudeness that makes people give up.
+    const typed = document.getElementById('email').value.trim();
+    const box = document.getElementById('forgot-email');
+    if (typed && !box.value) box.value = typed;
+    box.focus();
+  });
+
+  document.getElementById('forgot-cancel-btn').addEventListener('click', () => {
+    panel.classList.add('hidden');
+    done.classList.add('hidden');
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('forgot-email').value.trim().toLowerCase();
+    const btn = document.getElementById('forgot-send-btn');
+    btn.disabled = true;
+    btn.textContent = t('reset.sending');
+
+    // The redirect lands on reset.html of whatever host this page is served
+    // from, so a local run returns to localhost and the live site returns to
+    // the live site. Supabase only honours it if the URL is on the project's
+    // allow list; otherwise it falls back to the project's Site URL.
+    const redirectTo = new URL('reset.html', window.location.href).href;
+
+    // Deliberately unchecked. An error here - unknown address, rate limit -
+    // must look exactly like success, or the form becomes a membership oracle.
+    // Nothing is logged to the console either, for the same reason.
+    await jericho.auth.resetPasswordForEmail(email, { redirectTo }).catch(() => {});
+
+    form.classList.add('hidden');
+    done.textContent = t('reset.sentNeutral');
+    done.classList.remove('hidden');
+  });
 }
