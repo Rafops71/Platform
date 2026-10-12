@@ -31,7 +31,7 @@
 'use strict';
 
 const { test, expect } = require('@playwright/test');
-const { createAccount, cleanup, assertConfigured, testPassword } = require('./helpers/fixtures');
+const { createAccount, cleanup, assertConfigured } = require('./helpers/fixtures');
 const { query } = require('../../scripts/db');
 
 const NEW_PASSWORD = 'Reset-Me-9f2kd-New';
@@ -171,7 +171,13 @@ test.describe.serial('forgetting a password', () => {
     test.setTimeout(120_000);
 
     // Proof that the starting state is the one being changed.
-    expect(await canSignIn(member.email, testPassword()),
+    // member.password, NOT testPassword(): testPassword() MINTS A NEW RANDOM
+    // PASSWORD on every call. Asking whether the account can sign in with a
+    // freshly invented string was always going to say no, and it did - twice
+    // in CI, reported as "the fixture cannot sign in with its own password".
+    // The password the account was actually created with is the one the
+    // fixture handed back.
+    expect(await canSignIn(member.email, member.password),
       'the fixture cannot sign in with its own password, so this test proves nothing')
       .toBe(true);
 
@@ -195,7 +201,7 @@ test.describe.serial('forgetting a password', () => {
     expect(await canSignIn(member.email, NEW_PASSWORD),
       'the new password does not work, whatever the screen said')
       .toBe(true);
-    expect(await canSignIn(member.email, testPassword()),
+    expect(await canSignIn(member.email, member.password),
       'the OLD password still works after a reset')
       .toBe(false);
   });
