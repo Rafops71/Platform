@@ -15,8 +15,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   CURRENT_PROFILE = await requireAuth('participant');
   if (!CURRENT_PROFILE) return; // requireAuth already redirected
 
-  document.getElementById('user-name').textContent =
-    `${CURRENT_PROFILE.first_name} ${CURRENT_PROFILE.last_name}`;
+  document.getElementById('user-name').textContent = personName(CURRENT_PROFILE);
   document.getElementById('logout-link').addEventListener('click', (e) => { e.preventDefault(); logout(); });
 
   wireTabs();
@@ -927,8 +926,7 @@ async function saveProfileDetails(e) {
   // refuses them from this side (protect_profile_columns), and sending them
   // anyway would make a rejected write look like a successful one.
   Object.assign(CURRENT_PROFILE, updates);
-  document.getElementById('user-name').textContent =
-    `${CURRENT_PROFILE.first_name} ${CURRENT_PROFILE.last_name}`;
+  document.getElementById('user-name').textContent = personName(CURRENT_PROFILE);
   showSuccess(t('profile.saved'));
 }
 

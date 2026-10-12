@@ -26,8 +26,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   CURRENT_PROFILE = await requireAuth('operator');
   if (!CURRENT_PROFILE) return;
 
-  document.getElementById('user-name').textContent =
-    `${CURRENT_PROFILE.first_name} ${CURRENT_PROFILE.last_name}`;
+  document.getElementById('user-name').textContent = personName(CURRENT_PROFILE);
   document.getElementById('logout-link').addEventListener('click', (e) => { e.preventDefault(); logout(); });
 
   wireTabs();
@@ -250,7 +249,7 @@ async function loadApprovals() {
     row.className = 'list-row';
     row.innerHTML = `
       <div class="list-row-top">
-        <span class="list-row-title">${escapeHtml(p.first_name)} ${escapeHtml(p.last_name)}</span>
+        <span class="list-row-title">${escapeHtml(personName(p))}</span>
         <span class="badge badge-amber">Pending</span>
       </div>
       <div class="list-row-meta">${escapeHtml(p.email)} · ${escapeHtml(p.company || 'No company')} · ${escapeHtml(p.country)} · ${escapeHtml(p.phone)}</div>
@@ -395,7 +394,7 @@ async function loadListings() {
   tbody.innerHTML = '';
   rows.forEach(l => {
     const owner = l.profiles
-      ? `${l.profiles.first_name} ${l.profiles.last_name}${l.profiles.company ? ' (' + l.profiles.company + ')' : ''}`
+      ? `${personName(l.profiles)}${l.profiles.company ? ' (' + l.profiles.company + ')' : ''}`
       : 'Unknown';
     const hasDocs = withDocs.has(l.id);
     const tr = document.createElement('tr');
@@ -632,7 +631,7 @@ async function loadUsers() {
     row.className = 'list-row';
     row.innerHTML = `
       <div class="list-row-top">
-        <span class="list-row-title">${escapeHtml(p.first_name)} ${escapeHtml(p.last_name)} ${p.role === 'operator' ? '<span class="badge badge-blue">Operator</span>' : ''}</span>
+        <span class="list-row-title">${escapeHtml(personName(p))} ${p.role === 'operator' ? '<span class="badge badge-blue">Operator</span>' : ''}</span>
         <span class="badge ${userStatusBadge(p.status)}">${statusLabel(p.status)}</span>
       </div>
       <div class="list-row-meta">${escapeHtml(p.email)} · ${escapeHtml(p.company || 'No company')} · ${escapeHtml(p.country)}</div>
@@ -930,7 +929,7 @@ async function loadOperatorMailbox() {
     }
     const targetProfile = targetId ? ALL_PROFILES_BY_ID[targetId] : null;
     const targetName = targetProfile
-      ? `${targetProfile.first_name} ${targetProfile.last_name}` : null;
+      ? personName(targetProfile) : null;
 
     const row = document.createElement('div');
     row.className = 'list-row';
@@ -1143,7 +1142,7 @@ async function loadActivityLog() {
   container.innerHTML = '';
   data.forEach(a => {
     const actor = a.user_id && ALL_PROFILES_BY_ID[a.user_id]
-      ? `${ALL_PROFILES_BY_ID[a.user_id].first_name} ${ALL_PROFILES_BY_ID[a.user_id].last_name}` : 'System';
+      ? personName(ALL_PROFILES_BY_ID[a.user_id]) : 'System';
     const row = document.createElement('div');
     row.className = 'list-row';
     row.innerHTML = `
