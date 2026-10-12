@@ -168,6 +168,11 @@ async function cleanup() {
 
     const listings = 'select id from public.listings where user_id = any($1)';
 
+    // Captured BEFORE the listings are deleted, because the activity rows the
+    // deletion itself writes are identified by listing id and nothing else.
+    const { rows: listingRows } = await client.query(listings, [ids]);
+    const listingIds = listingRows.map(l => l.id);
+
     // Outbox first — a queued test email left behind would be sent for real
     // on the next flush of the outbox.
     await client.query(
@@ -196,7 +201,29 @@ async function cleanup() {
       'delete from public.invitations where created_by = any($1) or used_by = any($1) or email like $2',
       [ids, `${E2E_PREFIX}%`]
     );
-    await client.query('delete from public.activity_log where user_id = any($1)', [ids]);
+    // Activity rows, matched on what they SAY and not only on who did it.
+    //
+    // user_id alone misses nearly all of them. The log triggers record
+    // public.current_profile_id(), which resolves auth.uid() - and auth.uid()
+    // is null on a direct PostgreSQL connection, which is how this suite
+    // seeds and tears down. So every row a fixture caused was born with a
+    // null user_id and no `user_id = any(ids)` predicate could ever match it.
+    //
+    // That was not theoretical: by 2026-10-12 the live activity log held
+    // 12,399 rows, of which 12,382 were test residue no teardown had ever
+    // been able to see, against 17 rows of the owner's real history.
+    //
+    // This runs AFTER the listings delete on purpose: that delete fires
+    // trg_log_listing_change, which writes a 'listing_removed' row per
+    // listing. Running it earlier would miss exactly those.
+    await client.query(
+      `delete from public.activity_log
+        where user_id = any($1)
+           or (jsonb_exists(details, 'profile_id') and (details->>'profile_id')::uuid = any($1))
+           or (jsonb_exists(details, 'listing_id') and (details->>'listing_id')::uuid = any($2))
+           or details->>'email' like $3`,
+      [ids, listingIds, `${E2E_PREFIX}%`]
+    );
     // Commodities are shared reference data — if a test operator added one,
     // orphan the authorship rather than deleting a row others may now use.
     await client.query('update public.commodities set created_by = null where created_by = any($1)', [ids]);
@@ -221,6 +248,21 @@ async function cleanup() {
     if (left[0].n > 0) {
       throw new Error(
         `Teardown incomplete: ${left[0].n} test profile(s) tagged ${RUN_TAG} still in the database`
+      );
+    }
+
+    // The same question asked of the activity log, which is where the residue
+    // accumulated unseen for seven weeks. Accounts being gone is not the same
+    // as their traces being gone, and only one of those was ever checked.
+    const { rows: trail } = await client.query(
+      `select count(*)::int n from public.activity_log
+        where details->>'email' like $1
+           or (jsonb_exists(details, 'profile_id') and (details->>'profile_id')::uuid = any($2))`,
+      [`${RUN_PREFIX}%`, ids]
+    );
+    if (trail[0].n > 0) {
+      throw new Error(
+        `Teardown incomplete: ${trail[0].n} activity row(s) from run ${RUN_TAG} left in the log`
       );
     }
 

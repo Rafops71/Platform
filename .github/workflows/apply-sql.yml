@@ -1,0 +1,66 @@
+name: Apply database migration
+
+# Applies sql/ migrations to the live Supabase project, on demand only.
+#
+# This exists because a migration cannot always be applied from wherever the
+# work is being done. A cloud container has no route to PostgreSQL on 5432,
+# and the Supabase SQL tool stalls on statements that delete from a real
+# table - which sql/021 does. The runner has both the credential and the
+# network, so it is the one place that can do this reliably.
+#
+# Never on push. A migration reaching the live database because somebody
+# merged something is exactly the accident worth preventing, so this runs
+# only when a human (or an agent acting for one) asks for it by name.
+#
+# Every file in sql/ is written to be safe to re-run - CREATE OR REPLACE,
+# DROP IF EXISTS, ADD COLUMN IF NOT EXISTS - and scripts/apply-sql.js sends
+# each as one transaction, so a failure rolls that file back rather than
+# leaving it half applied.
+
+on:
+  workflow_dispatch:
+    inputs:
+      files:
+        description: 'Which sql/ files to apply (space separated). Empty = all, in order.'
+        required: false
+        default: '021_activity_log_orphan_purge.sql'
+
+concurrency:
+  # Shares the live database with the CI suite, whose teardown deletes test
+  # accounts. Applying a migration while that is mid-run is not worth the risk.
+  group: ci-live-database
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    name: Apply to the live database
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+
+      - name: Confirm the credential is present
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::error::SUPABASE_DB_URL is not set; nothing can be applied."
+            exit 1
+          fi
+
+      - name: Apply
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: node scripts/apply-sql.js ${{ inputs.files }}
+
+      - name: Read back what is now there
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          node scripts/q.js "select proname as function_now_present
+                               from pg_proc
+                              where proname = 'purge_orphaned_activity'"

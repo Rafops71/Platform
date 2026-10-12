@@ -54,6 +54,7 @@ const SETUP = [
   'sql/018_profile_deletion.sql',
   'sql/019_rate_limit_race.sql',
   'sql/020_foreign_key_indexes.sql',
+  'sql/021_activity_log_orphan_purge.sql',
   'sql/seed_commodities.sql',
 ];
 

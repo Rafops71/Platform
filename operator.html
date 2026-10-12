@@ -250,6 +250,31 @@
   <section id="screen-activity" class="screen">
     <div class="card">
       <h2 class="mt-0">Activity Log</h2>
+
+      <!-- A window onto the log, not a filter on what it keeps. Nothing here
+           deletes anything; the purge below is the only button that does, and
+           it removes only traces of accounts and listings that are already
+           gone. The log itself is the evidence an introduction happened. -->
+      <div class="row" style="margin-bottom:12px; align-items:flex-end; gap:12px; flex-wrap:wrap;">
+        <div>
+          <label for="activity-since">Show</label>
+          <select id="activity-since">
+            <option value="30">The last 30 days</option>
+            <option value="90">The last 3 months</option>
+            <option value="365">The last year</option>
+            <option value="">Everything</option>
+          </select>
+        </div>
+        <button id="activity-purge-btn" class="btn btn-secondary btn-small">Clean up old test entries</button>
+      </div>
+
+      <p id="activity-purge-note" class="list-row-meta" style="margin-bottom:12px;">
+        Cleaning up removes only entries about accounts and listings that no
+        longer exist — left behind by automated tests. Your own history is
+        never touched.
+      </p>
+
+      <div id="activity-count" class="list-row-meta" style="margin-bottom:8px;"></div>
       <div id="activity-list" class="stack"><p class="empty-state">Loading…</p></div>
     </div>
   </section>
