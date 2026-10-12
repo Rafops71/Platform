@@ -295,6 +295,30 @@ the fix is four lines.
 
 ## Still open
 
+0. **No email is being sent at all. Nothing.** Verified 2026-10-12 in the
+   workflow's own log, run 274:
+
+       Skipped — no mail can be sent until these repository secrets are set:
+       RESEND_API_KEY LISTING_EMAIL_FROM
+
+   `.github/workflows/send-emails.yml` skips its send step when any of
+   `SUPABASE_DB_URL`, `RESEND_API_KEY` or `LISTING_EMAIL_FROM` is missing. Only
+   the first is set, so the run goes green and the "Flush the email queue" step
+   is skipped every time. The queue therefore fills and never drains: three rows
+   are waiting, two of them queued on 2026-10-11 with `attempts = 0` after four
+   green runs, which is what first gave it away.
+
+   So today an invited person gets no invitation, an approved member gets no
+   notice, and nobody is told about a new listing. The database side is correct
+   and proven — items 48 and 49 pass, and the rows are queued properly. What is
+   missing is two repository secrets.
+
+   This is the largest thing between the platform and real members, and it
+   cannot be done from a session: the keys are the owner's. Item 1 below is the
+   second half of the same problem — even with the keys, an unverified sending
+   domain means Resend only accepts the account owner's own address, which is
+   exactly the HTTP 403 on the one August attempt.
+
 1. **Verify the Resend sending domain.** Highest-value item. Until it is done,
    the sandbox sender only delivers to the Resend account owner's own address —
    any other recipient is rejected with an HTTP 403 saying testing emails can
