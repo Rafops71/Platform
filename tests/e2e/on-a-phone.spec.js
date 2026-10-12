@@ -120,7 +120,11 @@ test.describe.serial('on a phone', () => {
 
   test('the sign-in page fits the screen', async ({ page }) => {
     await page.goto('/index.html');
-    await expect(page.locator('#login-form, form')).toBeVisible({ timeout: 15_000 });
+    // #login-form by name, not 'any form': adding the forgotten-password panel
+    // to this page gave it a second form, and a selector that matched "either"
+    // became a selector that matched two things and failed. A test that names
+    // what it means does not break when a page grows.
+    await expect(page.locator('#login-form')).toBeVisible({ timeout: 15_000 });
 
     const overflow = await sidewaysOverflow(page);
     console.log(`  sign-in            sideways overflow ${overflow}px`);

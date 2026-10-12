@@ -95,6 +95,38 @@ async function main() {
     // acceptance and its activity row. Fabricating profiles directly would
     // skip the triggers and test a database this platform does not have.
     console.log('Building the market …');
+
+    // The Operator FIRST, then the invitations, then the members.
+    //
+    // sql/024 made registration invitation-only: handle_new_user() refuses an
+    // account unless an unused, unexpired invitation exists for its address,
+    // with one exemption for the very first account on an empty database.
+    //
+    // This file used to create all 200 members in a single statement, which
+    // broke the moment that rule arrived: the first row got in on the
+    // exemption and the other 199 had nobody to have invited them. Creating
+    // the Operator first and letting them invite everybody is not a
+    // workaround, it is the real sequence a platform goes through, and it
+    // means the invitation path is now exercised at volume too.
+    await db.query(`
+      insert into auth.users (id, email, raw_user_meta_data)
+      values (gen_random_uuid(), 'stress-operator@example.invalid',
+              jsonb_build_object('first_name','Ops','last_name','Stress','phone','+3200','country','Belgium','language','en'))
+    `);
+    await db.query(`update public.profiles set role = 'operator', status = 'approved' where email = 'stress-operator@example.invalid'`);
+    const { rows: [operator] } = await db.query(
+      `select id, user_id from public.profiles where email = 'stress-operator@example.invalid'`
+    );
+
+    const { ms: inviteMs } = await timed('invite members', () => db.query(`
+      insert into public.invitations (token, email, created_by, expires_at)
+      select 'stress-inv-' || g,
+             'stress-member-' || g || '@example.invalid',
+             $2,
+             now() + interval '7 days'
+        from generate_series(1, $1) g
+    `, [MEMBERS, operator.id]));
+
     const { ms: membersMs } = await timed('create members', () => db.query(`
       insert into auth.users (id, email, raw_user_meta_data)
       select gen_random_uuid(),
@@ -113,16 +145,7 @@ async function main() {
     check('every fabricated member got a profile from the trigger',
       memberRows.length === MEMBERS, `${memberRows.length} of ${MEMBERS}`);
 
-    // One operator, to own the forwarding and read the figures.
-    await db.query(`
-      insert into auth.users (id, email, raw_user_meta_data)
-      values (gen_random_uuid(), 'stress-operator@example.invalid',
-              jsonb_build_object('first_name','Ops','last_name','Stress','phone','+3200','country','Belgium','language','en'))
-    `);
-    await db.query(`update public.profiles set role = 'operator', status = 'approved' where email = 'stress-operator@example.invalid'`);
-    const { rows: [operator] } = await db.query(
-      `select id, user_id from public.profiles where email = 'stress-operator@example.invalid'`
-    );
+    // The operator was created above, before the invitations they issue.
 
     // --------------------------------------------------------- the listings --
     //

@@ -140,10 +140,17 @@ test.describe.serial('forgetting a password', () => {
     // form in that state would invite a person to type a new password into
     // something that was never going to save it.
     await page.goto('/reset.html');
-    await expect(page.locator('#reset-status')).toBeVisible({ timeout: 20_000 });
+
+    // js/reset.js polls for a recovery session for up to eight seconds before
+    // giving up, so the status line reads "Checking the link…" for a while
+    // first. The original version of this test read that line immediately and
+    // failed on the word "Checking" - a test measuring a moment that was never
+    // the moment being tested. Poll for the settled text instead.
+    await expect
+      .poll(async () => (await page.locator('#reset-status').innerText()).toLowerCase(),
+            { timeout: 25_000, message: 'the page never settled on a verdict about the link' })
+      .toMatch(/expired|used|not valid|no es válido|caducado/);
     await expect(page.locator('#reset-form')).toBeHidden();
-    const said = await page.locator('#reset-status').innerText();
-    expect(said.toLowerCase()).toMatch(/expired|used|not valid|no es válido|caducado/);
   });
 
   test('Item54 a real link sets a new password, and the old one stops working', async ({ page, baseURL }) => {
