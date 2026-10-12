@@ -59,6 +59,7 @@ const SUITES = [
   // database short of one profile and a listing, and an earlier suite that
   // counted rows globally would see the gap.
   'sql/tests/13_profile_deletion.sql',
+  'sql/tests/14_activity_log_purge.sql',
 ];
 
 /** An assertion is any single-row result whose first column is named "Tn …"

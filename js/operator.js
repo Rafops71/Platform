@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   wireTabs();
   wireOverview();
   wireAnalytics();
+  wireActivityLog();
   wireInvitations();
   wireCommodities();
   wireDocRequests();
@@ -1126,11 +1127,34 @@ async function updateMatchStatus(id, status) {
 async function loadActivityLog() {
   const fresh = renderToken('op:loadActivityLog');
   const container = document.getElementById('activity-list');
+  const countEl = document.getElementById('activity-count');
   container.innerHTML = '<p class="empty-state">Loading…</p>';
-  const { data, error } = await jericho.from('activity_log').select('*').order('created_at', { ascending: false }).limit(200);
+  countEl.textContent = '';
+
+  // A window onto the log, not a filter on what it keeps. Read once, so the
+  // rows rendered and the line describing them come from the same request.
+  const days = document.getElementById('activity-since').value;
+
+  let query = jericho.from('activity_log').select('*').order('created_at', { ascending: false }).limit(200);
+  if (days) {
+    const since = new Date(Date.now() - Number(days) * 86400000).toISOString();
+    query = query.gte('created_at', since);
+  }
+  const { data, error } = await query;
   if (!fresh()) return;
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
-  if (!data.length) { container.innerHTML = '<p class="empty-state">No activity yet.</p>'; return; }
+  if (!data.length) {
+    container.innerHTML = days
+      ? '<p class="empty-state">Nothing in this period. Choose a longer one to see more.</p>'
+      : '<p class="empty-state">No activity yet.</p>';
+    return;
+  }
+
+  // 200 is the query's limit, so saying "200 entries" when there may be
+  // thousands would be a lie the screen tells quietly. Say which it is.
+  countEl.textContent = data.length === 200
+    ? 'Showing the 200 most recent entries. Choose a shorter period to narrow it.'
+    : `${data.length} ${data.length === 1 ? 'entry' : 'entries'}.`;
 
   const missingIds = data.map(a => a.user_id).filter(id => id && !ALL_PROFILES_BY_ID[id]);
   if (missingIds.length) {
@@ -1154,4 +1178,44 @@ async function loadActivityLog() {
     `;
     container.appendChild(row);
   });
+}
+
+function wireActivityLog() {
+  document.getElementById('activity-since').addEventListener('change', loadActivityLog);
+  document.getElementById('activity-purge-btn').addEventListener('click', purgeOldActivity);
+}
+
+/** Remove log entries about accounts and listings that no longer exist.
+ *
+ *  This is deliberately NOT an "erase the activity log" button, which is what
+ *  was originally asked for. Section 8 of the Terms claims a commission for 24
+ *  months after an introduction is made, and this log is the evidence that the
+ *  introduction happened - a button that erases it destroys the Operator's own
+ *  proof of claim. Checklist item 52 also proves the log cannot be altered by
+ *  hand, which an erase button would contradict.
+ *
+ *  The rule is enforced in the database (sql/021), not here: the function
+ *  takes no arguments, so nothing this page sends can widen what it removes.
+ *  A row goes only if it has no actor AND the thing it describes is gone. */
+async function purgeOldActivity() {
+  const btn = document.getElementById('activity-purge-btn');
+  if (!confirm(
+    'Remove log entries about accounts and listings that no longer exist?\n\n' +
+    'Your own history is not affected. This cannot be undone.'
+  )) return;
+
+  btn.disabled = true;
+  const label = btn.textContent;
+  btn.textContent = 'Cleaning up…';
+  try {
+    const { data, error } = await jericho.rpc('purge_orphaned_activity');
+    if (error) { showError(errorMessage(error)); return; }
+    showSuccess(data === 0
+      ? 'Nothing to clean up — the log holds no stale entries.'
+      : `Removed ${data} stale ${data === 1 ? 'entry' : 'entries'}.`);
+    await loadActivityLog();
+  } finally {
+    btn.disabled = false;
+    btn.textContent = label;
+  }
 }
