@@ -1,0 +1,70 @@
+name: Independent review
+
+# A second opinion on every pull request, from a model that did not write the
+# code.
+#
+# WHY THIS EXISTS
+#
+# The owner put it plainly: "i canthaveyou be judge,jury and executor". He is
+# right. Claude writes nearly every line here and then reports on whether it
+# works. Every bug found this week was in code Claude had written and called
+# finished - the thousandth-listing collision in next_reference(), the stale
+# analytics table, the operator listings race. The suites caught them, which is
+# the point of the suites; but nothing was reading the code itself except its
+# author.
+#
+# This is not a gate. It cannot block a merge and it is not allowed to: a model
+# that comments confidently and wrongly would train everyone to ignore it, and
+# docs/CHECKLIST.md plus the CI gate remain the things that decide whether the
+# platform works. This posts an opinion. A human reads it.
+#
+# WHY GROQ
+#
+# The free tier needs no payment card, and the owner already runs it for his
+# email client - one account, one key, nothing new to sign up for or pay. The
+# model is openai/gpt-oss-120b, the same one that client uses. It is a SETTING
+# rather than a constant because free-tier model names change without notice.
+#
+# Failures here are deliberately quiet. continue-on-error means a rate limit, a
+# revoked key or a model rename leaves a note in the run and nothing else: a
+# second opinion going missing is not a reason to stop a change, and a review
+# job that can redden the build would quietly become a gate nobody voted for.
+
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: 'Pull request number to review'
+        required: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: review-${{ github.event.pull_request.number || inputs.pr }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: Second opinion
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Review the diff
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr }}
+          BASE_REF: ${{ github.event.pull_request.base.ref || 'main' }}
+          REVIEW_MODEL: openai/gpt-oss-120b
+        run: node scripts/review-pr.js
