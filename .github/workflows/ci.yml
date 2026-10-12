@@ -55,6 +55,11 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+      # Needs no secrets and no browser, so it runs here rather than in the
+      # checklist job: a loader written without its stale-render guard should
+      # fail in seconds, on forks too, not after an eight-minute browser suite.
+      - name: Stale-render guards
+        run: npm run check:guards
       - name: Run sql/tests
         run: npm run test:sql
 

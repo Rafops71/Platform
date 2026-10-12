@@ -432,3 +432,53 @@ async function referenceNumbersFor(ids) {
   }
   return { refs, error: null };
 }
+
+// ------------------------------------------------- RENDER TOKENS ----
+//
+// Every screen on this platform paints a container from a fetch: clear it,
+// await the rows, write them in. That is safe exactly once. Trigger the same
+// loader twice - two clicks on a nav button, a filter changed and then a
+// period changed, a refresh while the first refresh is still in the air - and
+// two requests are in flight at once. The container is then painted by
+// whichever ANSWER arrives last, which is not necessarily the question asked
+// last, and the screen ends up showing rows for a request the member has
+// already moved on from while the controls show the one they chose.
+//
+// It is not theoretical. It shipped twice: the operator's listings table
+// (e03ebf9) and the analytics table, where CI run 50 caught a table holding
+// 26 weekly rows after 8 monthly periods were asked for. In both cases the
+// screen was confidently wrong, with nothing on it to suggest a disagreement -
+// the worst kind of wrong on a page an Operator reads to decide what to act on.
+//
+// So the guard belongs on the whole class, not on the instances that have been
+// caught. Each loader takes a token on entry and checks it after every await,
+// before writing anything:
+//
+//     async function loadThing() {
+//       const fresh = renderToken('thing');
+//       …
+//       const { data, error } = await jericho.rpc('thing');
+//       if (!fresh()) return;            // a newer load started; drop this one
+//       …
+//     }
+//
+// Dropping the render rather than the request is deliberate. Cancelling the
+// in-flight fetch would be tidier but needs an AbortController threaded through
+// the Supabase client, and the cost here is one wasted parse, not a wasted
+// round trip - the round trip already happened. What matters is that it does
+// not reach the DOM.
+//
+// Keyed by name rather than per-function counters so a loader cannot be given
+// a guard that silently shares a counter with another one, which would make
+// two independent screens cancel each other.
+
+const RENDER_TOKENS = Object.create(null);
+
+/** Claim the newest render for `name`. The returned function answers "is this
+ *  still the newest?" - false once another render of the same name has begun.
+ *  @param {string} name
+ *  @returns {() => boolean} */
+function renderToken(name) {
+  const mine = (RENDER_TOKENS[name] = (RENDER_TOKENS[name] || 0) + 1);
+  return () => mine === RENDER_TOKENS[name];
+}

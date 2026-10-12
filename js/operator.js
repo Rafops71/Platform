@@ -9,17 +9,14 @@ let REPLY_TARGET = null;     // { originalMessage }
 // screen itself drops it — the operator's own filtering wins over the tile's.
 let LISTINGS_STALE_ONLY = false;
 
-// Which render of the listings table is the current one.
-//
 // loadListings() awaits twice before it writes, so two calls can be in flight
 // at once and the LAST to finish wins - which may be the FIRST one started.
 // That is not hypothetical: arriving from the stale tile and then pressing
 // Search starts exactly that pair, and the operator was left looking at the
 // stale-filtered rows with the note already hidden, as though the search had
-// returned almost nothing. The participant dashboard guards its two lists the
-// same way (MY_LISTINGS_RENDER, SAVED_SEARCH_RENDER in js/app.js); this screen
-// had been missed.
-let LISTINGS_RENDER = 0;
+// returned almost nothing. The guard is renderToken() in js/utils.js, used by
+// every loader on both dashboards and enforced by
+// scripts/check-render-guards.js.
 
 // STALE_LISTING_DAYS / staleListingCutoff() live in utils.js, shared with the
 // participant dashboard: the listings this screen counts as stale are exactly
@@ -89,6 +86,11 @@ const ANALYTICS_COLUMNS = [
   'registrations', 'listings', 'messages_reviewed', 'introductions', 'matches_reviewed',
 ];
 
+// Both selects fire `change`, so changing the bucket and then the period puts
+// two requests in flight at once, and whichever ANSWER arrives last paints the
+// table - not whichever was asked for last. renderToken() in js/utils.js is
+// the guard; CI run 50 is what it was added for.
+
 function wireAnalytics() {
   document.getElementById('analytics-bucket').addEventListener('change', loadAnalytics);
   document.getElementById('analytics-periods').addEventListener('change', loadAnalytics);
@@ -105,17 +107,22 @@ function analyticsPeriodLabel(isoDate, bucket) {
 }
 
 async function loadAnalytics() {
+  const fresh = renderToken('op:loadAnalytics');
   const tbody = document.querySelector('#analytics-table tbody');
   const tfoot = document.querySelector('#analytics-table tfoot');
   tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Loading…</td></tr>';
   tfoot.innerHTML = '';
 
+  // Read both controls once, up front, so the rows rendered below and the
+  // labels put on them come from the same request rather than from whatever
+  // the selects happen to hold by the time the answer arrives.
   const bucket = document.getElementById('analytics-bucket').value;
   const periods = Number(document.getElementById('analytics-periods').value);
 
   const { data, error } = await jericho.rpc('operator_analytics', {
     p_bucket: bucket, p_periods: periods,
   });
+  if (!fresh()) return;
   if (error) {
     tbody.innerHTML = `<tr><td colspan="6" class="empty-state">${escapeHtml(errorMessage(error))}</td></tr>`;
     return;
@@ -193,12 +200,14 @@ function wireOverview() {
 }
 
 async function loadOverview() {
+  const fresh = renderToken('op:loadOverview');
   const results = await Promise.all(OVERVIEW_TILES.map(async (tile) => {
     const { count, error } = await tile.where(
       jericho.from(tile.table).select('id', { count: 'exact', head: true })
     );
     return { tile, count, error };
   }));
+  if (!fresh()) return;
 
   for (const { tile, count, error } of results) {
     const el = document.getElementById(`stat-${tile.id}-value`);
@@ -223,10 +232,12 @@ async function loadOverview() {
 
 // --------------------------------------------------------- APPROVALS ----
 async function loadApprovals() {
+  const fresh = renderToken('op:loadApprovals');
   const container = document.getElementById('approvals-list');
   container.innerHTML = '<p class="empty-state">Loading…</p>';
 
   const { data, error } = await jericho.from('profiles').select('*').eq('status', 'pending').order('created_at');
+  if (!fresh()) return;
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
 
   document.getElementById('approvals-dot').classList.toggle('hidden', data.length === 0);
@@ -301,8 +312,10 @@ function populateStatusFilter() {
 
 /** Fill the commodity filter dropdown from the Operator-managed list. */
 async function populateCommodityFilter() {
+  const fresh = renderToken('op:populateCommodityFilter');
   const select = document.getElementById('listing-filter-commodity');
   const { data } = await jericho.from('commodities').select('name');
+  if (!fresh()) return;
   select.innerHTML = '<option value="">All commodities</option>';
   sortCommodities(data).forEach(c => {
     const opt = document.createElement('option');
@@ -312,7 +325,7 @@ async function populateCommodityFilter() {
 }
 
 async function loadListings() {
-  const token = ++LISTINGS_RENDER;
+  const fresh = renderToken('op:loadListings');
   const tbody = document.querySelector('#listings-table tbody');
   tbody.innerHTML = '<tr><td colspan="10" class="empty-state">Loading…</td></tr>';
 
@@ -355,7 +368,7 @@ async function loadListings() {
   if (region) query = query.or(`origin.ilike.%${region}%,destination.ilike.%${region}%`);
 
   const { data, error } = await query;
-  if (token !== LISTINGS_RENDER) return;   // a newer render started while this waited
+  if (!fresh()) return;   // a newer render started while this waited
   if (error) { tbody.innerHTML = `<tr><td colspan="10" class="empty-state">${escapeHtml(errorMessage(error))}</td></tr>`; return; }
 
   // Which listings have at least one ticked document — fetched in one query
@@ -366,7 +379,7 @@ async function loadListings() {
       .from('document_checklist').select('listing_id')
       .eq('indicated', true).in('listing_id', data.map(l => l.id));
     (checked || []).forEach(c => withDocs.add(c.listing_id));
-    if (token !== LISTINGS_RENDER) return;
+    if (!fresh()) return;
   }
 
   let rows = data;
@@ -486,10 +499,12 @@ async function createInvitation() {
 }
 
 async function loadInvitations() {
+  const fresh = renderToken('op:loadInvitations');
   const container = document.getElementById('invitations-list');
   container.innerHTML = '<p class="empty-state">Loading…</p>';
 
   const { data, error } = await jericho.from('invitations').select('*').order('created_at', { ascending: false });
+  if (!fresh()) return;
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
   if (!data.length) { container.innerHTML = '<p class="empty-state">No invitations yet.</p>'; return; }
 
@@ -601,10 +616,12 @@ function wireInvitationActions(container, invitations) {
 
 // -------------------------------------------------------------- USERS ----
 async function loadUsers() {
+  const fresh = renderToken('op:loadUsers');
   const container = document.getElementById('users-list');
   container.innerHTML = '<p class="empty-state">Loading…</p>';
 
   const { data, error } = await jericho.from('profiles').select('*').order('created_at', { ascending: false });
+  if (!fresh()) return;
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
 
   data.forEach(p => ALL_PROFILES_BY_ID[p.id] = p);
@@ -692,10 +709,12 @@ async function addCommodity() {
 }
 
 async function loadCommodities() {
+  const fresh = renderToken('op:loadCommodities');
   const container = document.getElementById('commodities-list');
   container.innerHTML = '<p class="empty-state">Loading…</p>';
 
   const { data, error } = await jericho.from('commodities').select('*');
+  if (!fresh()) return;
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
 
   COMMODITY_CACHE = sortCommodities(data);
@@ -703,6 +722,7 @@ async function loadCommodities() {
   // How many listings currently use each commodity name, so the Operator can
   // see what a deletion would leave behind.
   const { data: listings } = await jericho.from('listings').select('commodity');
+  if (!fresh()) return;
   const usage = {};
   (listings || []).forEach(l => {
     const key = (l.commodity || '').toLowerCase();
@@ -775,8 +795,10 @@ function populateSelect(id, values) {
 }
 
 async function loadListingsForDocRequest() {
+  const fresh = renderToken('op:loadListingsForDocRequest');
   const select = document.getElementById('dr-listing');
   const { data, error } = await jericho.from('listings').select('id,reference_number,user_id,commodity').order('created_at', { ascending: false });
+  if (!fresh()) return;
   if (error) return;
   select.innerHTML = '<option value="">Select a listing…</option>';
   data.forEach(l => {
@@ -811,14 +833,17 @@ async function createDocRequest() {
 }
 
 async function loadDocRequests() {
+  const fresh = renderToken('op:loadDocRequests');
   const container = document.getElementById('doc-requests-list');
   container.innerHTML = '<p class="empty-state">Loading…</p>';
   const { data, error } = await jericho.from('document_requests').select('*').order('requested_at', { ascending: false });
+  if (!fresh()) return;
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
   if (!data.length) { container.innerHTML = '<p class="empty-state">No document requests yet.</p>'; return; }
 
   // Resolve reference numbers in one batched query rather than one per row.
   const { refs: refByListing, error: refError } = await referenceNumbersFor(data.map(r => r.listing_id));
+  if (!fresh()) return;
   if (refError) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(refError))}</p>`; return; }
 
   container.innerHTML = '';
@@ -839,6 +864,7 @@ async function loadDocRequests() {
 
 // ------------------------------------------------------------- MAILBOX ----
 async function loadOperatorMailbox() {
+  const fresh = renderToken('op:loadOperatorMailbox');
   const container = document.getElementById('operator-mailbox-list');
   container.innerHTML = '<p class="empty-state">Loading…</p>';
 
@@ -851,6 +877,7 @@ async function loadOperatorMailbox() {
   // true of loadMailbox() in js/app.js and loadActivityLog() below, which at
   // least caps itself at 200.
   const { data, error } = await jericho.from('messages').select('*').order('created_at', { ascending: false });
+  if (!fresh()) return;
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
   if (!data.length) { container.innerHTML = '<p class="empty-state">No messages yet.</p>'; return; }
 
@@ -865,6 +892,7 @@ async function loadOperatorMailbox() {
   if (targetIds.size) {
     const { data: profs } = await jericho.from('profiles')
       .select('id,first_name,last_name').in('id', [...targetIds]);
+    if (!fresh()) return;
     (profs || []).forEach(p => ALL_PROFILES_BY_ID[p.id] = p);
   }
 
@@ -877,6 +905,7 @@ async function loadOperatorMailbox() {
   for (const part of chunked(listingIds)) {
     const { data: ls, error: lErr } = await jericho
       .from('listings').select('id,reference_number,user_id').in('id', part);
+    if (!fresh()) return;
     if (lErr) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(lErr))}</p>`; return; }
     (ls || []).forEach(l => listingById.set(l.id, l));
   }
@@ -1032,9 +1061,11 @@ async function confirmReply() {
 
 // ------------------------------------------------------------- MATCHES ----
 async function loadMatches() {
+  const fresh = renderToken('op:loadMatches');
   const container = document.getElementById('matches-list');
   container.innerHTML = '<p class="empty-state">Loading…</p>';
   const { data, error } = await jericho.from('matches').select('*').neq('status', 'dismissed').order('created_at', { ascending: false });
+  if (!fresh()) return;
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
   if (!data.length) { container.innerHTML = '<p class="empty-state">No match suggestions.</p>'; return; }
 
@@ -1044,6 +1075,7 @@ async function loadMatches() {
   for (const part of chunked(sideIds)) {
     const { data: ls, error: sErr } = await jericho
       .from('listings').select('id,reference_number,commodity,type').in('id', part);
+    if (!fresh()) return;
     if (sErr) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(sErr))}</p>`; return; }
     (ls || []).forEach(l => sideById.set(l.id, l));
   }
@@ -1093,15 +1125,18 @@ async function updateMatchStatus(id, status) {
 
 // --------------------------------------------------------- ACTIVITY LOG ----
 async function loadActivityLog() {
+  const fresh = renderToken('op:loadActivityLog');
   const container = document.getElementById('activity-list');
   container.innerHTML = '<p class="empty-state">Loading…</p>';
   const { data, error } = await jericho.from('activity_log').select('*').order('created_at', { ascending: false }).limit(200);
+  if (!fresh()) return;
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
   if (!data.length) { container.innerHTML = '<p class="empty-state">No activity yet.</p>'; return; }
 
   const missingIds = data.map(a => a.user_id).filter(id => id && !ALL_PROFILES_BY_ID[id]);
   if (missingIds.length) {
     const { data: profs } = await jericho.from('profiles').select('id,first_name,last_name').in('id', missingIds);
+    if (!fresh()) return;
     (profs || []).forEach(p => ALL_PROFILES_BY_ID[p.id] = p);
   }
 
