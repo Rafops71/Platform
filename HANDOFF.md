@@ -350,15 +350,19 @@ constraints and the rate limits are what stop that, not the button.
 
 ## Still open
 
-0a. **`GROQ_API_KEY` is not set, so the independent reviewer is silent.**
-    `.github/workflows/review.yml` asks a model that did not write the code to
-    read every pull request and post what it thinks. Without the secret,
-    `scripts/review-pr.js` says so in the run log and exits 0 — by design: a
-    missing second opinion must never look like a broken build. The owner has
-    the key (the same Groq account his email client uses); only he can add it,
-    because a session's GitHub access does not extend to repository secrets.
+0a. **The independent reviewer is temporary and is meant to be deleted.** The
+    owner said so on 2026-10-12: it is a second pair of eyes for the period
+    while the platform is still being proved, and it goes once the app is
+    working properly. Removing it is three deletions —
+    `.github/workflows/review.yml`, `scripts/review-pr.js`, and the
+    `GROQ_API_KEY` secret. Nothing imports it, no job needs it, no test asserts
+    on it, and deleting it cannot redden a build. Do not build anything that
+    depends on it, and do not promote it to a gate.
 
-    Read `scripts/review-pr.js`'s header before changing anything there. Three
+    Its measured record so far: two reviews, one useful point each, two
+    confidently wrong points each.
+    The secret was added by the owner on 2026-10-12 and the workflow posts
+    comments on pull requests. Read `scripts/review-pr.js`'s header before changing anything there. Three
     limits in it were measured on real runs, not assumed: the free tier allows
     8,000 tokens a minute (39,166 characters of diff was refused outright);
     `gpt-oss-120b` reasons out of the same budget and returned an EMPTY review

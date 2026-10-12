@@ -3,6 +3,19 @@ name: Independent review
 # A second opinion on every pull request, from a model that did not write the
 # code.
 #
+# TEMPORARY, AND MEANT TO BE REMOVED. The owner's intent, stated plainly on
+# 2026-10-12: this is for the period while the platform is still being proved,
+# and once it is working properly it goes. Nothing should come to depend on it.
+# That is why it is a comment rather than a gate, and why removing it is three
+# deletions and nothing else:
+#
+#     .github/workflows/review.yml
+#     scripts/review-pr.js
+#     the GROQ_API_KEY repository secret
+#
+# No other file imports it, no job needs it, and no test asserts on it. Deleting
+# the two files cannot redden a build.
+#
 # WHY THIS EXISTS
 #
 # The owner put it plainly: "i canthaveyou be judge,jury and executor". He is
