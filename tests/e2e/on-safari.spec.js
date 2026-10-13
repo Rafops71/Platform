@@ -102,6 +102,12 @@ test.describe('on Safari, on an iPhone', () => {
     // it on every row.
     await signIn(page, member, 'app.html');
     await openScreen(page, 'browse');
+
+    // Wait for the rows before reading them. Without this the assertion ran
+    // while the list still said "Loading…" and reported a formatting failure
+    // that had not happened - a test accusing the application of something it
+    // did not do is worse than no test.
+    await expect(page.locator('#browse-list')).toContainText('Copper Cathode', { timeout: 20_000 });
     const text = await page.locator('#browse-list').innerText();
 
     expect(text, 'a date failed to parse on WebKit').not.toMatch(/invalid date/i);
