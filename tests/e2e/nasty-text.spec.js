@@ -126,7 +126,11 @@ test.describe('text a member types', () => {
     // The commodity carries the quote-breaking payload. It must appear as
     // text - proof that it was escaped rather than dropped, which would also
     // produce a page with no script on it and tell the Operator nothing.
-    await expect(page.locator('tbody'), 'the text was not shown at all, so the Operator cannot see what was written')
+    // #listings-table, not a bare tbody: the Operator page has two tables and
+    // the bare selector matched both. The test was wrong, not the page - the
+    // payloads themselves all came back inert on this same run.
+    await expect(page.locator('#listings-table tbody'),
+      'the text was not shown at all, so the Operator cannot see what was written')
       .toContainText('onmouseover');
   });
 
