@@ -47,12 +47,22 @@ jobs:
           cache: npm
       - run: npm ci
 
-      - name: Prove ffmpeg is here and can read a WAV
-        # Checked rather than assumed: the whole plan to assemble on a runner
-        # rests on this, and the equivalent in a session container cannot.
+      - name: Install ffmpeg, then prove it is really there
+        # The runner image does NOT ship ffmpeg. Attempts three and four both
+        # filmed all fourteen scenes and then died on the first ffmpeg call
+        # with "command not found", while the check that was supposed to catch
+        # exactly that reported success.
+        #
+        # It reported success because it was written as `ffmpeg -version |
+        # head -1`, and a shell pipeline exits with the status of its LAST
+        # command - head, which is perfectly happy. The check could not fail.
+        # `command -v` below has nothing to hide behind.
         run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          command -v ffmpeg
+          command -v ffprobe
           ffmpeg -version | head -1
-          ffprobe -version | head -1
 
       - run: npx playwright install --with-deps chromium
 
