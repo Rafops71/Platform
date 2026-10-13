@@ -1,0 +1,103 @@
+name: Record the films
+
+# Makes the two explainer films. Manual only - this is a deliverable, not a
+# gate, and nothing should be filming on a schedule.
+#
+# WHY HERE AND NOT IN A SESSION CONTAINER
+#
+# Three things have to be true in one place, and only a runner has all three.
+# It needs a real ffmpeg: the one in a session container is Playwright's
+# stripped build, which cannot read a WAV file at all. It needs Piper, which
+# installs cleanly here. And it needs the live Supabase project, because the
+# films are recorded against real throwaway fixtures rather than mock screens.
+#
+# WHAT IT PRODUCES
+#
+# One file per film per language, uploaded as an artifact. The owner downloads
+# it; nothing is published anywhere by this workflow.
+
+on:
+  workflow_dispatch:
+    inputs:
+      film:
+        description: 'Which film (member)'
+        required: false
+        default: 'member'
+      lang:
+        description: 'Language (en or es)'
+        required: false
+        default: 'en'
+
+concurrency:
+  # The same group as CI: this creates and deletes fixtures on the live
+  # project, and must never do that while the browser suites are mid-run.
+  group: ci-live-database
+  cancel-in-progress: false
+
+jobs:
+  record:
+    name: Record and assemble
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+
+      - name: Prove ffmpeg is here and can read a WAV
+        # Checked rather than assumed: the whole plan to assemble on a runner
+        # rests on this, and the equivalent in a session container cannot.
+        run: |
+          ffmpeg -version | head -1
+          ffprobe -version | head -1
+
+      - run: npx playwright install --with-deps chromium
+
+      - name: Install Piper and the two voices
+        # Both CC0 - nothing is owed for either. See docs/VIDEO-BRIEF.md for
+        # the licence table, and for the voices that look fine and are not.
+        run: |
+          pip install piper-tts
+          python3 -m piper.download_voices en_US-joe-medium es_ES-davefx-medium
+          ls -la *.onnx
+
+      - name: Speak every line, and measure it
+        run: node video/make-narration.js --film ${{ inputs.film }} --lang ${{ inputs.lang }}
+        env:
+          PIPER_VOICE_DIR: ${{ github.workspace }}
+
+      - name: Film it
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          node scripts/serve.js &
+          npx wait-on http://localhost:8000 || sleep 5
+          node video/record.js --film ${{ inputs.film }} --lang ${{ inputs.lang }}
+
+      - name: Join the voice to the picture
+        run: node video/assemble.js --film ${{ inputs.film }} --lang ${{ inputs.lang }}
+
+      - name: Here is the film
+        uses: actions/upload-artifact@v4
+        with:
+          name: jericho-${{ inputs.film }}-${{ inputs.lang }}
+          path: video/out/*.mp4
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: What went wrong
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: video-failure-${{ inputs.film }}-${{ inputs.lang }}
+          path: |
+            video/out/
+            video/audio/timings.json
+          retention-days: 5
+          if-no-files-found: ignore
