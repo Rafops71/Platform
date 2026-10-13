@@ -38,10 +38,17 @@ test.beforeAll(async () => {
   member = await createAccount({ label: 'tabs', role: 'participant', status: 'approved' });
 
   reference = `SELL-TABS-${Date.now().toString().slice(-6)}`;
+  // Deliberately STALE - updated forty days ago. The renew and close buttons
+  // only render on a listing the platform is prompting about (js/app.js), so a
+  // fresh one has neither and this test had nothing to press. That is also the
+  // truer scenario: the prompt is exactly where one tab closes a listing while
+  // another is still looking at the same prompt.
   await query(
     `insert into public.listings
-       (user_id, type, commodity, quantity, unit, incoterm, origin, status, reference_number)
-     values ($1, 'sell', 'Zinc Ingots', 500, 'Metric tons', 'FOB', 'Peru', 'available', $2)`,
+       (user_id, type, commodity, quantity, unit, incoterm, origin, status,
+        reference_number, updated_at)
+     values ($1, 'sell', 'Zinc Ingots', 500, 'Metric tons', 'FOB', 'Peru', 'available',
+             $2, now() - interval '40 days')`,
     [member.profileId, reference]
   );
 });
@@ -67,6 +74,13 @@ test.describe('a second tab that has fallen behind', () => {
       await second.goto('/app.html');
       await openScreen(second, 'my-listings');
       await expect(second.locator('#my-listings-list')).toContainText(reference, { timeout: 20_000 });
+
+      // Both tabs must actually be showing the prompt, or what follows proves
+      // nothing about stale tabs - it would just be two pages with no buttons.
+      await expect(first.locator('[data-close]').first(),
+        'the listing is not showing its stale prompt, so there is nothing to act on')
+        .toBeVisible({ timeout: 20_000 });
+      await expect(second.locator('[data-renew]').first()).toBeVisible({ timeout: 20_000 });
 
       // The first tab closes the listing. The second tab still shows it open.
       await first.locator(`[data-close]`).first().click();
