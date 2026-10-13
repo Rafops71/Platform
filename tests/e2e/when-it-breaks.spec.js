@@ -78,6 +78,12 @@ test.describe('when the platform cannot be reached', () => {
     await page.evaluate(() => { try { localStorage.setItem('jericho.language', 'es'); } catch (e) {} });
     await page.reload();
 
+    // Wait for the page to finish signing back in before touching anything.
+    // Without this the nav button is clicked while requireAuth() is still in
+    // flight, nothing is wired yet, and the screen never opens - which is what
+    // failed, and had nothing to do with the outage being tested.
+    await expect(page.locator('#user-name')).toBeVisible({ timeout: 20_000 });
+
     await page.route('**/*.supabase.co/**', route => route.abort('connectionfailed'));
     await openScreen(page, 'browse');
 
