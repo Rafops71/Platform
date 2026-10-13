@@ -417,6 +417,78 @@ the asked-for address is the proof that both settings took.
 
 Still off, and still the owner's to change: leaked-password protection.
 
+## The sweep of 2026-10-13: what asked WHO but never WHETHER
+
+The owner asked for every contingency to be tested before the platform is
+shown to clients. Probing the live project with throwaway accounts - created
+and deleted inside the same check - found a class of hole, not one instance.
+
+**Browse did not care whether you were still allowed in.** Proven live:
+
+    APPROVED  -> listings visible: 1
+    (operator suspends the account)
+    SUSPENDED -> listings visible: 1      <- the hole
+    SUSPENDED -> posting a listing: 403   <- correctly refused
+
+Writing was shut and reading was not. Browse does not read the listings table
+(RLS there gives a member only their own rows); it calls
+`get_public_listings()`, which is SECURITY DEFINER and so runs with the
+owner's rights, bypassing RLS on purpose. It asked who was calling and never
+whether they were still a member. An access token lives about an hour and the
+browser keeps it, so somebody suspended at nine could read the whole market
+from a tab already open. The interface sends them to the sign-in page; the
+interface is not the lock.
+
+Sweeping every SECURITY DEFINER function on the live project then found three
+more (sql/026): `renew_listing` (a suspended member could keep their listings
+looking fresh for ever), `next_reference`, and `purge_orphaned_activity` -
+which checked `role = 'operator'` but not status, so **a suspended Operator
+could still delete audit rows**, the very records you read to find out what
+they did before you suspended them.
+
+`sql/revert/` holds the previous version of each function, read off the live
+project before it was replaced.
+
+## Four more gates, each from a real find
+
+- **check:calls** — every function a page calls must exist. `js/reset.js`
+  called `initLanguage()`, which has never existed here; it threw on load, so
+  the recovery page never examined the link and never said one was bad.
+- **check:i18n** — 308 phrases, both languages, every `data-i18n` and every
+  `t('…')` defined. A missing Spanish phrase does not crash: it shows English
+  to somebody who does not read it, on a screen nobody who built it looks at.
+- **check:double** — anything that inserts a row must be unstartable twice.
+  Seven actions were not: two of them visible to a member as a doubled forward
+  or a doubled invitation email.
+- **check:errors** — loads the real `errorMessage()` and runs it against real
+  error objects. A refused action used to answer, on screen,
+  `new row violates row-level security policy for table "listings"`.
+- **check:filters** — the Operator's region box was spliced raw into a
+  PostgREST filter; `zzzz,role.eq.operator` became another condition on the
+  query. Proven against the live API, fixed with quoting, gated.
+
+## The database suite runs in a cloud container after all
+
+It refuses to start as root, and that had been treated as a dead end. It needs
+an ordinary user:
+
+    useradd -m pgtest && chown -R pgtest:pgtest node_modules/@embedded-postgres
+    su pgtest -c "cd /home/user/Platform && npm run test:sql"
+
+Before this, every database question cost a fifteen-minute CI run, which is
+exactly why changes went out half-checked. Use it, and run it on the previous
+commit too when something fails, so "my change broke this" is established
+rather than assumed.
+
+## The hygiene check has never run
+
+`hygiene.yml` is on this branch only, and GitHub runs scheduled workflows from
+the DEFAULT branch. Verified 2026-10-13: zero runs, while heartbeat, reminders
+and the email flush all have recent ones. So the daily "is the database clean"
+question - written after 4,776 orphaned notifications were found by hand - has
+never actually been asked. It starts working when this branch merges, and not
+before. The same is true of every fix listed above.
+
 ## Still open
 
 -1. **The look is chosen and must not be started yet.** "Sky Tint", white
