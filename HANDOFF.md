@@ -489,6 +489,46 @@ question - written after 4,776 orphaned notifications were found by hand - has
 never actually been asked. It starts working when this branch merges, and not
 before. The same is true of every fix listed above.
 
+## The 4,796 notifications, and why clearing them was not the fix
+
+The hygiene check's first working run found 4,796 notifications about things
+that no longer exist. The owner had cleared roughly 9,500 by hand days before
+and they had rebuilt, which is the signal that a button was treating a symptom.
+
+Cause: every delete in `tests/e2e/helpers/fixtures.js` matched on an id that
+still existed. Anything a test deleted DURING its run - a withdrawn listing,
+the member-deletion test - left a notification pointing at a row that was
+already gone, which no id-based predicate can find afterwards. Roughly sixty
+strays per CI run, for seven weeks.
+
+`cleanup()` now applies the orphan rule itself, the same one the Operator's
+purge button uses. The backlog was cleared on the owner's say-so with
+`sql/maintenance_2026_10_13_clear_orphans.sql` - written as a file rather than
+typed into a console, so what was run against the live database is in the
+repository with its reason. Verified afterwards: 0 orphans, 13 real
+notifications left.
+
+## Items 60 and 61, and Safari
+
+- **60 — an unreachable Platform.** Playwright cuts the browser's requests to
+  Supabase at the network level and the suite reads what the member is then
+  shown: not blank, not "Loading…" for ever, not database words, and in their
+  own language. Plus the button must not be left dead, or they cannot retry
+  when their signal returns.
+- **61 — two tabs, and a dead session.** A stale tab SHOWING something out of
+  date is unavoidable. A stale tab ACTING on it is not: one tab closes a
+  listing, the other presses renew, and the listing must stay closed. A session
+  whose stored credentials are gone must send the member to sign in or tell
+  them - never a dashboard that looks fine while nothing loads.
+- **Safari.** Every other suite runs on Chromium, including the phone-layout
+  one. On iOS every browser is WebKit underneath, so "it works on a phone" has
+  meant "it works on an engine no iPhone runs". `tests/e2e/on-safari.spec.js`
+  runs the member's real path on WebKit, in its own CI job with its own browser
+  install, after the main suite rather than beside it - two live runs at once is
+  a race worth avoiding. Adding it also broke the checklist job for one run,
+  because `playwright test` with no project runs EVERY project: both suites now
+  name their browser explicitly.
+
 ## Still open
 
 -1. **The look is chosen and must not be started yet.** "Sky Tint", white

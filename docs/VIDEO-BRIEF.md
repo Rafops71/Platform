@@ -35,6 +35,39 @@ and the timings will need redoing for two minutes:
 https://claude.ai/artifact/LtKEDq7KjWRNCFtMc4RjhN — member and Operator, English
 and Spanish, with a copy button per script.
 
+## The narration: what was actually tried
+
+Checked on 2026-10-13 rather than assumed:
+
+- **espeak-ng** installs here in seconds and speaks English and Spanish. It
+  sounds like a 1980s computer. Useful for getting the TIMING right - a
+  placeholder track the real voice can replace without re-cutting the picture -
+  and wrong for anything a client sees.
+- **Kokoro** (Apache 2.0, so commercially clean, and the best free option
+  found) does NOT install in this container. Not the 2GB of GPU libraries it
+  drags in, which are merely wasteful on a machine with no GPU: the chain
+  kokoro -> misaki -> num2words -> docopt ends at an abandoned package whose
+  installer no longer builds on current Python. `setuptools<81`,
+  `--no-build-isolation` and `docopt-ng` were all tried; the last satisfies the
+  import but not pip's requirement on the distribution name.
+- **This container's ffmpeg** is Playwright's stripped build. It cannot read a
+  WAV file and has no filters, and a full ffmpeg is not installable here. So
+  joining sound to picture CANNOT happen in a session container regardless.
+
+Which settles where this work belongs: **on a GitHub runner**, which has a
+clean Python and a real ffmpeg, and which is already where the recording has
+to happen because it needs the live project. Test the Kokoro install there
+before relying on it; if it fails there too, the fallbacks are Google's free
+tier (needs the owner's billing account) or the owner's own voice.
+
+## How the sound will be synchronised
+
+One audio file per spoken line, not one long file. Each file's exact duration
+is measured, and the recorder holds each on-screen action for precisely that
+long. Picture and sound then line up by construction rather than by nudging.
+A single long file can be worked with only if it carries clear pauses between
+sentences, and the result is less precise.
+
 ## What the recording will need
 
 - Playwright can drive and film the real platform; `/opt/pw-browsers/ffmpeg-1011`
