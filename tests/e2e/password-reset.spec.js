@@ -36,6 +36,34 @@ const { query } = require('../../scripts/db');
 
 const NEW_PASSWORD = 'Reset-Me-9f2kd-New';
 
+/** Ask the Operator-only edge function for a recovery link, as whoever this
+ *  access token belongs to. Called directly rather than through the button,
+ *  because the prohibition is about WHO the server will answer - a browser
+ *  that never renders the button proves nothing about the endpoint behind it. */
+async function askForRecoveryLink(accessToken, email) {
+  const res = await fetch(`${process.env.SUPABASE_URL}/functions/v1/operator-recovery-link`, {
+    method: 'POST',
+    headers: {
+      apikey: SUPABASE_PUBLISHABLE_KEY_FOR_TEST,
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email }),
+  });
+  return { status: res.status, body: await res.json().catch(() => ({})) };
+}
+
+/** A real access token for an account, the way the browser would hold one. */
+async function tokenFor(email, password) {
+  const res = await fetch(`${process.env.SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+    method: 'POST',
+    headers: { apikey: SUPABASE_PUBLISHABLE_KEY_FOR_TEST, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) throw new Error(`could not sign in as ${email}: ${res.status}`);
+  return (await res.json()).access_token;
+}
+
 const MEMBER = { first_name: 'Henrike', last_name: 'Baumgartner', company: 'Baumgartner Handel', phone: '+32471560001' };
 
 let member;
@@ -226,6 +254,46 @@ test.describe.serial('forgetting a password', () => {
     await expect(fresh.locator('#reset-form'),
       'a used recovery link still opens the password form').toBeHidden({ timeout: 30_000 });
     await second.close();
+  });
+
+  test('Item57 an Operator can make a recovery link, and nobody else can', async () => {
+    test.setTimeout(120_000);
+
+    // A second member, so the prohibition is tested against somebody who is a
+    // perfectly legitimate signed-in user - not against a stranger, which the
+    // JWT check alone would already stop.
+    const other = await createAccount({ label: 'reset-other', role: 'participant', status: 'approved' });
+    const operator = await createAccount({ label: 'reset-op', role: 'operator', status: 'approved' });
+
+    // THE PROHIBITION. An ordinary member asking for a link to ANOTHER
+    // member's account must be refused. A recovery link is a key: if any
+    // member can mint one for any address, the sign-in page is decoration.
+    const memberToken = await tokenFor(other.email, other.password);
+    const refused = await askForRecoveryLink(memberToken, member.email);
+    expect(refused.status,
+      'a member was able to ask for a recovery link to another account')
+      .toBe(403);
+    expect(refused.body.link, 'a member was handed a recovery link').toBeUndefined();
+
+    // And a member asking for a link to their OWN account is refused too.
+    // This endpoint is not the self-service path - that is the button on the
+    // sign-in page, which proves the person holds the inbox. Allowing it here
+    // would let a stolen SESSION mint a permanent way back in.
+    const own = await askForRecoveryLink(memberToken, other.email);
+    expect(own.status, 'a member could mint a recovery link for themselves').toBe(403);
+
+    // The Operator can, and what comes back is a real, working link.
+    const operatorToken = await tokenFor(operator.email, operator.password);
+    const made = await askForRecoveryLink(operatorToken, member.email);
+    expect(made.status, made.body.error || 'the Operator was refused').toBe(200);
+    expect(made.body.link, 'no link came back').toBeTruthy();
+    expect(made.body.link, 'the link does not point at the reset page')
+      .toContain('reset.html');
+
+    // An address nobody here holds gets nothing - generate_link would
+    // otherwise CREATE that account, which is the hole sql/024 closed.
+    const nobody = await askForRecoveryLink(operatorToken, 'no-such-member-9f2kd@example.invalid');
+    expect(nobody.status, 'a link was made for an address with no member').toBe(404);
   });
 
   test('Item54 the whole flow is there in Spanish too', async ({ page }) => {

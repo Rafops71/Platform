@@ -640,6 +640,7 @@ async function loadUsers() {
         ${p.status !== 'approved' ? `<button class="btn btn-primary btn-small" data-approve="${p.id}">Approve</button>` : ''}
         ${p.status !== 'suspended' ? `<button class="btn btn-secondary btn-small" data-suspend="${p.id}">Suspend</button>` : `<button class="btn btn-secondary btn-small" data-reinstate="${p.id}">Reinstate</button>`}
         ${p.role === 'participant' ? `<button class="btn btn-secondary btn-small" data-promote="${p.id}">Make Operator</button>` : `<button class="btn btn-secondary btn-small" data-demote="${p.id}">Make Participant</button>`}
+        <button class="btn btn-secondary btn-small" data-recovery="${p.id}">Recovery link</button>
       </div>
     `;
     container.appendChild(row);
@@ -650,6 +651,64 @@ async function loadUsers() {
   container.querySelectorAll('[data-reinstate]').forEach(b => b.addEventListener('click', () => setUserStatus(b.dataset.reinstate, 'approved')));
   container.querySelectorAll('[data-promote]').forEach(b => b.addEventListener('click', () => setUserRole(b.dataset.promote, 'operator')));
   container.querySelectorAll('[data-demote]').forEach(b => b.addEventListener('click', () => setUserRole(b.dataset.demote, 'participant')));
+  container.querySelectorAll('[data-recovery]').forEach(b => b.addEventListener('click', () => makeRecoveryLink(b, b.dataset.recovery)));
+}
+
+// ------------------------------------------- RECOVERY LINK FOR A MEMBER ----
+//
+// A member who forgets their password uses "Forgotten your password?" on the
+// sign-in page, and that is the path they should use. It needs an email to
+// arrive, and until a sending domain is configured no email arrives at all -
+// Supabase's own mail only reaches the project team's addresses, twice an
+// hour, with no delivery guarantee. So an Operator can hand over a link by
+// another route in the meantime.
+//
+// The link is MINTED BY A SERVER FUNCTION, never here. Making one needs the
+// service role key, which bypasses every Row Level Security policy in the
+// database; a key in a page is a key in everybody's hands, Operator page or
+// not. supabase/functions/operator-recovery-link checks that the caller is an
+// approved Operator before it mints anything.
+
+async function makeRecoveryLink(button, profileId) {
+  const person = ALL_PROFILES_BY_ID[profileId];
+  if (!person) { showError('That member is no longer on screen. Reload and try again.'); return; }
+  if (!confirm(`Make a password recovery link for ${personName(person)}?\n\nIt can be used once, it expires, and anybody holding it can set a new password on this account. Send it only to them.`)) return;
+
+  // Double-submit guard: two clicks would mint two links, and the first would
+  // stop working the moment the second existed - so the one already sent to
+  // the member would be the dead one.
+  button.disabled = true;
+  const original = button.textContent;
+  button.textContent = 'Making…';
+
+  try {
+    const { data: { session } } = await jericho.auth.getSession();
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/operator-recovery-link`, {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_PUBLISHABLE_KEY,
+        Authorization: `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email: person.email }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok || !body.link) {
+      showError(body.error || `The link could not be made (${res.status}).`);
+      return;
+    }
+
+    // Shown rather than copied silently: a clipboard write that fails leaves
+    // the Operator believing they have the link when they have nothing. The
+    // prompt box also lets them copy it on a phone, where this will be used.
+    window.prompt(`Send this to ${personName(person)}. It works once and then expires.`, body.link);
+    showSuccess('Link made. It is recorded in the activity log.');
+  } catch (e) {
+    showError(errorMessage(e));
+  } finally {
+    button.disabled = false;
+    button.textContent = original;
+  }
 }
 
 function userStatusBadge(status) {

@@ -84,6 +84,7 @@ the suite: this platform's product is controlled disclosure, so proving a thing
 | 54 | A member who has forgotten their password can set a new one, and the old one stops working | does |
 | 55 | The reset form never reveals whether an address has an account | MUST NOT |
 | 56 | Nobody can create an account without a valid invitation | MUST NOT |
+| 57 | Only an Operator can produce a password recovery link for a member | MUST NOT |
 
 ## Open questions on this list
 
