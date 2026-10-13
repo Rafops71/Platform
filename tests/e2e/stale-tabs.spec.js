@@ -62,11 +62,11 @@ test.describe('a second tab that has fallen behind', () => {
 
       await signIn(first, member, 'app.html');
       await openScreen(first, 'my-listings');
-      await expect(first.locator('#listings-list')).toContainText(reference, { timeout: 20_000 });
+      await expect(first.locator('#my-listings-list')).toContainText(reference, { timeout: 20_000 });
 
       await second.goto('/app.html');
       await openScreen(second, 'my-listings');
-      await expect(second.locator('#listings-list')).toContainText(reference, { timeout: 20_000 });
+      await expect(second.locator('#my-listings-list')).toContainText(reference, { timeout: 20_000 });
 
       // The first tab closes the listing. The second tab still shows it open.
       await first.locator(`[data-close]`).first().click();
