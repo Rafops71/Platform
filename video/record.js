@@ -89,8 +89,12 @@ async function perform(page, action, world) {
       return;
 
     case 'fillListing':
+      // #location, not #origin: the form has one field whose LABEL changes
+      // between origin and destination depending on whether the member is
+      // selling or buying. Checked against app.html rather than assumed - the
+      // first version of this used #origin, which exists nowhere.
       await typeSlowly(page, '#quantity', '25000');
-      await typeSlowly(page, '#origin', 'Chile');
+      await typeSlowly(page, '#location', 'Chile');
       await typeSlowly(page, '#specification', 'LME Grade A, 99.99% Cu');
       return;
 
@@ -99,7 +103,8 @@ async function perform(page, action, world) {
       return;
 
     case 'openContact':
-      await pressWithPointer(page, '[data-contact]');
+      // .first(): Browse shows several listings and every row has one of these.
+      await pressWithPointer(page, '.list-row [data-contact] >> nth=0');
       await page.waitForSelector('#contact-modal', { state: 'visible', timeout: 15000 });
       await typeSlowly(page, '#contact-body',
         'Interested in this parcel. Please pass my enquiry to the seller.');
@@ -111,7 +116,8 @@ async function perform(page, action, world) {
       return;
 
     case 'switchLanguage':
-      await pressWithPointer(page, '.lang-toggle .lang-btn:not(.active)');
+      // The class is lang-btn-active, not .active - read off js/i18n.js.
+      await pressWithPointer(page, '.lang-toggle .lang-btn:not(.lang-btn-active)');
       return;
 
     default:
