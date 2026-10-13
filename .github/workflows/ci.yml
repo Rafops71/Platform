@@ -72,6 +72,15 @@ jobs:
       # runs were spent on the symptom.
       - name: Every call resolves
         run: npm run check:calls
+      # A phrase missing from Spanish does not crash: it shows English to
+      # somebody who does not read English, on a screen nobody who built it
+      # ever looks at.
+      - name: Both languages agree
+        run: npm run check:i18n
+      # Seven actions created rows with nothing stopping a second press. On a
+      # phone a double tap is not a mistake anybody notices making.
+      - name: No action can be started twice
+        run: npm run check:double
       - name: Run sql/tests
         run: npm run test:sql
 

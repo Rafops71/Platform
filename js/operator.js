@@ -431,11 +431,14 @@ async function loadListings() {
     }));
 
   tbody.querySelectorAll('[data-remind]').forEach(b =>
-    b.addEventListener('click', async () => {
+    b.addEventListener('click', () => withButtonBusy(b, 'Sending…', async () => {
+      // Guarded because this one QUEUES AN EMAIL. Two presses is two emails to
+      // a member who has done nothing wrong, from a platform that has not yet
+      // sent them a single wanted one.
       const { error } = await jericho.rpc('send_manual_reminder', { p_listing_id: b.dataset.remind });
       if (error) { showError(errorMessage(error)); return; }
       showSuccess('Reminder sent to the listing owner.');
-    }));
+    })));
 
   tbody.querySelectorAll('[data-remove-listing]').forEach(b =>
     b.addEventListener('click', async () => {
@@ -472,6 +475,11 @@ async function emailInvitation(email, token, lang) {
 }
 
 async function createInvitation() {
+  // One press at a time: this creates a row, and two presses created two.
+  return withButtonBusy('create-invite-btn', 'Creating…', createInvitationNow);
+}
+
+async function createInvitationNow() {
   const email = document.getElementById('invite-email').value.trim().toLowerCase() || null;
   const language = document.getElementById('invite-language').value || 'en';
   const token = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
@@ -744,6 +752,11 @@ function wireCommodities() {
 }
 
 async function addCommodity() {
+  // One press at a time: this creates a row, and two presses created two.
+  return withButtonBusy('add-commodity-btn', 'Adding…', addCommodityNow);
+}
+
+async function addCommodityNow() {
   const input = document.getElementById('new-commodity-name');
   const name = input.value.trim();
   if (!name) { showError('Enter a commodity name.'); return; }
@@ -869,6 +882,11 @@ async function loadListingsForDocRequest() {
 }
 
 async function createDocRequest() {
+  // One press at a time: this creates a row, and two presses created two.
+  return withButtonBusy('create-doc-request-btn', 'Requesting…', createDocRequestNow);
+}
+
+async function createDocRequestNow() {
   const select = document.getElementById('dr-listing');
   const listingId = select.value;
   if (!listingId) { showError('Choose a listing.'); return; }
@@ -1058,6 +1076,11 @@ function openForwardModal(btn) {
 }
 
 async function confirmForward() {
+  // One press at a time: this creates a row, and two presses created two.
+  return withButtonBusy('forward-confirm-btn', 'Forwarding…', confirmForwardNow);
+}
+
+async function confirmForwardNow() {
   const { error: e1 } = await jericho.from('message_forward_log').insert({
     message_id: FORWARD_TARGET.messageId, operator_id: CURRENT_PROFILE.id, to_user_id: FORWARD_TARGET.toUserId
   });
@@ -1085,6 +1108,11 @@ function openReplyModal(btn) {
 }
 
 async function confirmReply() {
+  // One press at a time: this creates a row, and two presses created two.
+  return withButtonBusy('reply-send-btn', 'Sending…', confirmReplyNow);
+}
+
+async function confirmReplyNow() {
   const body = document.getElementById('reply-body').value.trim();
   if (!body) { showError('Write a reply first.'); return; }
 

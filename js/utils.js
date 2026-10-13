@@ -88,6 +88,48 @@ function errorMessage(err) {
   return raw;
 }
 
+/** Run `work` with a button switched off, so a second press cannot start it
+ *  again while the first is still in flight.
+ *
+ *  WHY THIS EXISTS
+ *
+ *  Several actions on this platform CREATE something: an enquiry to the
+ *  Operator, a forward to the listing owner, an invitation, a document
+ *  request. None of them disabled their control before awaiting the database,
+ *  so two taps sent two. On a phone - which is where the owner uses this -
+ *  a double tap is not a mistake anybody notices making.
+ *
+ *  Two of those duplicates are worse than untidy. A doubled forward means the
+ *  listing owner receives the same enquiry twice from an Operator who only
+ *  sent it once, and a doubled invitation emails somebody twice before the
+ *  platform has said a word to them.
+ *
+ *  The button is switched back on in a `finally`, so a failure leaves a usable
+ *  screen rather than a dead button. */
+async function withButtonBusy(buttonOrId, busyText, work) {
+  const btn = typeof buttonOrId === 'string'
+    ? document.getElementById(buttonOrId)
+    : buttonOrId;
+
+  // Already running: the second press does nothing at all, rather than
+  // queueing behind the first and firing when it finishes.
+  if (btn && btn.disabled) return undefined;
+
+  const original = btn ? btn.textContent : null;
+  if (btn) {
+    btn.disabled = true;
+    if (busyText) btn.textContent = busyText;
+  }
+  try {
+    return await work();
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = original;
+    }
+  }
+}
+
 /** Fetch the profile row for the currently authenticated user.
  *  Returns null if not logged in or no profile exists yet. */
 async function getCurrentProfile() {
