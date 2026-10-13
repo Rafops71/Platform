@@ -34,6 +34,11 @@ concurrency:
   group: ci-live-database
   cancel-in-progress: false
 
+permissions:
+  # The film is committed back to the branch it was dispatched from, which
+  # needs more than the default read-only token.
+  contents: write
+
 jobs:
   record:
     name: Record and assemble
@@ -118,6 +123,51 @@ jobs:
           echo "ffprobe resolves to: $(command -v ffprobe || echo NOT FOUND)"
           ffmpeg -version | head -1 || true
           node video/assemble.js --film ${{ inputs.film }} --lang ${{ inputs.lang }}
+
+      - name: Prove the film is actually a film
+        # A green run is not a watchable film. Three ways this can finish
+        # "successfully" and still be useless: a picture with no sound, a
+        # soundtrack with no picture, and a file whose length does not match
+        # the narration - which is what a recorder that raced ahead of the
+        # voice would produce. ffprobe is asked about all three, and the step
+        # FAILS rather than printing a warning nobody reads.
+        run: |
+          f=video/out/${{ inputs.film }}-${{ inputs.lang }}.mp4
+          test -s "$f" || { echo "::error::no film at $f"; exit 1; }
+          ffprobe -v error -show_entries stream=codec_type,codec_name \
+                  -of default=nw=1 "$f"
+          v=$(ffprobe -v error -select_streams v -show_entries stream=codec_name -of csv=p=0 "$f")
+          a=$(ffprobe -v error -select_streams a -show_entries stream=codec_name -of csv=p=0 "$f")
+          d=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$f")
+          echo "video stream: ${v:-NONE}   audio stream: ${a:-NONE}   duration: ${d}s"
+          test -n "$v" || { echo "::error::the film has no picture"; exit 1; }
+          test -n "$a" || { echo "::error::the film has no sound"; exit 1; }
+          # The narration measured 68.8s (en) and 68.3s (es), and the recorder
+          # adds a 0.8s pause per scene over fourteen scenes. So anything far
+          # outside this window means picture and voice are not in step.
+          awk -v d="$d" 'BEGIN{ if (d < 60 || d > 120) { print "::error::the film is " d "s, which does not match the narration"; exit 1 } }'
+          echo "Verified: picture, sound, and a length that matches the voice."
+
+      - name: Hand the film over through git
+        # The artifact is served from a host the authoring session cannot
+        # reach, so the film is also committed to films/ on the branch this
+        # run was dispatched from. Git is the one channel that works in both
+        # directions, so the film can be checked by whoever asked for it
+        # rather than only downloaded by hand from the Actions page.
+        #
+        # Committed onto THIS branch rather than a branch of its own: an
+        # orphan branch keeps the whole working tree staged, so the obvious
+        # four lines quietly commit the entire repository alongside the film.
+        run: |
+          f=video/out/${{ inputs.film }}-${{ inputs.lang }}.mp4
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          mkdir -p films
+          cp "$f" "films/${{ inputs.film }}-${{ inputs.lang }}.mp4"
+          git add -f "films/${{ inputs.film }}-${{ inputs.lang }}.mp4"
+          git diff --cached --quiet && { echo "the film is byte-identical to the one already there"; exit 0; }
+          git commit -m "${{ inputs.film }}-${{ inputs.lang }}.mp4, from run ${{ github.run_id }}"
+          git push origin HEAD:${{ github.ref_name }}
 
       - name: Here is the film
         uses: actions/upload-artifact@v4
