@@ -419,6 +419,14 @@ Still off, and still the owner's to change: leaked-password protection.
 
 ## Still open
 
+-1. **The look is chosen and must not be started yet.** "Sky Tint", white
+    ground, picked on 2026-10-13 — written down in `docs/LOOK-DECISION.md`
+    with its exact colours and the two suites a restyle will disturb. The
+    owner asked for it to be held until everything below is cleared. White
+    behind everything is a standing rule from him, not a property of this one
+    style.
+
+
 0a. **The independent reviewer is temporary and is meant to be deleted.** The
     owner said so on 2026-10-12: it is a second pair of eyes for the period
     while the platform is still being proved, and it goes once the app is
