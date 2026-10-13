@@ -200,12 +200,17 @@ async function handleRegisterSubmit(e) {
     return;
   }
 
-  const { error: markError } = await jericho.rpc('mark_invitation_used', { p_token: invitationToken });
-  if (markError) {
-    console.error('mark_invitation_used failed:', markError);
-    // Registration itself succeeded (profile exists, pending approval) —
-    // this only affects invitation bookkeeping, so don't block the user.
-  }
+  // The invitation is consumed by handle_new_user() during signup itself
+  // (sql/024), inside the same transaction that creates the profile - which is
+  // strictly better than a second call from here, because a browser that is
+  // closed between the two steps used to leave an invitation unspent.
+  //
+  // This used to call mark_invitation_used() here. After 024 that call always
+  // failed with "Invitation already used", caught and written to the console,
+  // on EVERY successful registration. Confirmed against the live function on
+  // 2026-10-13: handle_new_user() sets used_at and used_by itself. A harmless
+  // error in a log is not harmless - it is the noise somebody learns to ignore
+  // just before a real one appears next to it.
 
   await jericho.auth.signOut();
   window.location.href = 'index.html?pending=1';

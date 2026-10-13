@@ -56,6 +56,7 @@ const DEFAULT_ORDER = [
   '023_purge_orphaned_feeds.sql',
   '024_require_invitation.sql',
   '025_browse_requires_approval.sql',
+  '026_active_account_required.sql',
   'seed_commodities.sql',
 ];
 

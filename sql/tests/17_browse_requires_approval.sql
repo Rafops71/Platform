@@ -152,3 +152,89 @@ set local "test.uid" = 'b0b0b0b0-0000-4000-8000-00000000001a';
 select case when (select count(*) from public.get_public_listings()) > 0
             then 'PASS' else 'FAIL' end
   as "T6 Item59 an approved member can still browse after all of the above";
+
+-- =========================================================================
+-- The same question asked of the other definer functions (sql/026).
+--
+-- These were found in the same sweep: functions that run with the owner's
+-- rights, so RLS does not stand behind them, and which asked who was calling
+-- without asking whether they were still allowed in.
+-- =========================================================================
+
+set local "test.uid" = 'b0b0b0b0-0000-4000-8000-00000000001b';
+update public.profiles set status = 'suspended'
+ where user_id = 'b0b0b0b0-0000-4000-8000-00000000001b'::uuid;
+
+-- A listing of their own to try to renew, created while they were still in.
+insert into public.listings
+  (user_id, type, commodity, incoterm, origin, reference_number, quantity, unit, status)
+select p.id, 'sell', 'Suspended Member Copper', 'FOB', 'Peru', 'SELL-SUSPENDED-001', 100, 'Metric tons', 'available'
+  from public.profiles p where p.user_id = 'b0b0b0b0-0000-4000-8000-00000000001b'::uuid
+on conflict do nothing;
+
+do $$
+declare v_id uuid;
+begin
+  select l.id into v_id from public.listings l
+    join public.profiles p on p.id = l.user_id
+   where p.user_id = 'b0b0b0b0-0000-4000-8000-00000000001b'::uuid
+   limit 1;
+  perform public.renew_listing(v_id);
+  insert into t17_result values ('T7', false);
+exception
+  when sqlstate '42501' then insert into t17_result values ('T7', true);
+  when others then insert into t17_result values ('T7', false);
+end $$;
+
+select case when ok then 'PASS' else 'FAIL' end
+  as "T7 Item59 a suspended member cannot keep their own listing looking fresh"
+  from t17_result where name = 'T7';
+
+do $$
+begin
+  perform public.next_reference('sell');
+  insert into t17_result values ('T8', false);
+exception
+  when sqlstate '42501' then insert into t17_result values ('T8', true);
+  when others then insert into t17_result values ('T8', false);
+end $$;
+
+select case when ok then 'PASS' else 'FAIL' end
+  as "T8 Item59 a suspended member cannot draw a reference number"
+  from t17_result where name = 'T8';
+
+-- A SUSPENDED OPERATOR is the one that matters most: the audit trail is what
+-- you read to find out what somebody did before you suspended them.
+
+update public.profiles set role = 'operator', status = 'suspended'
+ where user_id = 'b0b0b0b0-0000-4000-8000-00000000001b'::uuid;
+
+do $$
+begin
+  perform public.purge_orphaned_activity();
+  insert into t17_result values ('T9', false);
+exception
+  when sqlstate '42501' then insert into t17_result values ('T9', true);
+  when others then insert into t17_result values ('T9', false);
+end $$;
+
+select case when ok then 'PASS' else 'FAIL' end
+  as "T9 Item59 a suspended Operator cannot delete audit rows"
+  from t17_result where name = 'T9';
+
+-- Control: an approved Operator still can, so the fix did not simply break it.
+
+update public.profiles set status = 'approved'
+ where user_id = 'b0b0b0b0-0000-4000-8000-00000000001b'::uuid;
+
+do $$
+begin
+  perform public.purge_orphaned_activity();
+  insert into t17_result values ('T10', true);
+exception
+  when others then insert into t17_result values ('T10', false);
+end $$;
+
+select case when ok then 'PASS' else 'FAIL' end
+  as "T10 Item59 an approved Operator can still purge"
+  from t17_result where name = 'T10';

@@ -59,6 +59,7 @@ const SETUP = [
   'sql/023_purge_orphaned_feeds.sql',
   'sql/024_require_invitation.sql',
   'sql/025_browse_requires_approval.sql',
+  'sql/026_active_account_required.sql',
   'sql/seed_commodities.sql',
 ];
 
