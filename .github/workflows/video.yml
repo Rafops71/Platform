@@ -56,6 +56,14 @@ jobs:
 
       - run: npx playwright install --with-deps chromium
 
+      - uses: actions/setup-python@v5
+        # Named explicitly rather than relying on whatever Python the runner
+        # image happens to ship. Piper is the only Python in this project, and
+        # a version that moves under us would break the narration silently -
+        # the voices would simply fail to install and the film would be mute.
+        with:
+          python-version: '3.11'
+
       - name: Install Piper and the two voices
         # Both CC0 - nothing is owed for either. See docs/VIDEO-BRIEF.md for
         # the licence table, and for the voices that look fine and are not.
