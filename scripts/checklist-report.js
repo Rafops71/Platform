@@ -74,7 +74,12 @@ function runBrowserSuite() {
   console.log(`${DIM}Running the browser suite …${OFF}`);
   const res = spawnSync(
     'npx',
-    ['playwright', 'test', '--reporter', 'json'],
+    // --project=chromium, explicitly. Without it this runs EVERY project,
+    // which since the Safari project was added means launching WebKit - a
+    // browser this job does not install, because Safari has a job of its own
+    // with its own install step. The whole checklist went red on a browser
+    // that was never meant to run here.
+    ['playwright', 'test', '--project=chromium', '--reporter', 'json'],
     { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, shell: process.platform === 'win32' },
   );
   // Playwright exits non-zero when tests fail. That is expected: a failure is a
