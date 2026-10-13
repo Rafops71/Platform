@@ -27,17 +27,33 @@ directly. If you want it anyway:
 
 ## Current state
 
-**The live database is fully migrated.** Everything through
-`sql/015_operator_analytics.sql` is applied and verified present at the catalog
-level — not assumed, but read back: columns, foreign keys, check constraints,
-and indexes all confirmed.
+**The live database is fully migrated**, through
+`sql/024_require_invitation.sql`, applied 2026-10-13 and read back from the
+live catalog rather than assumed. `sql/revert/` holds the previous
+`handle_new_user()` exactly as it was read out of the live project before 024
+replaced it: the way back, proven before the change was made.
+
+**Registration is now invitation-only, enforced in the database.** Until
+2026-10-13 anybody who found the Supabase project's `/auth/v1/signup`
+endpoint could create a pending profile without an invitation. The page never
+offered it, which is why it went unnoticed for months — the hole was in the
+API, not the UI, and no amount of testing the code would have found it. 024's
+`handle_new_user()` consumes a live invitation or raises, inside the same
+transaction, so a refusal leaves no auth user and no profile.
+
+Proven against the live project on 2026-10-13, not in a test database: an
+uninvited `POST /auth/v1/signup` was refused, and the counts before and after
+were identical (3 auth users, 3 profiles). Supabase reports a trigger
+exception as a 500 "Database error saving new user", so `errorMessage()` in
+`js/utils.js` translates exactly that string into one plain sentence, in both
+languages, with no hint about which address would have worked.
 
 **Both test suites pass against the current code:**
 
 ```sh
 npm run test:sql      # 192 assertions, 0 failures
 npm run e2e           # 95 tests — needs .env; see "What blocks the rest" below
-npm run checklist     # tick/cross table against docs/CHECKLIST.md: 37 of 52
+npm run checklist     # tick/cross table against docs/CHECKLIST.md: 56 of 56
 npm run verify-live   # READ-ONLY health check, safe on production
 ```
 
@@ -347,6 +363,50 @@ duration of the request. **Not done, and not covered by the guard check.**
 Worst case today is a status line that flaps between two answers to the same
 double-clicked action; no data is written twice, because the database
 constraints and the rate limits are what stop that, not the button.
+
+## Password recovery, and three wrong diagnoses in a row
+
+`reset.html` + `js/reset.js` + the "Forgotten your password?" panel on
+`index.html` are new (items 54–56). Supabase Auth sends the recovery mail
+itself, so recovery works while `RESEND_API_KEY` is still unset — deliberately,
+because recovery must not rest on the part of the system that is broken.
+
+Item 54 then failed three CI runs in a row, with three different causes, all
+of them mine and none of them the one I first named:
+
+1. `js/reset.js` called `initLanguage()`, **a function that has never existed
+   in this codebase**. It threw on load, before the link was ever examined, so
+   the page sat on "Checking the link…" for ever and never told anybody their
+   link was bad. `node --check` passes such a file: it parses perfectly.
+   `scripts/check-page-functions.js` now checks every HTML page's scripts for
+   calls nothing they load defines, and CI runs it as "Every call resolves".
+   It was verified by putting the bug back and watching it fail.
+2. The test's `canSignIn()` helper returned `res.status === 200`, so a rate
+   limit or an outage came back as a confident "that password does not work".
+   It now returns false only for a real 400 `invalid_credentials` and throws,
+   with the status and body, for anything else.
+3. The test asked `canSignIn(member.email, testPassword())` — and
+   `testPassword()` **mints a new random password on every call**. It was
+   asking whether the account could sign in with a string invented a moment
+   earlier. The "old password stops working" assertion had the same bug, which
+   means it was proving nothing at all before this was fixed.
+
+`initReset()` now also wraps the whole check, so any unexpected error still
+ends in the honest sentence rather than a page that looks permanently busy.
+That was checked in a browser, including with the Supabase client failing to
+load, not by reading the code.
+
+## Supabase's own settings were never examined, and one of them is wrong
+
+The suites test this project's code. They say nothing about the dashboard
+settings around it, and the signup hole above lived in exactly that gap.
+
+Still wrong, and only the owner can fix it: the project's **Site URL is
+`http://localhost:3000`**, so any link Supabase sends itself — including a
+password recovery link — points at an address that does not exist for anybody
+but a developer. The recovery flow is proven end to end in CI because the test
+asks the admin API for the link directly; a real member clicking a real email
+would land nowhere. Leaked-password protection is also off.
 
 ## Still open
 

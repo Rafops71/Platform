@@ -71,7 +71,21 @@ function showSuccess(message) { showToast(message, 'success'); }
 /** Human-readable message from a Supabase/Postgres error. */
 function errorMessage(err) {
   if (!err) return 'Unknown error';
-  return err.message || err.error_description || String(err);
+  const raw = err.message || err.error_description || String(err);
+
+  // Supabase Auth turns an exception raised inside the on_auth_user_created
+  // trigger into "Database error saving new user" with a 500. Verified
+  // against the live project on 2026-10-13: an uninvited registration now
+  // answers exactly that, because sql/024's handle_new_user() refuses it.
+  // Correct, and meaningless to the person reading it - so it is translated
+  // here into the one sentence that is true and useful. Deliberately no hint
+  // about WHICH address would have worked: the prohibition in Item55 applies
+  // to this form too.
+  if (/database error saving new user/i.test(raw) && typeof t === 'function') {
+    return t('register.inviteOnly');
+  }
+
+  return raw;
 }
 
 /** Fetch the profile row for the currently authenticated user.

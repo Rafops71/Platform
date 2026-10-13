@@ -59,6 +59,7 @@ const STRINGS = {
     // not the address has an account: this platform's membership is private,
     // and a form that distinguishes the two leaks the member list one guess
     // at a time.
+    'register.inviteOnly': 'Registration here is by invitation only. Ask the Operator who invited you for a new invitation.',
     'reset.forgot': 'Forgotten your password?',
     'reset.emailLabel': 'Your email address',
     'reset.explain': 'We will send a link that lets you set a new password. The link expires, and can be used once.',
@@ -427,6 +428,7 @@ const STRINGS = {
     'login.submitting': 'Iniciando sesión…',
     'login.noAccount': '¿No tiene cuenta? El acceso es únicamente por invitación: solicite un enlace de invitación a un Operador.',
 
+    'register.inviteOnly': 'El registro en la Plataforma es únicamente por invitación. Solicite una nueva invitación al Operador que le invitó.',
     'reset.forgot': '¿Ha olvidado su contraseña?',
     'reset.emailLabel': 'Su dirección de correo electrónico',
     'reset.explain': 'Le enviaremos un enlace para establecer una nueva contraseña. El enlace caduca y solo puede utilizarse una vez.',
