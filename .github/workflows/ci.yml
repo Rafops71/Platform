@@ -81,6 +81,10 @@ jobs:
       # phone a double tap is not a mistake anybody notices making.
       - name: No action can be started twice
         run: npm run check:double
+      # Captured live: a refused action answered "new row violates row-level
+      # security policy for table \"listings\"". A member was shown that.
+      - name: Members never see the database's own words
+        run: npm run check:errors
       - name: Run sql/tests
         run: npm run test:sql
 

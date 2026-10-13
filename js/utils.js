@@ -85,6 +85,47 @@ function errorMessage(err) {
     return t('register.inviteOnly');
   }
 
+  // WHAT A MEMBER IS ALLOWED TO BE SHOWN
+  //
+  // PostgREST hands back the database's own words. Captured from the live
+  // project on 2026-10-13, an action a member is not permitted answers:
+  //
+  //   new row violates row-level security policy for table "listings"
+  //
+  // Three things wrong with putting that on a screen. It reads as a crash
+  // when the system is in fact working exactly as intended; it means nothing
+  // to a commodity trader; and it names an internal table to somebody who was
+  // just told they may not do something - which on a platform whose product
+  // is controlled disclosure is a free look at how the walls are built.
+  //
+  // So the codes are translated and the raw text goes to the console, where
+  // it is still there for whoever has to diagnose it.
+  //
+  // 42501 and PGRST204 were read off the live API. The 23xxx codes are the
+  // SQL standard's own constraint-violation classes, not something read from
+  // a vendor's screen.
+  const code = err.code || '';
+  const byCode = {
+    '42501': 'err.notAllowed',      // row-level security refused it
+    '23505': 'err.alreadyExists',   // unique constraint
+    '23503': 'err.gone',            // foreign key: the other row is not there
+    '23502': 'err.missingField',    // not null
+    '23514': 'err.notAllowedValue', // check constraint
+    'PGRST301': 'err.sessionEnded', // JWT no longer valid
+  };
+
+  // A browser that cannot reach Supabase at all throws a TypeError whose
+  // message differs per browser, so this matches the shape rather than the
+  // wording of any one of them.
+  const offline = err instanceof TypeError ||
+    /failed to fetch|networkerror|load failed/i.test(raw);
+
+  const key = offline ? 'err.offline' : byCode[code];
+  if (key && typeof t === 'function') {
+    console.error('[jericho]', code || 'network', raw);
+    return t(key);
+  }
+
   return raw;
 }
 

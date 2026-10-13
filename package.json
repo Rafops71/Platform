@@ -21,6 +21,7 @@
     "check:calls": "node scripts/check-page-functions.js",
     "check:i18n": "node scripts/check-translations.js",
     "check:double": "node scripts/check-double-submit.js",
+    "check:errors": "node scripts/check-error-messages.js",
     "hygiene": "node scripts/verify-live.js",
     "timings": "node scripts/timings.js",
     "stress": "node scripts/stress-test.js"
