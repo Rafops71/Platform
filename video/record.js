@@ -54,7 +54,12 @@ async function pressWithPointer(page, selector) {
   await wait(650);
   await page.evaluate(() => window.__jericho.press());
   await wait(200);
-  await page.click(selector);
+  // .first(): a selector that matches several controls - every Browse row has
+  // a Contact button - must press one rather than refuse. Playwright's own
+  // ">> nth=0" syntax cannot be used here, because the same selector is
+  // handed to document.querySelector in the overlay, which only understands
+  // plain CSS. That mismatch is what failed the second filming attempt.
+  await page.locator(selector).first().click();
 }
 
 /** Type at human speed. A form that fills instantly reads as a recording
@@ -104,7 +109,7 @@ async function perform(page, action, world) {
 
     case 'openContact':
       // .first(): Browse shows several listings and every row has one of these.
-      await pressWithPointer(page, '.list-row [data-contact] >> nth=0');
+      await pressWithPointer(page, '.list-row [data-contact]');
       await page.waitForSelector('#contact-modal', { state: 'visible', timeout: 15000 });
       await typeSlowly(page, '#contact-body',
         'Interested in this parcel. Please pass my enquiry to the seller.');
@@ -136,6 +141,14 @@ async function main() {
     throw new Error('No audio/timings.json. Run video/make-narration.js first - the film is cut to the voice, so the voice has to exist.');
   }
   const timings = JSON.parse(fs.readFileSync(timingsPath, 'utf8'));
+
+  // Every selector here is read by BOTH Playwright and document.querySelector,
+  // so Playwright-only syntax is a bug waiting for the scene that uses it.
+  for (const scene of scenes) {
+    if (scene.highlight && scene.highlight.includes('>>')) {
+      throw new Error(`scene "${scene.id}" highlights with Playwright-only syntax: ${scene.highlight}`);
+    }
+  }
 
   console.log(`Filming "${film}" in ${lang}: ${scenes.length} scenes.`);
   await cleanup();
