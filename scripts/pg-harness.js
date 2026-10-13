@@ -58,6 +58,7 @@ const SETUP = [
   'sql/022_reference_number_overflow.sql',
   'sql/023_purge_orphaned_feeds.sql',
   'sql/024_require_invitation.sql',
+  'sql/025_browse_requires_approval.sql',
   'sql/seed_commodities.sql',
 ];
 

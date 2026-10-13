@@ -55,6 +55,7 @@ const DEFAULT_ORDER = [
   '022_reference_number_overflow.sql',
   '023_purge_orphaned_feeds.sql',
   '024_require_invitation.sql',
+  '025_browse_requires_approval.sql',
   'seed_commodities.sql',
 ];
 
