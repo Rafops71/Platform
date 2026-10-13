@@ -30,10 +30,23 @@ const arg = (name, fallback) => {
 
 function run(cmd, args) {
   const res = spawnSync(cmd, args, { encoding: 'utf8' });
-  if (res.status !== 0) {
-    throw new Error(`${cmd} failed:\n${(res.stderr || '').slice(-1200)}`);
-  }
-  return res.stdout;
+  if (res.status === 0) return res.stdout;
+
+  // Everything known about the failure, because the first version of this
+  // printed "ffmpeg failed:" and then nothing at all - which is what an
+  // ENOENT looks like through spawnSync: status is null, stderr is empty, and
+  // the real cause sits in res.error where nobody was looking. A diagnostic
+  // that cannot tell "ffmpeg is not here" from "this command was wrong" costs
+  // a fifteen-minute run per guess.
+  const parts = [`${cmd} ${args.join(' ')}`];
+  if (res.error) parts.push(`could not be run at all: ${res.error.message}`);
+  parts.push(`exit status: ${res.status === null ? 'none (killed or never started)' : res.status}`);
+  if (res.signal) parts.push(`killed by signal: ${res.signal}`);
+  const err = (res.stderr || '').trim();
+  const out = (res.stdout || '').trim();
+  parts.push(err ? `stderr:\n${err.slice(-1500)}` : 'stderr: (empty)');
+  if (!err && out) parts.push(`stdout:\n${out.slice(-800)}`);
+  throw new Error(parts.join('\n'));
 }
 
 function main() {

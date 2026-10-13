@@ -97,7 +97,17 @@ jobs:
           node video/record.js --film ${{ inputs.film }} --lang ${{ inputs.lang }}
 
       - name: Join the voice to the picture
-        run: node video/assemble.js --film ${{ inputs.film }} --lang ${{ inputs.lang }}
+        # ffmpeg is proved again HERE, in this step's own environment, rather
+        # than trusting the earlier check. Attempt three failed on the first
+        # ffmpeg call with an empty stderr - the signature of a binary that was
+        # never started - and the earlier step had already said ffmpeg existed.
+        # Two steps, two environments: this prints which one is telling the
+        # truth instead of costing another run per guess.
+        run: |
+          echo "ffmpeg resolves to: $(command -v ffmpeg || echo NOT FOUND)"
+          echo "ffprobe resolves to: $(command -v ffprobe || echo NOT FOUND)"
+          ffmpeg -version | head -1 || true
+          node video/assemble.js --film ${{ inputs.film }} --lang ${{ inputs.lang }}
 
       - name: Here is the film
         uses: actions/upload-artifact@v4
