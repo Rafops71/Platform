@@ -60,6 +60,43 @@ to happen because it needs the live project. Test the Kokoro install there
 before relying on it; if it fails there too, the fallbacks are Google's free
 tier (needs the owner's billing account) or the owner's own voice.
 
+## The narration tool, settled: Piper
+
+Installed and run in a session container on 2026-10-13, not taken on trust:
+
+    pip install piper-tts
+    python -m piper.download_voices en_GB-northern_english_male-medium
+    echo "A line." | python -m piper -m en_GB-northern_english_male-medium.onnx -f line01.wav
+
+It installs clean on Python 3.11, speaks English and Spanish, and reports the
+exact duration of every file - which is the whole requirement, because the
+picture is cut to the voice rather than the other way round. The opening line
+of the member script came out at 6.27s in English and 6.15s in Spanish.
+
+### The licence trap, and it is a real one
+
+The ENGINE's licence says nothing about the VOICES. Each voice is trained on
+its own dataset with its own terms, the model file carries no licence field at
+all, and finding the terms means following the voice's MODEL_CARD to the
+dataset's own page. Checked one by one:
+
+| Voice | Dataset licence | Usable here |
+|---|---|---|
+| `en_US-lessac-medium` | Blizzard/Lessac: **research only** | **No.** Excludes "the development, marketing, commercialisation, sale or licencing of voice synthesis" |
+| `en_US-ryan-high` | RyanSpeech: **CC BY-NC-SA 4.0** | **No.** Non-commercial |
+| `en_GB-northern_english_male-medium` | OpenSLR 83: **CC-BY-SA 4.0** | **Yes**, with a credit line |
+| `es_ES-davefx-medium` | **CC0** | **Yes**, unrestricted |
+
+The first voice tried was the research-only one, and it sounded fine - which is
+exactly how this ends up in a finished film. Nothing in the tooling warns you.
+
+The owner's position, 2026-10-13: the films are internal rather than public
+advertising. Worth recording precisely because it is a judgement, not a fact:
+the clause bans commercialising voice synthesis, and using synthesised speech
+in one's own internal video is not clearly covered either way. The safe route
+costs nothing - the Spanish voice is already CC0, and an unrestricted English
+voice removes the question entirely.
+
 ## How the sound will be synchronised
 
 One audio file per spoken line, not one long file. Each file's exact duration
