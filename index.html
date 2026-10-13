@@ -27,6 +27,29 @@
 
       <button type="submit" class="btn btn-primary btn-block" style="margin-top:18px;" id="login-btn" data-i18n="login.submit">Sign In</button>
     </form>
+
+    <!-- Forgetting a password is ordinary, and before this there was no way
+         back at all: no link, no flow, and an Operator with no second Operator
+         to ask. The link opens a panel on this same page rather than a
+         separate screen, so nobody loses their place. -->
+    <p class="text-center" style="font-size:13px; margin-top:14px; margin-bottom:0;">
+      <a href="#" id="forgot-link" data-i18n="reset.forgot">Forgotten your password?</a>
+    </p>
+
+    <div id="forgot-panel" class="hidden" style="margin-top:16px; border-top:1px solid var(--line); padding-top:16px;">
+      <form id="forgot-form">
+        <label for="forgot-email" data-i18n="reset.emailLabel">Your email address</label>
+        <input type="email" id="forgot-email" required autocomplete="username">
+        <p class="list-row-meta" style="margin:8px 0 0;" data-i18n="reset.explain">
+          We will send a link that lets you set a new password. The link expires, and can be used once.
+        </p>
+        <div class="row" style="margin-top:12px; gap:8px;">
+          <button type="submit" class="btn btn-primary btn-small" id="forgot-send-btn" data-i18n="reset.send">Send the link</button>
+          <button type="button" class="btn btn-secondary btn-small" id="forgot-cancel-btn" data-i18n="common.cancel">Cancel</button>
+        </div>
+      </form>
+      <p id="forgot-done" class="hidden list-row-meta" style="margin-top:12px;"></p>
+    </div>
   </div>
 
   <p class="text-center text-muted" style="font-size:13px;" data-i18n="login.noAccount">

@@ -16,6 +16,7 @@
 \echo
 \echo '=========== OPERATOR ANALYTICS ==========='
 
+select public.test_invite('analytics-op@example.invalid');
 insert into auth.users (id, email, raw_user_meta_data)
 values (
   'f1f1f1f1-f1f1-f1f1-f1f1-f1f1f1f1f1f1'::uuid,
@@ -24,6 +25,7 @@ values (
                      'phone', '+3200000051', 'country', 'Belgium', 'language', 'en')
 );
 
+select public.test_invite('analytics-participant@example.invalid');
 insert into auth.users (id, email, raw_user_meta_data)
 values (
   'f2f2f2f2-f2f2-f2f2-f2f2-f2f2f2f2f2f2'::uuid,

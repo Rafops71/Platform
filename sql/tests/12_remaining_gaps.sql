@@ -60,9 +60,11 @@ exception
 end;
 $fn$;
 
+select public.test_invite('gap-participant@example.invalid');
 insert into auth.users (id, email, raw_user_meta_data) values (
   'ab1ab1ab-ab1a-ab1a-ab1a-ab1ab1ab1ab1'::uuid, 'gap-participant@example.invalid',
   jsonb_build_object('first_name','Gap','last_name','Part','phone','+3200000071','country','Belgium','language','en'));
+select public.test_invite('gap-operator@example.invalid');
 insert into auth.users (id, email, raw_user_meta_data) values (
   'ab2ab2ab-ab2a-ab2a-ab2a-ab2ab2ab2ab2'::uuid, 'gap-operator@example.invalid',
   jsonb_build_object('first_name','Gap','last_name','Op','phone','+3200000072','country','Belgium','language','en'));
@@ -119,6 +121,7 @@ insert into public.listings (user_id, type, commodity, quantity, unit, incoterm,
 select id, 'sell', 'Gap Commodity', 1000, 'MT', 'FOB', 'Belgium', 'EUR', 'available', 'SELL-GAP-001'
 from public.profiles where email = 'gap-participant@example.invalid';
 
+select public.test_invite('gap-buyer@example.invalid');
 insert into auth.users (id, email, raw_user_meta_data) values (
   'ab3ab3ab-ab3a-ab3a-ab3a-ab3ab3ab3ab3'::uuid, 'gap-buyer@example.invalid',
   jsonb_build_object('first_name','Gap','last_name','Buy','phone','+3200000073','country','Spain','language','en'));

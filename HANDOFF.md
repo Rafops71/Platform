@@ -27,17 +27,33 @@ directly. If you want it anyway:
 
 ## Current state
 
-**The live database is fully migrated.** Everything through
-`sql/015_operator_analytics.sql` is applied and verified present at the catalog
-level — not assumed, but read back: columns, foreign keys, check constraints,
-and indexes all confirmed.
+**The live database is fully migrated**, through
+`sql/024_require_invitation.sql`, applied 2026-10-13 and read back from the
+live catalog rather than assumed. `sql/revert/` holds the previous
+`handle_new_user()` exactly as it was read out of the live project before 024
+replaced it: the way back, proven before the change was made.
+
+**Registration is now invitation-only, enforced in the database.** Until
+2026-10-13 anybody who found the Supabase project's `/auth/v1/signup`
+endpoint could create a pending profile without an invitation. The page never
+offered it, which is why it went unnoticed for months — the hole was in the
+API, not the UI, and no amount of testing the code would have found it. 024's
+`handle_new_user()` consumes a live invitation or raises, inside the same
+transaction, so a refusal leaves no auth user and no profile.
+
+Proven against the live project on 2026-10-13, not in a test database: an
+uninvited `POST /auth/v1/signup` was refused, and the counts before and after
+were identical (3 auth users, 3 profiles). Supabase reports a trigger
+exception as a 500 "Database error saving new user", so `errorMessage()` in
+`js/utils.js` translates exactly that string into one plain sentence, in both
+languages, with no hint about which address would have worked.
 
 **Both test suites pass against the current code:**
 
 ```sh
 npm run test:sql      # 192 assertions, 0 failures
 npm run e2e           # 95 tests — needs .env; see "What blocks the rest" below
-npm run checklist     # tick/cross table against docs/CHECKLIST.md: 37 of 52
+npm run checklist     # tick/cross table against docs/CHECKLIST.md: 56 of 56
 npm run verify-live   # READ-ONLY health check, safe on production
 ```
 
@@ -348,7 +364,180 @@ Worst case today is a status line that flaps between two answers to the same
 double-clicked action; no data is written twice, because the database
 constraints and the rate limits are what stop that, not the button.
 
+## Password recovery, and three wrong diagnoses in a row
+
+`reset.html` + `js/reset.js` + the "Forgotten your password?" panel on
+`index.html` are new (items 54–56). Supabase Auth sends the recovery mail
+itself, so recovery works while `RESEND_API_KEY` is still unset — deliberately,
+because recovery must not rest on the part of the system that is broken.
+
+Item 54 then failed three CI runs in a row, with three different causes, all
+of them mine and none of them the one I first named:
+
+1. `js/reset.js` called `initLanguage()`, **a function that has never existed
+   in this codebase**. It threw on load, before the link was ever examined, so
+   the page sat on "Checking the link…" for ever and never told anybody their
+   link was bad. `node --check` passes such a file: it parses perfectly.
+   `scripts/check-page-functions.js` now checks every HTML page's scripts for
+   calls nothing they load defines, and CI runs it as "Every call resolves".
+   It was verified by putting the bug back and watching it fail.
+2. The test's `canSignIn()` helper returned `res.status === 200`, so a rate
+   limit or an outage came back as a confident "that password does not work".
+   It now returns false only for a real 400 `invalid_credentials` and throws,
+   with the status and body, for anything else.
+3. The test asked `canSignIn(member.email, testPassword())` — and
+   `testPassword()` **mints a new random password on every call**. It was
+   asking whether the account could sign in with a string invented a moment
+   earlier. The "old password stops working" assertion had the same bug, which
+   means it was proving nothing at all before this was fixed.
+
+`initReset()` now also wraps the whole check, so any unexpected error still
+ends in the honest sentence rather than a page that looks permanently busy.
+That was checked in a browser, including with the Supabase client failing to
+load, not by reading the code.
+
+## Supabase's own settings were never examined, and one of them is wrong
+
+The suites test this project's code. They say nothing about the dashboard
+settings around it, and the signup hole above lived in exactly that gap.
+
+Fixed by the owner on 2026-10-13: the Site URL was `http://localhost:3000`,
+so every link Supabase sent itself — a password recovery link included —
+pointed at an address that exists for nobody but a developer. CI never saw it,
+because the test asks the admin API for the link directly instead of clicking
+one out of an inbox. It is now `https://rafops71.github.io/Platform/`, and
+`https://rafops71.github.io/Platform/reset.html` is on the redirect allow list
+(it was empty).
+
+Verified from a session afterwards rather than taken on trust: a recovery link
+minted through the admin API came back carrying
+`redirect_to=https://rafops71.github.io/Platform/reset.html`. Supabase falls
+back to the Site URL when a redirect is not allow-listed, so the link echoing
+the asked-for address is the proof that both settings took.
+
+Still off, and still the owner's to change: leaked-password protection.
+
+## The sweep of 2026-10-13: what asked WHO but never WHETHER
+
+The owner asked for every contingency to be tested before the platform is
+shown to clients. Probing the live project with throwaway accounts - created
+and deleted inside the same check - found a class of hole, not one instance.
+
+**Browse did not care whether you were still allowed in.** Proven live:
+
+    APPROVED  -> listings visible: 1
+    (operator suspends the account)
+    SUSPENDED -> listings visible: 1      <- the hole
+    SUSPENDED -> posting a listing: 403   <- correctly refused
+
+Writing was shut and reading was not. Browse does not read the listings table
+(RLS there gives a member only their own rows); it calls
+`get_public_listings()`, which is SECURITY DEFINER and so runs with the
+owner's rights, bypassing RLS on purpose. It asked who was calling and never
+whether they were still a member. An access token lives about an hour and the
+browser keeps it, so somebody suspended at nine could read the whole market
+from a tab already open. The interface sends them to the sign-in page; the
+interface is not the lock.
+
+Sweeping every SECURITY DEFINER function on the live project then found three
+more (sql/026): `renew_listing` (a suspended member could keep their listings
+looking fresh for ever), `next_reference`, and `purge_orphaned_activity` -
+which checked `role = 'operator'` but not status, so **a suspended Operator
+could still delete audit rows**, the very records you read to find out what
+they did before you suspended them.
+
+`sql/revert/` holds the previous version of each function, read off the live
+project before it was replaced.
+
+## Four more gates, each from a real find
+
+- **check:calls** — every function a page calls must exist. `js/reset.js`
+  called `initLanguage()`, which has never existed here; it threw on load, so
+  the recovery page never examined the link and never said one was bad.
+- **check:i18n** — 308 phrases, both languages, every `data-i18n` and every
+  `t('…')` defined. A missing Spanish phrase does not crash: it shows English
+  to somebody who does not read it, on a screen nobody who built it looks at.
+- **check:double** — anything that inserts a row must be unstartable twice.
+  Seven actions were not: two of them visible to a member as a doubled forward
+  or a doubled invitation email.
+- **check:errors** — loads the real `errorMessage()` and runs it against real
+  error objects. A refused action used to answer, on screen,
+  `new row violates row-level security policy for table "listings"`.
+- **check:filters** — the Operator's region box was spliced raw into a
+  PostgREST filter; `zzzz,role.eq.operator` became another condition on the
+  query. Proven against the live API, fixed with quoting, gated.
+
+## The database suite runs in a cloud container after all
+
+It refuses to start as root, and that had been treated as a dead end. It needs
+an ordinary user:
+
+    useradd -m pgtest && chown -R pgtest:pgtest node_modules/@embedded-postgres
+    su pgtest -c "cd /home/user/Platform && npm run test:sql"
+
+Before this, every database question cost a fifteen-minute CI run, which is
+exactly why changes went out half-checked. Use it, and run it on the previous
+commit too when something fails, so "my change broke this" is established
+rather than assumed.
+
+## The hygiene check has never run
+
+`hygiene.yml` is on this branch only, and GitHub runs scheduled workflows from
+the DEFAULT branch. Verified 2026-10-13: zero runs, while heartbeat, reminders
+and the email flush all have recent ones. So the daily "is the database clean"
+question - written after 4,776 orphaned notifications were found by hand - has
+never actually been asked. It starts working when this branch merges, and not
+before. The same is true of every fix listed above.
+
+## The 4,796 notifications, and why clearing them was not the fix
+
+The hygiene check's first working run found 4,796 notifications about things
+that no longer exist. The owner had cleared roughly 9,500 by hand days before
+and they had rebuilt, which is the signal that a button was treating a symptom.
+
+Cause: every delete in `tests/e2e/helpers/fixtures.js` matched on an id that
+still existed. Anything a test deleted DURING its run - a withdrawn listing,
+the member-deletion test - left a notification pointing at a row that was
+already gone, which no id-based predicate can find afterwards. Roughly sixty
+strays per CI run, for seven weeks.
+
+`cleanup()` now applies the orphan rule itself, the same one the Operator's
+purge button uses. The backlog was cleared on the owner's say-so with
+`sql/maintenance_2026_10_13_clear_orphans.sql` - written as a file rather than
+typed into a console, so what was run against the live database is in the
+repository with its reason. Verified afterwards: 0 orphans, 13 real
+notifications left.
+
+## Items 60 and 61, and Safari
+
+- **60 — an unreachable Platform.** Playwright cuts the browser's requests to
+  Supabase at the network level and the suite reads what the member is then
+  shown: not blank, not "Loading…" for ever, not database words, and in their
+  own language. Plus the button must not be left dead, or they cannot retry
+  when their signal returns.
+- **61 — two tabs, and a dead session.** A stale tab SHOWING something out of
+  date is unavoidable. A stale tab ACTING on it is not: one tab closes a
+  listing, the other presses renew, and the listing must stay closed. A session
+  whose stored credentials are gone must send the member to sign in or tell
+  them - never a dashboard that looks fine while nothing loads.
+- **Safari.** Every other suite runs on Chromium, including the phone-layout
+  one. On iOS every browser is WebKit underneath, so "it works on a phone" has
+  meant "it works on an engine no iPhone runs". `tests/e2e/on-safari.spec.js`
+  runs the member's real path on WebKit, in its own CI job with its own browser
+  install, after the main suite rather than beside it - two live runs at once is
+  a race worth avoiding. Adding it also broke the checklist job for one run,
+  because `playwright test` with no project runs EVERY project: both suites now
+  name their browser explicitly.
+
 ## Still open
+
+-1. **The look is chosen and must not be started yet.** "Sky Tint", white
+    ground, picked on 2026-10-13 — written down in `docs/LOOK-DECISION.md`
+    with its exact colours and the two suites a restyle will disturb. The
+    owner asked for it to be held until everything below is cleared. White
+    behind everything is a standing rule from him, not a property of this one
+    style.
+
 
 0a. **The independent reviewer is temporary and is meant to be deleted.** The
     owner said so on 2026-10-12: it is a second pair of eyes for the period

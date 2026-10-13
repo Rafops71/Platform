@@ -54,6 +54,10 @@ const DEFAULT_ORDER = [
   '021_activity_log_orphan_purge.sql',
   '022_reference_number_overflow.sql',
   '023_purge_orphaned_feeds.sql',
+  '024_require_invitation.sql',
+  '025_browse_requires_approval.sql',
+  '026_active_account_required.sql',
+  '027_purge_test_mail.sql',
   'seed_commodities.sql',
 ];
 

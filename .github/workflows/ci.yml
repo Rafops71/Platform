@@ -66,6 +66,29 @@ jobs:
       # when five migrations were tested and never deployed.
       - name: Migration lists agree
         run: npm run check:migrations
+      # js/reset.js called initLanguage(), a function that has never existed.
+      # It parsed cleanly and threw on load in the browser, so the recovery
+      # page never checked the link and never said the link was bad. Two CI
+      # runs were spent on the symptom.
+      - name: Every call resolves
+        run: npm run check:calls
+      # A phrase missing from Spanish does not crash: it shows English to
+      # somebody who does not read English, on a screen nobody who built it
+      # ever looks at.
+      - name: Both languages agree
+        run: npm run check:i18n
+      # Seven actions created rows with nothing stopping a second press. On a
+      # phone a double tap is not a mistake anybody notices making.
+      - name: No action can be started twice
+        run: npm run check:double
+      # Captured live: a refused action answered "new row violates row-level
+      # security policy for table \"listings\"". A member was shown that.
+      - name: Members never see the database's own words
+        run: npm run check:errors
+      # Proven live: a comma typed into the Operator's region box became
+      # another condition on the query.
+      - name: Typed text is never query syntax
+        run: npm run check:filters
       - name: Run sql/tests
         run: npm run test:sql
 
@@ -86,6 +109,47 @@ jobs:
         # accepted against a limit of 20, which no single-connection test could
         # have seen.
         run: npm run stress
+
+  safari:
+    name: Safari on an iPhone
+    runs-on: ubuntu-latest
+    # AFTER the checklist, never beside it. Both drive the live Supabase
+    # project, and two live runs at once is a race nobody needs: the fixtures
+    # are scoped per run, but an orphan sweep in one can land mid-test in the
+    # other. The cost is a few minutes at the end of a run that is already
+    # thirteen.
+    needs: checklist
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+
+      - name: Install WebKit
+        # WebKit, not Chromium: this job exists precisely because every other
+        # suite runs on Chrome's engine, and on iOS every browser is WebKit
+        # underneath - Chrome on an iPhone included.
+        run: npx playwright install --with-deps webkit
+
+      - name: The member's journey on Safari
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          OPERATOR_EMAIL: ${{ secrets.OPERATOR_EMAIL }}
+        run: npx playwright test --project=safari
+
+      - name: Keep the failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: safari-failure
+          path: test-results/
+          retention-days: 5
+          if-no-files-found: ignore
 
   checklist:
     name: Function checklist

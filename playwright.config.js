@@ -41,7 +41,31 @@ module.exports = defineConfig({
     actionTimeout: 15_000,
   },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    // Everything except the Safari file, which would otherwise run twice.
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+      testIgnore: /on-safari\.spec\.js/,
+    },
+
+    // Safari, on an iPhone, which is what a client will actually open.
+    //
+    // Every other suite runs on Chromium, so until now "it works on a phone"
+    // meant "it works on Chrome's engine at phone size". That is not the same
+    // claim: WebKit is a different engine with its own behaviour around dates,
+    // storage in private windows, and form controls, and it is the only engine
+    // allowed on iOS - Chrome on an iPhone is WebKit underneath too.
+    //
+    // Deliberately ONE file rather than the whole suite. Running everything
+    // twice would double a thirteen-minute run and double the churn on the
+    // live database for very little: the risk is not that the application
+    // logic differs per engine, it is that the INTERFACE does. So this covers
+    // the journey a member actually takes, on the engine they actually have.
+    {
+      name: 'safari',
+      use: { ...devices['iPhone 13'] },
+      testMatch: /on-safari\.spec\.js/,
+    },
   ],
 
   // Start the site ourselves rather than assuming someone already did. Before

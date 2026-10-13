@@ -57,6 +57,10 @@ const SETUP = [
   'sql/021_activity_log_orphan_purge.sql',
   'sql/022_reference_number_overflow.sql',
   'sql/023_purge_orphaned_feeds.sql',
+  'sql/024_require_invitation.sql',
+  'sql/025_browse_requires_approval.sql',
+  'sql/026_active_account_required.sql',
+  'sql/027_purge_test_mail.sql',
   'sql/seed_commodities.sql',
 ];
 

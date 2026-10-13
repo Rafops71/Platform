@@ -15,6 +15,7 @@
 \echo
 \echo '=========== RATE LIMITS ==========='
 
+select public.test_invite('rl-flooder@example.invalid');
 insert into auth.users (id, email, raw_user_meta_data)
 values (
   '1a1a1a1a-1a1a-1a1a-1a1a-1a1a1a1a1a1a'::uuid,
@@ -23,6 +24,7 @@ values (
                      'phone', '+3200000051', 'country', 'Belgium', 'language', 'en')
 );
 
+select public.test_invite('rl-bystander@example.invalid');
 insert into auth.users (id, email, raw_user_meta_data)
 values (
   '2b2b2b2b-2b2b-2b2b-2b2b-2b2b2b2b2b2b'::uuid,
@@ -31,6 +33,7 @@ values (
                      'phone', '+3200000052', 'country', 'Spain', 'language', 'en')
 );
 
+select public.test_invite('rl-operator@example.invalid');
 insert into auth.users (id, email, raw_user_meta_data)
 values (
   '3c3c3c3c-3c3c-3c3c-3c3c-3c3c3c3c3c3c'::uuid,

@@ -16,6 +16,7 @@
 \echo
 \echo '=========== SAVED SEARCHES ==========='
 
+select public.test_invite('watcher@example.invalid');
 insert into auth.users (id, email, raw_user_meta_data)
 values (
   'c1c1c1c1-c1c1-c1c1-c1c1-c1c1c1c1c1c1'::uuid,
@@ -24,6 +25,7 @@ values (
                      'phone', '+3200000021', 'country', 'Belgium', 'language', 'en')
 );
 
+select public.test_invite('nosy@example.invalid');
 insert into auth.users (id, email, raw_user_meta_data)
 values (
   'c2c2c2c2-c2c2-c2c2-c2c2-c2c2c2c2c2c2'::uuid,
@@ -32,6 +34,7 @@ values (
                      'phone', '+3200000022', 'country', 'Spain', 'language', 'en')
 );
 
+select public.test_invite('watch-op@example.invalid');
 insert into auth.users (id, email, raw_user_meta_data)
 values (
   'c3c3c3c3-c3c3-c3c3-c3c3-c3c3c3c3c3c3'::uuid,

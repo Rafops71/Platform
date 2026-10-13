@@ -719,6 +719,10 @@ function openSavedSearch(row) {
 }
 
 async function saveCurrentSearch() {
+  return withButtonBusy('browse-save-search-btn', t('common.saving'), saveCurrentSearchNow);
+}
+
+async function saveCurrentSearchNow() {
   const criteria = browseFilterCriteria();
 
   const { error } = await jericho.from('saved_searches')
@@ -804,6 +808,10 @@ function openContactModal(listingId, refLabel, inReplyTo = null) {
 function closeContactModal() { document.getElementById('contact-modal').classList.add('hidden'); }
 
 async function sendContactMessage() {
+  return withButtonBusy('contact-send-btn', t('common.sending'), sendContactMessageNow);
+}
+
+async function sendContactMessageNow() {
   const body = document.getElementById('contact-body').value.trim();
   if (!body) { showError(t('contact.empty')); return; }
   const { error } = await jericho.from('messages').insert({

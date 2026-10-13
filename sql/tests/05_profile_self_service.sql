@@ -18,6 +18,7 @@
 \echo
 \echo '=========== PROFILE SELF-SERVICE ==========='
 
+select public.test_invite('self-service@example.invalid');
 insert into auth.users (id, email, encrypted_password, raw_user_meta_data)
 values (
   'b1b1b1b1-b1b1-b1b1-b1b1-b1b1b1b1b1b1'::uuid,
@@ -29,6 +30,7 @@ values (
   )
 );
 
+select public.test_invite('other-participant@example.invalid');
 insert into auth.users (id, email, encrypted_password, raw_user_meta_data)
 values (
   'b2b2b2b2-b2b2-b2b2-b2b2-b2b2b2b2b2b2'::uuid,

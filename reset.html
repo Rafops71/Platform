@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jericho Platform — Set a new password</title>
+<!-- A recovery link is a credential. Keeping it out of referrer headers costs
+     nothing and stops the token leaking to anything this page loads. -->
+<meta name="referrer" content="no-referrer">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="auth-page">
+
+<div class="auth-wrap">
+  <div id="lang-toggle" class="lang-toggle lang-toggle-auth"></div>
+
+  <div class="auth-head">
+    <h1>Jericho Platform</h1>
+    <p data-i18n="reset.title">Set a new password</p>
+  </div>
+
+  <div id="notice" class="notice hidden"></div>
+
+  <div class="card">
+    <!-- Hidden until the recovery link has been accepted. Showing the form
+         first and failing afterwards would invite somebody to type a new
+         password into a page that was never going to save it. -->
+    <form id="reset-form" class="hidden">
+      <label for="new-password" data-i18n="reset.newPassword">New password</label>
+      <input type="password" id="new-password" required autocomplete="new-password" minlength="8">
+
+      <label for="confirm-password" data-i18n="reset.confirmPassword">Repeat the new password</label>
+      <input type="password" id="confirm-password" required autocomplete="new-password" minlength="8">
+
+      <p class="list-row-meta" style="margin:8px 0 0;" data-i18n="reset.rule">
+        At least 8 characters. Use something you do not use anywhere else.
+      </p>
+
+      <button type="submit" class="btn btn-primary btn-block" style="margin-top:18px;"
+              id="reset-btn" data-i18n="reset.save">Save the new password</button>
+    </form>
+
+    <!-- No data-i18n here on purpose. This line is written by js/reset.js and
+         CHANGES - "checking", then either nothing (the form appears) or a
+         verdict about a bad link. A data-i18n tag means the translation pass
+         can put the original text back over the top of whatever the script
+         decided, which is exactly what happened: the verdict was set and then
+         silently reverted to "Checking the link…", and the page sat there
+         looking busy forever. The script sets both states itself. -->
+    <p id="reset-status" class="list-row-meta">Checking the link…</p>
+
+    <p class="text-center" style="font-size:13px; margin-top:16px; margin-bottom:0;">
+      <a href="index.html" data-i18n="reset.backToSignIn">Back to sign in</a>
+    </p>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.4/dist/umd/supabase.js"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/reset.js"></script>
+</body>
+</html>

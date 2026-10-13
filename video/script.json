@@ -1,0 +1,153 @@
+{
+  "_comment": [
+    "The two films, as data rather than as a document.",
+    "",
+    "One file is the source for BOTH the narration and the camera. The voice is",
+    "generated from `say`, and the recorder walks the same list in the same",
+    "order, holding each shot for exactly as long as that line takes to speak.",
+    "Keeping them apart would mean two scripts drifting out of step, and a film",
+    "where the pointer presses Forward while the voice is still on Approvals.",
+    "",
+    "`do` is what the recorder performs. `highlight` is the element the ring is",
+    "drawn around while the line is spoken. Both are read by video/record.js.",
+    "",
+    "Voices chosen by the owner on 2026-10-13: en_US-joe-medium (CC0) and",
+    "es_ES-davefx-medium (CC0). Both unrestricted - nothing is owed to anybody",
+    "for either, which is why they were chosen over better-known voices."
+  ],
+
+  "films": {
+    "member": {
+      "title": "Jericho Platform — for members",
+      "as": "member",
+      "scenes": [
+        {
+          "id": "signin",
+          "do": "signIn",
+          "highlight": "#login-form",
+          "say": {
+            "en": "Jericho is a private market for bulk commodities. There is no public listing, and no way in without an invitation.",
+            "es": "Jericho es un mercado privado de materias primas a granel. No hay anuncios públicos, y no se entra sin invitación."
+          }
+        },
+        {
+          "id": "dashboard",
+          "do": "screen:browse",
+          "highlight": "nav.tabs",
+          "say": {
+            "en": "Once you are in, everything is on one screen: your offers, the market, and your messages.",
+            "es": "Una vez dentro, todo está en una sola pantalla: sus ofertas, el mercado y sus mensajes."
+          }
+        },
+        {
+          "id": "post",
+          "do": "screen:new-listing",
+          "highlight": "#listing-form",
+          "say": {
+            "en": "To offer something, you fill in one form. Commodity, quantity, Incoterm, origin.",
+            "es": "Para ofrecer algo, se rellena un solo formulario. Materia prima, cantidad, Incoterm y origen."
+          }
+        },
+        {
+          "id": "post-fill",
+          "do": "fillListing",
+          "highlight": "#listing-form",
+          "say": {
+            "en": "Twenty five thousand tonnes of copper cathode, CIF Rotterdam, from Chile. It takes under a minute.",
+            "es": "Veinticinco mil toneladas de cátodo de cobre, CIF Róterdam, desde Chile. Lleva menos de un minuto."
+          }
+        },
+        {
+          "id": "mine",
+          "do": "screen:my-listings",
+          "highlight": "#my-listings-list",
+          "say": {
+            "en": "Your offer appears with its own reference number. You can edit it, renew it, or withdraw it at any time.",
+            "es": "Su oferta aparece con su propio número de referencia. Puede modificarla, renovarla o retirarla cuando quiera."
+          }
+        },
+        {
+          "id": "browse",
+          "do": "screen:browse",
+          "highlight": "#browse-list",
+          "say": {
+            "en": "Browse shows every offer on the platform. Filter by commodity, or search.",
+            "es": "Explorar muestra todas las ofertas de la Plataforma. Puede filtrar por materia prima o buscar."
+          }
+        },
+        {
+          "id": "anonymous",
+          "do": "hold",
+          "highlight": ".list-row",
+          "say": {
+            "en": "You see the full commercial detail. You do not see who posted it, and they do not see you.",
+            "es": "Ve todo el detalle comercial. No ve quién la publicó, y ellos no le ven a usted."
+          }
+        },
+        {
+          "id": "save-search",
+          "do": "saveSearch",
+          "highlight": "#browse-save-search-btn",
+          "say": {
+            "en": "Save a search and it becomes a watchlist, telling you how many offers match.",
+            "es": "Guarde una búsqueda y se convierte en una lista de seguimiento que le indica cuántas ofertas coinciden."
+          }
+        },
+        {
+          "id": "contact",
+          "do": "openContact",
+          "highlight": "#contact-modal",
+          "say": {
+            "en": "When something interests you, you write to the Operator. Never to the other member.",
+            "es": "Cuando algo le interesa, escribe al Operador. Nunca al otro miembro."
+          }
+        },
+        {
+          "id": "send",
+          "do": "sendContact",
+          "highlight": "#contact-send-btn",
+          "say": {
+            "en": "The Operator reads it, decides, and passes it on. Nothing travels on its own.",
+            "es": "El Operador lo lee, decide, y lo transmite. Nada viaja por su cuenta."
+          }
+        },
+        {
+          "id": "mailbox",
+          "do": "screen:mailbox",
+          "highlight": "#mailbox-list",
+          "say": {
+            "en": "Replies come back the same way, into your mailbox.",
+            "es": "Las respuestas vuelven por el mismo camino, a su buzón."
+          }
+        },
+        {
+          "id": "documents",
+          "do": "screen:doc-requests",
+          "highlight": "#doc-checklist",
+          "say": {
+            "en": "You declare which papers you hold. Nothing is ever uploaded — the platform stores no files.",
+            "es": "Usted declara qué documentos posee. Nunca se sube nada: la Plataforma no almacena archivos."
+          }
+        },
+        {
+          "id": "language",
+          "do": "switchLanguage",
+          "highlight": ".lang-toggle",
+          "say": {
+            "en": "The whole platform speaks Spanish as well, at one press.",
+            "es": "La Plataforma también habla inglés, con una sola pulsación."
+          }
+        },
+        {
+          "id": "close",
+          "do": "hold",
+          "highlight": null,
+          "say": {
+            "en": "Nobody learns who you are until you decide they should. That is the whole point of Jericho.",
+            "es": "Nadie sabe quién es usted hasta que usted decide que lo sepan. Esa es la razón de ser de Jericho."
+          }
+        }
+      ]
+    }
+  }
+}

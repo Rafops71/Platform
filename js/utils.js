@@ -71,7 +71,132 @@ function showSuccess(message) { showToast(message, 'success'); }
 /** Human-readable message from a Supabase/Postgres error. */
 function errorMessage(err) {
   if (!err) return 'Unknown error';
-  return err.message || err.error_description || String(err);
+  const raw = err.message || err.error_description || String(err);
+
+  // Supabase Auth turns an exception raised inside the on_auth_user_created
+  // trigger into "Database error saving new user" with a 500. Verified
+  // against the live project on 2026-10-13: an uninvited registration now
+  // answers exactly that, because sql/024's handle_new_user() refuses it.
+  // Correct, and meaningless to the person reading it - so it is translated
+  // here into the one sentence that is true and useful. Deliberately no hint
+  // about WHICH address would have worked: the prohibition in Item55 applies
+  // to this form too.
+  if (/database error saving new user/i.test(raw) && typeof t === 'function') {
+    return t('register.inviteOnly');
+  }
+
+  // WHAT A MEMBER IS ALLOWED TO BE SHOWN
+  //
+  // PostgREST hands back the database's own words. Captured from the live
+  // project on 2026-10-13, an action a member is not permitted answers:
+  //
+  //   new row violates row-level security policy for table "listings"
+  //
+  // Three things wrong with putting that on a screen. It reads as a crash
+  // when the system is in fact working exactly as intended; it means nothing
+  // to a commodity trader; and it names an internal table to somebody who was
+  // just told they may not do something - which on a platform whose product
+  // is controlled disclosure is a free look at how the walls are built.
+  //
+  // So the codes are translated and the raw text goes to the console, where
+  // it is still there for whoever has to diagnose it.
+  //
+  // 42501 and PGRST204 were read off the live API. The 23xxx codes are the
+  // SQL standard's own constraint-violation classes, not something read from
+  // a vendor's screen.
+  const code = err.code || '';
+  const byCode = {
+    '42501': 'err.notAllowed',      // row-level security refused it
+    '23505': 'err.alreadyExists',   // unique constraint
+    '23503': 'err.gone',            // foreign key: the other row is not there
+    '23502': 'err.missingField',    // not null
+    '23514': 'err.notAllowedValue', // check constraint
+    'PGRST301': 'err.sessionEnded', // JWT no longer valid
+  };
+
+  // A browser that cannot reach Supabase at all throws a TypeError whose
+  // message differs per browser, so this matches the shape rather than the
+  // wording of any one of them.
+  const offline = err instanceof TypeError ||
+    /failed to fetch|networkerror|load failed/i.test(raw);
+
+  const key = offline ? 'err.offline' : byCode[code];
+  if (key && typeof t === 'function') {
+    console.error('[jericho]', code || 'network', raw);
+    return t(key);
+  }
+
+  return raw;
+}
+
+/** A value safe to drop into a PostgREST filter string.
+ *
+ *  WHY THIS EXISTS
+ *
+ *  The Operator's region box was spliced straight into a filter:
+ *
+ *    query.or(`origin.ilike.%${region}%,destination.ilike.%${region}%`)
+ *
+ *  A comma in that box is not text, it is punctuation. Proven against the
+ *  live API on 2026-10-13: searching for `zzzz,role.eq.operator` returns the
+ *  operator rows - the typed text became an extra condition on the query.
+ *
+ *  Nothing escapes through it today, because every such query still runs
+ *  under Row Level Security and an Operator may already read what it reaches.
+ *  It is fixed anyway, for one reason: the pattern. The same two lines on a
+ *  member-facing screen would be a way for a member to rewrite their own
+ *  query, and this platform's product is that members cannot see each other.
+ *  A habit that is only safe where it currently sits is not safe.
+ *
+ *  PostgREST reads a double-quoted value as one literal, which is what the
+ *  live API confirmed: quoted, the same string matches nothing instead of
+ *  changing the query. Inner quotes and backslashes are escaped so the
+ *  quoting itself cannot be closed early. */
+function pgLikeValue(value) {
+  const escaped = String(value ?? '').replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  return `"%${escaped}%"`;
+}
+
+/** Run `work` with a button switched off, so a second press cannot start it
+ *  again while the first is still in flight.
+ *
+ *  WHY THIS EXISTS
+ *
+ *  Several actions on this platform CREATE something: an enquiry to the
+ *  Operator, a forward to the listing owner, an invitation, a document
+ *  request. None of them disabled their control before awaiting the database,
+ *  so two taps sent two. On a phone - which is where the owner uses this -
+ *  a double tap is not a mistake anybody notices making.
+ *
+ *  Two of those duplicates are worse than untidy. A doubled forward means the
+ *  listing owner receives the same enquiry twice from an Operator who only
+ *  sent it once, and a doubled invitation emails somebody twice before the
+ *  platform has said a word to them.
+ *
+ *  The button is switched back on in a `finally`, so a failure leaves a usable
+ *  screen rather than a dead button. */
+async function withButtonBusy(buttonOrId, busyText, work) {
+  const btn = typeof buttonOrId === 'string'
+    ? document.getElementById(buttonOrId)
+    : buttonOrId;
+
+  // Already running: the second press does nothing at all, rather than
+  // queueing behind the first and firing when it finishes.
+  if (btn && btn.disabled) return undefined;
+
+  const original = btn ? btn.textContent : null;
+  if (btn) {
+    btn.disabled = true;
+    if (busyText) btn.textContent = busyText;
+  }
+  try {
+    return await work();
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = original;
+    }
+  }
 }
 
 /** Fetch the profile row for the currently authenticated user.

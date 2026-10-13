@@ -22,6 +22,7 @@
 \echo '=========== A MEMBER WHO HAS USED THE PLATFORM CAN BE DELETED ==========='
 
 -- The operator who invites, forwards and requests.
+select public.test_invite('del-operator@example.invalid');
 insert into auth.users (id, email, raw_user_meta_data)
 values (
   'd0d0d0d0-0000-4000-8000-00000000000a'::uuid,
@@ -31,6 +32,7 @@ values (
 );
 
 -- The member who will be deleted.
+select public.test_invite('del-member@example.invalid');
 insert into auth.users (id, email, raw_user_meta_data)
 values (
   'd0d0d0d0-0000-4000-8000-00000000000b'::uuid,
@@ -40,6 +42,7 @@ values (
 );
 
 -- The counterparty, who must survive untouched.
+select public.test_invite('del-other@example.invalid');
 insert into auth.users (id, email, raw_user_meta_data)
 values (
   'd0d0d0d0-0000-4000-8000-00000000000c'::uuid,

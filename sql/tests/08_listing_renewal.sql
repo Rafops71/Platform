@@ -15,6 +15,7 @@
 \echo
 \echo '=========== LISTING RENEWAL ==========='
 
+select public.test_invite('renewer@example.invalid');
 insert into auth.users (id, email, raw_user_meta_data)
 values (
   'e1e1e1e1-e1e1-e1e1-e1e1-e1e1e1e1e1e1'::uuid,
@@ -23,6 +24,7 @@ values (
                      'phone', '+3200000041', 'country', 'Belgium', 'language', 'en')
 );
 
+select public.test_invite('renew-other@example.invalid');
 insert into auth.users (id, email, raw_user_meta_data)
 values (
   'e2e2e2e2-e2e2-e2e2-e2e2-e2e2e2e2e2e2'::uuid,

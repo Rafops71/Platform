@@ -81,6 +81,14 @@ the suite: this platform's product is controlled disclosure, so proving a thing
 | 51 | A caller with no account can reach nothing but their own invitation token | MUST NOT |
 | 52 | The audit log and the Operator feed cannot be written by hand | MUST NOT |
 | 53 | A member can be deleted: their own content goes, the record of what happened stays, and the other party is untouched | does |
+| 54 | A member who has forgotten their password can set a new one, and the old one stops working | does |
+| 55 | The reset form never reveals whether an address has an account | MUST NOT |
+| 56 | Nobody can create an account without a valid invitation | MUST NOT |
+| 57 | Only an Operator can produce a password recovery link for a member | MUST NOT |
+| 58 | Text a member types is shown as characters, never run as code | MUST NOT |
+| 59 | A member who is not approved cannot read the market, however they ask | MUST NOT |
+| 60 | When the Platform cannot be reached, a member is told so in plain words | does |
+| 61 | A tab left open cannot undo work done elsewhere, and a dead session is not hidden | MUST NOT |
 
 ## Open questions on this list
 

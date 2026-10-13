@@ -19,6 +19,7 @@
 \echo
 \echo '=========== TERMS ACCEPTANCE ==========='
 
+select public.test_invite('terms-en@example.invalid');
 insert into auth.users (id, email, raw_user_meta_data)
 values (
   'a1a1a1a1-a1a1-a1a1-a1a1-a1a1a1a1a1a1'::uuid,
@@ -30,6 +31,7 @@ values (
   )
 );
 
+select public.test_invite('terms-es@example.invalid');
 insert into auth.users (id, email, raw_user_meta_data)
 values (
   'a2a2a2a2-a2a2-a2a2-a2a2-a2a2a2a2a2a2'::uuid,
@@ -67,6 +69,7 @@ where p.email = 'terms-en@example.invalid';
 
 -- A registration arriving with no version attached must still leave evidence.
 -- A missing row would be ambiguous; 'unrecorded' is not.
+select public.test_invite('terms-none@example.invalid');
 insert into auth.users (id, email, raw_user_meta_data)
 values (
   'a3a3a3a3-a3a3-a3a3-a3a3-a3a3a3a3a3a3'::uuid,

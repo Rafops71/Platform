@@ -22,23 +22,24 @@ const { Client } = require('pg');
 
 const ROOT = path.join(__dirname, '..');
 
+// A copy of this loader used to live here and INSISTED on a .env file. A CI
+// runner has no .env - it passes repo secrets as environment variables - so
+// the daily hygiene check died on its first line every time, with
+// "ERROR: no .env", before it read a single row. It had therefore never once
+// answered the question it exists to ask. Found on 2026-10-13 by running the
+// workflow by hand rather than assuming a scheduled job works.
+//
+// scripts/db.js already does this correctly, and shares the fix with every
+// other script. Two copies of the same plumbing is how one of them drifts.
+const { loadEnv: loadEnvShared } = require('./db');
+
 function loadEnv() {
-  const envPath = path.join(ROOT, '.env');
-  if (!fs.existsSync(envPath)) {
-    console.error('ERROR: no .env — cp .env.example .env and fill it in.');
-    process.exit(1);
-  }
-  for (const line of fs.readFileSync(envPath, 'utf8').split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const eq = trimmed.indexOf('=');
-    if (eq === -1) continue;
-    const key = trimmed.slice(0, eq).trim();
-    const value = trimmed.slice(eq + 1).trim();
-    if (!(key in process.env)) process.env[key] = value;
-  }
+  loadEnvShared();
   if (!process.env.SUPABASE_DB_URL) {
-    console.error('ERROR: SUPABASE_DB_URL empty in .env');
+    console.error(
+      'ERROR: SUPABASE_DB_URL is not set. Locally it comes from .env; ' +
+      'in CI it comes from the repository secrets.'
+    );
     process.exit(1);
   }
 }

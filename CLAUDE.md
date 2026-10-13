@@ -54,6 +54,14 @@ something fluent said it.
 
 ## Reporting rules
 
+- **Nothing from memory. Ever.** Not a function name, not a column, not a menu,
+  not a limit, not a price. If it has not been checked in this session with a
+  tool that can see the thing itself, it is not known - and the honest sentence
+  is "I cannot check that from here", not a confident guess. The owner said
+  this in those words on 2026-10-13, after a session in which three separate
+  failures were all the same mistake: a thing that felt like recall and was
+  not. `initLanguage()` felt like recall. It had never existed.
+
 - Never say something works unless a check was run and its output said so.
   "It should work now" is not acceptable. A clean parse proves nothing.
 - The same standard applies to every factual claim, not only to code. Where a
@@ -83,7 +91,17 @@ something fluent said it.
 - `npm run serve` — static server. Playwright starts it itself; nothing needs
   to be open beforehand.
 - `npm run test:sql` — database suite, needs no credentials (it downloads its
-  own PostgreSQL). Will not run as root.
+  own PostgreSQL). Will not run as root — **but that is not a dead end**. In a
+  cloud container, make an ordinary user once and run it as them:
+
+      useradd -m pgtest && chown -R pgtest:pgtest node_modules/@embedded-postgres
+      su pgtest -c "cd /home/user/Platform && npm run test:sql"
+
+  Verified working on 2026-10-13. This matters more than it looks: before it,
+  every database question cost a fifteen-minute CI run, which is why changes
+  went out half-checked. Run it before pushing, and run it on the previous
+  commit too when something fails, so "my change broke this" is established
+  rather than assumed.
 - `npm run e2e` / `npm run checklist` — browser suites, need `.env` and the
   live Supabase project.
 
