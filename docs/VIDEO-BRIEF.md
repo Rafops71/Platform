@@ -84,8 +84,16 @@ dataset's own page. Checked one by one:
 |---|---|---|
 | `en_US-lessac-medium` | Blizzard/Lessac: **research only** | **No.** Excludes "the development, marketing, commercialisation, sale or licencing of voice synthesis" |
 | `en_US-ryan-high` | RyanSpeech: **CC BY-NC-SA 4.0** | **No.** Non-commercial |
-| `en_GB-northern_english_male-medium` | OpenSLR 83: **CC-BY-SA 4.0** | **Yes**, with a credit line |
-| `es_ES-davefx-medium` | **CC0** | **Yes**, unrestricted |
+| `en_GB-northern_english_male-medium` | OpenSLR 83: **CC-BY-SA 4.0** | Yes, but needs a credit line |
+| `en_US-ljspeech-high` | LJ Speech: **public domain** | **Yes, nothing owed** |
+| `en_US-joe-medium` | **CC0** | **Yes, nothing owed** |
+| `es_ES-davefx-medium` | **CC0** | **Yes, nothing owed** |
+
+The owner asked for free with no strings, so the choice is between the two
+unrestricted English voices - ljspeech (female, measured: 7.48s on the opening
+line) and joe (male, brisker: 6.49s) - with davefx for Spanish. The
+attribution voice is kept in the table only so nobody re-discovers it and
+assumes it is the best available.
 
 The first voice tried was the research-only one, and it sounded fine - which is
 exactly how this ends up in a finished film. Nothing in the tooling warns you.
