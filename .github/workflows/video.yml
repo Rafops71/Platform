@@ -77,7 +77,15 @@ jobs:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
           node scripts/serve.js &
-          npx wait-on http://localhost:8000 || sleep 5
+          # Wait for the server with curl rather than npx wait-on: that package
+          # is not a dependency of this project, so npx would fetch it from the
+          # network on every run - a download in the middle of a recording job,
+          # for something four lines of shell already do.
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:8000/index.html >/dev/null && break
+            sleep 1
+          done
+          curl -sf http://localhost:8000/index.html >/dev/null || { echo "::error::the static server never answered"; exit 1; }
           node video/record.js --film ${{ inputs.film }} --lang ${{ inputs.lang }}
 
       - name: Join the voice to the picture
