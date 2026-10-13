@@ -401,12 +401,21 @@ load, not by reading the code.
 The suites test this project's code. They say nothing about the dashboard
 settings around it, and the signup hole above lived in exactly that gap.
 
-Still wrong, and only the owner can fix it: the project's **Site URL is
-`http://localhost:3000`**, so any link Supabase sends itself — including a
-password recovery link — points at an address that does not exist for anybody
-but a developer. The recovery flow is proven end to end in CI because the test
-asks the admin API for the link directly; a real member clicking a real email
-would land nowhere. Leaked-password protection is also off.
+Fixed by the owner on 2026-10-13: the Site URL was `http://localhost:3000`,
+so every link Supabase sent itself — a password recovery link included —
+pointed at an address that exists for nobody but a developer. CI never saw it,
+because the test asks the admin API for the link directly instead of clicking
+one out of an inbox. It is now `https://rafops71.github.io/Platform/`, and
+`https://rafops71.github.io/Platform/reset.html` is on the redirect allow list
+(it was empty).
+
+Verified from a session afterwards rather than taken on trust: a recovery link
+minted through the admin API came back carrying
+`redirect_to=https://rafops71.github.io/Platform/reset.html`. Supabase falls
+back to the Site URL when a redirect is not allow-listed, so the link echoing
+the asked-for address is the proof that both settings took.
+
+Still off, and still the owner's to change: leaked-password protection.
 
 ## Still open
 
