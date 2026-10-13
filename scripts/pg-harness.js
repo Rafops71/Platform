@@ -60,6 +60,7 @@ const SETUP = [
   'sql/024_require_invitation.sql',
   'sql/025_browse_requires_approval.sql',
   'sql/026_active_account_required.sql',
+  'sql/027_purge_test_mail.sql',
   'sql/seed_commodities.sql',
 ];
 

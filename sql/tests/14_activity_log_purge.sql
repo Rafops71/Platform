@@ -240,8 +240,16 @@ exception
 end $$;
 
 -- Queued mail about a listing that is still there: must survive.
+--
+-- Addressed to a REAL-looking address on purpose. It used to say
+-- somebody@example.invalid, and sql/027 - which clears unsent mail to
+-- addresses that can never receive any - correctly removed it, breaking this
+-- assertion and the count in T11. The app was right and the fixture was
+-- wrong: an undeliverable address is not what "mail about a live listing"
+-- means. The case it accidentally covered now has an assertion of its own
+-- below (T22), rather than being lost.
 insert into public.email_outbox (to_email, subject, body_text, related_listing_id)
-values ('somebody@example.invalid', 'About a live listing', 'body',
+values ('live.listing.watcher@telenet.be', 'About a live listing', 'body',
         (select id from public.listings where reference_number = 'SELL-PURGE-LIVE'));
 
 create temporary table purge2 as select public.purge_orphaned_activity() as removed;
@@ -283,6 +291,75 @@ where related_listing_id = (select id from public.listings where reference_numbe
 select case when (details->>'notifications')::int = 1
             then 'PASS' else 'FAIL ' || details::text end
   as "T17 the receipt breaks the count down by table"
+from public.activity_log
+where action = 'activity_log_purged'
+order by created_at desc limit 1;
+
+
+-- ===================================================================
+-- sql/027: the purge also clears mail that was never going anywhere.
+--
+-- Harmless only while no mail is sent at all. The day the keys are set the
+-- queue flushes and whatever is in it goes - which on 2026-10-13 included a
+-- seven-week-old notice about a test listing.
+-- ===================================================================
+
+insert into public.email_outbox (to_email, subject, body_text)
+values ('jericho-e2e-someone@example.invalid', 'Test run leftover', 'body'),
+       ('somebody@example.com',                'Reserved domain',   'body'),
+       ('a.real.member@telenet.be',            'A real notice',     'body');
+
+-- One real address with mail that FAILED and is old: the tempting case, and
+-- the one that must survive. A member's failed notification is something to
+-- look at, not something to make disappear.
+insert into public.email_outbox (to_email, subject, body_text, attempts, created_at)
+values ('another.real@telenet.be', 'An old failure', 'body', 3, now() - interval '40 days');
+
+-- And one already sent to a test address: a record of something that
+-- happened, which the purge must not rewrite.
+insert into public.email_outbox (to_email, subject, body_text, sent_at)
+values ('jericho-e2e-sent@example.invalid', 'Already sent', 'body', now());
+
+select public.purge_orphaned_activity();
+
+select case when count(*) = 0 then 'PASS' else 'FAIL got ' || count(*) end
+  as "T18 unsent mail to a test address is gone"
+from public.email_outbox
+where sent_at is null
+  and (to_email like 'jericho-e2e-%' or to_email like '%@example.com');
+
+-- Named exactly, not matched by domain: a domain match counts whatever else
+-- the file happens to have queued, so the assertion moves whenever an
+-- unrelated fixture changes. It already did once.
+select case when count(*) = 2 then 'PASS' else 'FAIL got ' || count(*) end
+  as "T19 unsent mail to a REAL address survives, however old or failed"
+from public.email_outbox
+where sent_at is null
+  and to_email in ('a.real.member@telenet.be', 'another.real@telenet.be');
+
+select case when count(*) = 1 then 'PASS' else 'FAIL got ' || count(*) end
+  as "T20 mail already sent is left alone, test address or not"
+from public.email_outbox where subject = 'Already sent';
+
+select case when (details->>'test_mail')::int = 2
+            then 'PASS' else 'FAIL ' || details::text end
+  as "T21 the receipt counts the mail it removed"
+from public.activity_log
+where action = 'activity_log_purged'
+order by created_at desc limit 1;
+
+-- An undeliverable address is cleared even when the listing it is about is
+-- perfectly alive. Liveness of the listing is not the question; whether the
+-- mail could ever arrive is.
+insert into public.email_outbox (to_email, subject, body_text, related_listing_id)
+values ('nobody@example.invalid', 'Live listing, dead address', 'body',
+        (select id from public.listings where reference_number = 'SELL-PURGE-LIVE'));
+
+select public.purge_orphaned_activity();
+
+select case when count(*) = 0 then 'PASS' else 'FAIL got ' || count(*) end
+  as "T22 an undeliverable address is cleared even about a live listing"
+from public.email_outbox where subject = 'Live listing, dead address'
 from public.activity_log
 where action = 'activity_log_purged'
 order by created_at desc limit 1;
