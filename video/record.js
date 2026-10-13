@@ -171,8 +171,19 @@ async function main() {
   await context.addInitScript(overlayScript);
   const page = await context.newPage();
 
+  // Prove the overlay is actually there before filming fourteen scenes that
+  // depend on it. The first run failed on scene one with "Cannot read
+  // properties of undefined", which says nothing about the cause - the init
+  // script had thrown because the document did not exist yet. A check here
+  // turns that into one sentence naming the problem.
+  await page.goto(`${BASE}/index.html`);
+  const overlayReady = await page.evaluate(() =>
+    Boolean(window.__jericho && typeof window.__jericho.caption === 'function'));
+  if (!overlayReady) {
+    throw new Error('the overlay never loaded, so there would be no pointer, ring or captions');
+  }
+
   if (lang === 'es') {
-    await page.goto(`${BASE}/index.html`);
     await page.evaluate(() => { try { localStorage.setItem('jericho.language', 'es'); } catch (e) {} });
   }
 

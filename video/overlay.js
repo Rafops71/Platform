@@ -21,11 +21,26 @@
 // All of this is injected into the page under test and touches nothing in the
 // application's own code.
 
-/** Injected once per page. Defines window.__jericho for the recorder to drive. */
+/** Injected once per page. Defines window.__jericho for the recorder to drive.
+ *
+ *  Everything is built on FIRST USE, not here.
+ *
+ *  An init script runs before the document exists - document.documentElement
+ *  is null at that moment - so the first version of this threw on its first
+ *  appendChild, window.__jericho was never defined, and the recorder failed on
+ *  scene one with "Cannot read properties of undefined". The error was in the
+ *  page, not in the recorder, which is why nothing in the recorder's own code
+ *  looked wrong. */
 function overlayScript() {
   if (window.__jericho) return;
 
-  const style = document.createElement('style');
+  let parts = null;
+
+  function build() {
+    if (parts) return parts;
+    if (!document.documentElement) return null;   // too early; try again later
+
+    const style = document.createElement('style');
   style.textContent = `
     #jericho-pointer {
       position: fixed; z-index: 2147483647; left: 0; top: 0;
@@ -61,60 +76,72 @@ function overlayScript() {
     }
     #jericho-caption.on { opacity: 1; }
   `;
-  document.documentElement.appendChild(style);
+    document.documentElement.appendChild(style);
 
-  const pointer = document.createElement('div');
-  pointer.id = 'jericho-pointer';
-  document.documentElement.appendChild(pointer);
+    const pointer = document.createElement('div');
+    pointer.id = 'jericho-pointer';
+    document.documentElement.appendChild(pointer);
 
-  const caption = document.createElement('div');
-  caption.id = 'jericho-caption';
-  document.documentElement.appendChild(caption);
+    const caption = document.createElement('div');
+    caption.id = 'jericho-caption';
+    document.documentElement.appendChild(caption);
 
-  let ring = null;
+    parts = { pointer, caption, ring: null };
+    return parts;
+  }
 
   window.__jericho = {
     /** Glide the pointer to the centre of an element. */
     moveTo(selector) {
+      const p = build();
+      if (!p) return false;
       const el = document.querySelector(selector);
       if (!el) return false;
       const r = el.getBoundingClientRect();
-      pointer.style.transform =
+      p.pointer.style.transform =
         `translate(${r.left + r.width / 2}px, ${r.top + r.height / 2}px)`;
       return true;
     },
 
     press() {
-      pointer.classList.remove('pressing');
-      void pointer.offsetWidth;          // restart the animation
-      pointer.classList.add('pressing');
+      const p = build();
+      if (!p) return false;
+      p.pointer.classList.remove('pressing');
+      void p.pointer.offsetWidth;        // restart the animation
+      p.pointer.classList.add('pressing');
+      return true;
     },
 
     /** Draw the ring around an element, or clear it with null. */
     ringAround(selector) {
+      const p = build();
+      if (!p) return false;
       if (!selector) {
-        if (ring) { ring.remove(); ring = null; }
+        if (p.ring) { p.ring.remove(); p.ring = null; }
         return true;
       }
       const el = document.querySelector(selector);
       if (!el) return false;
       const r = el.getBoundingClientRect();
-      if (!ring) {
-        ring = document.createElement('div');
-        ring.className = 'jericho-ring';
-        document.documentElement.appendChild(ring);
+      if (!p.ring) {
+        p.ring = document.createElement('div');
+        p.ring.className = 'jericho-ring';
+        document.documentElement.appendChild(p.ring);
       }
       // 6px of air, so the ring frames the control rather than strangling it.
-      ring.style.left = `${r.left - 6}px`;
-      ring.style.top = `${r.top - 6}px`;
-      ring.style.width = `${r.width + 12}px`;
-      ring.style.height = `${r.height + 12}px`;
+      p.ring.style.left = `${r.left - 6}px`;
+      p.ring.style.top = `${r.top - 6}px`;
+      p.ring.style.width = `${r.width + 12}px`;
+      p.ring.style.height = `${r.height + 12}px`;
       return true;
     },
 
     caption(text) {
-      caption.textContent = text || '';
-      caption.classList.toggle('on', Boolean(text));
+      const p = build();
+      if (!p) return false;
+      p.caption.textContent = text || '';
+      p.caption.classList.toggle('on', Boolean(text));
+      return true;
     },
   };
   return true;
