@@ -129,6 +129,34 @@ function errorMessage(err) {
   return raw;
 }
 
+/** A value safe to drop into a PostgREST filter string.
+ *
+ *  WHY THIS EXISTS
+ *
+ *  The Operator's region box was spliced straight into a filter:
+ *
+ *    query.or(`origin.ilike.%${region}%,destination.ilike.%${region}%`)
+ *
+ *  A comma in that box is not text, it is punctuation. Proven against the
+ *  live API on 2026-10-13: searching for `zzzz,role.eq.operator` returns the
+ *  operator rows - the typed text became an extra condition on the query.
+ *
+ *  Nothing escapes through it today, because every such query still runs
+ *  under Row Level Security and an Operator may already read what it reaches.
+ *  It is fixed anyway, for one reason: the pattern. The same two lines on a
+ *  member-facing screen would be a way for a member to rewrite their own
+ *  query, and this platform's product is that members cannot see each other.
+ *  A habit that is only safe where it currently sits is not safe.
+ *
+ *  PostgREST reads a double-quoted value as one literal, which is what the
+ *  live API confirmed: quoted, the same string matches nothing instead of
+ *  changing the query. Inner quotes and backslashes are escaped so the
+ *  quoting itself cannot be closed early. */
+function pgLikeValue(value) {
+  const escaped = String(value ?? '').replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  return `"%${escaped}%"`;
+}
+
 /** Run `work` with a button switched off, so a second press cannot start it
  *  again while the first is still in flight.
  *

@@ -365,7 +365,12 @@ async function loadListings() {
   // final day is included rather than cut off at 00:00.
   if (dateTo) query = query.lte('created_at', dateTo + 'T23:59:59.999Z');
   // Region lives in origin (sell) or destination (buy), so match either.
-  if (region) query = query.or(`origin.ilike.%${region}%,destination.ilike.%${region}%`);
+  // Quoted, so a comma typed in the box stays text instead of becoming
+  // another condition on the query. See pgLikeValue() in js/utils.js.
+  if (region) {
+    const v = pgLikeValue(region);
+    query = query.or(`origin.ilike.${v},destination.ilike.${v}`);
+  }
 
   const { data, error } = await query;
   if (!fresh()) return;   // a newer render started while this waited

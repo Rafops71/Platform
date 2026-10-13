@@ -85,6 +85,7 @@ the suite: this platform's product is controlled disclosure, so proving a thing
 | 55 | The reset form never reveals whether an address has an account | MUST NOT |
 | 56 | Nobody can create an account without a valid invitation | MUST NOT |
 | 57 | Only an Operator can produce a password recovery link for a member | MUST NOT |
+| 58 | Text a member types is shown as characters, never run as code | MUST NOT |
 
 ## Open questions on this list
 

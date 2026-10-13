@@ -85,6 +85,10 @@ jobs:
       # security policy for table \"listings\"". A member was shown that.
       - name: Members never see the database's own words
         run: npm run check:errors
+      # Proven live: a comma typed into the Operator's region box became
+      # another condition on the query.
+      - name: Typed text is never query syntax
+        run: npm run check:filters
       - name: Run sql/tests
         run: npm run test:sql
 
