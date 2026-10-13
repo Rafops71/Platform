@@ -76,6 +76,11 @@ reset role; reset test.uid;
 -- commercial detail of a listing and only the poster's identity is withheld.
 -- This test used to assert the opposite for specification/price/notes — that
 -- was the earlier, narrower rule, and sql/005 deliberately reversed it.
+-- Under Bob's identity, because sql/025 made get_public_listings() refuse a
+-- caller who is not an approved member. These two assertions used to run with
+-- no identity at all, which is exactly the caller the fix is there to stop.
+set role authenticated; set test.uid='33333333-3333-3333-3333-333333333333';
+
 select case when (
     select count(*) from json_object_keys(to_json((select l from public.get_public_listings() l limit 1)))
      where json_object_keys in ('user_id','email','first_name','last_name','company','phone')
@@ -85,6 +90,7 @@ select case when (
     select count(*) from json_object_keys(to_json((select l from public.get_public_listings() l limit 1)))
      where json_object_keys in ('specification','price_conditions','price_unit','currency','notes','region')
   ) = 6 then 'PASS' else 'FAIL' end as "T11b Item20 public view exposes full commercial detail, identity aside";
+reset role; reset test.uid;
 
 set role authenticated; set test.uid='44444444-4444-4444-4444-444444444444';
 update public.listings set status='closed' where reference_number='SELL-26-001';

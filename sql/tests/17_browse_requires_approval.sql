@@ -35,15 +35,31 @@
 
 -- Two accounts to switch between: one that stays approved, one that gets
 -- suspended mid-test, which is exactly what an Operator does.
+-- test_invite() first, because sql/024 made handle_new_user() refuse a signup
+-- with no invitation - and an insert into auth.users IS the signup. Without
+-- these two lines both inserts are refused, no profiles exist, and every
+-- assertion below then passes or fails for the wrong reason: the suite reads
+-- "not an active account" when the truth is "no account at all". That is how
+-- this file failed on its first run.
+select public.test_invite('browse-good@example.invalid');
 insert into auth.users (id, email, raw_user_meta_data)
 values ('b0b0b0b0-0000-4000-8000-00000000001a'::uuid, 'browse-good@example.invalid',
         jsonb_build_object('first_name', 'Still', 'last_name', 'Welcome'))
 on conflict do nothing;
 
+select public.test_invite('browse-out@example.invalid');
 insert into auth.users (id, email, raw_user_meta_data)
 values ('b0b0b0b0-0000-4000-8000-00000000001b'::uuid, 'browse-out@example.invalid',
         jsonb_build_object('first_name', 'Shown', 'last_name', 'Out'))
 on conflict do nothing;
+
+-- Proof the two accounts exist before anything is asserted about them. Without
+-- this, a refused signup would leave the whole file testing nothing.
+select case when count(*) = 2 then 'PASS' else 'FAIL only ' || count(*) end
+  as "T0 Item59 both test accounts were actually created"
+from public.profiles
+where user_id in ('b0b0b0b0-0000-4000-8000-00000000001a'::uuid,
+                  'b0b0b0b0-0000-4000-8000-00000000001b'::uuid);
 
 update public.profiles set status = 'approved'
  where user_id in ('b0b0b0b0-0000-4000-8000-00000000001a'::uuid,
@@ -59,11 +75,21 @@ on conflict do nothing;
 -- Results are recorded in a temp table and asserted by a labelled select,
 -- which is the convention the rest of sql/tests uses: the report reads those
 -- labels, and a raise notice is invisible to it.
-create temp table t17_result (name text, ok boolean);
+create temp table t17_result (name text, ok boolean, note text);
+
+-- Every status or role change below is made with NO identity set.
+--
+-- protect_profile_columns() silently reverts a status change when auth.uid()
+-- is not null and the caller is not an operator - it does not raise, it just
+-- puts the old value back. So an update made while this file was pretending to
+-- BE the member did nothing at all, and the member stayed approved while every
+-- assertion below believed it had suspended them. Read off the live trigger on
+-- 2026-10-13; that is the shape of the bug this file nearly shipped.
+
 
 -- ------------------------------------------- an approved member can browse --
 
-set local "test.uid" = 'b0b0b0b0-0000-4000-8000-00000000001b';
+set "test.uid" = 'b0b0b0b0-0000-4000-8000-00000000001b';
 
 select case when (select count(*) from public.get_public_listings()) > 0
             then 'PASS' else 'FAIL' end
@@ -71,16 +97,18 @@ select case when (select count(*) from public.get_public_listings()) > 0
 
 -- --------------------------------------------- the Operator suspends them --
 
+reset "test.uid";
 update public.profiles set status = 'suspended'
  where user_id = 'b0b0b0b0-0000-4000-8000-00000000001b'::uuid;
+set "test.uid" = 'b0b0b0b0-0000-4000-8000-00000000001b';
 
 do $$
 begin
   perform 1 from public.get_public_listings() limit 1;
-  insert into t17_result values ('T2', false);
+  insert into t17_result values ('T2', false, null);
 exception
-  when sqlstate '42501' then insert into t17_result values ('T2', true);
-  when others then insert into t17_result values ('T2', false);
+  when sqlstate '42501' then insert into t17_result values ('T2', true, null);
+  when others then insert into t17_result values ('T2', false, null);
 end $$;
 
 select case when ok then 'PASS' else 'FAIL' end as "T2 Item59 a SUSPENDED member is refused the whole market"
@@ -91,32 +119,36 @@ select case when ok then 'PASS' else 'FAIL' end as "T2 Item59 a SUSPENDED member
 -- ------------------------------------------- for rejected, which are the two --
 -- ------------------------------------------- other ways to not be a member --
 
+reset "test.uid";
 update public.profiles set status = 'pending'
  where user_id = 'b0b0b0b0-0000-4000-8000-00000000001b'::uuid;
+set "test.uid" = 'b0b0b0b0-0000-4000-8000-00000000001b';
 
 do $$
 begin
   perform 1 from public.get_public_listings() limit 1;
-  insert into t17_result values ('T3', false);
+  insert into t17_result values ('T3', false, null);
 exception
-  when sqlstate '42501' then insert into t17_result values ('T3', true);
-  when others then insert into t17_result values ('T3', false);
+  when sqlstate '42501' then insert into t17_result values ('T3', true, null);
+  when others then insert into t17_result values ('T3', false, null);
 end $$;
 
 select case when ok then 'PASS' else 'FAIL' end as "T3 Item59 a PENDING registration cannot read the market"
   from t17_result where name = 'T3';
 
 
+reset "test.uid";
 update public.profiles set status = 'rejected'
  where user_id = 'b0b0b0b0-0000-4000-8000-00000000001b'::uuid;
+set "test.uid" = 'b0b0b0b0-0000-4000-8000-00000000001b';
 
 do $$
 begin
   perform 1 from public.get_public_listings() limit 1;
-  insert into t17_result values ('T4', false);
+  insert into t17_result values ('T4', false, null);
 exception
-  when sqlstate '42501' then insert into t17_result values ('T4', true);
-  when others then insert into t17_result values ('T4', false);
+  when sqlstate '42501' then insert into t17_result values ('T4', true, null);
+  when others then insert into t17_result values ('T4', false, null);
 end $$;
 
 select case when ok then 'PASS' else 'FAIL' end as "T4 Item59 a REJECTED registration cannot read the market"
@@ -128,15 +160,15 @@ select case when ok then 'PASS' else 'FAIL' end as "T4 Item59 a REJECTED registr
 -- A caller with no profile - a token for an account that has been deleted, or
 -- no token at all.
 
-set local "test.uid" = '';
+set "test.uid" = '';
 
 do $$
 begin
   perform 1 from public.get_public_listings() limit 1;
-  insert into t17_result values ('T5', false);
+  insert into t17_result values ('T5', false, null);
 exception
-  when sqlstate '42501' then insert into t17_result values ('T5', true);
-  when others then insert into t17_result values ('T5', false);
+  when sqlstate '42501' then insert into t17_result values ('T5', true, null);
+  when others then insert into t17_result values ('T5', false, null);
 end $$;
 
 select case when ok then 'PASS' else 'FAIL' end as "T5 Item59 a caller with no account is refused the market"
@@ -147,7 +179,7 @@ select case when ok then 'PASS' else 'FAIL' end as "T5 Item59 a caller with no a
 --
 -- The fix must not have shut the door on everybody. This is the control.
 
-set local "test.uid" = 'b0b0b0b0-0000-4000-8000-00000000001a';
+set "test.uid" = 'b0b0b0b0-0000-4000-8000-00000000001a';
 
 select case when (select count(*) from public.get_public_listings()) > 0
             then 'PASS' else 'FAIL' end
@@ -161,9 +193,11 @@ select case when (select count(*) from public.get_public_listings()) > 0
 -- without asking whether they were still allowed in.
 -- =========================================================================
 
-set local "test.uid" = 'b0b0b0b0-0000-4000-8000-00000000001b';
+set "test.uid" = 'b0b0b0b0-0000-4000-8000-00000000001b';
+reset "test.uid";
 update public.profiles set status = 'suspended'
  where user_id = 'b0b0b0b0-0000-4000-8000-00000000001b'::uuid;
+set "test.uid" = 'b0b0b0b0-0000-4000-8000-00000000001b';
 
 -- A listing of their own to try to renew, created while they were still in.
 insert into public.listings
@@ -180,10 +214,10 @@ begin
    where p.user_id = 'b0b0b0b0-0000-4000-8000-00000000001b'::uuid
    limit 1;
   perform public.renew_listing(v_id);
-  insert into t17_result values ('T7', false);
+  insert into t17_result values ('T7', false, null);
 exception
-  when sqlstate '42501' then insert into t17_result values ('T7', true);
-  when others then insert into t17_result values ('T7', false);
+  when sqlstate '42501' then insert into t17_result values ('T7', true, null);
+  when others then insert into t17_result values ('T7', false, sqlerrm);
 end $$;
 
 select case when ok then 'PASS' else 'FAIL' end
@@ -193,10 +227,10 @@ select case when ok then 'PASS' else 'FAIL' end
 do $$
 begin
   perform public.next_reference('sell');
-  insert into t17_result values ('T8', false);
+  insert into t17_result values ('T8', false, null);
 exception
-  when sqlstate '42501' then insert into t17_result values ('T8', true);
-  when others then insert into t17_result values ('T8', false);
+  when sqlstate '42501' then insert into t17_result values ('T8', true, null);
+  when others then insert into t17_result values ('T8', false, null);
 end $$;
 
 select case when ok then 'PASS' else 'FAIL' end
@@ -206,16 +240,18 @@ select case when ok then 'PASS' else 'FAIL' end
 -- A SUSPENDED OPERATOR is the one that matters most: the audit trail is what
 -- you read to find out what somebody did before you suspended them.
 
+reset "test.uid";
 update public.profiles set role = 'operator', status = 'suspended'
  where user_id = 'b0b0b0b0-0000-4000-8000-00000000001b'::uuid;
+set "test.uid" = 'b0b0b0b0-0000-4000-8000-00000000001b';
 
 do $$
 begin
   perform public.purge_orphaned_activity();
-  insert into t17_result values ('T9', false);
+  insert into t17_result values ('T9', false, null);
 exception
-  when sqlstate '42501' then insert into t17_result values ('T9', true);
-  when others then insert into t17_result values ('T9', false);
+  when sqlstate '42501' then insert into t17_result values ('T9', true, null);
+  when others then insert into t17_result values ('T9', false, null);
 end $$;
 
 select case when ok then 'PASS' else 'FAIL' end
@@ -224,17 +260,24 @@ select case when ok then 'PASS' else 'FAIL' end
 
 -- Control: an approved Operator still can, so the fix did not simply break it.
 
+reset "test.uid";
 update public.profiles set status = 'approved'
  where user_id = 'b0b0b0b0-0000-4000-8000-00000000001b'::uuid;
+set "test.uid" = 'b0b0b0b0-0000-4000-8000-00000000001b';
 
 do $$
 begin
   perform public.purge_orphaned_activity();
-  insert into t17_result values ('T10', true);
+  insert into t17_result values ('T10', true, null);
 exception
-  when others then insert into t17_result values ('T10', false);
+  when others then insert into t17_result values ('T10', false, sqlerrm);
 end $$;
 
 select case when ok then 'PASS' else 'FAIL' end
   as "T10 Item59 an approved Operator can still purge"
   from t17_result where name = 'T10';
+
+-- What actually happened, for anything that did not pass. A failure that only
+-- says FAIL sends the next person back to reproduce it by hand.
+select name || ': ' || coalesce(note, '(no error - the call succeeded)') as "WHY ANY OF THE ABOVE FAILED"
+  from t17_result where not ok;

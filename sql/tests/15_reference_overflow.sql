@@ -27,9 +27,15 @@ insert into public.reference_counters (key, last_value)
 values ('SELL-' || to_char(now(), 'YY'), 997)
 on conflict (key) do update set last_value = 997;
 
+-- sql/026 made next_reference() refuse a caller who is not an active member,
+-- so this runs as one. The counter arithmetic under test is unaffected.
+set role authenticated; set test.uid='33333333-3333-3333-3333-333333333333';
+
 create temporary table refs as
 select public.next_reference('sell') as ref, g
 from generate_series(1, 8) g;
+
+reset role; reset test.uid;
 
 select case when count(*) = 8 then 'PASS' else 'FAIL only ' || count(*) end
   as "T1 eight references were issued"
