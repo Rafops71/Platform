@@ -23,6 +23,7 @@
     "check:double": "node scripts/check-double-submit.js",
     "check:errors": "node scripts/check-error-messages.js",
     "check:filters": "node scripts/check-query-filters.js",
+    "safari": "playwright test --project=safari",
     "hygiene": "node scripts/verify-live.js",
     "timings": "node scripts/timings.js",
     "stress": "node scripts/stress-test.js"
