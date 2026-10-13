@@ -100,7 +100,22 @@ test.describe.serial('stale listing renewal', () => {
     expect(rows[0].n).toBe(0);
 
     await signIn(page, operator, 'operator.html');
-    await expect(page.locator('#stat-stale-value')).not.toHaveText('—', { timeout: 15_000 });
+
+    // A tile reads "—" when its count query FAILED, and loadOverview() puts the
+    // real reason in the tile's title attribute (js/operator.js). The assertion
+    // used to report only the dash, which says nothing about why - this run
+    // cost a cycle for exactly that reason. Read the tooltip and put it in the
+    // failure message.
+    const tile = page.locator('#stat-stale-value');
+    try {
+      await expect(tile).not.toHaveText('—', { timeout: 15_000 });
+    } catch (e) {
+      const why = await page.locator('#stat-stale').getAttribute('title');
+      throw new Error(
+        `the Operator's stale-listing count did not load. The tile's own ` +
+        `error was: ${why || '(no error recorded, so the count never ran)'}`
+      );
+    }
     const shown = Number(await page.locator('#stat-stale-value').innerText());
     const { rows: all } = await query(
       `select count(*)::int n from public.listings
