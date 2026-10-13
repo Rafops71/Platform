@@ -247,6 +247,30 @@ async function cleanup() {
       [ids]
     );
 
+    // AND the ones it can no longer name.
+    //
+    // Everything above matches on an id that still exists. A test that deletes
+    // something DURING its run - a withdrawn listing, the member-deletion
+    // test - leaves a notification pointing at a row that has already gone,
+    // and no id-based predicate can find it afterwards.
+    //
+    // That is not theoretical. The hygiene check's first real run, on
+    // 2026-10-13, found 4,796 of them: 2,852 about registrations, 1,267 about
+    // listings, 677 about messages, the newest from that morning's CI. The
+    // owner had cleared ~9,500 by hand days earlier and they had rebuilt.
+    //
+    // This is the same rule the Operator's own purge button uses (sql/023): a
+    // notification whose target is absent from listings, profiles AND messages
+    // is about something that no longer exists, whichever it was. A row with
+    // no target at all is left alone - it points at nothing by design.
+    await client.query(
+      `delete from public.notifications n
+        where n.related_id is not null
+          and not exists (select 1 from public.listings l where l.id = n.related_id)
+          and not exists (select 1 from public.profiles p where p.id = n.related_id)
+          and not exists (select 1 from public.messages m where m.id = n.related_id)`
+    );
+
     // Outbox first — a queued test email left behind would be sent for real
     // on the next flush of the outbox.
     await client.query(
