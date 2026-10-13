@@ -27,6 +27,10 @@ on:
         description: 'Language (en or es)'
         required: false
         default: 'en'
+      voice:
+        description: 'Piper voice, e.g. en_GB-cori-high. Blank uses the default for the language.'
+        required: false
+        default: ''
 
 concurrency:
   # The same group as CI: this creates and deletes fixtures on the live
@@ -84,13 +88,21 @@ jobs:
         # the licence table, and for the voices that look fine and are not.
         run: |
           pip install piper-tts
-          python3 -m piper.download_voices en_US-joe-medium es_ES-davefx-medium
+          # Only the voice this run needs. A chosen voice overrides the pair,
+          # so trying a different one is an input rather than a code change -
+          # the owner picks a voice by ear, and that should not cost a commit.
+          python3 -m piper.download_voices ${{ inputs.voice || 'en_US-joe-medium es_ES-davefx-medium' }}
           ls -la *.onnx
 
       - name: Speak every line, and measure it
         run: node video/make-narration.js --film ${{ inputs.film }} --lang ${{ inputs.lang }}
         env:
           PIPER_VOICE_DIR: ${{ github.workspace }}
+          # Empty is falsy in make-narration.js, which then uses the default
+          # for the language. Only the one matching --lang is ever read, so
+          # setting both to the same name is harmless.
+          PIPER_VOICE_EN: ${{ inputs.voice }}
+          PIPER_VOICE_ES: ${{ inputs.voice }}
 
       - name: Film it
         env:
@@ -125,28 +137,20 @@ jobs:
           node video/assemble.js --film ${{ inputs.film }} --lang ${{ inputs.lang }}
 
       - name: Prove the film is actually a film
-        # A green run is not a watchable film. Three ways this can finish
-        # "successfully" and still be useless: a picture with no sound, a
-        # soundtrack with no picture, and a file whose length does not match
-        # the narration - which is what a recorder that raced ahead of the
-        # voice would produce. ffprobe is asked about all three, and the step
-        # FAILS rather than printing a warning nobody reads.
+        # video/check-film.js asks three questions: is there a picture, is
+        # there a soundtrack, and does the length match the measured
+        # narration. All three can be wrong on a run that finishes green.
+        #
+        # This was fifteen lines of shell with a hard-coded 60-to-120-second
+        # window, and the moment the narration was slowed down - the moment
+        # the film got BETTER - that gate failed it. The expected length is
+        # now computed from audio/timings.json and script.json, so it cannot
+        # go stale and nobody has to widen it. The same script runs in a
+        # session container, which is where it was proven.
         run: |
-          f=video/out/${{ inputs.film }}-${{ inputs.lang }}.mp4
-          test -s "$f" || { echo "::error::no film at $f"; exit 1; }
-          ffprobe -v error -show_entries stream=codec_type,codec_name \
-                  -of default=nw=1 "$f"
-          v=$(ffprobe -v error -select_streams v -show_entries stream=codec_name -of csv=p=0 "$f")
-          a=$(ffprobe -v error -select_streams a -show_entries stream=codec_name -of csv=p=0 "$f")
-          d=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$f")
-          echo "video stream: ${v:-NONE}   audio stream: ${a:-NONE}   duration: ${d}s"
-          test -n "$v" || { echo "::error::the film has no picture"; exit 1; }
-          test -n "$a" || { echo "::error::the film has no sound"; exit 1; }
-          # The narration measured 68.8s (en) and 68.3s (es), and the recorder
-          # adds a 0.8s pause per scene over fourteen scenes. So anything far
-          # outside this window means picture and voice are not in step.
-          awk -v d="$d" 'BEGIN{ if (d < 60 || d > 120) { print "::error::the film is " d "s, which does not match the narration"; exit 1 } }'
-          echo "Verified: picture, sound, and a length that matches the voice."
+          ffprobe -v error -show_entries stream=codec_type,codec_name -of default=nw=1 \
+            video/out/${{ inputs.film }}-${{ inputs.lang }}.mp4
+          node video/check-film.js --film ${{ inputs.film }} --lang ${{ inputs.lang }}
 
       - name: Hand the film over through git
         # The artifact is served from a host the authoring session cannot

@@ -84,8 +84,16 @@ function wavSeconds(file) {
   throw new Error(`${file}: no data chunk, and ${rate ? 'a' : 'no'} format chunk`);
 }
 
+const PACING = SCRIPT.pacing;
+
 function speak(text, model, outFile) {
-  const res = spawnSync('python3', ['-m', 'piper', '-m', model, '-f', outFile], {
+  // --length-scale above 1.0 slows the delivery; --sentence-silence puts
+  // breath between sentences. Both read from script.json's pacing block, so
+  // the voice and the camera cannot be set to different speeds. Flag names
+  // read off `python3 -m piper --help` on 2026-10-13, not from memory.
+  const res = spawnSync('python3', ['-m', 'piper', '-m', model, '-f', outFile,
+    '--length-scale', String(PACING.lengthScale),
+    '--sentence-silence', String(PACING.sentenceSilence)], {
     input: text,
     encoding: 'utf8',
   });
@@ -124,7 +132,7 @@ function main() {
 
       // A line's worth of breath between scenes, which is also what stops the
       // film feeling like a machine reading a list.
-      const withPauses = total + scenes.length * 0.8;
+      const withPauses = total + scenes.length * PACING.pauseSeconds;
       console.log(
         `\n${film} (${lang}): ${scenes.length} lines, ${total.toFixed(1)}s spoken, ` +
         `${withPauses.toFixed(1)}s with pauses\n`

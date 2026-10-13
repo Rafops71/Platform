@@ -21,7 +21,7 @@ const { spawnSync } = require('child_process');
 const SCRIPT = JSON.parse(fs.readFileSync(path.join(__dirname, 'script.json'), 'utf8'));
 const AUDIO = path.join(__dirname, 'audio');
 const OUT = path.join(__dirname, 'out');
-const PAUSE_SECONDS = 0.8;   // the same pause video/record.js holds
+const PAUSE_SECONDS = SCRIPT.pacing.pauseSeconds;   // one number, shared with video/record.js
 
 const arg = (name, fallback) => {
   const i = process.argv.indexOf(`--${name}`);

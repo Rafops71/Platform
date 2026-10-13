@@ -35,7 +35,7 @@ const BASE = process.env.E2E_BASE_URL || 'http://localhost:8000';
 
 // A pause either side of each line, so the film breathes instead of reading a
 // list. The same number make-narration.js budgets with.
-const PAUSE = 800;
+const PAUSE = Math.round(SCRIPT.pacing.pauseSeconds * 1000);  // from script.json, so assemble.js holds the same gap
 
 const arg = (name, fallback) => {
   const i = process.argv.indexOf(`--${name}`);
@@ -94,13 +94,27 @@ async function perform(page, action, world) {
       return;
 
     case 'fillListing':
-      // #location, not #origin: the form has one field whose LABEL changes
-      // between origin and destination depending on whether the member is
-      // selling or buying. Checked against app.html rather than assumed - the
-      // first version of this used #origin, which exists nowhere.
+      // Every field the narration names, actually filled.
+      //
+      // The first version typed into #location and never touched the
+      // commodity at all - and #location is a <select>, so typing at it did
+      // nothing visible. The film's voice said "commodity, quantity,
+      // Incoterm, origin" over a form showing a quantity and a note. A film
+      // that describes what is not on the screen is worse than no film.
+      //
+      // Read off app.html and js/utils.js on 2026-10-13: the commodity is
+      // #commodity-select (not #commodity), origin and destination share the
+      // one #location select, and option VALUES stay canonical English in
+      // both languages even though the labels are translated - so selecting
+      // by value works for the Spanish film too.
+      await page.evaluate(() => window.__jericho.moveTo('input[name="type"][value="sell"]'));
+      await page.locator('input[name="type"][value="sell"]').check();
+      await page.selectOption('#commodity-select', 'copper cathodes');
       await typeSlowly(page, '#quantity', '25000');
-      await typeSlowly(page, '#location', 'Chile');
+      await page.selectOption('#unit', 'Metric tons');
       await typeSlowly(page, '#specification', 'LME Grade A, 99.99% Cu');
+      await page.selectOption('#incoterm', 'CIF');
+      await page.selectOption('#location', 'Chile');
       return;
 
     case 'saveSearch':

@@ -15,7 +15,25 @@
     "es_ES-davefx-medium (CC0). Both unrestricted - nothing is owed to anybody",
     "for either, which is why they were chosen over better-known voices."
   ],
-
+  "pacing": {
+    "_comment": [
+      "How fast the film goes, in ONE place. These three numbers were in three",
+      "different files - the pause was written as 800 in record.js and as 0.8 in",
+      "assemble.js - and three copies of a number are three chances for the",
+      "picture and the voice to drift apart.",
+      "",
+      "lengthScale is Piper's --length-scale: above 1.0 speaks slower. 1.0 was",
+      "the first film, which the owner found too fast to follow.",
+      "sentenceSilence is Piper's --sentence-silence: breath BETWEEN sentences,",
+      "which is most of what makes a voice sound like a person rather than a",
+      "list being read out.",
+      "pauseSeconds is the gap the recorder holds, and the silence assemble.js",
+      "puts between lines. They must be the same number or the film drifts."
+    ],
+    "lengthScale": 1.18,
+    "sentenceSilence": 0.55,
+    "pauseSeconds": 1.4
+  },
   "films": {
     "member": {
       "title": "Jericho Platform — for members",
@@ -26,8 +44,8 @@
           "do": "signIn",
           "highlight": "#login-form",
           "say": {
-            "en": "Jericho is a private market for bulk commodities. There is no public listing, and no way in without an invitation.",
-            "es": "Jericho es un mercado privado de materias primas a granel. No hay anuncios públicos, y no se entra sin invitación."
+            "en": "Jericho is a private market for bulk commodities. It is invitation only. Nothing posted here appears in public, and there is no way in without an invitation. A member signs in with their own email and password.",
+            "es": "Jericho es un mercado privado de materias primas a granel. Solo se entra por invitación. Nada de lo que se publica aquí aparece en público, y no hay forma de entrar sin una invitación. Cada miembro entra con su propio correo y contraseña."
           }
         },
         {
@@ -35,8 +53,8 @@
           "do": "screen:browse",
           "highlight": "nav.tabs",
           "say": {
-            "en": "Once you are in, everything is on one screen: your offers, the market, and your messages.",
-            "es": "Una vez dentro, todo está en una sola pantalla: sus ofertas, el mercado y sus mensajes."
+            "en": "Once you are in, everything sits on one screen. Your own offers, the whole market, and your messages. There is nothing else to learn.",
+            "es": "Una vez dentro, todo está en una sola pantalla. Sus propias ofertas, todo el mercado y sus mensajes. No hay nada más que aprender."
           }
         },
         {
@@ -44,8 +62,8 @@
           "do": "screen:new-listing",
           "highlight": "#listing-form",
           "say": {
-            "en": "To offer something, you fill in one form. Commodity, quantity, Incoterm, origin.",
-            "es": "Para ofrecer algo, se rellena un solo formulario. Materia prima, cantidad, Incoterm y origen."
+            "en": "To offer something, you fill in one form. What the commodity is, how much of it, the Incoterm, and where it ships from.",
+            "es": "Para ofrecer algo, se rellena un solo formulario. Qué materia prima es, qué cantidad, el Incoterm, y desde dónde se envía."
           }
         },
         {
@@ -53,8 +71,8 @@
           "do": "fillListing",
           "highlight": "#listing-form",
           "say": {
-            "en": "Twenty five thousand tonnes of copper cathode, CIF Rotterdam, from Chile. It takes under a minute.",
-            "es": "Veinticinco mil toneladas de cátodo de cobre, CIF Róterdam, desde Chile. Lleva menos de un minuto."
+            "en": "Here: a sell offer. Copper cathodes. Twenty five thousand metric tons. LME Grade A. Terms, CIF. Shipping from Chile. That is the whole job, and it takes under a minute.",
+            "es": "Aquí: una oferta de venta. Cátodos de cobre. Veinticinco mil toneladas métricas. Grado A de la LME. Condiciones, CIF. Envío desde Chile. Eso es todo, y lleva menos de un minuto."
           }
         },
         {
@@ -62,8 +80,8 @@
           "do": "screen:my-listings",
           "highlight": "#my-listings-list",
           "say": {
-            "en": "Your offer appears with its own reference number. You can edit it, renew it, or withdraw it at any time.",
-            "es": "Su oferta aparece con su propio número de referencia. Puede modificarla, renovarla o retirarla cuando quiera."
+            "en": "Your offer now has a reference number of its own. That number is how the Operator will discuss it with you, instead of using your name. You can change the offer, renew it, or withdraw it whenever you like.",
+            "es": "Su oferta ya tiene su propio número de referencia. Ese número es la forma en que el Operador hablará de ella con usted, en lugar de usar su nombre. Puede modificar la oferta, renovarla o retirarla cuando quiera."
           }
         },
         {
@@ -71,8 +89,8 @@
           "do": "screen:browse",
           "highlight": "#browse-list",
           "say": {
-            "en": "Browse shows every offer on the platform. Filter by commodity, or search.",
-            "es": "Explorar muestra todas las ofertas de la Plataforma. Puede filtrar por materia prima o buscar."
+            "en": "Browse shows every offer on the platform, not only your own. You can filter by commodity, or search for exactly what you need.",
+            "es": "Explorar muestra todas las ofertas de la Plataforma, no solo las suyas. Puede filtrar por materia prima, o buscar exactamente lo que necesita."
           }
         },
         {
@@ -80,8 +98,8 @@
           "do": "hold",
           "highlight": ".list-row",
           "say": {
-            "en": "You see the full commercial detail. You do not see who posted it, and they do not see you.",
-            "es": "Ve todo el detalle comercial. No ve quién la publicó, y ellos no le ven a usted."
+            "en": "Now look closely at a row. You get the full commercial detail: the grade, the quantity, the terms, the origin. What you do not get is a name, a company, or an email address. And the member who posted it cannot see you either.",
+            "es": "Ahora mire con atención una fila. Tiene todo el detalle comercial: el grado, la cantidad, las condiciones, el origen. Lo que no tiene es un nombre, una empresa ni un correo electrónico. Y el miembro que la publicó tampoco puede verle a usted."
           }
         },
         {
@@ -89,8 +107,8 @@
           "do": "saveSearch",
           "highlight": "#browse-save-search-btn",
           "say": {
-            "en": "Save a search and it becomes a watchlist, telling you how many offers match.",
-            "es": "Guarde una búsqueda y se convierte en una lista de seguimiento que le indica cuántas ofertas coinciden."
+            "en": "If you are always looking for the same thing, save the search. It becomes a watchlist, and it tells you how many offers match it right now.",
+            "es": "Si siempre busca lo mismo, guarde la búsqueda. Se convierte en una lista de seguimiento, y le indica cuántas ofertas coinciden en este momento."
           }
         },
         {
@@ -98,8 +116,8 @@
           "do": "openContact",
           "highlight": "#contact-modal",
           "say": {
-            "en": "When something interests you, you write to the Operator. Never to the other member.",
-            "es": "Cuando algo le interesa, escribe al Operador. Nunca al otro miembro."
+            "en": "When something interests you, you write about it. But not to the other member. You write to the Operator, and you never need to know who is on the other side.",
+            "es": "Cuando algo le interesa, escribe sobre ello. Pero no al otro miembro. Escribe al Operador, y nunca necesita saber quién está al otro lado."
           }
         },
         {
@@ -107,8 +125,8 @@
           "do": "sendContact",
           "highlight": "#contact-send-btn",
           "say": {
-            "en": "The Operator reads it, decides, and passes it on. Nothing travels on its own.",
-            "es": "El Operador lo lee, decide, y lo transmite. Nada viaja por su cuenta."
+            "en": "The Operator reads what you wrote, decides whether it should go, and passes it on. Nothing on this platform travels between two members on its own.",
+            "es": "El Operador lee lo que ha escrito, decide si debe seguir adelante, y lo transmite. Nada en esta Plataforma viaja entre dos miembros por sí solo."
           }
         },
         {
@@ -116,8 +134,8 @@
           "do": "screen:mailbox",
           "highlight": "#mailbox-list",
           "say": {
-            "en": "Replies come back the same way, into your mailbox.",
-            "es": "Las respuestas vuelven por el mismo camino, a su buzón."
+            "en": "Their reply comes back the same way. Through the Operator, into your mailbox. Still no names, on either side.",
+            "es": "Su respuesta vuelve por el mismo camino. A través del Operador, a su buzón. Todavía sin nombres, por ninguna de las dos partes."
           }
         },
         {
@@ -125,8 +143,8 @@
           "do": "screen:doc-requests",
           "highlight": "#doc-checklist",
           "say": {
-            "en": "You declare which papers you hold. Nothing is ever uploaded — the platform stores no files.",
-            "es": "Usted declara qué documentos posee. Nunca se sube nada: la Plataforma no almacena archivos."
+            "en": "Where papers matter, you simply declare which ones you hold. Nothing is ever uploaded. The platform stores no documents at all, so there is nothing here that could leak.",
+            "es": "Cuando los documentos importan, solo se declara cuáles posee. Nunca se sube nada. La Plataforma no almacena ningún documento, así que aquí no hay nada que pueda filtrarse."
           }
         },
         {
@@ -134,8 +152,8 @@
           "do": "switchLanguage",
           "highlight": ".lang-toggle",
           "say": {
-            "en": "The whole platform speaks Spanish as well, at one press.",
-            "es": "La Plataforma también habla inglés, con una sola pulsación."
+            "en": "The whole platform speaks Spanish as well. One press, and every word on every screen changes.",
+            "es": "La Plataforma entera habla inglés también. Una pulsación, y cambia cada palabra de cada pantalla."
           }
         },
         {
@@ -143,8 +161,8 @@
           "do": "hold",
           "highlight": null,
           "say": {
-            "en": "Nobody learns who you are until you decide they should. That is the whole point of Jericho.",
-            "es": "Nadie sabe quién es usted hasta que usted decide que lo sepan. Esa es la razón de ser de Jericho."
+            "en": "So you can trade, and nobody learns who you are until you decide they should. That is the whole point of Jericho.",
+            "es": "Así puede negociar, y nadie sabe quién es usted hasta que usted decida que deba saberlo. Ese es el sentido de Jericho."
           }
         }
       ]
