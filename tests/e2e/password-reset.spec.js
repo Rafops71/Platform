@@ -64,6 +64,55 @@ async function tokenFor(email, password) {
   return (await res.json()).access_token;
 }
 
+/** The address the live project is allowed to redirect recovery links to.
+ *
+ *  WHY THE TEST DOES NOT JUST USE ITS OWN localhost ADDRESS
+ *
+ *  Supabase honours a redirect only if it is on the project's allow list, and
+ *  falls back to the Site URL otherwise. On 2026-10-13 that allow list was
+ *  filled in properly for the first time - one entry, the live site - and this
+ *  test went red, because it had been asking for a localhost redirect that
+ *  nothing had ever permitted. The honest fix is NOT to put localhost on a
+ *  production allow list to make a test pass: this platform's whole product is
+ *  controlled disclosure, and a permanent localhost entry on the live project
+ *  is a standing invitation to send somebody's recovery token to a machine
+ *  that is not theirs.
+ *
+ *  So the test asks for the real, allow-listed address, lets Supabase do the
+ *  real verification and the real redirect, and then carries the resulting
+ *  fragment - which is the session - back to the copy of the page being
+ *  tested. What is exercised is unchanged: the same token, the same checks,
+ *  the same redirect rules. Only the final hop is local, and it has to be:
+ *  the live site serves whatever is on main, which is not what is under test.
+ */
+const LIVE_RESET_URL = process.env.SITE_RESET_URL ||
+  'https://rafops71.github.io/Platform/reset.html';
+
+/** Follow a recovery link the way a member would, and end up on the copy of
+ *  reset.html that this suite is testing, carrying the real session. */
+async function followRecoveryLink(page, link, baseURL) {
+  await page.goto(link);
+
+  // Supabase verifies the token and redirects to the allow-listed address with
+  // the session in the fragment. That page is the live site and is not what is
+  // under test; the fragment is what matters.
+  // Tolerant on purpose. A GOOD link lands with a session in the fragment; a
+  // spent one lands with an error there, or with nothing at all. All three are
+  // states a caller may legitimately be testing, so this helper carries across
+  // whatever arrived and lets the caller assert on what the page then does -
+  // rather than failing here and hiding the result behind a helper's error.
+  const deadline = Date.now() + 30_000;
+  let fragment = '';
+  while (Date.now() < deadline) {
+    fragment = new URL(page.url()).hash;
+    if (fragment) break;
+    await page.waitForTimeout(250);
+  }
+
+  await page.goto(new URL('/reset.html', baseURL).href + fragment);
+  return fragment;
+}
+
 const MEMBER = { first_name: 'Henrike', last_name: 'Baumgartner', company: 'Baumgartner Handel', phone: '+32471560001' };
 
 let member;
@@ -209,10 +258,9 @@ test.describe.serial('forgetting a password', () => {
       'the fixture cannot sign in with its own password, so this test proves nothing')
       .toBe(true);
 
-    const link = await recoveryLinkFor(member.email, new URL('/reset.html', baseURL).href);
-
-    await page.goto(link);
-    // Supabase verifies the token and redirects to reset.html with a session.
+    const link = await recoveryLinkFor(member.email, LIVE_RESET_URL);
+    await followRecoveryLink(page, link, baseURL);
+    // Supabase verified the token; the page now holds the real session.
     await expect(page.locator('#reset-form'), 'the recovery link did not open the password form')
       .toBeVisible({ timeout: 30_000 });
 
@@ -238,9 +286,8 @@ test.describe.serial('forgetting a password', () => {
     test.setTimeout(120_000);
     // A recovery link sits in an inbox, possibly for years. One use only is
     // what stops an old email being a permanent key to the account.
-    const link = await recoveryLinkFor(member.email, new URL('/reset.html', baseURL).href);
-
-    await page.goto(link);
+    const link = await recoveryLinkFor(member.email, LIVE_RESET_URL);
+    await followRecoveryLink(page, link, baseURL);
     await expect(page.locator('#reset-form')).toBeVisible({ timeout: 30_000 });
     await page.fill('#new-password', NEW_PASSWORD + 'A');
     await page.fill('#confirm-password', NEW_PASSWORD + 'A');
@@ -250,12 +297,31 @@ test.describe.serial('forgetting a password', () => {
     // Same link again, in a clean context so no session is carried over.
     const second = await page.context().browser().newContext();
     const fresh = await second.newPage();
-    await fresh.goto(link);
+    await followRecoveryLink(fresh, link, baseURL);
     await expect(fresh.locator('#reset-form'),
       'a used recovery link still opens the password form').toBeHidden({ timeout: 30_000 });
     await second.close();
   });
 
+  test('Item54 the whole flow is there in Spanish too', async ({ page }) => {
+    // A Spanish-speaking member is the one most likely to need this and least
+    // able to guess their way through an English page.
+    await page.goto('/index.html');
+    await page.evaluate(() => { try { localStorage.setItem('jericho.language', 'es'); } catch (e) {} });
+    await page.reload();
+    await page.click('#forgot-link');
+    const panel = await page.locator('#forgot-panel').innerText();
+    expect(panel, 'the recovery panel is still English when the interface is Spanish')
+      .toMatch(/contraseña|enlace/i);
+  });
+});
+
+// Deliberately OUTSIDE the serial group above. In a describe.serial, one
+// failing test SKIPS every test after it - so when Item 54 went red on
+// 2026-10-13, this prohibition was reported as "skipped / blocked" and proved
+// nothing, which is exactly as bad as failing. A prohibition that only runs
+// when everything else is already working is not a check.
+test.describe('an Operator can hand over a recovery link', () => {
   test('Item57 an Operator can make a recovery link, and nobody else can', async () => {
     test.setTimeout(120_000);
 
@@ -294,17 +360,5 @@ test.describe.serial('forgetting a password', () => {
     // otherwise CREATE that account, which is the hole sql/024 closed.
     const nobody = await askForRecoveryLink(operatorToken, 'no-such-member-9f2kd@example.invalid');
     expect(nobody.status, 'a link was made for an address with no member').toBe(404);
-  });
-
-  test('Item54 the whole flow is there in Spanish too', async ({ page }) => {
-    // A Spanish-speaking member is the one most likely to need this and least
-    // able to guess their way through an English page.
-    await page.goto('/index.html');
-    await page.evaluate(() => { try { localStorage.setItem('jericho.language', 'es'); } catch (e) {} });
-    await page.reload();
-    await page.click('#forgot-link');
-    const panel = await page.locator('#forgot-panel').innerText();
-    expect(panel, 'the recovery panel is still English when the interface is Spanish')
-      .toMatch(/contraseña|enlace/i);
   });
 });
