@@ -1,0 +1,4 @@
+# The audio is generated from script.json by make-narration.js, deterministic
+# and about 40MB a run. It is an output, not a source: regenerate it rather
+# than carry it in the repository.
+audio/
