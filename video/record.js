@@ -35,7 +35,10 @@ const BASE = process.env.E2E_BASE_URL || 'http://localhost:8000';
 
 // A pause either side of each line, so the film breathes instead of reading a
 // list. The same number make-narration.js budgets with.
-const PAUSE = Math.round(SCRIPT.pacing.pauseSeconds * 1000);  // from script.json, so assemble.js holds the same gap
+const PAUSE = Math.round(SCRIPT.pacing.pauseSeconds * 1000);
+// Long enough for the .85s zoom transition in video/overlay.js to finish, so
+// no shot is held while the page is still moving.
+const ZOOM_SETTLE = 1000;  // from script.json, so assemble.js holds the same gap
 
 const arg = (name, fallback) => {
   const i = process.argv.indexOf(`--${name}`);
@@ -76,12 +79,66 @@ async function openScreen(page, name) {
   await page.waitForSelector(`#screen-${name}`, { state: 'visible', timeout: 15000 });
 }
 
-/** Everything a scene's `do` can be. Unknown actions fail loudly rather than
- *  silently filming a still screen. */
+/** Everything a scene's `do` can be.
+ *
+ *  The verbs are generic and take their target and their value FROM THE
+ *  SCRIPT, so a film is written in script.json rather than in here. The
+ *  previous version had a `fillListing` verb with the commodity, the quantity
+ *  and the country baked into it, which meant the film's content lived in two
+ *  files and the narration could describe values the recorder never used.
+ *
+ *  Unknown actions throw rather than filming a still screen.
+ *
+ *    hold                  do nothing; let the voice talk over the shot
+ *    screen:<name>         press a nav button and wait for that screen
+ *    press:<selector>      point at it, press it, click it
+ *    type:<selector>|<text>  type at human speed
+ *    select:<selector>|<value>   choose from a <select>
+ *    check:<selector>      tick a radio or checkbox
+ *    language              switch to the other language
+ *    signIn                fill the sign-in form and wait for the app
+ */
 async function perform(page, action, world) {
   if (!action || action === 'hold') return;
 
-  if (action.startsWith('screen:')) return openScreen(page, action.slice(7));
+  const [verb, rest] = [action.slice(0, action.indexOf(':')) || action,
+                        action.slice(action.indexOf(':') + 1)];
+  const [target, value] = String(rest).split('|');
+
+  switch (verb) {
+    case 'screen':
+      await pressWithPointer(page, `button[data-screen="${rest}"]`);
+      await page.waitForSelector(`#screen-${rest}`, { state: 'visible', timeout: 15000 });
+      return;
+
+    case 'press':
+      await pressWithPointer(page, target);
+      return;
+
+    case 'type':
+      await typeSlowly(page, target, value);
+      return;
+
+    case 'select':
+      // The pointer is moved first so the viewer sees WHERE the choice is
+      // being made; selectOption itself draws nothing.
+      await page.evaluate(sel => window.__jericho.moveTo(sel), target);
+      await wait(400);
+      await page.selectOption(target, value);
+      await page.evaluate(() => window.__jericho.press());
+      return;
+
+    case 'check':
+      await page.evaluate(sel => window.__jericho.moveTo(sel), target);
+      await wait(400);
+      await page.locator(target).check();
+      await page.evaluate(() => window.__jericho.press());
+      return;
+
+    case 'wait':
+      await page.waitForSelector(target, { state: 'visible', timeout: 20000 });
+      return;
+  }
 
   switch (action) {
     case 'signIn':
@@ -93,48 +150,7 @@ async function perform(page, action, world) {
       await page.waitForSelector('#user-name', { timeout: 20000 });
       return;
 
-    case 'fillListing':
-      // Every field the narration names, actually filled.
-      //
-      // The first version typed into #location and never touched the
-      // commodity at all - and #location is a <select>, so typing at it did
-      // nothing visible. The film's voice said "commodity, quantity,
-      // Incoterm, origin" over a form showing a quantity and a note. A film
-      // that describes what is not on the screen is worse than no film.
-      //
-      // Read off app.html and js/utils.js on 2026-10-13: the commodity is
-      // #commodity-select (not #commodity), origin and destination share the
-      // one #location select, and option VALUES stay canonical English in
-      // both languages even though the labels are translated - so selecting
-      // by value works for the Spanish film too.
-      await page.evaluate(() => window.__jericho.moveTo('input[name="type"][value="sell"]'));
-      await page.locator('input[name="type"][value="sell"]').check();
-      await page.selectOption('#commodity-select', 'copper cathodes');
-      await typeSlowly(page, '#quantity', '25000');
-      await page.selectOption('#unit', 'Metric tons');
-      await typeSlowly(page, '#specification', 'LME Grade A, 99.99% Cu');
-      await page.selectOption('#incoterm', 'CIF');
-      await page.selectOption('#location', 'Chile');
-      return;
-
-    case 'saveSearch':
-      await pressWithPointer(page, '#browse-save-search-btn');
-      return;
-
-    case 'openContact':
-      // .first(): Browse shows several listings and every row has one of these.
-      await pressWithPointer(page, '.list-row [data-contact]');
-      await page.waitForSelector('#contact-modal', { state: 'visible', timeout: 15000 });
-      await typeSlowly(page, '#contact-body',
-        'Interested in this parcel. Please pass my enquiry to the seller.');
-      return;
-
-    case 'sendContact':
-      await pressWithPointer(page, '#contact-send-btn');
-      await page.waitForSelector('#contact-modal', { state: 'hidden', timeout: 20000 });
-      return;
-
-    case 'switchLanguage':
+    case 'language':
       // The class is lang-btn-active, not .active - read off js/i18n.js.
       await pressWithPointer(page, '.lang-toggle .lang-btn:not(.lang-btn-active)');
       return;
@@ -176,12 +192,16 @@ async function main() {
     label: 'film-other', role: 'participant', status: 'approved',
     meta: { first_name: 'Marco', last_name: 'Ferrari', company: 'Ferrari Commodities' },
   });
+  // Somebody else's offer, so Browse has a row that is genuinely not the
+  // member's. 750 metric tons of zinc, not 25,000 of copper cathode: the
+  // first film quoted a quarter of a billion dollars of metal in a sample,
+  // which reads as a fantasy to anybody in the trade.
   await query(
     `insert into public.listings
        (user_id, type, commodity, quantity, unit, incoterm, origin, specification,
         status, reference_number)
-     values ($1, 'sell', 'Copper Cathode Grade A', 25000, 'Metric tons', 'CIF', 'Chile',
-             'LME Grade A, 99.99% Cu', 'available', $2)`,
+     values ($1, 'sell', 'Zinc Ingots', 750, 'Metric tons', 'FOB', 'Peru',
+             'SHG 99.995% Zn, 25kg ingots', 'available', $2)`,
     [other.profileId, `SELL-FILM-${Date.now().toString().slice(-6)}`]
   );
 
@@ -214,23 +234,72 @@ async function main() {
     await page.evaluate(() => { try { localStorage.setItem('jericho.language', 'es'); } catch (e) {} });
   }
 
+  // Scenes that overran their line, collected rather than thrown one at a
+  // time: one run should name every line that needs lengthening.
+  const overruns = [];
+
   for (const scene of scenes) {
     const seconds = timings[`${film}-${lang}-${scene.id}`];
     if (!seconds) throw new Error(`no narration timing for ${film}-${lang}-${scene.id}`);
 
+    const budget = Math.round(seconds * 1000) + PAUSE;
+    const began = Date.now();
+
     await page.evaluate(t => window.__jericho.caption(t), scene.say[lang]);
-    await perform(page, scene.do, world);
+
+    // ZOOM IN, if this scene has a subject. The viewer gets to see which
+    // control is about to be pressed before anything happens to it.
+    if (scene.zoom) {
+      await page.evaluate(
+        ([sel, scale]) => window.__jericho.zoomTo(sel, scale),
+        [scene.zoom, scene.zoomScale || null]).catch(() => {});
+      await wait(ZOOM_SETTLE);
+    } else {
+      await page.evaluate(() => window.__jericho.zoomOut()).catch(() => {});
+      await wait(ZOOM_SETTLE);
+    }
+
     if (scene.highlight) {
       await page.evaluate(s => window.__jericho.ringAround(s), scene.highlight).catch(() => {});
     } else {
       await page.evaluate(() => window.__jericho.ringAround(null)).catch(() => {});
     }
 
-    // The shot is held for exactly as long as the line takes to speak. Any
-    // time the actions above already consumed is time the viewer spent
-    // watching the thing being described, so it counts.
-    console.log(`  ${scene.id.padEnd(14)} holding ${seconds.toFixed(2)}s`);
-    await wait(Math.round(seconds * 1000) + PAUSE);
+    await perform(page, scene.do, world);
+
+    // ZOOM OUT AFTER THE PRESS, so the shot shows what the press DID. This
+    // is the whole point of zooming: close for the control, wide for the
+    // consequence.
+    if (scene.zoom && scene.zoomOutAfter) {
+      await wait(500);
+      await page.evaluate(() => window.__jericho.zoomOut()).catch(() => {});
+      await wait(ZOOM_SETTLE);
+      if (scene.highlightAfter) {
+        await page.evaluate(s => window.__jericho.ringAround(s), scene.highlightAfter).catch(() => {});
+      }
+    }
+
+    // HOLD for whatever is LEFT of the line, not for the whole line.
+    //
+    // This is a fix, not a refinement. The previous version performed the
+    // actions and THEN held for the full narration, so every scene's picture
+    // ran long by however many seconds its typing and clicking took - and the
+    // error accumulated, scene after scene, until the voice was describing
+    // something several scenes ahead of the picture. assemble.js then cut the
+    // tail off with -shortest, which hid the drift behind a film of the right
+    // total length. It is the likeliest reason the first film did not seem to
+    // match what was being said.
+    const used = Date.now() - began;
+    const hold = budget - used;
+    if (hold < 0) {
+      overruns.push({ id: scene.id, seconds, over: (-hold / 1000) });
+      console.log(`  ${scene.id.padEnd(16)} OVERRAN by ${(-hold / 1000).toFixed(1)}s ` +
+                  `(line ${seconds.toFixed(1)}s, actions took ${(used / 1000).toFixed(1)}s)`);
+    } else {
+      console.log(`  ${scene.id.padEnd(16)} ${(used / 1000).toFixed(1)}s acting, ` +
+                  `${(hold / 1000).toFixed(1)}s holding`);
+    }
+    await wait(Math.max(hold, 0));
   }
 
   await page.evaluate(() => window.__jericho.caption(''));
@@ -245,6 +314,24 @@ async function main() {
 
   await cleanup();
   console.log(`\nFilmed: ${final}`);
+
+  // A film whose picture runs longer than its voice is a film where the two
+  // disagree, and assemble.js would hide it by cutting the end off. Small
+  // overruns wash out; a few seconds in total do not.
+  if (overruns.length) {
+    const total = overruns.reduce((sum, o) => sum + o.over, 0);
+    console.log(`\n${overruns.length} scene(s) overran their line by ${total.toFixed(1)}s in total:`);
+    for (const o of overruns) {
+      console.log(`  ${o.id}: needs about ${(o.seconds + o.over).toFixed(1)}s of speech, has ${o.seconds.toFixed(1)}s`);
+    }
+    if (total > 3) {
+      throw new Error(
+        `the picture runs ${total.toFixed(1)}s longer than the voice. Lengthen the lines ` +
+        `named above in video/script.json - do not shorten the actions, which are what ` +
+        `the film is of.`);
+    }
+    console.log('Under three seconds in total, which the pauses absorb.');
+  }
 }
 
 main().catch(async (err) => {

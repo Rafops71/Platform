@@ -44,53 +44,32 @@
           "do": "signIn",
           "highlight": "#login-form",
           "say": {
-            "en": "Jericho is a private market for bulk commodities. It is invitation only. Nothing posted here appears in public, and there is no way in without an invitation. A member signs in with their own email and password.",
-            "es": "Jericho es un mercado privado de materias primas a granel. Solo se entra por invitación. Nada de lo que se publica aquí aparece en público, y no hay forma de entrar sin una invitación. Cada miembro entra con su propio correo y contraseña."
+            "en": "Jericho is a private market for bulk commodities. It is invitation only, nothing posted here ever appears in public, and there is no way in without an invitation. A member signs in with their own email address and their own password.",
+            "es": "Jericho es un mercado privado de materias primas a granel. Solo se entra por invitación, nada de lo que se publica aquí aparece nunca en público, y no hay forma de entrar sin una invitación. Cada miembro entra con su propio correo electrónico y su propia contraseña."
           }
         },
         {
-          "id": "dashboard",
-          "do": "screen:browse",
+          "id": "nav-tour",
+          "do": "hold",
+          "zoom": "nav.tabs",
+          "zoomScale": 1.45,
           "highlight": "nav.tabs",
           "say": {
-            "en": "Once you are in, everything sits on one screen. Your own offers, the whole market, and your messages. There is nothing else to learn.",
-            "es": "Una vez dentro, todo está en una sola pantalla. Sus propias ofertas, todo el mercado y sus mensajes. No hay nada más que aprender."
+            "en": "This row along the top is the whole platform. Seven buttons, and nothing hidden behind them. We will press them one at a time, and I will show you each button before I press it.",
+            "es": "Esta fila de arriba es toda la Plataforma. Siete botones, y nada escondido detrás de ellos. Los iremos pulsando uno a uno, y le mostraré cada botón antes de pulsarlo."
           }
         },
         {
-          "id": "post",
-          "do": "screen:new-listing",
-          "highlight": "#listing-form",
-          "say": {
-            "en": "To offer something, you fill in one form. What the commodity is, how much of it, the Incoterm, and where it ships from.",
-            "es": "Para ofrecer algo, se rellena un solo formulario. Qué materia prima es, qué cantidad, el Incoterm, y desde dónde se envía."
-          }
-        },
-        {
-          "id": "post-fill",
-          "do": "fillListing",
-          "highlight": "#listing-form",
-          "say": {
-            "en": "Here: a sell offer. Copper cathodes. Twenty five thousand metric tons. LME Grade A. Terms, CIF. Shipping from Chile. That is the whole job, and it takes under a minute.",
-            "es": "Aquí: una oferta de venta. Cátodos de cobre. Veinticinco mil toneladas métricas. Grado A de la LME. Condiciones, CIF. Envío desde Chile. Eso es todo, y lleva menos de un minuto."
-          }
-        },
-        {
-          "id": "mine",
-          "do": "screen:my-listings",
-          "highlight": "#my-listings-list",
-          "say": {
-            "en": "Your offer now has a reference number of its own. That number is how the Operator will discuss it with you, instead of using your name. You can change the offer, renew it, or withdraw it whenever you like.",
-            "es": "Su oferta ya tiene su propio número de referencia. Ese número es la forma en que el Operador hablará de ella con usted, en lugar de usar su nombre. Puede modificar la oferta, renovarla o retirarla cuando quiera."
-          }
-        },
-        {
-          "id": "browse",
+          "id": "browse-btn",
           "do": "screen:browse",
-          "highlight": "#browse-list",
+          "zoom": "button[data-screen=\"browse\"]",
+          "zoomScale": 2.8,
+          "zoomOutAfter": true,
+          "highlight": "button[data-screen=\"browse\"]",
+          "highlightAfter": "#browse-list",
           "say": {
-            "en": "Browse shows every offer on the platform, not only your own. You can filter by commodity, or search for exactly what you need.",
-            "es": "Explorar muestra todas las ofertas de la Plataforma, no solo las suyas. Puede filtrar por materia prima, o buscar exactamente lo que necesita."
+            "en": "Start with this one: Browse. It is the market itself - every offer on the platform, from every other member, in one list. Watch what it opens.",
+            "es": "Empecemos por este: Explorar. Es el mercado en sí: todas las ofertas de la Plataforma, de todos los demás miembros, en una sola lista. Mire lo que abre."
           }
         },
         {
@@ -98,62 +77,197 @@
           "do": "hold",
           "highlight": ".list-row",
           "say": {
-            "en": "Now look closely at a row. You get the full commercial detail: the grade, the quantity, the terms, the origin. What you do not get is a name, a company, or an email address. And the member who posted it cannot see you either.",
-            "es": "Ahora mire con atención una fila. Tiene todo el detalle comercial: el grado, la cantidad, las condiciones, el origen. Lo que no tiene es un nombre, una empresa ni un correo electrónico. Y el miembro que la publicó tampoco puede verle a usted."
+            "en": "Look carefully at one row, because this is the part that makes Jericho what it is. You get the grade, the quantity, the terms and the origin. What you do not get is a name, a company, or an email address. And the member who posted it cannot see you either.",
+            "es": "Mire con atención una fila, porque esta es la parte que hace de Jericho lo que es. Tiene el grado, la cantidad, las condiciones y el origen. Lo que no tiene es un nombre, una empresa ni una dirección de correo. Y el miembro que la publicó tampoco puede verle a usted."
           }
         },
         {
           "id": "save-search",
-          "do": "saveSearch",
+          "do": "press:#browse-save-search-btn",
+          "zoom": "#browse-save-search-btn",
+          "zoomScale": 2.6,
+          "zoomOutAfter": true,
           "highlight": "#browse-save-search-btn",
           "say": {
-            "en": "If you are always looking for the same thing, save the search. It becomes a watchlist, and it tells you how many offers match it right now.",
-            "es": "Si siempre busca lo mismo, guarde la búsqueda. Se convierte en una lista de seguimiento, y le indica cuántas ofertas coinciden en este momento."
+            "en": "If you are always looking for the same material, this button saves the search. It becomes a standing watchlist, and it tells you how many offers match it right now, so you are not scrolling the market every morning.",
+            "es": "Si siempre busca el mismo material, este botón guarda la búsqueda. Se convierte en una lista de seguimiento permanente, y le dice cuántas ofertas coinciden ahora mismo, para que no tenga que recorrer el mercado cada mañana."
           }
         },
         {
-          "id": "contact",
-          "do": "openContact",
-          "highlight": "#contact-modal",
+          "id": "contact-btn",
+          "do": "press:.list-row [data-contact]",
+          "highlight": ".list-row [data-contact]",
           "say": {
-            "en": "When something interests you, you write about it. But not to the other member. You write to the Operator, and you never need to know who is on the other side.",
-            "es": "Cuando algo le interesa, escribe sobre ello. Pero no al otro miembro. Escribe al Operador, y nunca necesita saber quién está al otro lado."
+            "en": "When one of these offers interests you, this is the button. Notice what it does not say. It does not say contact the seller, because you will never be given the seller. It opens a note to your Operator.",
+            "es": "Cuando una de estas ofertas le interesa, este es el botón. Fíjese en lo que no dice. No dice contactar con el vendedor, porque nunca se le dará el vendedor. Abre una nota para su Operador."
           }
         },
         {
-          "id": "send",
-          "do": "sendContact",
+          "id": "contact-write",
+          "do": "type:#contact-body|Interested in this parcel. Please pass my enquiry to the seller.",
+          "highlight": "#contact-body",
+          "say": {
+            "en": "You write it in your own words, in plain language. You do not need a name, an address, or a reference for the other side — the Operator already knows which offer you are asking about.",
+            "es": "Se escribe con sus propias palabras, en lenguaje llano. No necesita un nombre, una dirección ni una referencia de la otra parte: el Operador ya sabe por qué oferta pregunta."
+          }
+        },
+        {
+          "id": "contact-send",
+          "do": "press:#contact-send-btn",
           "highlight": "#contact-send-btn",
           "say": {
-            "en": "The Operator reads what you wrote, decides whether it should go, and passes it on. Nothing on this platform travels between two members on its own.",
-            "es": "El Operador lee lo que ha escrito, decide si debe seguir adelante, y lo transmite. Nada en esta Plataforma viaja entre dos miembros por sí solo."
+            "en": "And Send. This does not reach the other member. It reaches your Operator, who reads it, decides whether it should go, and then passes it on. Nothing on this platform travels between two members on its own.",
+            "es": "Y Enviar. Esto no llega al otro miembro. Llega a su Operador, que lo lee, decide si debe seguir adelante, y entonces lo transmite. Nada en esta Plataforma viaja entre dos miembros por sí solo."
           }
         },
         {
           "id": "mailbox",
           "do": "screen:mailbox",
-          "highlight": "#mailbox-list",
+          "zoom": "button[data-screen=\"mailbox\"]",
+          "zoomScale": 2.8,
+          "zoomOutAfter": true,
+          "highlight": "button[data-screen=\"mailbox\"]",
+          "highlightAfter": "#mailbox-list",
           "say": {
-            "en": "Their reply comes back the same way. Through the Operator, into your mailbox. Still no names, on either side.",
-            "es": "Su respuesta vuelve por el mismo camino. A través del Operador, a su buzón. Todavía sin nombres, por ninguna de las dos partes."
+            "en": "Replies come back along exactly the same path - through the Operator - and land in here. Mailbox. This one is still empty, because the enquiry has only just been sent and nobody has answered it yet. When they do, there will still be no name on it.",
+            "es": "Las respuestas vuelven por exactamente el mismo camino, a través del Operador, y llegan aquí. Buzón. Este todavía está vacío, porque la consulta acaba de enviarse y nadie la ha contestado aún. Cuando lo hagan, seguirá sin llevar ningún nombre."
+          }
+        },
+        {
+          "id": "new-listing-btn",
+          "do": "screen:new-listing",
+          "zoom": "button[data-screen=\"new-listing\"]",
+          "zoomScale": 2.8,
+          "zoomOutAfter": true,
+          "highlight": "button[data-screen=\"new-listing\"]",
+          "highlightAfter": "#listing-form",
+          "say": {
+            "en": "Now the other direction. Everything so far belonged to somebody else; this button, New Listing, is how you put something of your own up. Watch what happens when it is pressed: the form opens, and that form is the only place an offer is ever written.",
+            "es": "Ahora en la otra dirección. Todo lo anterior era de otra persona; este botón, Nueva Oferta, es como usted publica algo suyo. Mire lo que pasa al pulsarlo: se abre el formulario, y ese formulario es el único sitio donde se escribe una oferta."
+          }
+        },
+        {
+          "id": "form-type",
+          "do": "check:input[name=\"type\"][value=\"sell\"]",
+          "zoom": "input[name=\"type\"][value=\"sell\"]",
+          "zoomScale": 2.6,
+          "highlight": "input[name=\"type\"][value=\"sell\"]",
+          "say": {
+            "en": "The first choice is the simplest one. Are you selling something, or are you looking to buy it? This example is a sell offer, so that is the box that gets ticked.",
+            "es": "La primera elección es la más sencilla. ¿Está vendiendo algo, o está buscando comprarlo? Este ejemplo es una oferta de venta, así que esa es la casilla que se marca."
+          }
+        },
+        {
+          "id": "form-commodity",
+          "do": "select:#commodity-select|copper cathodes",
+          "zoom": "#commodity-select",
+          "zoomScale": 2.3,
+          "highlight": "#commodity-select",
+          "say": {
+            "en": "Next, what the material actually is. This list is the one your Operator keeps, so everybody on the platform describes the same metal the same way. Here it is copper cathodes.",
+            "es": "Después, qué material es en realidad. Esta lista la mantiene su Operador, así que todo el mundo en la Plataforma describe el mismo metal de la misma manera. Aquí son cátodos de cobre."
+          }
+        },
+        {
+          "id": "form-quantity",
+          "do": "type:#quantity|500",
+          "zoom": "#quantity",
+          "zoomScale": 2.3,
+          "highlight": "#quantity",
+          "say": {
+            "en": "Then how much of it. Five hundred. That is one ordinary parcel, the sort of thing that moves in a single shipment — not a year of production, and not a number meant to impress anybody.",
+            "es": "Luego, cuánto hay. Quinientas. Es una partida corriente, de las que se mueven en un solo envío; no la producción de un año, ni una cifra puesta para impresionar a nadie."
+          }
+        },
+        {
+          "id": "form-unit",
+          "do": "select:#unit|Metric tons",
+          "zoom": "#unit",
+          "zoomScale": 2.3,
+          "highlight": "#unit",
+          "say": {
+            "en": "And the unit those five hundred are counted in. Metric tons, in this case. The list carries barrels and kilograms and dry metric ton units as well, because not everything is weighed the same way.",
+            "es": "Y la unidad en la que se cuentan esas quinientas. Toneladas métricas, en este caso. La lista también incluye barriles, kilogramos y unidades de tonelada métrica seca, porque no todo se mide igual."
+          }
+        },
+        {
+          "id": "form-spec",
+          "do": "type:#specification|LME Grade A, 99.99% Cu",
+          "zoom": "#specification",
+          "zoomScale": 1.9,
+          "highlight": "#specification",
+          "say": {
+            "en": "The specification is yours to write freely. This is where the grade goes, and anything a buyer would need to know before asking a single question. Here: London Metal Exchange Grade A.",
+            "es": "La especificación la escribe usted libremente. Aquí va el grado, y todo lo que un comprador necesitaría saber antes de hacer la primera pregunta. Aquí: Grado A de la Bolsa de Metales de Londres."
+          }
+        },
+        {
+          "id": "form-incoterm",
+          "do": "select:#incoterm|CIF",
+          "zoom": "#incoterm",
+          "zoomScale": 2.3,
+          "highlight": "#incoterm",
+          "say": {
+            "en": "The Incoterm says who carries the cost and the risk, and how far. All eleven of them are in this list. This offer is CIF, so cost, insurance and freight are the seller's as far as the port.",
+            "es": "El Incoterm dice quién asume el coste y el riesgo, y hasta dónde. Los once están en esta lista. Esta oferta es CIF, así que coste, seguro y flete son del vendedor hasta el puerto."
+          }
+        },
+        {
+          "id": "form-origin",
+          "do": "select:#location|Chile",
+          "zoom": "#location",
+          "zoomScale": 2.3,
+          "highlight": "#location",
+          "say": {
+            "en": "And where the material ships from. Chile, here. If this had been a buy request rather than a sell offer, this very same field would have asked for the destination instead.",
+            "es": "Y desde dónde se envía el material. Chile, en este caso. Si esto hubiera sido una solicitud de compra en vez de una oferta de venta, este mismo campo habría pedido el destino."
+          }
+        },
+        {
+          "id": "form-save",
+          "do": "press:#listing-submit-btn",
+          "zoom": "#listing-submit-btn",
+          "zoomScale": 2.8,
+          "zoomOutAfter": true,
+          "highlight": "#listing-submit-btn",
+          "highlightAfter": "#my-listings-list",
+          "say": {
+            "en": "That is the whole form. Now the button that matters: Save Listing. One press, and the offer is on the market — and watch, because the platform takes you straight to your own offers to show you it arrived.",
+            "es": "Eso es todo el formulario. Ahora el botón que importa: Guardar Oferta. Una pulsación, y la oferta está en el mercado; y fíjese, porque la Plataforma le lleva directamente a sus propias ofertas para mostrarle que ha llegado."
+          }
+        },
+        {
+          "id": "mine",
+          "do": "hold",
+          "highlight": "#my-listings-list",
+          "say": {
+            "en": "There it is, with a reference number of its own. That number is how your Operator will talk to you about this offer, instead of using your name. From here you can change it, renew it, or withdraw it whenever you want.",
+            "es": "Ahí está, con su propio número de referencia. Ese número es la forma en que su Operador hablará con usted de esta oferta, en lugar de usar su nombre. Desde aquí puede modificarla, renovarla o retirarla cuando quiera."
           }
         },
         {
           "id": "documents",
           "do": "screen:doc-requests",
-          "highlight": "#doc-checklist",
+          "zoom": "button[data-screen=\"doc-requests\"]",
+          "zoomScale": 2.8,
+          "zoomOutAfter": true,
+          "highlight": "button[data-screen=\"doc-requests\"]",
+          "highlightAfter": "#doc-checklist",
           "say": {
-            "en": "Where papers matter, you simply declare which ones you hold. Nothing is ever uploaded. The platform stores no documents at all, so there is nothing here that could leak.",
-            "es": "Cuando los documentos importan, solo se declara cuáles posee. Nunca se sube nada. La Plataforma no almacena ningún documento, así que aquí no hay nada que pueda filtrarse."
+            "en": "Documents, where papers are concerned. You tick which ones you hold, and that is all. Nothing is ever uploaded here. The platform stores no documents at all, which means there is nothing on it that could leak.",
+            "es": "Documentos, cuando se trata de papeles. Se marca cuáles posee, y eso es todo. Aquí nunca se sube nada. La Plataforma no almacena ningún documento, lo que significa que no hay nada en ella que pueda filtrarse."
           }
         },
         {
           "id": "language",
-          "do": "switchLanguage",
+          "do": "language",
+          "zoom": ".lang-toggle",
+          "zoomScale": 2.8,
+          "zoomOutAfter": true,
           "highlight": ".lang-toggle",
           "say": {
-            "en": "The whole platform speaks Spanish as well. One press, and every word on every screen changes.",
-            "es": "La Plataforma entera habla inglés también. Una pulsación, y cambia cada palabra de cada pantalla."
+            "en": "And this small pair of buttons in the corner changes the language. One press, and every word on every screen you have just seen changes with it.",
+            "es": "Y este pequeño par de botones de la esquina cambia el idioma. Una pulsación, y cambia con él cada palabra de cada pantalla que acaba de ver."
           }
         },
         {
@@ -161,10 +275,35 @@
           "do": "hold",
           "highlight": null,
           "say": {
-            "en": "So you can trade, and nobody learns who you are until you decide they should. That is the whole point of Jericho.",
-            "es": "Así puede negociar, y nadie sabe quién es usted hasta que usted decida que deba saberlo. Ese es el sentido de Jericho."
+            "en": "So that is all of it. You can offer, you can look, and you can deal — and nobody learns who you are until you decide that they should. That is the whole point of Jericho.",
+            "es": "Y eso es todo. Puede ofrecer, puede mirar y puede negociar; y nadie sabe quién es usted hasta que usted decida que deba saberlo. Ese es el sentido de Jericho."
           }
         }
+      ],
+      "_comment": [
+        "Each button is zoomed into BEFORE it is pressed and zoomed back out after,",
+        "so the viewer sees which control it was and then what it did. The owner",
+        "watched the first film and could not tell what was being pressed.",
+        "",
+        "zoom is the element to fill the screen with; zoomScale how close; ",
+        "zoomOutAfter pulls back once the action is done, which is how the",
+        "consequence gets shown; highlightAfter is the ring for that wider shot.",
+        "",
+        "NO SCENE ZOOMS WHILE THE CONTACT MODAL IS OPEN. #contact-modal is",
+        "position:fixed (app.html line 294), and a transform on body makes body the",
+        "containing block for fixed children - so zooming would move the modal",
+        "rather than magnify it. Those three scenes use the ring alone.",
+        "",
+        "The volumes are deliberately ordinary. The first film offered 25,000 metric",
+        "tons of copper cathode, which is a quarter of a billion dollars of metal and",
+        "reads as a fantasy to anybody in the trade. 500 metric tons is one parcel.",
+        "",
+        "BROWSE COMES BEFORE POSTING, and that is not a stylistic choice.",
+        "get_public_listings() returns every listing including the member's own, and",
+        "js/app.js sorts newest first - so an offer the film has just posted lands in",
+        "row one, and the contact scene would have been the film enquiring about its",
+        "own offer. Browsing first leaves row one genuinely somebody else's, with no",
+        "fragile nth-child selector to go wrong."
       ]
     }
   }
