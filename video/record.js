@@ -192,18 +192,33 @@ async function main() {
     label: 'film-other', role: 'participant', status: 'approved',
     meta: { first_name: 'Marco', last_name: 'Ferrari', company: 'Ferrari Commodities' },
   });
-  // Somebody else's offer, so Browse has a row that is genuinely not the
-  // member's. 750 metric tons of zinc, not 25,000 of copper cathode: the
-  // first film quoted a quarter of a billion dollars of metal in a sample,
-  // which reads as a fantasy to anybody in the trade.
-  await query(
+  // THE BUYER'S DEMAND.
+  //
+  // Another member's BUY REQUEST, not a sell offer: the film's story is a
+  // buyer who wants copper and a seller who answers, so the market has to
+  // contain the demand before the film can answer it. A buy request stores
+  // its region in `destination` rather than `origin` - get_public_listings()
+  // picks whichever matches the type, which is why the row then reads
+  // "Destination" instead of "Origin".
+  //
+  // The id comes back so the film can press THIS row's Contact button by id.
+  // Browse sorts newest first (js/app.js:519) and shows the member's own
+  // listings too, so the offer the film posts lands above this one - targeting
+  // by position would make the film enquire about its own offer.
+  //
+  // 600 metric tons, because a demand should look like a real enquiry.
+  const demand = await query(
     `insert into public.listings
-       (user_id, type, commodity, quantity, unit, incoterm, origin, specification,
-        status, reference_number)
-     values ($1, 'sell', 'Zinc Ingots', 750, 'Metric tons', 'FOB', 'Peru',
-             'SHG 99.995% Zn, 25kg ingots', 'available', $2)`,
-    [other.profileId, `SELL-FILM-${Date.now().toString().slice(-6)}`]
+       (user_id, type, commodity, quantity, unit, incoterm, destination,
+        specification, status, reference_number)
+     values ($1, 'buy', 'copper cathodes', 600, 'Metric tons', 'CIF', 'Netherlands',
+             'LME Grade A or equivalent, Rotterdam', 'available', $2)
+     returning id`,
+    [other.profileId, `BUY-FILM-${Date.now().toString().slice(-6)}`]
   );
+  world.demandId = demand.rows[0].id;
+  if (!world.demandId) throw new Error('the buyer\'s demand was not created, so the film has nothing to answer');
+  console.log(`The buyer's demand: ${world.demandId}`);
 
   fs.mkdirSync(OUT, { recursive: true });
   const browser = await chromium.launch();
@@ -238,6 +253,12 @@ async function main() {
   // time: one run should name every line that needs lengthening.
   const overruns = [];
 
+  // {demandId} in a selector becomes the buyer's listing id, which only
+  // exists once the fixture has been created. Without this the script would
+  // have to address that row by position, and position is not stable.
+  const fill = (value) =>
+    typeof value === 'string' ? value.replace(/\{demandId\}/g, world.demandId) : value;
+
   for (const scene of scenes) {
     const seconds = timings[`${film}-${lang}-${scene.id}`];
     if (!seconds) throw new Error(`no narration timing for ${film}-${lang}-${scene.id}`);
@@ -252,7 +273,7 @@ async function main() {
     if (scene.zoom) {
       await page.evaluate(
         ([sel, scale]) => window.__jericho.zoomTo(sel, scale),
-        [scene.zoom, scene.zoomScale || null]).catch(() => {});
+        [fill(scene.zoom), scene.zoomScale || null]).catch(() => {});
       await wait(ZOOM_SETTLE);
     } else {
       await page.evaluate(() => window.__jericho.zoomOut()).catch(() => {});
@@ -260,12 +281,12 @@ async function main() {
     }
 
     if (scene.highlight) {
-      await page.evaluate(s => window.__jericho.ringAround(s), scene.highlight).catch(() => {});
+      await page.evaluate(s => window.__jericho.ringAround(s), fill(scene.highlight)).catch(() => {});
     } else {
       await page.evaluate(() => window.__jericho.ringAround(null)).catch(() => {});
     }
 
-    await perform(page, scene.do, world);
+    await perform(page, fill(scene.do), world);
 
     // ZOOM OUT AFTER THE PRESS, so the shot shows what the press DID. This
     // is the whole point of zooming: close for the control, wide for the
@@ -275,7 +296,7 @@ async function main() {
       await page.evaluate(() => window.__jericho.zoomOut()).catch(() => {});
       await wait(ZOOM_SETTLE);
       if (scene.highlightAfter) {
-        await page.evaluate(s => window.__jericho.ringAround(s), scene.highlightAfter).catch(() => {});
+        await page.evaluate(s => window.__jericho.ringAround(s), fill(scene.highlightAfter)).catch(() => {});
       }
     }
 
