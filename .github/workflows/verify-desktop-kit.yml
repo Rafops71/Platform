@@ -12,6 +12,13 @@ name: Verify the desktop film kit
 
 on:
   workflow_dispatch:
+  # Also on a push that touches the kit. workflow_dispatch alone is not
+  # enough for a NEW workflow: the API only lists one that already exists on
+  # the default branch, so a brand-new file cannot be dispatched by name.
+  push:
+    paths:
+      - 'desktop-film-kit/**'
+      - '.github/workflows/verify-desktop-kit.yml'
 
 jobs:
   verify:
