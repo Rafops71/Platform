@@ -180,6 +180,40 @@ async function main() {
     }
   }
 
+  // A ZOOM MUST BE READABLE, AND MUST LET GO.
+  //
+  // The owner watched a cut and said the picture was zoomed in while the
+  // voice talked about something he could no longer see. Two faults:
+  //
+  //   Too tight. 2.8x on a nav button fills a 1280-wide frame with one word
+  //   and nothing around it - and a button is identified by its NEIGHBOURS.
+  //   A magnified fragment says less about which button it is than a wide
+  //   shot with a ring round it.
+  //
+  //   Never released. Eight scenes zoomed in and stayed there, so the whole
+  //   line played over a magnified fragment. One held a button at 2.6x for
+  //   ten seconds while explaining what that button MEANS.
+  //
+  // Neither was visible to any check: the length matched, the picture and
+  // sound were there, nothing overran. Only a person watching it could tell.
+  // So the rules are written down here, where they cost nothing to enforce.
+  const MAX_SCALE = 2.0;
+  const zoomProblems = [];
+  for (const scene of scenes) {
+    if (!scene.zoom) continue;
+    if ((scene.zoomScale || 1.9) > MAX_SCALE) {
+      zoomProblems.push(`${scene.id}: ${scene.zoomScale}x is closer than ${MAX_SCALE}x - ` +
+        `the viewer loses what is around it`);
+    }
+    if (!scene.zoomOutAfter) {
+      zoomProblems.push(`${scene.id}: zooms in and never comes back out - ` +
+        `its line plays over a magnified fragment`);
+    }
+  }
+  if (zoomProblems.length) {
+    throw new Error('zooms that would confuse a viewer:\n  ' + zoomProblems.join('\n  '));
+  }
+
   // NOBODY WATCHES A STILL SCREEN BEING TALKED AT.
   //
   // An earlier cut opened with five consecutive hold-scenes on the sign-in

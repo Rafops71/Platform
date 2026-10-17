@@ -76,7 +76,8 @@
             "es": "Bienvenido a Jericho Platform: un mercado privado de materias primas a granel, solo por invitación, donde nada de lo publicado aparece nunca en público."
           },
           "zoom": ".logo-row",
-          "zoomScale": 1.3
+          "zoomScale": 1.3,
+          "zoomOutAfter": true
         },
         {
           "id": "signin",
@@ -87,7 +88,8 @@
             "es": "Solo se entra por invitación. El Operador le invita, usted se registra con esa invitación, y el Operador le aprueba. Después de eso, esto es todo lo que hace falta."
           },
           "zoom": "#login-form",
-          "zoomScale": 1.5
+          "zoomScale": 1.3,
+          "zoomOutAfter": true
         },
         {
           "id": "nav-tour",
@@ -98,13 +100,14 @@
           "say": {
             "en": "Inside, this row is the whole platform. And the rule behind all of it: members never deal with each other directly. Every message goes through an Operator.",
             "es": "Dentro, esta fila es toda la Plataforma. Y la regla detrás de todo: los miembros nunca tratan entre sí directamente. Cada mensaje pasa por un Operador."
-          }
+          },
+          "zoomOutAfter": true
         },
         {
           "id": "browse-btn",
           "do": "screen:browse",
           "zoom": "button[data-screen=\"browse\"]",
-          "zoomScale": 2.8,
+          "zoomScale": 1.8,
           "zoomOutAfter": true,
           "highlight": "button[data-screen=\"browse\"]",
           "highlightAfter": "#browse-list",
@@ -117,12 +120,13 @@
           "id": "demand-row",
           "do": "hold",
           "zoom": ".list-row:has([data-contact=\"{demandId}\"])",
-          "zoomScale": 1.7,
+          "zoomScale": 1.4,
           "highlight": ".list-row:has([data-contact=\"{demandId}\"])",
           "say": {
             "en": "Here is a demand. Somebody on this platform is buying copper cathodes. Six hundred metric tons, CIF, into the Netherlands.",
             "es": "Aquí hay una demanda. Alguien en esta Plataforma está comprando cátodos de cobre. Seiscientas toneladas métricas, CIF, hacia los Países Bajos."
-          }
+          },
+          "zoomOutAfter": true
         },
         {
           "id": "anonymous",
@@ -137,7 +141,7 @@
           "id": "new-listing-btn",
           "do": "screen:new-listing",
           "zoom": "button[data-screen=\"new-listing\"]",
-          "zoomScale": 2.8,
+          "zoomScale": 1.8,
           "zoomOutAfter": true,
           "highlight": "button[data-screen=\"new-listing\"]",
           "highlightAfter": "#listing-form",
@@ -150,73 +154,79 @@
           "id": "form-type",
           "do": "check:input[name=\"type\"][value=\"sell\"]",
           "zoom": "input[name=\"type\"][value=\"sell\"]",
-          "zoomScale": 2.6,
+          "zoomScale": 1.7,
           "highlight": "input[name=\"type\"][value=\"sell\"]",
           "say": {
             "en": "First: are you selling, or buying? You are the seller here, so Sell Offer.",
             "es": "Primero: ¿vende o compra? Aquí usted es el vendedor, así que Oferta de Venta."
-          }
+          },
+          "zoomOutAfter": true
         },
         {
           "id": "form-commodity",
           "do": "select:#commodity-select|copper cathodes",
           "zoom": "#commodity-select",
-          "zoomScale": 2.3,
+          "zoomScale": 1.6,
           "highlight": "#commodity-select",
           "say": {
             "en": "The commodity, from the list your Operator keeps, so everybody names the same metal the same way. Copper cathodes.",
             "es": "La materia prima, de la lista que mantiene su Operador, para que todos nombren el mismo metal igual. Cátodos de cobre."
-          }
+          },
+          "zoomOutAfter": true
         },
         {
           "id": "form-quantity",
           "do": "type:#quantity|500",
           "zoom": "#quantity",
-          "zoomScale": 2.3,
+          "zoomScale": 1.6,
           "highlight": "#quantity",
           "say": {
             "en": "How much you have. Five hundred. One ordinary parcel, the sort that moves in a single shipment.",
             "es": "Cuánto tiene. Quinientas. Una partida corriente, de las que se mueven en un solo envío."
-          }
+          },
+          "zoomOutAfter": true
         },
         {
           "id": "form-unit",
           "do": "select:#unit|Metric tons",
           "zoom": "#unit",
-          "zoomScale": 2.3,
+          "zoomScale": 1.6,
           "highlight": "#unit",
           "say": {
             "en": "And the unit those five hundred are counted in. Metric tons, here.",
             "es": "Y la unidad en la que se cuentan esas quinientas. Toneladas métricas, aquí."
-          }
+          },
+          "zoomOutAfter": true
         },
         {
           "id": "form-incoterm",
           "do": "select:#incoterm|CIF",
           "zoom": "#incoterm",
-          "zoomScale": 2.3,
+          "zoomScale": 1.6,
           "highlight": "#incoterm",
           "say": {
             "en": "The Incoterm. CIF, matching what the buyer asked for: cost, insurance and freight are yours as far as the port.",
             "es": "El Incoterm. CIF, igual que pedía el comprador: coste, seguro y flete son suyos hasta el puerto."
-          }
+          },
+          "zoomOutAfter": true
         },
         {
           "id": "form-origin",
           "do": "select:#location|Chile",
           "zoom": "#location",
-          "zoomScale": 2.3,
+          "zoomScale": 1.6,
           "highlight": "#location",
           "say": {
             "en": "And where it ships from. Chile. Had this been a request instead, this same field would have asked for the destination.",
             "es": "Y desde dónde se envía. Chile. Si esto hubiera sido una solicitud, este mismo campo habría pedido el destino."
-          }
+          },
+          "zoomOutAfter": true
         },
         {
           "id": "form-save",
           "do": "press:#listing-submit-btn",
           "zoom": "#listing-submit-btn",
-          "zoomScale": 2.8,
+          "zoomScale": 1.8,
           "zoomOutAfter": true,
           "highlight": "#listing-submit-btn",
           "highlightAfter": "#my-listings-list",
@@ -238,7 +248,7 @@
           "id": "back-to-browse",
           "do": "screen:browse",
           "zoom": "button[data-screen=\"browse\"]",
-          "zoomScale": 2.8,
+          "zoomScale": 1.8,
           "zoomOutAfter": true,
           "highlight": "button[data-screen=\"browse\"]",
           "highlightAfter": ".list-row:has([data-contact=\"{demandId}\"])",
@@ -251,12 +261,13 @@
           "id": "contact-btn",
           "do": "press:[data-contact=\"{demandId}\"]",
           "zoom": "[data-contact=\"{demandId}\"]",
-          "zoomScale": 2.6,
+          "zoomScale": 1.7,
           "highlight": "[data-contact=\"{demandId}\"]",
           "say": {
             "en": "This is the button that brings two members together. Read what it does not say: it does not say contact the buyer. It opens a note to your Operator.",
             "es": "Este es el botón que une a dos miembros. Lea lo que no dice: no dice contactar con el comprador. Abre una nota para su Operador."
-          }
+          },
+          "zoomOutAfter": true
         },
         {
           "id": "contact-write",
@@ -280,7 +291,7 @@
           "id": "mailbox",
           "do": "screen:mailbox",
           "zoom": "button[data-screen=\"mailbox\"]",
-          "zoomScale": 2.8,
+          "zoomScale": 1.8,
           "zoomOutAfter": true,
           "highlight": "button[data-screen=\"mailbox\"]",
           "highlightAfter": "#mailbox-list",
@@ -293,7 +304,7 @@
           "id": "language",
           "do": "language",
           "zoom": ".lang-toggle",
-          "zoomScale": 2.8,
+          "zoomScale": 1.9,
           "zoomOutAfter": true,
           "highlight": ".lang-toggle",
           "say": {
@@ -327,7 +338,6 @@
         "where they belong anyway.",
         "",
         "Each button is zoomed into BEFORE it is pressed and zoomed out of after.",
-        "zoom is what fills the screen, zoomScale how close, zoomOutAfter pulls",
         "back once the action is done, highlightAfter rings the wider shot.",
         "",
         "The story: a buyer wants 600 tons of copper cathodes. The film answers",
@@ -341,7 +351,23 @@
         "itself. :has() rings the row from its button, checked in Chromium 141.",
         "",
         "NO SCENE ZOOMS WHILE THE CONTACT MODAL IS OPEN: #contact-modal is",
-        "position:fixed (app.html:294), so a body transform would MOVE it."
+        "position:fixed (app.html:294), so a body transform would MOVE it.",
+        "",
+        "ZOOM RULES, after the owner watched the 3m36s cut and said the picture was",
+        "zoomed in while the voice talked about something he could no longer see.",
+        "He was right, and it was two faults at once:",
+        "",
+        "  1. TOO TIGHT. 2.8x on a nav button fills the frame with one word and",
+        "     nothing around it - but a button is identified by its NEIGHBOURS. A",
+        "     magnified fragment says less about which button it is than a wide shot",
+        "     with a ring round it. Nothing goes above 1.9x now.",
+        "",
+        "  2. NEVER RELEASED. Eight scenes zoomed in and simply stayed there, so the",
+        "     line played out over a magnified fragment. contact-btn held a button at",
+        "     2.6x for ten seconds while explaining what the button MEANS.",
+        "",
+        "So every zoom now has zoomOutAfter: show the control, use it, pull back and",
+        "show what it did. record.js refuses to film a zoom that breaks either rule."
       ]
     }
   }
