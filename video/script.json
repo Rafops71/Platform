@@ -48,11 +48,12 @@
       "",
       "speed is Kokoro's own multiplier - below 1.0 is slower. Piper's equivalent",
       "is the lengthScale in the pacing block, which is not the same number and",
-      "is deliberately kept separate."
+      "is deliberately kept separate.",
+      "The owner listened to four Kokoro voices on 2026-10-17 and chose am_michael. Its own VOICES.md grades that voice C+ against af_heart's A - the owner was told that and chose it anyway, which is his call to make and not Claude's: Claude cannot hear any of them."
     ],
     "engine": "kokoro",
     "kokoro": {
-      "en": "af_heart",
+      "en": "am_michael",
       "es": "ef_dora",
       "speed": 0.92
     },
