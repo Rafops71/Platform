@@ -1,0 +1,214 @@
+name: Record the films
+
+# Makes the two explainer films. Manual only - this is a deliverable, not a
+# gate, and nothing should be filming on a schedule.
+#
+# WHY ON A RUNNER AND NOT ON A LAPTOP
+#
+# It needs a real ffmpeg, which a Claude Code session container does not have
+# (the one there is Playwright's stripped build and cannot even read a WAV).
+# It needs 350MB of voice model. And it needs credentials for whatever the
+# film is filmed against. A runner has all three and forgets them afterwards.
+#
+# WHAT IT PRODUCES
+#
+# One file per film per language, uploaded as an artifact. The owner downloads
+# it; nothing is published anywhere by this workflow.
+
+on:
+  workflow_dispatch:
+    inputs:
+      film:
+        description: 'Which film (the key under `films` in script.json)'
+        required: false
+        default: 'demo'
+      lang:
+        description: 'Language (en or es)'
+        required: false
+        default: 'en'
+      voice:
+        description: 'Voice, e.g. af_heart (Kokoro) or en_GB-cori-high (Piper). Blank uses script.json.'
+        required: false
+        default: ''
+
+concurrency:
+  # The same group as CI: this creates and deletes fixtures on the live
+  # project, and must never do that while the browser suites are mid-run.
+  group: ci-live-database
+  cancel-in-progress: false
+
+permissions:
+  # The film is committed back to the branch it was dispatched from, which
+  # needs more than the default read-only token.
+  contents: write
+
+jobs:
+  record:
+    name: Record and assemble
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+
+      - name: Install ffmpeg, then prove it is really there
+        # The runner image does NOT ship ffmpeg. Attempts three and four both
+        # filmed all fourteen scenes and then died on the first ffmpeg call
+        # with "command not found", while the check that was supposed to catch
+        # exactly that reported success.
+        #
+        # It reported success because it was written as `ffmpeg -version |
+        # head -1`, and a shell pipeline exits with the status of its LAST
+        # command - head, which is perfectly happy. The check could not fail.
+        # `command -v` below has nothing to hide behind.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          command -v ffmpeg
+          command -v ffprobe
+          ffmpeg -version | head -1
+
+      - run: npx playwright install --with-deps chromium
+
+      - uses: actions/setup-python@v5
+        # Named explicitly rather than relying on whatever Python the runner
+        # image happens to ship. Piper is the only Python in this project, and
+        # a version that moves under us would break the narration silently -
+        # the voices would simply fail to install and the film would be mute.
+        with:
+          python-version: '3.11'
+
+      - name: Install the narration engine
+        # Kokoro by default: 82M parameters, Apache-2.0, CPU only - no GPU
+        # anywhere in this pipeline. Its model files are 325MB and 28MB, so
+        # they are downloaded here rather than committed. Piper is still
+        # installed alongside it, because video/script.json can select it and
+        # it covers far more languages.
+        run: |
+          pip install kokoro-onnx soundfile piper-tts
+          curl -sSL --retry 3 -o kokoro-v1.0.onnx \
+            https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.1/kokoro-v1.0.onnx
+          curl -sSL --retry 3 -o voices-v1.0.bin \
+            https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.1/voices-v1.0.bin
+          # Proven present and the right size, not assumed: a truncated
+          # download would otherwise fail later as an unreadable model.
+          ls -l kokoro-v1.0.onnx voices-v1.0.bin
+          test "$(stat -c%s kokoro-v1.0.onnx)" -gt 300000000
+          test "$(stat -c%s voices-v1.0.bin)" -gt 20000000
+          python3 -m piper.download_voices ${{ inputs.voice || 'en_US-joe-medium' }} || true
+
+      - name: Speak every line, and measure it
+        run: node video/make-narration.js --film ${{ inputs.film }} --lang ${{ inputs.lang }}
+        env:
+          PIPER_VOICE_DIR: ${{ github.workspace }}
+          KOKORO_DIR: ${{ github.workspace }}
+          # A voice named at dispatch overrides the scripted one, whichever
+          # engine it belongs to. Empty is falsy in make-narration.js, which
+          # then uses script.json's own choice.
+          KOKORO_VOICE_EN: ${{ inputs.voice }}
+          KOKORO_VOICE_ES: ${{ inputs.voice }}
+          # Empty is falsy in make-narration.js, which then uses the default
+          # for the language. Only the one matching --lang is ever read, so
+          # setting both to the same name is harmless.
+          PIPER_VOICE_EN: ${{ inputs.voice }}
+          PIPER_VOICE_ES: ${{ inputs.voice }}
+
+      - name: Film it
+        env:
+          # ---- REPLACE with whatever video/world.js needs. Add them under
+          # ---- Settings > Secrets and variables > Actions.
+          MY_APP_URL: ${{ secrets.MY_APP_URL }}
+          MY_APP_SERVICE_KEY: ${{ secrets.MY_APP_SERVICE_KEY }}
+        run: |
+          # ---- REPLACE with however your app is served locally.
+          npm run serve &
+          # Wait for the server with curl rather than npx wait-on: that package
+          # is not a dependency of this project, so npx would fetch it from the
+          # network on every run - a download in the middle of a recording job,
+          # for something four lines of shell already do.
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:8000/index.html >/dev/null && break
+            sleep 1
+          done
+          curl -sf http://localhost:8000/index.html >/dev/null || { echo "::error::the static server never answered"; exit 1; }
+          node video/record.js --film ${{ inputs.film }} --lang ${{ inputs.lang }}
+
+      - name: Join the voice to the picture
+        # ffmpeg is proved again HERE, in this step's own environment, rather
+        # than trusting the earlier check. Attempt three failed on the first
+        # ffmpeg call with an empty stderr - the signature of a binary that was
+        # never started - and the earlier step had already said ffmpeg existed.
+        # Two steps, two environments: this prints which one is telling the
+        # truth instead of costing another run per guess.
+        run: |
+          echo "ffmpeg resolves to: $(command -v ffmpeg || echo NOT FOUND)"
+          echo "ffprobe resolves to: $(command -v ffprobe || echo NOT FOUND)"
+          ffmpeg -version | head -1 || true
+          node video/assemble.js --film ${{ inputs.film }} --lang ${{ inputs.lang }}
+
+      - name: Prove the film is actually a film
+        # video/check-film.js asks three questions: is there a picture, is
+        # there a soundtrack, and does the length match the measured
+        # narration. All three can be wrong on a run that finishes green.
+        #
+        # This was fifteen lines of shell with a hard-coded 60-to-120-second
+        # window, and the moment the narration was slowed down - the moment
+        # the film got BETTER - that gate failed it. The expected length is
+        # now computed from audio/timings.json and script.json, so it cannot
+        # go stale and nobody has to widen it. The same script runs in a
+        # session container, which is where it was proven.
+        run: |
+          ffprobe -v error -show_entries stream=codec_type,codec_name -of default=nw=1 \
+            video/out/${{ inputs.film }}-${{ inputs.lang }}.mp4
+          node video/check-film.js --film ${{ inputs.film }} --lang ${{ inputs.lang }}
+
+      - name: Hand the film over through git
+        # The artifact is served from a host the authoring session cannot
+        # reach, so the film is also committed to films/ on the branch this
+        # run was dispatched from. Git is the one channel that works in both
+        # directions, so the film can be checked by whoever asked for it
+        # rather than only downloaded by hand from the Actions page.
+        #
+        # Committed onto THIS branch rather than a branch of its own: an
+        # orphan branch keeps the whole working tree staged, so the obvious
+        # four lines quietly commit the entire repository alongside the film.
+        run: |
+          f=video/out/${{ inputs.film }}-${{ inputs.lang }}.mp4
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          mkdir -p films
+          cp "$f" "films/${{ inputs.film }}-${{ inputs.lang }}.mp4"
+          # The measurements the film was checked against travel WITH it.
+          # Without them video/check-film.js re-checks a film against whatever
+          # narration happens to be lying around, and a film made with a
+          # slower voice then fails a check that proves nothing: that happened
+          # on 2026-10-17, comparing am_michael's film to af_heart's timings.
+          cp video/audio/timings.json "films/${{ inputs.film }}-${{ inputs.lang }}.timings.json"
+          git add -f "films/${{ inputs.film }}-${{ inputs.lang }}.mp4" \
+                     "films/${{ inputs.film }}-${{ inputs.lang }}.timings.json"
+          git diff --cached --quiet && { echo "the film is byte-identical to the one already there"; exit 0; }
+          git commit -m "${{ inputs.film }}-${{ inputs.lang }}.mp4, from run ${{ github.run_id }}"
+          git push origin HEAD:${{ github.ref_name }}
+
+      - name: Here is the film
+        uses: actions/upload-artifact@v4
+        with:
+          name: film-${{ inputs.film }}-${{ inputs.lang }}
+          path: video/out/*.mp4
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: What went wrong
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: video-failure-${{ inputs.film }}-${{ inputs.lang }}
+          path: |
+            video/out/
+            video/audio/timings.json
+          retention-days: 5
+          if-no-files-found: ignore
