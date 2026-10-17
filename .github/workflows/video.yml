@@ -182,7 +182,14 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           mkdir -p films
           cp "$f" "films/${{ inputs.film }}-${{ inputs.lang }}.mp4"
-          git add -f "films/${{ inputs.film }}-${{ inputs.lang }}.mp4"
+          # The measurements the film was checked against travel WITH it.
+          # Without them video/check-film.js re-checks a film against whatever
+          # narration happens to be lying around, and a film made with a
+          # slower voice then fails a check that proves nothing: that happened
+          # on 2026-10-17, comparing am_michael's film to af_heart's timings.
+          cp video/audio/timings.json "films/${{ inputs.film }}-${{ inputs.lang }}.timings.json"
+          git add -f "films/${{ inputs.film }}-${{ inputs.lang }}.mp4" \
+                     "films/${{ inputs.film }}-${{ inputs.lang }}.timings.json"
           git diff --cached --quiet && { echo "the film is byte-identical to the one already there"; exit 0; }
           git commit -m "${{ inputs.film }}-${{ inputs.lang }}.mp4, from run ${{ github.run_id }}"
           git push origin HEAD:${{ github.ref_name }}

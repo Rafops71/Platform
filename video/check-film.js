@@ -63,8 +63,17 @@ function main() {
   // 3. A length that matches the voice. Anything else means the camera and
   //    the narration are not in step, which is the failure that cannot be
   //    seen in a still frame or a file listing.
-  const timings = JSON.parse(
-    fs.readFileSync(path.join(__dirname, 'audio', 'timings.json'), 'utf8'));
+  // Prefer the measurements that shipped NEXT TO the film, and fall back to
+  // the working ones. A film carries its own narration lengths because the
+  // voice can change between films: checking am_michael's film against
+  // af_heart's timings reported a 20-second drift that did not exist, and a
+  // check that cries wolf is worse than no check.
+  const beside = file.replace(/\.mp4$/, '.timings.json');
+  const timingsPath = fs.existsSync(beside)
+    ? beside
+    : path.join(__dirname, 'audio', 'timings.json');
+  console.log(`  measured  ${path.relative(process.cwd(), timingsPath)}`);
+  const timings = JSON.parse(fs.readFileSync(timingsPath, 'utf8'));
   const scenes = SCRIPT.films[film].scenes;
   const spoken = scenes.reduce((total, scene) => {
     const seconds = timings[`${film}-${lang}-${scene.id}`];
