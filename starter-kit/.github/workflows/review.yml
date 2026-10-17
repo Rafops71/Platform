@@ -1,0 +1,61 @@
+name: Second opinion
+
+# Asks a model that did NOT write the code to read every pull request.
+#
+# It exists because of the obvious objection: Claude cannot be judge, jury and
+# executioner on its own work.
+#
+# IT IS AN OPINION AND NOTHING MORE. It cannot fail a build, and promoting it
+# to a gate would be a mistake. On the project this came from, its first review
+# raised five points: one was worth acting on, two were confidently wrong, and
+# stated as plainly as the true one. Read it, check each claim against the
+# code, and act on what survives. The same standard applies to it as to
+# Claude: nothing is true because something fluent said it.
+#
+# NEEDS A KEY. Add ANTHROPIC_API_KEY under the repository's
+# Settings > Secrets and variables > Actions. Without it this job is skipped
+# rather than failing, so the kit works before you get round to it.
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Is a key configured?
+        id: key
+        run: |
+          if [ -n "${{ secrets.ANTHROPIC_API_KEY }}" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No ANTHROPIC_API_KEY, so no second opinion. Not a failure."
+          fi
+
+      - name: Read the diff and comment
+        if: steps.key.outputs.present == 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Review this pull request as somebody who did not write it.
+
+            Say what is WRONG, with a concrete failure case for each: the
+            inputs or the state that produce the wrong result. A finding
+            without a failure case is a guess, and a guess costs the author
+            more time than silence.
+
+            Look hardest at: a test that cannot fail, an error path nobody
+            reads, a claim in a comment the code does not keep, and anything
+            the diff breaks elsewhere.
+
+            If you find nothing, say so in one line. Do not pad.

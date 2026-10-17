@@ -1,0 +1,43 @@
+name: CI
+
+# The gate. It runs on a server, on push, with nobody watching - which is the
+# entire point. A check that needs somebody present is not a gate.
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      # ---- REPLACE THIS BLOCK with your language's setup -----------------
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      # -------------------------------------------------------------------
+
+      - name: The fast checks
+        # Lint, types, unit tests - whatever a contributor runs locally before
+        # pushing. Cheap, so they run first and fail first.
+        run: |
+          npm run lint --if-present
+          npm run typecheck --if-present
+
+      - name: Every function on the checklist is proven
+        # This is the gate that matters. It fails if a function in
+        # docs/CHECKLIST.md has no test, has a failing test, or if a test
+        # claims a checklist item that does not exist.
+        run: node scripts/checklist-report.js --run "npm test"
+
+      # A crossed function produces no artifact: anything that builds or
+      # publishes goes AFTER the gate, never beside it. A build that runs in
+      # parallel with its own gate is not gated.
+      - name: Build
+        run: npm run build --if-present
