@@ -180,6 +180,41 @@ async function main() {
     }
   }
 
+  // NOBODY WATCHES A STILL SCREEN BEING TALKED AT.
+  //
+  // An earlier cut opened with five consecutive hold-scenes on the sign-in
+  // page: 58 seconds in which the voice explained the platform and the
+  // picture did not move once. The owner watched it and said so, and he was
+  // right - and nothing in this pipeline noticed, because every individual
+  // check passed. Length matched, picture and sound were present, no scene
+  // overran. A film can satisfy every gate and still be unwatchable.
+  //
+  // So: a scene that neither zooms nor does anything is a still shot, and a
+  // run of them is dead air. Twenty seconds is the limit, and this refuses to
+  // film rather than discovering it afterwards.
+  const STILL_LIMIT = 20;
+  let run = [];
+  let worst = { seconds: 0, ids: [] };
+  for (const scene of [...scenes, null]) {
+    const still = scene && scene.do === 'hold' && !scene.zoom;
+    if (still) {
+      run.push(scene);
+    } else {
+      const seconds = run.reduce((t, sc) => t + (timings[`${film}-${lang}-${sc.id}`] || 0), 0);
+      if (seconds > worst.seconds) worst = { seconds, ids: run.map(sc => sc.id) };
+      run = [];
+    }
+  }
+  if (worst.seconds > STILL_LIMIT) {
+    throw new Error(
+      `${worst.seconds.toFixed(0)} seconds of still screen in a row: ` +
+      `${worst.ids.join(', ')}.\nGive one of those scenes something to do or ` +
+      `something to zoom into, or say it over a scene that already moves. ` +
+      `Nobody watches a still picture being talked at for ${STILL_LIMIT}s.`);
+  }
+  console.log(`Longest still stretch: ${worst.seconds.toFixed(1)}s ` +
+              `(${worst.ids.join(', ') || 'none'}), limit ${STILL_LIMIT}s.`);
+
   console.log(`Filming "${film}" in ${lang}: ${scenes.length} scenes.`);
   await cleanup();
 

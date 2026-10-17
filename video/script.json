@@ -72,54 +72,22 @@
           "do": "hold",
           "highlight": ".logo-row",
           "say": {
-            "en": "Welcome to Jericho Platform. Let me show you what it is, and then how to use it.",
-            "es": "Bienvenido a Jericho Platform. Le muestro qué es, y después cómo se usa."
-          }
-        },
-        {
-          "id": "essence",
-          "do": "hold",
-          "highlight": ".logo-row",
-          "say": {
-            "en": "Jericho is a private market for bulk commodities. It is invitation only. Nothing posted here ever appears in public.",
-            "es": "Jericho es un mercado privado de materias primas a granel. Solo por invitación. Nada de lo que se publica aquí aparece nunca en público."
-          }
-        },
-        {
-          "id": "connecting",
-          "do": "hold",
-          "highlight": ".logo-row",
-          "say": {
-            "en": "It connects people without introducing them. Members never deal with each other directly. Every message passes through an Operator, who decides what goes on.",
-            "es": "Conecta a las personas sin presentarlas. Los miembros nunca tratan entre sí directamente. Cada mensaje pasa por un Operador, que decide qué sigue adelante."
-          }
-        },
-        {
-          "id": "terms",
-          "do": "hold",
-          "highlight": null,
-          "say": {
-            "en": "Four words you will meet. An offer is something for sale. A request is something wanted. An Incoterm says who carries the cost and the risk. And a reference number stands in place of your name.",
-            "es": "Cuatro palabras que verá. Una oferta es algo en venta. Una solicitud es algo que se busca. Un Incoterm dice quién asume el coste y el riesgo. Y un número de referencia sustituye a su nombre."
-          }
-        },
-        {
-          "id": "becoming",
-          "do": "hold",
-          "highlight": "#login-form",
-          "say": {
-            "en": "Becoming a member takes three steps. You are invited by the Operator. You register with that invitation. The Operator approves you, and only then can you see the market.",
-            "es": "Hacerse miembro son tres pasos. El Operador le invita. Usted se registra con esa invitación. El Operador le aprueba, y solo entonces puede ver el mercado."
-          }
+            "en": "Welcome to Jericho Platform: a private market for bulk commodities, invitation only, where nothing posted ever appears in public.",
+            "es": "Bienvenido a Jericho Platform: un mercado privado de materias primas a granel, solo por invitación, donde nada de lo publicado aparece nunca en público."
+          },
+          "zoom": ".logo-row",
+          "zoomScale": 1.3
         },
         {
           "id": "signin",
           "do": "signIn",
           "highlight": "#login-form",
           "say": {
-            "en": "From then on, this is all it takes. Your own email address, your own password, and you are inside the market.",
-            "es": "A partir de ahí, esto es todo lo que hace falta. Su propio correo electrónico, su propia contraseña, y ya está dentro del mercado."
-          }
+            "en": "You get in by invitation only. The Operator invites you, you register with that invitation, and the Operator approves you. After that, this is all it takes.",
+            "es": "Solo se entra por invitación. El Operador le invita, usted se registra con esa invitación, y el Operador le aprueba. Después de eso, esto es todo lo que hace falta."
+          },
+          "zoom": "#login-form",
+          "zoomScale": 1.5
         },
         {
           "id": "nav-tour",
@@ -128,8 +96,8 @@
           "zoomScale": 1.45,
           "highlight": "nav.tabs",
           "say": {
-            "en": "This row along the top is the whole platform. Nothing is hidden behind it. I will show you each button before pressing it.",
-            "es": "Esta fila de arriba es toda la Plataforma. No hay nada escondido detrás. Le mostraré cada botón antes de pulsarlo."
+            "en": "Inside, this row is the whole platform. And the rule behind all of it: members never deal with each other directly. Every message goes through an Operator.",
+            "es": "Dentro, esta fila es toda la Plataforma. Y la regla detrás de todo: los miembros nunca tratan entre sí directamente. Cada mensaje pasa por un Operador."
           }
         },
         {
@@ -344,31 +312,36 @@
         }
       ],
       "_comment": [
-        "THE SHAPE, as the owner asked for it on 2026-10-17: welcome, what the",
-        "platform is for, how it connects people, the four terms in brief, how you",
-        "become a member - and then the functions, with a real story running",
-        "through them. A buyer wants copper. A seller answers. They are put in",
-        "touch without being introduced.",
+        "THE OPENING IS TWO BEATS, and both of them move.",
         "",
-        "Each button is zoomed into BEFORE it is pressed and zoomed back out after,",
-        "so the viewer sees which control it was and then what it did.",
-        "zoom is what fills the screen, zoomScale how close, zoomOutAfter pulls back",
-        "once the action is done, highlightAfter is the ring for that wider shot.",
+        "An earlier cut opened with five hold-scenes on the sign-in page - welcome,",
+        "what it is, how it connects, the terms, how to join - which is 58 seconds",
+        "of a still screen with a voice talking over it. The owner watched it and",
+        "said so. Nobody survives that, however good the words are.",
         "",
-        "{demandId} is replaced at film time by the buyer's listing id. The row is",
-        "addressed by id rather than by position because Browse sorts newest first",
-        "and includes the member's own listings - so the offer the film posts sits",
-        "ABOVE the demand, and 'the first row' would be the film talking to itself.",
-        ":has() is used to ring the whole row from its button; checked working in",
-        "the bundled Chromium 141 before being relied on.",
+        "So: welcome pushes slowly in on the title, and the next beat explains",
+        "joining WHILE the sign-in form is being filled. Everything else is said",
+        "over something happening. The four terms are no longer a scene of their",
+        "own: offer and request are explained on the demand row and the type radio,",
+        "Incoterm on the Incoterm field, reference number on My Listings - which is",
+        "where they belong anyway.",
         "",
-        "NO SCENE ZOOMS WHILE THE CONTACT MODAL IS OPEN. #contact-modal is",
-        "position:fixed (app.html:294), and a transform on body becomes the",
-        "containing block for fixed children, so a zoom would MOVE the modal.",
+        "Each button is zoomed into BEFORE it is pressed and zoomed out of after.",
+        "zoom is what fills the screen, zoomScale how close, zoomOutAfter pulls",
+        "back once the action is done, highlightAfter rings the wider shot.",
         "",
-        "Volumes are deliberately ordinary: a 600 ton demand answered by a 500 ton",
-        "parcel. An earlier draft offered 25,000 tons of copper cathode, which is a",
-        "quarter of a billion dollars of metal and reads as a fantasy."
+        "The story: a buyer wants 600 tons of copper cathodes. The film answers",
+        "with 500 tons and sends the enquiry back to that same request. Volumes are",
+        "deliberately ordinary - an earlier draft offered 25,000 tons, a quarter of",
+        "a billion dollars of metal, which reads as a fantasy.",
+        "",
+        "{demandId} becomes the buyer's listing id at film time. Browse sorts",
+        "newest first and includes the member's own rows, so the offer the film",
+        "posts sits ABOVE the demand - 'the first row' would be the film talking to",
+        "itself. :has() rings the row from its button, checked in Chromium 141.",
+        "",
+        "NO SCENE ZOOMS WHILE THE CONTACT MODAL IS OPEN: #contact-modal is",
+        "position:fixed (app.html:294), so a body transform would MOVE it."
       ]
     }
   }
