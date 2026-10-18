@@ -281,3 +281,57 @@ select case when ok then 'PASS' else 'FAIL' end
 -- says FAIL sends the next person back to reproduce it by hand.
 select name || ': ' || coalesce(note, '(no error - the call succeeded)') as "WHY ANY OF THE ABOVE FAILED"
   from t17_result where not ok;
+
+-- =========================================================================
+-- sql/028: the guard applies to a caller who HAS an identity, not to the
+-- trusted server.
+--
+-- 026 asked `where p.user_id = auth.uid() and p.status = 'approved'` and
+-- raised if no row came back. With the SERVICE ROLE, auth.uid() is NULL, no
+-- row matches, and it raised - so 026 refused the one caller it was never
+-- aimed at. Eight browser tests failed on it and CI on main was red from
+-- 2026-10-13 to 2026-10-18 before anybody noticed.
+--
+-- Letting a null identity through is safe here and that is checkable rather
+-- than a matter of opinion: `anon` holds no EXECUTE on this function (read off
+-- pg_roles on 2026-10-18), so a caller with no identity CANNOT be an
+-- anonymous web visitor. It is the server.
+--
+-- Both halves are asserted below, because a fix that only proves the new
+-- behaviour would let somebody reinstate the hole while staying green.
+-- =========================================================================
+
+reset "test.uid";
+
+do $$
+begin
+  perform public.next_reference('sell');
+  insert into t17_result values ('T11', true, null);
+exception
+  when others then insert into t17_result values ('T11', false, sqlerrm);
+end $$;
+
+select case when ok then 'PASS' else 'FAIL' end
+  as "T11 Item59 the server side can draw a reference number with no identity"
+  from t17_result where name = 'T11';
+
+-- And the case 026 existed for, which must stay shut: a live token whose
+-- profile is not approved. The identity here is a uuid with no profile at all,
+-- which is the deleted-account case; the suspended case is T8 above.
+
+set "test.uid" = '00000000-0000-4000-8000-0000000000ff';
+
+do $$
+begin
+  perform public.next_reference('sell');
+  insert into t17_result values ('T12', false, 'it was ALLOWED, which is the hole 026 closed');
+exception
+  when sqlstate '42501' then insert into t17_result values ('T12', true, null);
+  when others then insert into t17_result values ('T12', false, sqlerrm);
+end $$;
+
+select case when ok then 'PASS' else 'FAIL' end
+  as "T12 Item59 a token with no approved profile is still refused one"
+  from t17_result where name = 'T12';
+
+reset "test.uid";
