@@ -192,7 +192,32 @@ jobs:
                      "films/${{ inputs.film }}-${{ inputs.lang }}.timings.json"
           git diff --cached --quiet && { echo "the film is byte-identical to the one already there"; exit 0; }
           git commit -m "${{ inputs.film }}-${{ inputs.lang }}.mp4, from run ${{ github.run_id }}"
-          git push origin HEAD:${{ github.ref_name }}
+
+          # Rebase and retry, because the branch moves under a run that takes
+          # eight minutes. A push from this job was rejected as non-fast-forward
+          # on 2026-10-18 for exactly that reason: the branch was pushed to
+          # while the film was being made, and a finished, verified film was
+          # thrown away at the last step. The film is the expensive part; the
+          # push is not, and it should bend rather than break.
+          for attempt in 1 2 3; do
+            if git push origin HEAD:${{ github.ref_name }}; then
+              echo "pushed on attempt $attempt"
+              exit 0
+            fi
+            echo "push rejected - fetching and rebasing (attempt $attempt)"
+            git fetch origin ${{ github.ref_name }}
+            git rebase origin/${{ github.ref_name }} || {
+              # A conflict here can only be two runs writing the same film.
+              # Theirs is as good as ours and arrived first; keep ours, since
+              # this one is the film that was just verified.
+              git checkout --ours "films/${{ inputs.film }}-${{ inputs.lang }}.mp4" || true
+              git checkout --ours "films/${{ inputs.film }}-${{ inputs.lang }}.timings.json" || true
+              git add -A && git rebase --continue || git rebase --abort
+            }
+            sleep 5
+          done
+          echo "::error::could not push the film after three attempts"
+          exit 1
 
       - name: Here is the film
         uses: actions/upload-artifact@v4
