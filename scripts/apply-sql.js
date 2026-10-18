@@ -59,6 +59,7 @@ const DEFAULT_ORDER = [
   '026_active_account_required.sql',
   '027_purge_test_mail.sql',
   '028_reference_numbers_from_the_server.sql',
+  '029_browse_from_the_server.sql',
   'seed_commodities.sql',
 ];
 
