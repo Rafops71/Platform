@@ -34,10 +34,37 @@ const ROOT = path.join(__dirname, '..');
 const SCRIPT = JSON.parse(fs.readFileSync(path.join(__dirname, 'script.json'), 'utf8'));
 const OUT = path.join(__dirname, 'audio');
 
+const VOICE = SCRIPT.voice;
+const ENGINE = process.env.NARRATION_ENGINE || VOICE.engine;
+
 const VOICES = {
-  en: process.env.PIPER_VOICE_EN || 'en_US-joe-medium',
-  es: process.env.PIPER_VOICE_ES || 'es_ES-davefx-medium',
+  en: process.env.PIPER_VOICE_EN || VOICE.piper.en,
+  es: process.env.PIPER_VOICE_ES || VOICE.piper.es,
 };
+
+const KOKORO_VOICES = {
+  en: process.env.KOKORO_VOICE_EN || VOICE.kokoro.en,
+  es: process.env.KOKORO_VOICE_ES || VOICE.kokoro.es,
+};
+
+/** Kokoro's two model files. Three hundred megabytes, so they are downloaded
+ *  rather than committed, and looked for in the same places as a Piper voice
+ *  rather than one location being assumed. */
+function kokoroFiles() {
+  const names = ['kokoro-v1.0.onnx', 'voices-v1.0.bin'];
+  const dirs = [process.env.KOKORO_DIR, OUT, ROOT, '/tmp'].filter(Boolean);
+  for (const dir of dirs) {
+    if (names.every(name => fs.existsSync(path.join(dir, name)))) {
+      return names.map(name => path.join(dir, name));
+    }
+  }
+  throw new Error(
+    'Kokoro\'s model files were not found. Download them with:\n' +
+    '  curl -L -o kokoro-v1.0.onnx https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.1/kokoro-v1.0.onnx\n' +
+    '  curl -L -o voices-v1.0.bin  https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.1/voices-v1.0.bin\n' +
+    `and set KOKORO_DIR. Looked in: ${dirs.join(', ')}`
+  );
+}
 
 /** Where the voice model lives. Piper downloads into the working directory by
  *  default, so both the local and the CI layout are checked rather than one
@@ -84,8 +111,32 @@ function wavSeconds(file) {
   throw new Error(`${file}: no data chunk, and ${rate ? 'a' : 'no'} format chunk`);
 }
 
+const PACING = SCRIPT.pacing;
+
+/** Speak one line with Kokoro. */
+function speakKokoro(text, lang, outFile) {
+  const [model, voices] = kokoroFiles();
+  const res = spawnSync('python3', [
+    path.join(__dirname, 'kokoro_say.py'),
+    model, voices, KOKORO_VOICES[lang], String(VOICE.kokoro.speed),
+    lang === 'es' ? 'es' : 'en-us', outFile,
+  ], { input: text, encoding: 'utf8' });
+  if (res.status !== 0 || !fs.existsSync(outFile)) {
+    throw new Error(
+      `Kokoro failed on "${text.slice(0, 40)}…"\n` +
+      (res.error ? `could not be run at all: ${res.error.message}\n` : '') +
+      ((res.stderr || '').trim() || '(no error output)'));
+  }
+}
+
 function speak(text, model, outFile) {
-  const res = spawnSync('python3', ['-m', 'piper', '-m', model, '-f', outFile], {
+  // --length-scale above 1.0 slows the delivery; --sentence-silence puts
+  // breath between sentences. Both read from script.json's pacing block, so
+  // the voice and the camera cannot be set to different speeds. Flag names
+  // read off `python3 -m piper --help` on 2026-10-13, not from memory.
+  const res = spawnSync('python3', ['-m', 'piper', '-m', model, '-f', outFile,
+    '--length-scale', String(PACING.lengthScale),
+    '--sentence-silence', String(PACING.sentenceSilence)], {
     input: text,
     encoding: 'utf8',
   });
@@ -105,17 +156,23 @@ function main() {
   fs.mkdirSync(OUT, { recursive: true });
   const timings = {};
 
+  console.log(`Speaking with ${ENGINE}: ` +
+    (ENGINE === 'kokoro'
+      ? `${KOKORO_VOICES.en} / ${KOKORO_VOICES.es} at speed ${VOICE.kokoro.speed}`
+      : `${VOICES.en} / ${VOICES.es} at length-scale ${PACING.lengthScale}`));
+
   for (const film of films) {
     const scenes = SCRIPT.films[film].scenes;
     for (const lang of languages) {
-      const model = modelFor(lang);
+      const model = ENGINE === 'kokoro' ? null : modelFor(lang);
       let total = 0;
 
       for (const scene of scenes) {
         const text = scene.say[lang];
         if (!text) throw new Error(`${film}/${scene.id} has no ${lang} line`);
         const file = path.join(OUT, `${film}-${lang}-${scene.id}.wav`);
-        speak(text, model, file);
+        if (ENGINE === 'kokoro') speakKokoro(text, lang, file);
+        else speak(text, model, file);
         const seconds = wavSeconds(file);
         timings[`${film}-${lang}-${scene.id}`] = Number(seconds.toFixed(3));
         total += seconds;
@@ -124,7 +181,7 @@ function main() {
 
       // A line's worth of breath between scenes, which is also what stops the
       // film feeling like a machine reading a list.
-      const withPauses = total + scenes.length * 0.8;
+      const withPauses = total + scenes.length * PACING.pauseSeconds;
       console.log(
         `\n${film} (${lang}): ${scenes.length} lines, ${total.toFixed(1)}s spoken, ` +
         `${withPauses.toFixed(1)}s with pauses\n`

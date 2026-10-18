@@ -1,0 +1,133 @@
+{
+  "_comment": [
+    "A film, as data. ONE file is the source for both the voice and the camera:",
+    "the narration is generated from `say`, and the recorder walks the same list",
+    "in the same order, holding each shot for exactly as long as its line takes",
+    "to speak. Two files would drift, and a film where the pointer presses the",
+    "next button while the sentence is still finishing is worse than no film.",
+    "",
+    "Replace the three demo scenes below with your own. Keep the shape."
+  ],
+  "pacing": {
+    "_comment": [
+      "How fast the film goes, in ONE place. These three numbers were in three",
+      "different files - the pause was written as 800 in record.js and as 0.8 in",
+      "assemble.js - and three copies of a number are three chances for the",
+      "picture and the voice to drift apart.",
+      "",
+      "lengthScale is Piper's --length-scale: above 1.0 speaks slower. 1.0 was",
+      "the first film, which the owner found too fast to follow.",
+      "sentenceSilence is Piper's --sentence-silence: breath BETWEEN sentences,",
+      "which is most of what makes a voice sound like a person rather than a",
+      "list being read out.",
+      "pauseSeconds is the gap the recorder holds, and the silence assemble.js",
+      "puts between lines. They must be the same number or the film drifts."
+    ],
+    "lengthScale": 1.18,
+    "sentenceSilence": 0.55,
+    "pauseSeconds": 1.4
+  },
+  "voice": {
+    "_comment": [
+      "Which engine speaks, and in which voice.",
+      "",
+      "kokoro: an 82M model, Apache-2.0, CPU-only, read off its model card on",
+      "2026-10-17. Chosen because the owner found Piper mechanical. Its own",
+      "VOICES.md grades af_heart A and af_bella A-; the best male voice it offers",
+      "is a C+, which is worth knowing before anybody asks for a man's voice.",
+      "",
+      "piper: still supported and still here. It covers far more languages and is",
+      "tiny. Set engine to 'piper' and the two piperVoices are used instead.",
+      "",
+      "speed is Kokoro's own multiplier - below 1.0 is slower. Piper's equivalent",
+      "is the lengthScale in the pacing block, which is not the same number and",
+      "is deliberately kept separate.",
+      "The owner listened to four Kokoro voices on 2026-10-17 and chose am_michael. Its own VOICES.md grades that voice C+ against af_heart's A - the owner was told that and chose it anyway, which is his call to make and not Claude's: Claude cannot hear any of them."
+    ],
+    "engine": "kokoro",
+    "kokoro": {
+      "en": "am_michael",
+      "es": "ef_dora",
+      "speed": 0.92
+    },
+    "piper": {
+      "en": "en_US-joe-medium",
+      "es": "es_ES-davefx-medium"
+    }
+  },
+  "screens": {
+    "_comment": [
+      "Only needed if you use the `screen:<name>` shortcut, and only if your app",
+      "has one nav button per screen. %s is the screen's name. Delete this block",
+      "and use press: and wait: instead if your app is not shaped like that."
+    ],
+    "button": "button[data-screen=\"%s\"]",
+    "panel": "#screen-%s"
+  },
+  "films": {
+    "demo": {
+      "title": "<Your app> — what it does",
+      "_comment": [
+        "THE FIVE RULES, each one learned by showing a film to somebody:",
+        "",
+        "1. Say it over something MOVING. A run of still shots longer than 20",
+        "   seconds is refused outright: nobody watches a static screen being",
+        "   talked at, however good the words are.",
+        "2. Zoom no closer than 2.0x, and ALWAYS zoomOutAfter. A button is",
+        "   identified by its neighbours, so a tight crop says less than a wide",
+        "   shot with a ring round it - and a zoom that never releases leaves the",
+        "   whole line playing over a magnified fragment.",
+        "3. One idea per beat. Seven short scenes beat one scene listing seven",
+        "   things.",
+        "4. Only claim what is on the screen. If the line says the record appears,",
+        "   the film must actually press Save.",
+        "5. Keep the examples ordinary. An inflated number is the first thing",
+        "   somebody in the trade notices, and the last thing they forget.",
+        "",
+        "zoom: what fills the screen. zoomScale: how close (<= 2.0).",
+        "zoomOutAfter: pull back once the action is done - this is how the",
+        "CONSEQUENCE gets shown. highlightAfter: the ring for that wider shot.",
+        "{placeholders} come from video/world.js setUp()."
+      ],
+      "scenes": [
+        {
+          "id": "welcome",
+          "do": "goto:/index.html",
+          "zoom": ".logo-row",
+          "zoomScale": 1.3,
+          "zoomOutAfter": true,
+          "highlight": ".logo-row",
+          "say": {
+            "en": "Welcome to <your app>: one sentence on what it is and who it is for.",
+            "es": "Bienvenido a <su aplicación>: una frase sobre qué es y para quién es."
+          }
+        },
+        {
+          "id": "signin",
+          "do": "type:#email|{memberEmail}",
+          "zoom": "#login-form",
+          "zoomScale": 1.3,
+          "zoomOutAfter": true,
+          "highlight": "#login-form",
+          "say": {
+            "en": "Explain how somebody gets an account WHILE the form is being filled in, so the picture is never still.",
+            "es": "Explique cómo se obtiene una cuenta MIENTRAS se rellena el formulario, para que la imagen nunca esté quieta."
+          }
+        },
+        {
+          "id": "main-button",
+          "do": "press:#the-button-that-matters",
+          "zoom": "#the-button-that-matters",
+          "zoomScale": 1.8,
+          "zoomOutAfter": true,
+          "highlight": "#the-button-that-matters",
+          "highlightAfter": "#what-it-produced",
+          "say": {
+            "en": "Name the button, say what pressing it does, and let the zoom-out show the result.",
+            "es": "Nombre el botón, diga qué hace al pulsarlo, y deje que el alejamiento muestre el resultado."
+          }
+        }
+      ]
+    }
+  }
+}

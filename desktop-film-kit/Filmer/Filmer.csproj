@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The camera operator. Runs on Windows only: it drives a real Windows
+       window and records a real screen, neither of which exists on Linux. -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>Filmer</AssemblyName>
+    <RootNamespace>Filmer</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- FlaUI wraps Windows UI Automation, which is how a WPF or WinForms
+         control is found by name and clicked from outside the app.
+         MIT licensed; 5.0.0 published 2025-02-25; targets net8.0-windows.
+         Checked on nuget.org and against the repo's LICENSE.txt on
+         2026-10-17 rather than recalled - the version a tool was on last
+         year is exactly the kind of fact that goes stale silently. -->
+    <PackageReference Include="FlaUI.UIA3" Version="5.0.0" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,99 @@
+name: Verify the desktop film kit
+
+# Proves the half of desktop-film-kit/ that does NOT need Windows.
+#
+# The Filmer needs a Windows window and a real cursor, so it cannot be tested
+# here. Everything AFTER it can: synthetic footage stands in for the raw
+# recording, a hand-written shots.json stands in for the coordinates, and
+# silent clips of known length stand in for the narration. If the assembly
+# chain is wrong - a crop that falls off the frame, a concat that will not
+# join, a burned caption that needs a font nobody installed - it is wrong here
+# too, and finding that out costs five minutes instead of a Windows session.
+
+on:
+  workflow_dispatch:
+  # Also on a push that touches the kit. workflow_dispatch alone is not
+  # enough for a NEW workflow: the API only lists one that already exists on
+  # the default branch, so a brand-new file cannot be dispatched by name.
+  push:
+    paths:
+      - 'desktop-film-kit/**'
+      - '.github/workflows/verify-desktop-kit.yml'
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install ffmpeg and prove it is really there
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          command -v ffmpeg
+          command -v ffprobe
+          # libass is what burns the captions in. Without it the final step
+          # fails on a filter that is simply absent, which reads as a script
+          # bug rather than a missing library.
+          ffmpeg -hide_banner -filters | grep -w subtitles
+
+      - name: Stand in for the Windows half
+        working-directory: desktop-film-kit
+        run: |
+          mkdir -p out audio
+          # Footage: a moving test pattern at the size the assembler expects.
+          ffmpeg -y -f lavfi -i testsrc=size=1280x720:rate=25 -t 40 \
+                 -c:v libx264 -preset ultrafast -pix_fmt yuv420p out/raw.mp4
+
+          # Narration: silence of known length, so the arithmetic is checkable.
+          # Scene two is deliberately the SHORTEST, to exercise the branch
+          # where the zoom ladder has to fit into a short line.
+          for pair in "welcome:6.0" "main-window:4.0" "the-button:9.0"; do
+            id=${pair%%:*}; secs=${pair##*:}
+            ffmpeg -y -f lavfi -i anullsrc=r=24000:cl=mono -t "$secs" \
+                   "audio/demo-en-$id.wav"
+          done
+          node -e '
+            const fs=require("fs");
+            const t={"demo-en-welcome":6.0,"demo-en-main-window":4.0,"demo-en-the-button":9.0};
+            fs.writeFileSync("audio/timings.json", JSON.stringify(t,null,2));
+            const pause=JSON.parse(fs.readFileSync("script.json","utf8")).pacing.pauseSeconds;
+            let clock=0; const shots=[];
+            // A control near the RIGHT EDGE on purpose: a crop centred on it
+            // would fall off the frame, and clamping that is the one piece of
+            // arithmetic in the assembler most likely to be wrong.
+            const rects={welcome:null,
+                         "main-window":{x:40,y:80,w:300,h:200},
+                         "the-button":{x:1180,y:650,w:90,h:40}};
+            for (const [id,secs] of Object.entries(t)) {
+              const key=id.replace("demo-en-","");
+              shots.push({id:key,start:clock,seconds:secs+pause,rect:rects[key]});
+              clock+=secs+pause;
+            }
+            fs.writeFileSync("out/shots.json", JSON.stringify(shots,null,2));
+            console.log("fake shots:", JSON.stringify(shots));
+          '
+
+      - name: Assemble it
+        working-directory: desktop-film-kit
+        run: node assemble-desktop.js --film demo --lang en
+
+      - name: Check the result is a watchable film
+        working-directory: desktop-film-kit
+        run: |
+          ffprobe -v error -show_entries stream=codec_type,codec_name -of default=nw=1 \
+            out/demo-en.mp4
+          node check-film.js --film demo --lang en --file out/demo-en.mp4
+
+      - name: Keep it, so a person can look at it
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-kit-proof
+          path: desktop-film-kit/out/demo-en.mp4
+          if-no-files-found: warn
+          retention-days: 7
