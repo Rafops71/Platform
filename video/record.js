@@ -242,6 +242,32 @@ async function buildWorld(film) {
       [seller.profileId, `SELL-FILM-${Date.now().toString().slice(-6)}`]
     );
 
+    // THE BUYER'S SIDE OF THE MATCH.
+    //
+    // The Matches scene says the platform "puts a buyer's request next to a
+    // seller's offer and suggests the pair". The first cut of this film had
+    // only the sell listing above, so that screen filmed as an empty table
+    // while the voice described a pairing that did not exist - rule 4 of the
+    // five, broken one film after the rule was written down.
+    //
+    // Matches are not computed when the screen opens: they are rows, written
+    // by the trigger in sql/rls_policies.sql:405 when a listing is inserted.
+    // It pairs listings of the OPPOSITE type whose commodity matches case
+    // insensitively, which is why this says 'copper cathodes' in the same
+    // spelling as the sell listing above, and why it is inserted AFTER it -
+    // the trigger looks at what already exists.
+    //
+    // 600 against 500 is inside the half-to-double band the matcher scores
+    // on, and both are CIF, so this pair scores 'medium' rather than 'low'.
+    await query(
+      `insert into public.listings
+         (user_id, type, commodity, quantity, unit, incoterm, destination,
+          specification, status, reference_number)
+       values ($1, 'buy', 'copper cathodes', 600, 'Metric tons', 'CIF', 'Netherlands',
+               'LME Grade A or equivalent, Rotterdam', 'available', $2)`,
+      [buyer.profileId, `BUY-FILM-${Date.now().toString().slice(-6)}`]
+    );
+
     // status is left to its own default rather than named here: the column has
     // one, and writing 'pending_review' by hand would be this file asserting
     // something about the schema it has not checked.
