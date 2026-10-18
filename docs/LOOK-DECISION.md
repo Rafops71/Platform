@@ -1,9 +1,13 @@
-# The look: decided, not yet built
+# The look: built on 2026-10-18
 
 **Chosen on 2026-10-13: "Sky Tint".** The owner picked it from eight
 white-background options after rejecting a cream-paper version of the same
-idea. **Do not start this work until the open list in `HANDOFF.md` is cleared** —
-he was explicit that it comes last.
+idea. He held it back until the rest of the list was cleared, and released it
+once CI on main was green again.
+
+Built in `css/styles.css` and the six pages' heads. Every value he chose is a
+variable in `:root`, and the four values he did NOT choose are marked there as
+derived - a colour nobody picked should not look like one that was.
 
 ## What he actually asked for
 
@@ -32,6 +36,25 @@ he was explicit that it comes last.
 Nothing underneath. Same screens, same buttons, same order, same prohibitions.
 If a change to the look would alter what a screen DOES, it has stopped being a
 restyle and needs its own checklist item.
+
+## What the build had to decide, and what it found
+
+Three things in the old stylesheet quietly depended on the page being GREY,
+and turned invisible the moment it became white. None of them is a style
+question; each is a screen that stops saying what it meant:
+
+- **The blue badge** was filled with the same tint that is now the listing
+  block, so a status would have sat invisible on the row it describes. It
+  takes a deeper tint, `#dcebf7`.
+- **The grey badge** was filled with the page colour, which is now white. It
+  takes a neutral of its own, `#eceff2`.
+- **A secondary button** hovered to the page colour. Both are white now, so
+  hovering showed nothing at all, and a control that does not answer the
+  pointer reads as broken. It hovers to the accent's tint.
+
+The status colours - green, amber, red - are untouched on purpose. They carry
+MEANING, and restyling them changes what a screen says rather than how it
+looks.
 
 ## Two things to watch when it is built
 

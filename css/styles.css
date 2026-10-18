@@ -2,35 +2,76 @@
    screens; wider layouts are added via min-width media queries. */
 
 :root {
-  --bg: #f4f5f7;
-  --surface: #ffffff;
-  --border: #e1e4e9;
-  --text: #262b33;
-  --text-muted: #6b7280;
-  --blue: #3b6ea5;
-  --blue-dark: #2c5480;
-  --blue-tint: #eaf1f8;
+  /* "Sky Tint", chosen by the owner on 2026-10-13 from eight options on
+     white. The six values he picked are in docs/LOOK-DECISION.md and are
+     reproduced here exactly; anything else in this block is marked as
+     derived, because a colour nobody chose should not look like one that was.
+
+     THE STANDING RULE: white behind everything. Not cream, not off-white, not
+     a tinted page. He rejected a cream version of this very look. Colour goes
+     in the blocks, badges and buttons - never behind the page. */
+  --bg: #ffffff;              /* chosen: the page */
+  --surface: #ffffff;         /* chosen: same white, so cards do not float */
+  --border: #e2ebf3;          /* chosen: hairline */
+  --text: #15202b;            /* chosen */
+  --text-muted: #5f7488;      /* chosen: quiet text */
+  --blue: #27618f;            /* chosen: accent - buttons, active tab */
+  --blue-tint: #f0f6fb;       /* chosen: the listing block fill */
+
+  /* Derived. A blue badge used to sit on a white row and show up against it.
+     The row is now #f0f6fb, so a badge filled with #f0f6fb would be the same
+     colour as the thing behind it - an invisible status, on screens whose
+     whole job is to say what state something is in. One step deeper. */
+  --blue-tint-deep: #dcebf7;
+
+  /* Derived, not chosen. The header and the pressed state of a button need a
+     darker tone than the accent, and the decision lists no value for either.
+     This is the accent itself darkened; it is not a seventh colour. */
+  --blue-dark: #1d4a6d;
+
+  /* The status colours are untouched. They carry MEANING - approved, waiting,
+     refused - and restyling them is a change to what a screen says, not to
+     how it looks. docs/LOOK-DECISION.md draws exactly that line. */
   --green: #2e8b57;
   --green-tint: #e7f5ec;
   --amber: #b8860b;
   --amber-tint: #fbf3de;
   --red: #b3423a;
   --red-tint: #fbeae8;
-  --radius: 8px;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+
+  /* chosen: 12px on listing blocks, 10px on buttons. Cards and inputs take
+     the button radius, which the decision does not name - the alternative is
+     three radii on one screen. */
+  --radius: 10px;
+  --radius-block: 12px;
+
+  /* Lighter than before, because the page and the cards are now the same
+     white: at the old opacity every card looked like it was peeling off. */
+  --shadow: 0 1px 2px rgba(21, 32, 43, 0.06);
+
+  /* chosen: a serif for headings and titles, a sans for everything that is
+     read as information. Georgia and the system sans are the fallbacks, so a
+     blocked or slow Google Fonts changes the face and nothing else. */
+  --font-head: "Spectral", Georgia, "Times New Roman", serif;
+  --font-body: "Source Sans 3", -apple-system, BlinkMacSystemFont, "Segoe UI",
+               Roboto, Arial, sans-serif;
 }
 
 * { box-sizing: border-box; }
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  font-family: var(--font-body);
   background: var(--bg);
   color: var(--text);
   line-height: 1.45;
 }
 
 a { color: var(--blue); }
+
+/* ---- The serif, where the decision puts it ---- */
+h1, h2, h3, h4 { font-family: var(--font-head); font-weight: 600; }
+.list-row-title { font-family: var(--font-head); }
 
 .container {
   max-width: 960px;
@@ -40,7 +81,7 @@ a { color: var(--blue); }
 
 /* ---- Header / nav ---- */
 header.site-header {
-  background: var(--blue-dark);
+  background: var(--blue-dark);   /* the accent, darkened - see :root */
   color: #fff;
   padding: 14px 16px;
 }
@@ -52,7 +93,8 @@ header.site-header .container {
   gap: 8px;
 }
 header.site-header h1 {
-  font-size: 18px;
+  font-family: var(--font-head);
+  font-size: 19px;
   margin: 0;
   letter-spacing: 0.3px;
 }
@@ -161,7 +203,10 @@ button, .btn {
 .btn-primary { background: var(--blue); color: #fff; }
 .btn-primary:hover { background: var(--blue-dark); }
 .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
-.btn-secondary:hover { background: var(--bg); }
+/* Was: hover to var(--bg). That used to be grey; it is white now, and the
+   button is also white, so hovering showed nothing - a control that does not
+   answer the pointer reads as dead. The accent's own tint instead. */
+.btn-secondary:hover { background: var(--blue-tint); }
 .btn-danger { background: var(--red); color: #fff; }
 .btn-danger:hover { opacity: 0.9; }
 .btn-small { padding: 8px 14px; font-size: 12px; min-height: 34px; }
@@ -178,21 +223,28 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
   text-transform: uppercase;
   letter-spacing: 0.3px;
 }
-.badge-blue { background: var(--blue-tint); color: var(--blue-dark); }
+.badge-blue { background: var(--blue-tint-deep); color: var(--blue-dark); }
 .badge-green { background: var(--green-tint); color: var(--green); }
 .badge-amber { background: var(--amber-tint); color: var(--amber); }
 .badge-red { background: var(--red-tint); color: var(--red); }
-.badge-grey { background: var(--bg); color: var(--text-muted); }
+/* --bg is white now, which would make this badge vanish on a white card
+   as well as on a tinted row. A neutral of its own. */
+.badge-grey { background: #eceff2; color: var(--text-muted); }
 
 /* ---- Lists / rows ---- */
 .list-row {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--border);
+  /* Vertical padding unchanged at 12px. The phone suite fails anything a
+     thumb cannot hit and it has caught four targets already; a restyle that
+     tightens this would redden it, and the suite would be right. */
+  padding: 12px;
+  margin-bottom: 8px;
+  background: var(--blue-tint);
+  border-radius: var(--radius-block);
 }
-.list-row:last-child { border-bottom: none; }
+.list-row:last-child { margin-bottom: 0; }
 .list-row-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
 .list-row-title { font-weight: 600; }
 .list-row-meta { font-size: 13px; color: var(--text-muted); }
