@@ -155,24 +155,56 @@ select case when ok then 'PASS' else 'FAIL' end as "T4 Item59 a REJECTED registr
   from t17_result where name = 'T4';
 
 
--- ------------------------------------------------- nobody at all is refused --
+-- ------------------------------------- the SERVER is not a stranger (029) --
 --
--- A caller with no profile - a token for an account that has been deleted, or
--- no token at all.
+-- T5 used to assert that a caller with no identity at all is refused the
+-- market. That was wrong, in exactly the way sql/026 was wrong, and it is
+-- replaced rather than removed.
+--
+-- A caller with auth.uid() = NULL is not an anonymous visitor: `anon` holds
+-- no EXECUTE on this function, so a signed-out browser is stopped by the
+-- GRANT before the body runs. A null identity is the server - a script, a
+-- migration, or this suite reading the function to prove it exposes no
+-- identity column, which is what full-flow.spec.js:221 does.
+--
+-- The prohibition that matters is asserted by T2, T3, T4 above and T5b below:
+-- a caller WITH a token and without an approved profile is refused.
 
 set "test.uid" = '';
 
 do $$
 begin
   perform 1 from public.get_public_listings() limit 1;
-  insert into t17_result values ('T5', false, null);
+  insert into t17_result values ('T5', true, null);
 exception
-  when sqlstate '42501' then insert into t17_result values ('T5', true, null);
-  when others then insert into t17_result values ('T5', false, null);
+  when others then insert into t17_result values ('T5', false, sqlerrm);
 end $$;
 
-select case when ok then 'PASS' else 'FAIL' end as "T5 Item59 a caller with no account is refused the market"
+select case when ok then 'PASS' else 'FAIL' end
+  as "T5 Item59 the server itself can read the market with no identity"
   from t17_result where name = 'T5';
+
+-- And the door the grant is holding shut. If `anon` were ever granted EXECUTE
+-- on this function, the reasoning above would stop being true and this fails.
+
+select case when not has_function_privilege('anon', 'public.get_public_listings()', 'EXECUTE')
+            then 'PASS' else 'FAIL' end
+  as "T5a Item59 anon cannot execute get_public_listings at all";
+
+set "test.uid" = '00000000-0000-4000-8000-0000000000fe';
+
+do $$
+begin
+  perform 1 from public.get_public_listings() limit 1;
+  insert into t17_result values ('T5b', false, 'it was ALLOWED, which is the hole 025 closed');
+exception
+  when sqlstate '42501' then insert into t17_result values ('T5b', true, null);
+  when others then insert into t17_result values ('T5b', false, sqlerrm);
+end $$;
+
+select case when ok then 'PASS' else 'FAIL' end
+  as "T5b Item59 a token with no approved profile is refused the market"
+  from t17_result where name = 'T5b';
 
 
 -- ---------------------------------------- the approved member is untouched --
