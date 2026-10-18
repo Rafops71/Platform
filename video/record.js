@@ -142,11 +142,15 @@ async function perform(page, action, world) {
 
   switch (action) {
     case 'signIn':
+      // Whichever account THIS film is about, landing on whichever page that
+      // account belongs to. The member film ends on app.html, the Operator
+      // film on operator.html - hardcoding either one is how a second film
+      // waits thirty seconds for a URL that is never coming.
       await page.goto(`${BASE}/index.html`);
-      await typeSlowly(page, '#email', world.member.email);
-      await typeSlowly(page, '#password', world.member.password);
+      await typeSlowly(page, '#email', world.signInAs.email);
+      await typeSlowly(page, '#password', world.signInAs.password);
       await pressWithPointer(page, '#login-btn');
-      await page.waitForURL('**/app.html', { timeout: 30000 });
+      await page.waitForURL(`**/${world.landing}`, { timeout: 30000 });
       await page.waitForSelector('#user-name', { timeout: 20000 });
       return;
 
@@ -158,6 +162,110 @@ async function perform(page, action, world) {
     default:
       throw new Error(`video/script.json asks for an action nobody wrote: "${action}"`);
   }
+}
+
+/** Fixtures, per film. Returns the values the script and signIn need. */
+async function buildWorld(film) {
+  const world = {};
+
+  if (film === 'member') {
+    world.signInAs = await createAccount({
+      label: 'film', role: 'participant', status: 'approved',
+      meta: { first_name: 'Ingrid', last_name: 'Solberg', company: 'Solberg Metals' },
+    });
+    world.landing = 'app.html';
+
+    const other = await createAccount({
+      label: 'film-other', role: 'participant', status: 'approved',
+      meta: { first_name: 'Marco', last_name: 'Ferrari', company: 'Ferrari Commodities' },
+    });
+
+    // THE BUYER'S DEMAND. Another member's BUY REQUEST, not a sell offer: the
+    // film's story is a buyer who wants copper and a seller who answers, so
+    // the market has to contain the demand before the film can answer it. A
+    // buy request stores its region in `destination` rather than `origin` -
+    // get_public_listings() picks whichever matches the type, which is why the
+    // row then reads "Destination" instead of "Origin".
+    //
+    // The id comes back so the film can press THIS row's Contact button by id.
+    // Browse sorts newest first (js/app.js:519) and shows the member's own
+    // listings too, so the offer the film posts lands above this one -
+    // targeting by position would make the film enquire about its own offer.
+    const demand = await query(
+      `insert into public.listings
+         (user_id, type, commodity, quantity, unit, incoterm, destination,
+          specification, status, reference_number)
+       values ($1, 'buy', 'copper cathodes', 600, 'Metric tons', 'CIF', 'Netherlands',
+               'LME Grade A or equivalent, Rotterdam', 'available', $2)
+       returning id`,
+      [other.profileId, `BUY-FILM-${Date.now().toString().slice(-6)}`]
+    );
+    world.demandId = demand.rows[0].id;
+    if (!world.demandId) throw new Error('the buyer\'s demand was not created, so the film has nothing to answer');
+    console.log(`The buyer's demand: ${world.demandId}`);
+    return world;
+  }
+
+  if (film === 'operator') {
+    world.signInAs = await createAccount({
+      label: 'film-op', role: 'operator', status: 'approved',
+      meta: { first_name: 'Operator', last_name: 'Desk', company: 'Jericho Platform' },
+    });
+    world.landing = 'operator.html';
+
+    // A member who has registered and is WAITING. This is what the Approvals
+    // screen is for, and without one that screen films as an empty state.
+    await createAccount({
+      label: 'film-pending', role: 'participant', status: 'pending',
+      meta: { first_name: 'Anneke', last_name: 'de Vries', company: 'De Vries Metalen' },
+    });
+
+    // An approved member, their listing, and an enquiry about it awaiting
+    // review - the three things that make the Operator's mailbox the point of
+    // the whole platform rather than a screen with a table on it.
+    const seller = await createAccount({
+      label: 'film-seller', role: 'participant', status: 'approved',
+      meta: { first_name: 'Marco', last_name: 'Ferrari', company: 'Ferrari Commodities' },
+    });
+    const buyer = await createAccount({
+      label: 'film-buyer', role: 'participant', status: 'approved',
+      meta: { first_name: 'Ingrid', last_name: 'Solberg', company: 'Solberg Metals' },
+    });
+
+    const listing = await query(
+      `insert into public.listings
+         (user_id, type, commodity, quantity, unit, incoterm, origin,
+          specification, status, reference_number)
+       values ($1, 'sell', 'copper cathodes', 500, 'Metric tons', 'CIF', 'Chile',
+               'LME Grade A, 99.99% Cu', 'available', $2)
+       returning id`,
+      [seller.profileId, `SELL-FILM-${Date.now().toString().slice(-6)}`]
+    );
+
+    // status is left to its own default rather than named here: the column has
+    // one, and writing 'pending_review' by hand would be this file asserting
+    // something about the schema it has not checked.
+    const message = await query(
+      `insert into public.messages (sender_id, listing_id, subject, body)
+       values ($1, $2, $3, $4) returning id, status`,
+      [buyer.profileId, listing.rows[0].id, 'Enquiry about 500 mt copper cathodes',
+       'We can take the full parcel, CIF Rotterdam. Please put us in touch with the seller.']
+    );
+    world.messageId = message.rows[0].id;
+    console.log(`A message awaiting review: ${world.messageId} (status ${message.rows[0].status})`);
+
+    // An invitation already sent, so the Invitations screen has a row.
+    await query(
+      `insert into public.invitations (token, email, created_by)
+       values ($1, $2, $3)`,
+      [`film-${Date.now().toString(36)}`, 'invited-colleague@example.invalid',
+       world.signInAs.profileId]
+    );
+
+    return world;
+  }
+
+  throw new Error(`no fixtures written for a film called "${film}"`);
 }
 
 async function main() {
@@ -252,42 +360,14 @@ async function main() {
   console.log(`Filming "${film}" in ${lang}: ${scenes.length} scenes.`);
   await cleanup();
 
-  const world = {};
-  world.member = await createAccount({
-    label: 'film', role: 'participant', status: 'approved',
-    meta: { first_name: 'Ingrid', last_name: 'Solberg', company: 'Solberg Metals' },
-  });
-  const other = await createAccount({
-    label: 'film-other', role: 'participant', status: 'approved',
-    meta: { first_name: 'Marco', last_name: 'Ferrari', company: 'Ferrari Commodities' },
-  });
-  // THE BUYER'S DEMAND.
+  // WHAT EACH FILM NEEDS TO EXIST BEFORE IT CAN BE FILMED.
   //
-  // Another member's BUY REQUEST, not a sell offer: the film's story is a
-  // buyer who wants copper and a seller who answers, so the market has to
-  // contain the demand before the film can answer it. A buy request stores
-  // its region in `destination` rather than `origin` - get_public_listings()
-  // picks whichever matches the type, which is why the row then reads
-  // "Destination" instead of "Origin".
-  //
-  // The id comes back so the film can press THIS row's Contact button by id.
-  // Browse sorts newest first (js/app.js:519) and shows the member's own
-  // listings too, so the offer the film posts lands above this one - targeting
-  // by position would make the film enquire about its own offer.
-  //
-  // 600 metric tons, because a demand should look like a real enquiry.
-  const demand = await query(
-    `insert into public.listings
-       (user_id, type, commodity, quantity, unit, incoterm, destination,
-        specification, status, reference_number)
-     values ($1, 'buy', 'copper cathodes', 600, 'Metric tons', 'CIF', 'Netherlands',
-             'LME Grade A or equivalent, Rotterdam', 'available', $2)
-     returning id`,
-    [other.profileId, `BUY-FILM-${Date.now().toString().slice(-6)}`]
-  );
-  world.demandId = demand.rows[0].id;
-  if (!world.demandId) throw new Error('the buyer\'s demand was not created, so the film has nothing to answer');
-  console.log(`The buyer's demand: ${world.demandId}`);
+  // Two films, two different worlds. The member film needs somebody else's
+  // demand to answer. The Operator film needs work WAITING: a registration to
+  // approve, a message to review, an invitation already sent. An Operator
+  // console with nothing in it films as an empty table, and the voice would be
+  // describing work that is not on the screen.
+  const world = await buildWorld(film);
 
   fs.mkdirSync(OUT, { recursive: true });
   const browser = await chromium.launch();

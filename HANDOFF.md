@@ -570,9 +570,18 @@ notifications left.
    `.github/workflows/send-emails.yml` skips its send step when any of
    `SUPABASE_DB_URL`, `RESEND_API_KEY` or `LISTING_EMAIL_FROM` is missing. Only
    the first is set, so the run goes green and the "Flush the email queue" step
-   is skipped every time. The queue therefore fills and never drains: three rows
-   are waiting, two of them queued on 2026-10-11 with `attempts = 0` after four
-   green runs, which is what first gave it away.
+   is skipped every time. Checked again on 2026-10-18 against run 39099463019,
+   that morning's scheduled run, whose steps read:
+
+       Are the secrets configured? :: success
+       Flush the email queue       :: skipped
+
+   An earlier version of this note said three rows were queued and waiting.
+   That is no longer true and it is worth saying why rather than quietly
+   correcting it: `email_outbox` holds ONE row, sent, dated 2026-08-26. The
+   queue is empty. Nothing is backing up - because nothing is being queued
+   either, there being no members yet to notify. An empty queue here is not
+   evidence that sending works.
 
    So today an invited person gets no invitation, an approved member gets no
    notice, and nobody is told about a new listing. The database side is correct
