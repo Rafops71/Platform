@@ -93,6 +93,8 @@ const STRINGS = {
 
     // ---- Registration --------------------------------------------------
     'register.title': 'Complete your registration',
+    'register.watchTitle': 'Before you register — how Jericho works',
+    'register.watchHelp': 'A three-minute walkthrough. Nothing is downloaded until you press play.',
     'register.checking': 'Checking invitation link…',
     'register.invalid': 'This invitation link is invalid, expired, or already used.',
     'register.invalidHelp': 'Ask an Operator to send you a new invitation link.',
@@ -470,6 +472,8 @@ const STRINGS = {
 
     // ---- Registration --------------------------------------------------
     'register.title': 'Complete su registro',
+    'register.watchTitle': 'Antes de registrarse — cómo funciona Jericho',
+    'register.watchHelp': 'Un recorrido de tres minutos. No se descarga nada hasta que pulse reproducir.',
     'register.checking': 'Verificando el enlace de invitación…',
     'register.invalid': 'Este enlace de invitación no es válido, ha caducado o ya se ha utilizado.',
     'register.invalidHelp': 'Solicite a un Operador que le envíe un nuevo enlace de invitación.',

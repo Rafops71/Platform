@@ -29,6 +29,22 @@
     <p class="text-muted" data-i18n="register.invalidHelp">Ask an Operator to send you a new invitation link.</p>
   </div>
 
+  <!-- The walkthrough, shown ONLY to somebody holding a valid invitation.
+       It is revealed with #register-card, never before, and never on
+       index.html: the sign-in page is public, and these films are an inside
+       tour of a platform whose whole product is controlled disclosure.
+
+       preload="none" so not one byte is fetched until the viewer presses
+       play. The file is about 13MB and plenty of members will open this on a
+       phone, on mobile data, possibly in a port. -->
+  <div id="intro-video-card" class="card hidden">
+    <h2 class="mt-0" data-i18n="register.watchTitle">Before you register</h2>
+    <p class="text-muted" data-i18n="register.watchHelp">A short walkthrough of how the Platform works. Nothing is downloaded until you press play.</p>
+    <video id="intro-video" controls preload="none" playsinline
+           style="width:100%;border-radius:var(--radius-block);background:#15202b;">
+    </video>
+  </div>
+
   <div id="register-card" class="card hidden">
     <form id="register-form">
       <div class="grid-2">

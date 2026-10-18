@@ -102,6 +102,41 @@ async function logActivity(userId, action, details = null) {
 // ------------------------------------------------------------ REGISTER ----
 let invitationToken = null;
 
+/** The walkthrough film, in whichever language the page is set to.
+ *
+ *  Shown only once an invitation has been accepted as valid - it is revealed
+ *  beside the registration form and never on the public sign-in page.
+ *
+ *  The source is set here rather than in the markup so that it follows the
+ *  language toggle. Assigning .src (rather than swapping a <source> child)
+ *  is what makes the element reload; a <source> swap needs an explicit
+ *  load() and silently keeps playing the old file without it. */
+function showIntroVideo() {
+  const card = document.getElementById('intro-video-card');
+  const video = document.getElementById('intro-video');
+  if (!card || !video) return;
+
+  setIntroVideoSource();
+  card.classList.remove('hidden');
+
+  // setLang() calls this after it has re-translated the page, so the film
+  // follows the EN/ES buttons like every other piece of text here.
+  window.onLanguageChange = () => setIntroVideoSource();
+}
+
+function setIntroVideoSource() {
+  const video = document.getElementById('intro-video');
+  if (!video) return;
+  const lang = typeof currentLang === 'function' ? currentLang() : 'en';
+  const next = `films/member-${lang === 'es' ? 'es' : 'en'}.mp4`;
+  // Only touch src when it actually changes: reassigning it restarts the
+  // film, and re-translating the page must not throw somebody back to the
+  // beginning of a three-minute video they are halfway through.
+  if (!video.getAttribute('src') || !video.getAttribute('src').endsWith(next)) {
+    video.setAttribute('src', next);
+  }
+}
+
 async function initRegisterPage() {
   invitationToken = getQueryParam('token');
   const checking = document.getElementById('invitation-checking');
@@ -127,6 +162,7 @@ async function initRegisterPage() {
   }
 
   registerCard.classList.remove('hidden');
+  showIntroVideo();
   if (invitation.email) {
     document.getElementById('email').value = invitation.email;
   }
