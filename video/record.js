@@ -135,12 +135,6 @@ async function perform(page, action, world) {
       await page.evaluate(() => window.__jericho.press());
       return;
 
-    case 'wait':
-      await page.waitForSelector(target, { state: 'visible', timeout: 20000 });
-      return;
-  }
-
-  switch (action) {
     case 'signInAs': {
       // The overview film visits the member's app AND the Operator's console,
       // so it signs in twice. `rest` names an account that world gave back -
@@ -163,6 +157,12 @@ async function perform(page, action, world) {
       return;
     }
 
+    case 'wait':
+      await page.waitForSelector(target, { state: 'visible', timeout: 20000 });
+      return;
+  }
+
+  switch (action) {
     case 'signIn':
       // Whichever account THIS film is about, landing on whichever page that
       // account belongs to. The member film ends on app.html, the Operator
@@ -391,6 +391,29 @@ async function main() {
     if (scene.highlight && scene.highlight.includes('>>')) {
       throw new Error(`scene "${scene.id}" highlights with Playwright-only syntax: ${scene.highlight}`);
     }
+  }
+
+  // EVERY VERB MUST BE ONE THE RECORDER KNOWS.
+  //
+  // perform() already throws on an unknown action - but only when the scene
+  // is REACHED, which on the overview film meant seven minutes in, after the
+  // fixtures were built and three scenes were in the can. The verb was
+  // "signInAs:member" and it had been written into the switch that matches a
+  // whole action string rather than the one that matches a verb before its
+  // colon, so it never matched anything.
+  //
+  // A list that costs nothing to check beats a runtime error that costs a
+  // run. Read off perform() itself, so adding a verb there and forgetting it
+  // here fails loudly rather than silently.
+  const KNOWN_VERBS = ['hold', 'screen', 'press', 'type', 'select', 'check',
+                       'wait', 'goto', 'signInAs', 'signIn', 'language'];
+  const unknown = scenes
+    .map(scene => (scene.do || 'hold').split(':')[0])
+    .filter(verb => !KNOWN_VERBS.includes(verb));
+  if (unknown.length) {
+    throw new Error(
+      `video/script.json uses ${[...new Set(unknown)].map(v => `"${v}"`).join(', ')}, ` +
+      `which perform() does not handle.\nKnown verbs: ${KNOWN_VERBS.join(', ')}`);
   }
 
   // A ZOOM MUST BE READABLE, AND MUST LET GO.
