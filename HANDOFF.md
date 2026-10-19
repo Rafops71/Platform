@@ -604,6 +604,62 @@ Revert in `sql/revert/030_activity_log_write_only_through_a_function_revert.sql`
 copied from what `sql/rls_policies.sql` creates and confirmed identical to the
 live policy before anything was changed.
 
+## Email: who sends what, and the two decisions already taken
+
+Two separate jobs, and they are easy to confuse. Keep them apart.
+
+THE PLATFORM SENDING TO MEMBERS (new-listing notifications, password
+links). Outbound only, no inbox. This is Resend, and it stays Resend.
+Free tier read off their pricing page on 2026-10-19: 3,000 emails a
+month, "The Free plan is limited to 100 emails per day", 3 custom
+domains. At this platform's volume that is free indefinitely. Still
+blocked on the sending domain and the two secrets - see open item 1.
+
+THE OWNER'S OWN MAILBOX (a human address at the company domain, to send
+and reply from). DECIDED by the owner on 2026-10-19: **Purelymail, $10 a
+year.** Figures read off their own pages that day:
+
+  price        $10/year, NOT per user; multiple users and domains included
+  sending      ~3,000 messages/day external, ~300 at once
+  stated as    a limit "to protect the service against abuse by spammers,
+               and discourage use of the service for marketing"
+  raising it   by contacting support
+  trial        heavily throttled until $10 is added
+  the catch    "significantly more than $10 a year in resources" can move
+               an account to their advanced per-resource pricing, so $10
+               is the normal-use price, not a guaranteed cap
+  one risk     Gmail throttled Purelymail's sending IPs in November 2025
+               (their own status post). Gmail's doing, not their quota,
+               but it is the kind of thing that decides whether mail
+               arrives.
+
+WHAT WAS REJECTED AND WHY, so it is not re-proposed: Migadu Micro is
+$19/year for 5 GB but caps outgoing at 20 messages A DAY, per account and
+not per mailbox. Twice the price for 1/150th of the headroom. Fastmail
+($60/yr, 50 GB) and Proton (from $5.99/mo) are fine products and simply
+more than this needs. Zoho's free plan (5 users, 1 domain, 5 GB, no IMAP)
+was the free fallback. Zoho's paid tiers, Google Workspace, Microsoft 365
+and Namecheap could not be priced at all - those pages render their
+figures with scripts, or refused the request - and were left unquoted
+rather than guessed.
+
+A CORRECTION WORTH KEEPING. Purelymail was first reported here as
+publishing no sending figure, on the strength of its homepage and pricing
+page. It publishes both, in its FAQ at /docs/faq. The owner pushed back on
+the number and he was right. Two pages of a site are not the site.
+
+NOT a replacement for Resend: Purelymail explicitly discourages bulk and
+marketing use, and the platform's notifications are machine-sent to every
+member. Keep the platform on Resend and the human mailbox on Purelymail.
+
+STILL OPEN: the domain itself. Nothing can be set up until one is bought.
+The owner's constraints, stated on 2026-10-19: .com only; no .eu, .be or
+anything Belgian (NV, BV and Dutch or French wording included); the words
+commodities, trade, market and capital are all out, because the business
+may expand beyond commodities and trade under its own name; no hyphens.
+Thirty .com names meeting all of that were verified free against the
+registry that day. Re-verify before buying - availability is a snapshot.
+
 ## Still open
 
 -2. **PARKED, by the owner, on 2026-10-19: the sender's id on a forwarded
