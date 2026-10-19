@@ -60,6 +60,7 @@ const DEFAULT_ORDER = [
   '027_purge_test_mail.sql',
   '028_reference_numbers_from_the_server.sql',
   '029_browse_from_the_server.sql',
+  '030_activity_log_write_only_through_a_function.sql',
   'seed_commodities.sql',
 ];
 

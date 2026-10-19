@@ -70,8 +70,12 @@ function showScreen(name) {
   if (name === 'activity') loadActivityLog();
 }
 
+// See the note on logActivity() in js/auth.js: sql/030 made record_activity()
+// the only way in, and it takes the actor from the session rather than from
+// here. An action this console starts logging must be added to the list in
+// that migration, or the call is refused and the line is silently lost.
 async function logOpActivity(action, details = null) {
-  try { await jericho.from('activity_log').insert({ user_id: CURRENT_PROFILE.id, action, details }); }
+  try { await jericho.rpc('record_activity', { p_action: action, p_details: details }); }
   catch (e) { console.warn('activity log failed (non-fatal):', e); }
 }
 

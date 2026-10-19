@@ -75,7 +75,7 @@ async function initLoginPage() {
       return;
     }
 
-    await logActivity(prof.id, 'login');
+    await logActivity('login');
 
     if (prof.status === 'pending') {
       await jericho.auth.signOut();
@@ -91,9 +91,15 @@ async function initLoginPage() {
   });
 }
 
-async function logActivity(userId, action, details = null) {
+// Through record_activity() rather than straight into the table: sql/030
+// removed the direct INSERT grant, because a route that let the browser choose
+// `action` let it write any sentence it liked into the Operator's audit trail.
+// The actor is no longer passed either - the function reads it from the
+// caller's own session - so the userId argument this helper used to take has
+// gone with it rather than sitting there unread.
+async function logActivity(action, details = null) {
   try {
-    await jericho.from('activity_log').insert({ user_id: userId, action, details });
+    await jericho.rpc('record_activity', { p_action: action, p_details: details });
   } catch (e) {
     console.warn('activity log failed (non-fatal):', e);
   }

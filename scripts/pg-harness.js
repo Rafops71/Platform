@@ -63,6 +63,7 @@ const SETUP = [
   'sql/027_purge_test_mail.sql',
   'sql/028_reference_numbers_from_the_server.sql',
   'sql/029_browse_from_the_server.sql',
+  'sql/030_activity_log_write_only_through_a_function.sql',
   'sql/seed_commodities.sql',
 ];
 
