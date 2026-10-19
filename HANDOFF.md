@@ -567,13 +567,42 @@ be: the two lines closing the route were commented out and the suite re-run.
 T2 and T2a both failed, and the forged line went straight into the table -
 which is also the proof the hole was real and not a reviewer's theory.
 
-NOT YET APPLIED TO THE LIVE DATABASE. The order matters: `sql/030` must be
-applied BEFORE the new `js/` reaches GitHub Pages, or `record_activity` does
-not exist yet and every log line is lost in the meantime (both call sites
-treat a failed log as non-fatal, so nothing breaks visibly - which is exactly
-why it would go unnoticed). Revert in
-`sql/revert/030_activity_log_write_only_through_a_function_revert.sql`, copied
-from what `sql/rls_policies.sql` creates rather than reconstructed.
+APPLIED TO THE LIVE DATABASE on 2026-10-19, and the lock proven there rather
+than inferred from the local suite - `set role authenticated` and then the
+forged insert:
+
+    ERROR: 42501: permission denied for table activity_log
+
+Live state after: member INSERT false, Operator SELECT true, authenticated
+EXECUTE on record_activity true, anon false, 23 log rows and 0 forged.
+
+TWO THINGS THE LIVE DATABASE SAID AND THE SUITE DID NOT.
+
+First, a real bug in this migration. Its first version wrote `revoke all on
+function ... from public`, and Supabase grants EXECUTE on a new function in
+the public schema to anon, authenticated and service_role EXPLICITLY - so
+anon kept its own grant. proacl read on the day:
+
+    {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+
+T7 asserts anon cannot execute it and PASSED anyway, because the harness has
+no such default. sql/017:57 already says `from public, anon, authenticated`
+for this exact reason and this file had not copied it. The lesson is the one
+worth keeping: a green suite means the harness agrees, not the live project.
+
+Second, `drop policy activity_log_insert` cannot be run through the Supabase
+MCP tool from here. Five attempts, each hanging for 60s and committing
+nothing, with no lock held on the table and lock_timeout/statement_timeout
+having no effect - so the stall is above Postgres, not in it. The policy is
+therefore still present LIVE and is inert: with the INSERT privilege revoked,
+a policy permitting an insert has nothing to permit, which is what the live
+42501 above demonstrates. It drops cleanly in the local harness and will drop
+on any deployment that applies sql/030 by another route. Tidy it with
+`psql` or the SQL editor when convenient; nothing depends on it.
+
+Revert in `sql/revert/030_activity_log_write_only_through_a_function_revert.sql`,
+copied from what `sql/rls_policies.sql` creates and confirmed identical to the
+live policy before anything was changed.
 
 ## Still open
 

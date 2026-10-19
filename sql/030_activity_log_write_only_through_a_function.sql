@@ -110,7 +110,21 @@ begin
 end;
 $function$;
 
-revoke all on function public.record_activity(text, jsonb) from public;
+-- `from public, anon` and not `from public` alone. Supabase grants EXECUTE on
+-- a newly created function in the public schema to anon, authenticated and
+-- service_role EXPLICITLY, so revoking from PUBLIC leaves anon's own grant
+-- sitting there. Read off proacl on the live project on 2026-10-19 after this
+-- file's first version was applied:
+--
+--   {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+--
+-- The local suite's T7 asserted anon could not execute it and PASSED, because
+-- the test harness has no such default and nothing had granted it. The test
+-- was right about what it checked and the database disagreed anyway; sql/017
+-- line 57 already spells out `from public, anon, authenticated` for exactly
+-- this reason, and this file did not copy it. Worth remembering: a green suite
+-- says the harness agrees, not that the live project does.
+revoke execute on function public.record_activity(text, jsonb) from public, anon;
 grant execute on function public.record_activity(text, jsonb) to authenticated;
 
 -- The direct route, closed.
