@@ -529,7 +529,81 @@ notifications left.
   because `playwright test` with no project runs EVERY project: both suites now
   name their browser explicitly.
 
+## The logbook had no lock (sql/030, 2026-10-19)
+
+A second-opinion review of the whole build raised nine points. Each was
+checked against the code rather than taken on trust, and this is the one that
+survived as work.
+
+`authenticated` held a direct INSERT grant on `public.activity_log`
+(`sql/rls_policies.sql:740`) and a policy permitting it (`:690`). The policy
+pinned WHO a participant could write as. Nothing pinned WHAT: `action` is free
+text. A member with the token their browser already holds could add
+
+    action = 'operator agreed to waive documents'
+
+in their own name, into the Operator's audit trail, in its own format. Not
+tamper with it - only add. The log's whole value is being the account nobody
+can argue with, and a log its subjects can write in is not that.
+
+`sql/030` adds `record_activity(p_action, p_details)`: SECURITY DEFINER, takes
+no user_id at all so the actor cannot be supplied by the client, and accepts
+only the actions the application actually logs - read out of `js/auth.js` and
+`js/operator.js` on the day, listed in the migration's header with line
+numbers. Then the policy is dropped and the grant revoked. Both call sites now
+go through it. A new action the console starts logging must be added to that
+list or the line is silently lost; that is the point, not a side effect.
+
+ONE THING THE FIRST ATTEMPT GOT WRONG, worth keeping: the function first
+required an APPROVED profile, copying the guard from sql/025-029. That would
+have thrown away the most interesting line the log can carry - a pending,
+suspended or rejected member signing in - because `js/auth.js:78` records the
+login BEFORE it reads the status and sends them away. `record_activity` now
+requires only that a profile exists; status still gates every Operator action.
+
+`sql/tests/18_activity_log_write_only.sql`, 12 assertions, all passing locally
+on the embedded PostgreSQL. It was checked the only way a prohibition test can
+be: the two lines closing the route were commented out and the suite re-run.
+T2 and T2a both failed, and the forged line went straight into the table -
+which is also the proof the hole was real and not a reviewer's theory.
+
+NOT YET APPLIED TO THE LIVE DATABASE. The order matters: `sql/030` must be
+applied BEFORE the new `js/` reaches GitHub Pages, or `record_activity` does
+not exist yet and every log line is lost in the meantime (both call sites
+treat a failed log as non-fatal, so nothing breaks visibly - which is exactly
+why it would go unnoticed). Revert in
+`sql/revert/030_activity_log_write_only_through_a_function_revert.sql`, copied
+from what `sql/rls_policies.sql` creates rather than reconstructed.
+
 ## Still open
+
+-2. **PARKED, by the owner, on 2026-10-19: the sender's id on a forwarded
+    message.** A member's mailbox receives each message's raw `sender_id`
+    UUID. It is never printed - `js/app.js:769` uses it once to decide "From
+    you" or "To you" and discards it - never emailed, and the profile behind
+    it cannot be read (asserted by `sql/tests/01` T28). What a member who
+    opens the browser's developer tools can learn from it is that two
+    listings share one unnamed counterparty. Nothing more: the UUID is
+    `gen_random_uuid()`, so it encodes nothing, and it exists nowhere outside
+    this database.
+
+    Pressing Reply in the console does not leak even that: `js/operator.js:1129`
+    writes the new message with the OPERATOR as sender, so a buyer answered in
+    the Operator's own words sees the Operator's id on everything.
+
+    The owner weighed it and parked it, and his reasoning is on the record
+    because it overrules a guess: the market is saturated, global, and he has
+    never been able to identify a counterparty from hundreds of offers. The
+    same review raised Browse's disclosure level - specification, price, exact
+    region - on the same reasoning, and the owner rejected that outright. That
+    question is CLOSED: Browse shows the detail, because the detail is what
+    makes a listing worth reading. Do not reopen either on a hunch about
+    market size without data.
+
+    If it is ever wanted, the fix is small and does not get harder with age:
+    have the server send a `mine` boolean instead of `sender_id`, since the
+    mailbox needs nothing else from it. One query, one render line, one test.
+
 
 -1. ~~**The look.**~~ Built and live on 2026-10-18. "Sky Tint": white behind
     everything, colour in the blocks and badges, Spectral for headings and
