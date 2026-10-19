@@ -135,6 +135,28 @@ async function perform(page, action, world) {
       await page.evaluate(() => window.__jericho.press());
       return;
 
+    case 'signInAs': {
+      // The overview film visits the member's app AND the Operator's console,
+      // so it signs in twice. `rest` names an account that world gave back -
+      // signInAs:member, signInAs:operator - and each one lands on its own
+      // page. Signing out first matters: a live session sends index.html
+      // straight back to the app it belongs to, and the film would then type
+      // an Operator's details into a page that was already somebody else's.
+      const who = world[rest];
+      if (!who) throw new Error(`the script signs in as "${rest}", which video/world did not return`);
+      if (await page.locator('#logout-link').count()) {
+        await pressWithPointer(page, '#logout-link');
+        await page.waitForURL('**/index.html', { timeout: 20000 }).catch(() => {});
+      }
+      await page.goto(`${BASE}/index.html`);
+      await typeSlowly(page, '#email', who.email);
+      await typeSlowly(page, '#password', who.password);
+      await pressWithPointer(page, '#login-btn');
+      await page.waitForURL(`**/${who.landing}`, { timeout: 30000 });
+      await page.waitForSelector('#user-name', { timeout: 20000 });
+      return;
+    }
+
     case 'wait':
       await page.waitForSelector(target, { state: 'visible', timeout: 20000 });
       return;
@@ -291,6 +313,63 @@ async function buildWorld(film) {
     return world;
   }
 
+  if (film === 'overview') {
+    // ONE FILM, BOTH SIDES. It signs in as a member, then as the Operator, so
+    // the world hands back two accounts rather than one - each carrying the
+    // page it belongs on, because signInAs waits for that URL.
+    const member = await createAccount({
+      label: 'ov-member', role: 'participant', status: 'approved',
+      meta: { first_name: 'Ingrid', last_name: 'Solberg', company: 'Solberg Metals' },
+    });
+    const operator = await createAccount({
+      label: 'ov-op', role: 'operator', status: 'approved',
+      meta: { first_name: 'Operator', last_name: 'Desk', company: 'Jericho Platform' },
+    });
+    world.member = { ...member, landing: 'app.html' };
+    world.operator = { ...operator, landing: 'operator.html' };
+
+    // signIn (the one-account verb) is not used by this film, but record.js
+    // reads world.signInAs before the scenes run. Pointing it at the member
+    // keeps the two verbs from disagreeing about who starts the film.
+    world.signInAs = member;
+    world.landing = 'app.html';
+
+    // Somebody waiting to be let in, so Approvals is not an empty table when
+    // the voice says nobody gets in without an Operator.
+    await createAccount({
+      label: 'ov-pending', role: 'participant', status: 'pending',
+      meta: { first_name: 'Anneke', last_name: 'de Vries', company: 'De Vries Metalen' },
+    });
+
+    // Another member's offer for the market, and an enquiry about it waiting
+    // for review - the two things the overview actually explains.
+    const other = await createAccount({
+      label: 'ov-other', role: 'participant', status: 'approved',
+      meta: { first_name: 'Marco', last_name: 'Ferrari', company: 'Ferrari Commodities' },
+    });
+    const listing = await query(
+      `insert into public.listings
+         (user_id, type, commodity, quantity, unit, incoterm, origin,
+          specification, status, reference_number)
+       values ($1, 'sell', 'copper cathodes', 500, 'Metric tons', 'CIF', 'Chile',
+               'LME Grade A, 99.99% Cu', 'available', $2)
+       returning id`,
+      [other.profileId, `SELL-OVER-${Date.now().toString().slice(-6)}`]
+    );
+    world.offerId = listing.rows[0].id;
+
+    const message = await query(
+      `insert into public.messages (sender_id, listing_id, subject, body)
+       values ($1, $2, $3, $4) returning id`,
+      [member.profileId, listing.rows[0].id,
+       'Enquiry about 500 mt copper cathodes',
+       'We can take the full parcel, CIF Rotterdam. Please pass this to the seller.']
+    );
+    world.messageId = message.rows[0].id;
+    console.log(`Overview world: offer ${world.offerId}, enquiry ${world.messageId}`);
+    return world;
+  }
+
   throw new Error(`no fixtures written for a film called "${film}"`);
 }
 
@@ -312,6 +391,29 @@ async function main() {
     if (scene.highlight && scene.highlight.includes('>>')) {
       throw new Error(`scene "${scene.id}" highlights with Playwright-only syntax: ${scene.highlight}`);
     }
+  }
+
+  // EVERY VERB MUST BE ONE THE RECORDER KNOWS.
+  //
+  // perform() already throws on an unknown action - but only when the scene
+  // is REACHED, which on the overview film meant seven minutes in, after the
+  // fixtures were built and three scenes were in the can. The verb was
+  // "signInAs:member" and it had been written into the switch that matches a
+  // whole action string rather than the one that matches a verb before its
+  // colon, so it never matched anything.
+  //
+  // A list that costs nothing to check beats a runtime error that costs a
+  // run. Read off perform() itself, so adding a verb there and forgetting it
+  // here fails loudly rather than silently.
+  const KNOWN_VERBS = ['hold', 'screen', 'press', 'type', 'select', 'check',
+                       'wait', 'goto', 'signInAs', 'signIn', 'language'];
+  const unknown = scenes
+    .map(scene => (scene.do || 'hold').split(':')[0])
+    .filter(verb => !KNOWN_VERBS.includes(verb));
+  if (unknown.length) {
+    throw new Error(
+      `video/script.json uses ${[...new Set(unknown)].map(v => `"${v}"`).join(', ')}, ` +
+      `which perform() does not handle.\nKnown verbs: ${KNOWN_VERBS.join(', ')}`);
   }
 
   // A ZOOM MUST BE READABLE, AND MUST LET GO.

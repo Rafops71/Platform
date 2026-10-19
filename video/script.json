@@ -553,6 +553,199 @@
           }
         }
       ]
+    },
+    "overview": {
+      "title": "Jericho Platform — a three-minute overview",
+      "_comment": [
+        "FOR A NEW OPERATOR, and for anybody who needs the idea rather than the",
+        "buttons. It is the only film that shows BOTH sides, which is why it signs",
+        "in twice - signInAs:member, then signInAs:operator. Each account carries",
+        "its own landing page, because the console and the app are different URLs.",
+        "",
+        "It deliberately does NOT teach the buttons. It shows a member's market",
+        "with no names on it, then the same platform from the desk where the names",
+        "are visible, and closes by pointing at the two longer films.",
+        "",
+        "Same rules as the others: nothing zoomed closer than 1.9x, every zoom",
+        "comes back out, no run of still shots over 20 seconds.",
+        "",
+        "{offerId} is the other member's listing, so the anonymity scene rings a",
+        "row that is genuinely not the signed-in member's own."
+      ],
+      "scenes": [
+        {
+          "id": "welcome",
+          "do": "hold",
+          "zoom": ".logo-row",
+          "zoomScale": 1.3,
+          "zoomOutAfter": true,
+          "highlight": ".logo-row",
+          "say": {
+            "en": "Jericho Platform, in three minutes. What it is, what you will do, and what a member sees.",
+            "es": "Jericho Platform, en tres minutos. Qué es, qué hará usted, y qué ve un miembro."
+          }
+        },
+        {
+          "id": "principle",
+          "do": "hold",
+          "zoom": ".logo-row",
+          "zoomScale": 1.2,
+          "zoomOutAfter": true,
+          "highlight": ".logo-row",
+          "say": {
+            "en": "One idea holds the whole thing up. Members never deal with each other directly. They never learn each other's name, company or address. Everything passes through an Operator - through you.",
+            "es": "Una sola idea sostiene todo esto. Los miembros nunca tratan entre sí directamente. Nunca saben el nombre, la empresa ni la dirección del otro. Todo pasa por un Operador: por usted."
+          }
+        },
+        {
+          "id": "member-in",
+          "do": "signInAs:member",
+          "zoom": "#login-form",
+          "zoomScale": 1.3,
+          "zoomOutAfter": true,
+          "highlight": "#login-form",
+          "say": {
+            "en": "First, the member's side - what somebody you have invited signs into. Their own email, their own password, and nothing else. There is no public sign-up anywhere on this Platform, and no way to create an account without an invitation you sent.",
+            "es": "Primero, el lado del miembro: lo que ve alguien a quien usted ha invitado. Su propio correo, su propia contraseña, y nada más. No hay registro público en ninguna parte de esta Plataforma, ni forma de crear una cuenta sin una invitación enviada por usted."
+          }
+        },
+        {
+          "id": "member-browse",
+          "do": "screen:browse",
+          "zoom": "button[data-screen=\"browse\"]",
+          "zoomScale": 1.8,
+          "zoomOutAfter": true,
+          "highlight": "button[data-screen=\"browse\"]",
+          "highlightAfter": "#browse-list",
+          "say": {
+            "en": "The market. Every offer and every request on the Platform, in one list.",
+            "es": "El mercado. Todas las ofertas y solicitudes de la Plataforma, en una lista."
+          }
+        },
+        {
+          "id": "member-anon",
+          "do": "hold",
+          "zoom": ".list-row:has([data-contact=\"{offerId}\"])",
+          "zoomScale": 1.4,
+          "zoomOutAfter": true,
+          "highlight": ".list-row:has([data-contact=\"{offerId}\"])",
+          "say": {
+            "en": "Look at a row. The grade, the quantity, the terms, the origin - all there. No name, no company, no email. That absence is the product.",
+            "es": "Mire una fila. El grado, la cantidad, las condiciones, el origen: todo está. Ni nombre, ni empresa, ni correo. Esa ausencia es el producto."
+          }
+        },
+        {
+          "id": "member-post",
+          "do": "screen:new-listing",
+          "zoom": "button[data-screen=\"new-listing\"]",
+          "zoomScale": 1.8,
+          "zoomOutAfter": true,
+          "highlight": "button[data-screen=\"new-listing\"]",
+          "highlightAfter": "#listing-form",
+          "say": {
+            "en": "A member offers something with one form, and withdraws it whenever they like.",
+            "es": "Un miembro ofrece algo con un solo formulario, y lo retira cuando quiera."
+          }
+        },
+        {
+          "id": "member-contact",
+          "do": "screen:browse",
+          "zoom": "button[data-screen=\"browse\"]",
+          "zoomScale": 1.8,
+          "zoomOutAfter": true,
+          "highlight": "button[data-screen=\"browse\"]",
+          "highlightAfter": "[data-contact=\"{offerId}\"]",
+          "say": {
+            "en": "And when an offer interests them, they write about it. Not to the other member - to you. They never need a name to do business.",
+            "es": "Y cuando una oferta les interesa, escriben sobre ella. No al otro miembro: a usted. Nunca necesitan un nombre para hacer negocio."
+          }
+        },
+        {
+          "id": "operator-in",
+          "do": "signInAs:operator",
+          "zoom": "#login-form",
+          "zoomScale": 1.3,
+          "zoomOutAfter": true,
+          "highlight": "#login-form",
+          "say": {
+            "en": "Now your own side. The same sign-in page, the same kind of account - but what opens afterwards is a different console entirely, and only an Operator ever sees it. Watch what changes once the password goes in.",
+            "es": "Ahora su propio lado. La misma página de entrada, el mismo tipo de cuenta; pero lo que se abre después es una consola completamente distinta, y solo un Operador llega a verla. Mire lo que cambia en cuanto se introduce la contraseña."
+          }
+        },
+        {
+          "id": "operator-desk",
+          "do": "hold",
+          "zoom": "nav.tabs",
+          "zoomScale": 1.45,
+          "zoomOutAfter": true,
+          "highlight": "nav.tabs",
+          "say": {
+            "en": "Eleven screens instead of seven. Nothing happens on this Platform without somebody here deciding it.",
+            "es": "Once pantallas en lugar de siete. Nada ocurre en esta Plataforma sin que alguien de aquí lo decida."
+          }
+        },
+        {
+          "id": "operator-approvals",
+          "do": "screen:approvals",
+          "zoom": "button[data-screen=\"approvals\"]",
+          "zoomScale": 1.8,
+          "zoomOutAfter": true,
+          "highlight": "button[data-screen=\"approvals\"]",
+          "highlightAfter": "#approvals-list",
+          "say": {
+            "en": "Nobody gets in by themselves. You invite them, and you approve them. Until you do, they see nothing at all.",
+            "es": "Nadie entra por su cuenta. Usted les invita, y usted les aprueba. Hasta entonces, no ven absolutamente nada."
+          }
+        },
+        {
+          "id": "operator-mailbox",
+          "do": "screen:mailbox",
+          "zoom": "button[data-screen=\"mailbox\"]",
+          "zoomScale": 1.8,
+          "zoomOutAfter": true,
+          "highlight": "button[data-screen=\"mailbox\"]",
+          "highlightAfter": "#operator-mailbox-list",
+          "say": {
+            "en": "Here is that enquiry, stopped. It has not reached the seller. You read it, and you choose: forward it, reply, or ignore it. That decision is the business.",
+            "es": "Aquí está esa consulta, detenida. No ha llegado al vendedor. Usted la lee y decide: transmitirla, responder, o ignorarla. Esa decisión es el negocio."
+          }
+        },
+        {
+          "id": "operator-sees",
+          "do": "screen:listings",
+          "zoom": "button[data-screen=\"listings\"]",
+          "zoomScale": 1.8,
+          "zoomOutAfter": true,
+          "highlight": "button[data-screen=\"listings\"]",
+          "highlightAfter": "#listings-table",
+          "say": {
+            "en": "And here, unlike anywhere a member can reach, every offer carries the name of whoever posted it. You are the only person who sees both sides.",
+            "es": "Y aquí, a diferencia de cualquier sitio al que llegue un miembro, cada oferta lleva el nombre de quien la publicó. Usted es la única persona que ve ambos lados."
+          }
+        },
+        {
+          "id": "operator-log",
+          "do": "screen:activity",
+          "zoom": "button[data-screen=\"activity\"]",
+          "zoomScale": 1.8,
+          "zoomOutAfter": true,
+          "highlight": "button[data-screen=\"activity\"]",
+          "highlightAfter": "#activity-list",
+          "say": {
+            "en": "Every approval, every forward, every suspension is written down here. The record is what makes that much discretion safe to hold.",
+            "es": "Cada aprobación, cada reenvío, cada suspensión queda escrita aquí. El registro es lo que hace seguro tener tanta discreción."
+          }
+        },
+        {
+          "id": "close",
+          "do": "hold",
+          "highlight": null,
+          "say": {
+            "en": "That is the whole idea: a market where people trade without meeting, and an Operator who carries everything between them. There are two longer films when you want the detail - one that walks through a member's side step by step, and one that does the same for yours.",
+            "es": "Esa es toda la idea: un mercado donde la gente negocia sin conocerse, y un Operador que lo lleva todo entre ellos. Hay dos películas más largas cuando quiera el detalle: una recorre el lado del miembro paso a paso, y otra hace lo mismo con el suyo."
+          }
+        }
+      ]
     }
   }
 }

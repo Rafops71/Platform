@@ -531,13 +531,40 @@ notifications left.
 
 ## Still open
 
--1. **The look is chosen and must not be started yet.** "Sky Tint", white
-    ground, picked on 2026-10-13 — written down in `docs/LOOK-DECISION.md`
-    with its exact colours and the two suites a restyle will disturb. The
-    owner asked for it to be held until everything below is cleared. White
-    behind everything is a standing rule from him, not a property of this one
-    style.
+-1. ~~**The look.**~~ Built and live on 2026-10-18. "Sky Tint": white behind
+    everything, colour in the blocks and badges, Spectral for headings and
+    listing titles. `docs/LOOK-DECISION.md` records what the build had to
+    decide, including three rules that quietly depended on the page being
+    GREY and went invisible on white - two badges and a button hover, each of
+    them a screen that stops saying what it meant rather than a matter of
+    taste. CI passed, Safari on an iPhone included, so no touch target was
+    narrowed. Verified live: the site serves `--bg: #ffffff`.
 
+-0b. **The films exist.** Four of them, in `films/`, each shipped beside the
+    narration timings it was checked against:
+
+      member-en     3m36s   the member's side, 22 beats
+      member-es     3m11s   the same in Spanish (voice ef_dora)
+      operator-en   3m02s   the Operator's desk, 13 beats
+      overview-en   2m41s   both sides in one, for a new Operator
+
+    The member film is embedded on `register.html`, shown only once an
+    invitation has been accepted and in whichever language the page is set
+    to, with `preload="none"` so nothing downloads until play is pressed. It
+    is deliberately NOT on `index.html`, which is public.
+
+    Voice: Kokoro-82M, Apache-2.0, `am_michael` for English and `ef_dora` for
+    Spanish, at speed 0.92. Piper is kept as a fallback for languages Kokoro
+    lacks. `video/script.json` holds the engine, the voices and the pacing.
+
+    FOUR GATES refuse to film something unwatchable, each added after a film
+    passed every check and a person watching said no: over 20s of still
+    screen, a zoom closer than 2.0x, a zoom that never comes back out, and a
+    verb perform() does not handle. The first three cost a run each to learn.
+
+    ONE TRAP WORTH KNOWING: dispatching several films at once silently kills
+    all but the newest. GitHub allows one PENDING run per concurrency group
+    and cancels the rest. Dispatch them one at a time.
 
 0a. **The independent reviewer is temporary and is meant to be deleted.** The
     owner said so on 2026-10-12: it is a second pair of eyes for the period
