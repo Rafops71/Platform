@@ -546,10 +546,7 @@ notifications left.
       member-en     3m36s   the member's side, 22 beats
       member-es     3m11s   the same in Spanish (voice ef_dora)
       operator-en   3m02s   the Operator's desk, 13 beats
-      overview-en   being filmed when this was written - its narration
-                    measures 2m42s, but a measured narration is not a film
-                    and this line must not say it is until check-film.js has
-                    passed the mp4
+      overview-en   2m41s   both sides in one, for a new Operator
 
     The member film is embedded on `register.html`, shown only once an
     invitation has been accepted and in whichever language the page is set
