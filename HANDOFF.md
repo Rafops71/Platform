@@ -738,11 +738,22 @@ live policy before anything was changed.
    `belgium` is shown as region `belgium`.
 
    So Browse withholds exactly one thing: the poster's identity. The
-   new-listing email discloses the same fields, so the two are consistent —
-   the question is whether this is the intended level, not whether they
-   disagree. **Needs a product decision**, not a technical one. Checklist item
-   20 is written to what the code does; if origin should really be coarsened,
-   that is new work and a new item.
+   new-listing email discloses the same fields, so the two are consistent.
+
+   **DECIDED by the owner on 2026-10-19: Browse stays exactly as it is.** The
+   question was put to him with a worked example of how a detailed listing
+   might narrow down who posted it. He rejected the premise, and the reasoning
+   is recorded because it overrules a guess: the market is saturated, the
+   members are global, and in hundreds of offers he has never once been able
+   to identify a counterparty from the detail. The example was invented by an
+   assistant with no sight of his deal flow, which is exactly the kind of
+   confident sentence this project's rules exist to stop. The detail is what
+   makes a listing worth reading, so it stays.
+
+   This item is CLOSED. Do not reopen it on a hunch about market size; reopen
+   it only if the owner says the membership has changed shape, or with real
+   data. Checklist item 20 is written to what the code does and needs no
+   change.
 
 3. ~~**Extract the duplicated E2E helpers.**~~ Done in `6d10a32` —
    `tests/e2e/helpers/session.js` now holds `signIn` / `openScreen` and six
