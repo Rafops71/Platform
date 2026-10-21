@@ -278,9 +278,22 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
   border-radius: var(--radius-block);
 }
 .list-row:last-child { margin-bottom: 0; }
-.list-row-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
-.list-row-title { font-weight: 600; }
-.list-row-meta { font-size: var(--text-base); color: var(--text-muted); }
+/* min-width: 0 and overflow-wrap are not tidying - they are the fix for a
+   real overflow the type change exposed on 2026-10-21.
+   The Operator's activity log prints a row's details as raw JSON on one line
+   (js/operator.js:1281), e.g.
+     {"invitation_id":"8f3c91a8-2b7e-4d1a-9c55-ee0718b2d4a1","email":"x@y.com"}
+   which is a single unbroken string. A flex item will not shrink below its
+   content's intrinsic width unless min-width is cleared, so the row pushed
+   the page sideways: 42px over on a 390px screen, caught by
+   tests/e2e/on-a-phone.spec.js:194. At 13px it happened to fit; it would
+   have broken at any size given a long enough email address or UUID, so the
+   larger type revealed this rather than caused it.
+   anywhere, not break-word: break-word will not split a long unspaced token
+   when the line is otherwise empty, which is exactly this case. */
+.list-row-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
+.list-row-title { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.list-row-meta { font-size: var(--text-base); color: var(--text-muted); min-width: 0; overflow-wrap: anywhere; }
 .empty-state { text-align: center; color: var(--text-muted); padding: 24px 8px; }
 
 /* ---- Tables (operator views) — stack to cards below 700px ---- */
