@@ -707,9 +707,47 @@ A copy of BACKUP_PASSPHRASE has to live somewhere outside this repository,
 because a repository secret cannot be read back out. Without it the backups
 are decoration.
 
-WAITING ON THE OWNER: the BACKUP_PASSPHRASE secret. Until it is added the
-workflow fails on purpose, loudly, at its first step. That red run IS the
-guard working.
+THE PASSPHRASE DESIGN IS BEING REPLACED, and the reason is worth keeping.
+The owner asked, reasonably, that the passphrase be remembered for him rather
+than written down somewhere. It cannot be: a session's container does not
+survive, so a promise to recall it is a promise to guess later. Worse, the
+design put a password inside the system it protects - if the database died and
+the only copy of the passphrase died with it, the backup is a locked box with
+the key inside.
+
+So the storage changes rather than the memory: the dumps go to a SECOND,
+PRIVATE repository instead of to an artifact on this public one. Access is
+then the owner's own GitHub login, which he already has and can recover by
+email, and there is no passphrase to keep at all. Agreed in principle on
+2026-10-22; waiting on him to create the private repository and a token that
+can write to it. The encryption step stays harmless either way, but the
+remembered-secret requirement goes.
+
+THIS REPOSITORY MUST STAY PUBLIC. Checked on 2026-10-22, because the obvious
+reaction to "member data must not be public" is to make the repository
+private, and that would take the platform offline. GitHub's own documentation:
+
+  "Any published GitHub Pages site will be automatically unpublished when a
+   repository is made private."
+
+The platform IS a Pages site. Publishing from a private repository needs a
+paid plan, and making the site itself private needs an organisation on
+Enterprise Cloud. Separately, Actions are free on public repositories but the
+Free plan allows 2,000 minutes a month on private ones - and this repo runs
+browser suites on every push. So: code public (no secret has ever been in it),
+member data in a separate private repository that has no Pages site and runs
+no tests, so neither limit applies to it.
+
+MOVING OFF GITHUB LATER, since it was asked: the site is static files and
+moves by copying them to another host and repointing the domain; Supabase does
+not move at all. What does not come along is the automation - backups, the
+email sender, the CI gate are written for GitHub Actions and would need
+rewriting. That is the part that gets forgotten when someone says "it is just
+files".
+
+WAITING ON THE OWNER: the private backup repository and its write token. Until
+backup storage is settled the workflow fails on purpose, loudly, at its first
+step. That red run IS the guard working.
 
 ## Still open
 
