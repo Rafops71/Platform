@@ -660,6 +660,57 @@ may expand beyond commodities and trade under its own name; no hyphens.
 Thirty .com names meeting all of that were verified free against the
 registry that day. Re-verify before buying - availability is a snapshot.
 
+## There were no backups at all (2026-10-22)
+
+HANDOFF carried "get a screenshot of the Supabase backup settings" as an item
+for the owner for weeks. It needed no screenshot. Read off the Management API
+on 2026-10-21:
+
+    organisation  Rafops71's Org
+    plan          free
+
+and from Supabase's documentation the same day: daily backups are for Pro,
+Team and Enterprise plans, and free-tier projects are told to export their own
+data and keep off-site copies. So there was nothing to photograph and nothing
+to switch on. The database had no backups of any kind.
+
+`.github/workflows/backup.yml` now takes one daily, encrypted, and restores it
+into a throwaway PostgreSQL in the same run to prove it works.
+`docs/BACKUPS.md` has the whole design and what it deliberately is not.
+
+THREE THINGS IN IT THAT ARE NOT OBVIOUS, each from something checked:
+
+  * The dump MUST be encrypted. This repository is public, and GitHub's
+    artifact documentation says "Read access to the repository is required" -
+    which on a public repository is everybody. An unencrypted dump would
+    publish every member's name, company, email, phone and every message they
+    have sent.
+  * The runner's pg_dump is 16 and the live server is 17.6; pg_dump refuses a
+    server newer than itself. Ubuntu 24.04 has no postgresql-client-17 at all
+    (checked), so it comes from PGDG. The throwaway database is postgres:17
+    for the same reason in reverse.
+  * It FAILS when a secret is missing rather than skipping. send-emails.yml
+    skips and goes green, which is why no member has ever received an email
+    and nobody noticed for weeks. A backup that quietly does not happen is
+    that same mistake with a worse ending.
+
+PROVEN, not assumed, on 2026-10-22 against a real PostgreSQL in this
+container: the assertions fail on an empty database ("holds no profiles at
+all") and pass on one with a member; and the full cycle - dump, encrypt,
+decrypt, restore through scripts/restore-backup.sh, verify - ran end to end,
+134 kB, with profile counts matching at 1 and 1. The restore script was also
+made to refuse a populated target and a wrong passphrase, both on purpose.
+
+WHAT IT STILL IS NOT: an archive (90 days is GitHub's maximum), off-site (it
+sits with the code at the same provider), or readable without the passphrase.
+A copy of BACKUP_PASSPHRASE has to live somewhere outside this repository,
+because a repository secret cannot be read back out. Without it the backups
+are decoration.
+
+WAITING ON THE OWNER: the BACKUP_PASSPHRASE secret. Until it is added the
+workflow fails on purpose, loudly, at its first step. That red run IS the
+guard working.
+
 ## Still open
 
 -2. **PARKED, by the owner, on 2026-10-19: the sender's id on a forwarded

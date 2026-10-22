@@ -1,0 +1,224 @@
+name: Database backup
+
+# WHY THIS EXISTS
+#
+# Read off the Supabase Management API on 2026-10-21, not assumed:
+#
+#   organisation  Rafops71's Org
+#   plan          free
+#
+# and from Supabase's own documentation the same day:
+#
+#   "We automatically back up all Pro, Team, and Enterprise Plan projects on
+#    a daily basis."
+#   "We recommend that free tier plan projects regularly export their data
+#    using the Supabase CLI db dump command and maintain off-site backups."
+#
+# So this project has NO backups at all. Not a short retention window -
+# nothing. Losing the database loses every member, listing, message and the
+# audit log, and there is no undo to go looking for. HANDOFF.md had carried
+# "get a screenshot of the Supabase backup settings" as an item for the owner
+# for weeks; the answer turned out to need no screenshot and no setting.
+#
+# WHY THE DUMP IS ENCRYPTED, AND WHY THAT IS NOT OPTIONAL
+#
+# Rafops71/Platform is a PUBLIC repository - checked, not assumed. GitHub's
+# documentation on downloading artifacts says "Read access to the repository
+# is required", and on a public repository everybody has read access. An
+# unencrypted dump uploaded here would therefore publish every member's name,
+# company, email, phone and country, plus every message they have ever sent.
+# That is the exact opposite of what this platform is for.
+#
+# So the dump is encrypted before it is ever written anywhere a human could
+# reach it, and the run proves it can be decrypted again in the same job.
+#
+# WHY THE RUN RESTORES ITS OWN BACKUP
+#
+# A backup nobody has restored is a hope, not a backup. This workflow dumps,
+# decrypts, restores into a throwaway PostgreSQL alongside it, and then
+# asserts the restored copy actually holds the platform - the tables that
+# matter, and a non-zero number of profiles. If the restore fails or comes
+# back empty the job goes red, which is the only way anyone finds out while
+# it still does not matter.
+#
+# WHY IT FAILS INSTEAD OF SKIPPING WHEN A SECRET IS MISSING
+#
+# .github/workflows/send-emails.yml skips its send step when its secrets are
+# absent, goes green, and nobody notices. It has now been skipping for weeks
+# and no member has ever received an email. A backup that quietly does not
+# happen is the same mistake with a worse ending, so this one goes red.
+
+on:
+  schedule:
+    # 03:17 UTC. Off the hour on purpose: a scheduled job asking for :00 waits
+    # behind everybody else's, and GitHub drops rather than queues when busy.
+    - cron: '17 3 * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: database-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: Dump, encrypt, and prove it restores
+    runs-on: ubuntu-latest
+
+    services:
+      # Where the backup is restored to prove it works. 17 to match the live
+      # server (17.6, read from the Management API): pg_restore will not read
+      # a dump taken from a NEWER server than itself, so the throwaway has to
+      # be at least the live version.
+      verify:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: verify-only-never-leaves-this-runner
+          POSTGRES_DB: verify
+        ports: ['5433:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Refuse to run half-configured
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          missing=''
+          [ -z "$DB_URL" ]     && missing="$missing SUPABASE_DB_URL"
+          [ -z "$PASSPHRASE" ] && missing="$missing BACKUP_PASSPHRASE"
+          if [ -n "$missing" ]; then
+            echo "::error::No backup was taken. Missing repository secret(s):$missing"
+            echo "Add them at Settings > Secrets and variables > Actions."
+            echo "BACKUP_PASSPHRASE is what the dump is encrypted with. Keep a"
+            echo "copy somewhere OUTSIDE this repository: without it the"
+            echo "backups cannot be read, by anybody, ever."
+            exit 1
+          fi
+          echo "Both secrets present."
+
+      - name: Install the PostgreSQL 17 client
+        # The runner ships 16, and pg_dump refuses a server newer than itself
+        # ("server version 17.6; pg_dump version 16.x"). Verified locally on
+        # 2026-10-22: the Ubuntu 24.04 repositories have no postgresql-client-17
+        # at all, so it comes from PGDG.
+        run: |
+          curl -fsS https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+            | sudo gpg --dearmor -o /usr/share/keyrings/pgdg.gpg
+          echo "deb [signed-by=/usr/share/keyrings/pgdg.gpg] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+          /usr/lib/postgresql/17/bin/pg_dump --version
+
+      - name: Dump the database
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -o pipefail
+          # Custom format, not plain SQL: it restores with pg_restore, can be
+          # restored selectively, and compresses as it goes.
+          # --no-owner/--no-privileges because the roles on a restored copy are
+          # not Supabase's, and a restore that stops on a missing role is a
+          # restore that does not happen.
+          /usr/lib/postgresql/17/bin/pg_dump \
+            --format=custom --compress=9 \
+            --no-owner --no-privileges \
+            --schema=public --schema=auth \
+            --file=backup.dump \
+            "$DB_URL"
+          ls -l backup.dump
+          echo "DUMP_BYTES=$(stat -c%s backup.dump)" >> "$GITHUB_ENV"
+
+      - name: Refuse a suspiciously small dump
+        # A dump that connected, found nothing, and wrote a valid-but-empty
+        # file is the failure that looks most like success.
+        run: |
+          if [ "${DUMP_BYTES:-0}" -lt 20000 ]; then
+            echo "::error::The dump is only ${DUMP_BYTES} bytes. That is too small to be this database; treating it as a failure rather than uploading it."
+            exit 1
+          fi
+          echo "Dump is ${DUMP_BYTES} bytes."
+
+      - name: Encrypt it
+        env:
+          PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          openssl enc -aes-256-cbc -pbkdf2 -iter 600000 -salt \
+            -pass env:PASSPHRASE \
+            -in backup.dump -out backup.dump.enc
+          rm -f backup.dump
+          ls -l backup.dump.enc
+          # Proof it is not plaintext: a custom-format dump begins "PGDMP".
+          if head -c 5 backup.dump.enc | grep -q PGDMP; then
+            echo "::error::The uploaded file is still readable as a dump. Refusing to continue."
+            exit 1
+          fi
+          echo "Encrypted, and the header is no longer a PostgreSQL dump."
+
+      - name: Decrypt it again, and restore it, and check what came back
+        env:
+          PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+          PGPASSWORD: verify-only-never-leaves-this-runner
+        run: |
+          set -o pipefail
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 \
+            -pass env:PASSPHRASE \
+            -in backup.dump.enc -out restored.dump
+          head -c 5 restored.dump | grep -q PGDMP \
+            || { echo "::error::Decrypted file is not a PostgreSQL dump."; exit 1; }
+
+          # Roles the dump references but a bare PostgreSQL has never heard of.
+          # Without these the restore reports errors for every GRANT it meets.
+          for r in anon authenticated service_role supabase_admin authenticator; do
+            /usr/lib/postgresql/17/bin/psql -h localhost -p 5433 -U postgres -d verify \
+              -c "do \$\$ begin create role $r nologin; exception when duplicate_object then null; end \$\$;" -q
+          done
+
+          # --no-owner/--no-privileges again, and NOT --exit-on-error: a dump of
+          # a Supabase database names extensions and roles a plain server does
+          # not have, and those are expected noise. What decides this step is
+          # the assertions below, on the data that actually came back.
+          /usr/lib/postgresql/17/bin/pg_restore \
+            --no-owner --no-privileges --dbname=verify \
+            -h localhost -p 5433 -U postgres \
+            restored.dump 2>restore.log || true
+          echo "--- last 15 lines of restore output ---"
+          tail -15 restore.log || true
+          echo "---------------------------------------"
+
+          /usr/lib/postgresql/17/bin/psql -h localhost -p 5433 -U postgres -d verify \
+            -v ON_ERROR_STOP=1 -f scripts/verify-restore.sql
+          rm -f restored.dump
+
+      - name: Keep it
+        uses: actions/upload-artifact@v4
+        with:
+          name: database-backup-${{ github.run_number }}
+          path: backup.dump.enc
+          # 90 days is the maximum GitHub allows. Say it plainly rather than
+          # letting anyone believe this is an archive: a backup older than
+          # three months does not exist here, and nor does one taken before
+          # this workflow did.
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Say what happened
+        run: |
+          {
+            echo "### Database backup"
+            echo ""
+            echo "- Encrypted dump: \`backup.dump.enc\` ($(stat -c%s backup.dump.enc) bytes)"
+            echo "- Restored into a throwaway PostgreSQL 17 and checked, in this run"
+            echo "- Kept for 90 days as artifact \`database-backup-${{ github.run_number }}\`"
+            echo ""
+            echo "To read it you need \`BACKUP_PASSPHRASE\`. It is not in this"
+            echo "repository and cannot be recovered from it."
+            echo ""
+            echo "Restoring: \`scripts/restore-backup.sh\` — read its header first."
+          } >> "$GITHUB_STEP_SUMMARY"
