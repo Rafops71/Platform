@@ -359,9 +359,11 @@ select public.purge_orphaned_activity();
 
 select case when count(*) = 0 then 'PASS' else 'FAIL got ' || count(*) end
   as "T22 an undeliverable address is cleared even about a live listing"
-from public.email_outbox where subject = 'Live listing, dead address'
-from public.activity_log
-where action = 'activity_log_purged'
-order by created_at desc limit 1;
+from public.email_outbox where subject = 'Live listing, dead address';
+-- This assertion carried a stray copy of T21's last three lines from
+-- 2026-10-13 until 2026-10-25 - a second FROM clause - so it errored, produced
+-- no row, and never ran once while every run reported green. Found when
+-- scripts/run-sql-tests.js learned to compare declared assertions against
+-- reported ones.
 
 reset test.uid;

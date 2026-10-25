@@ -786,6 +786,25 @@ watched: switch, then re-run the deploy job of the latest green main run
 surviving a re-run), then confirm `/REVISION` on the live site shows that
 commit.
 
+## The morning report (built 2026-10-25)
+
+`.github/workflows/morning-report.yml` runs `scripts/morning-report.js` at
+05:43 UTC and files a GitHub issue that @mentions the owner, so GitHub emails
+it. No AI: it reads GitHub's records and the live site, costs no Claude usage,
+and says the same thing about the same night every time. It reports commits to
+main, every workflow run, the latest CI on main job by job with the
+checklist's own "N of 61 functions proven" line, which revision the live site
+serves (/REVISION), open pull requests, and - the one that matters most -
+scheduled jobs that ran GREEN WHILE SKIPPING their real work.
+
+Its first drafts lied twice, both caught by running it on real data before
+trusting it: it called a pull request "all checks green" when no checks had
+reported, then again when only the reviewer had. A pull request is now green
+only once CI has FINISHED on its exact commit.
+
+NOT YET VERIFIED: that the @mention reaches the owner's inbox. That depends on
+his GitHub notification settings; confirm on the first morning.
+
 ## Still open
 
 -2. **PARKED, by the owner, on 2026-10-19: the sender's id on a forwarded
