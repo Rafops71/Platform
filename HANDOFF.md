@@ -660,6 +660,132 @@ may expand beyond commodities and trade under its own name; no hyphens.
 Thirty .com names meeting all of that were verified free against the
 registry that day. Re-verify before buying - availability is a snapshot.
 
+## There were no backups at all (2026-10-22)
+
+HANDOFF carried "get a screenshot of the Supabase backup settings" as an item
+for the owner for weeks. It needed no screenshot. Read off the Management API
+on 2026-10-21:
+
+    organisation  Rafops71's Org
+    plan          free
+
+and from Supabase's documentation the same day: daily backups are for Pro,
+Team and Enterprise plans, and free-tier projects are told to export their own
+data and keep off-site copies. So there was nothing to photograph and nothing
+to switch on. The database had no backups of any kind.
+
+`docs/drafts/backup-workflow.yml` (INACTIVE since 2026-10-25, pending the private-repository rewrite) takes one daily, encrypted, and restores it
+into a throwaway PostgreSQL in the same run to prove it works.
+`docs/BACKUPS.md` has the whole design and what it deliberately is not.
+
+THREE THINGS IN IT THAT ARE NOT OBVIOUS, each from something checked:
+
+  * The dump MUST be encrypted. This repository is public, and GitHub's
+    artifact documentation says "Read access to the repository is required" -
+    which on a public repository is everybody. An unencrypted dump would
+    publish every member's name, company, email, phone and every message they
+    have sent.
+  * The runner's pg_dump is 16 and the live server is 17.6; pg_dump refuses a
+    server newer than itself. Ubuntu 24.04 has no postgresql-client-17 at all
+    (checked), so it comes from PGDG. The throwaway database is postgres:17
+    for the same reason in reverse.
+  * It FAILS when a secret is missing rather than skipping. send-emails.yml
+    skips and goes green, which is why no member has ever received an email
+    and nobody noticed for weeks. A backup that quietly does not happen is
+    that same mistake with a worse ending.
+
+PROVEN, not assumed, on 2026-10-22 against a real PostgreSQL in this
+container: the assertions fail on an empty database ("holds no profiles at
+all") and pass on one with a member; and the full cycle - dump, encrypt,
+decrypt, restore through scripts/restore-backup.sh, verify - ran end to end,
+134 kB, with profile counts matching at 1 and 1. The restore script was also
+made to refuse a populated target and a wrong passphrase, both on purpose.
+
+WHAT IT STILL IS NOT: an archive (90 days is GitHub's maximum), off-site (it
+sits with the code at the same provider), or readable without the passphrase.
+A copy of BACKUP_PASSPHRASE has to live somewhere outside this repository,
+because a repository secret cannot be read back out. Without it the backups
+are decoration.
+
+THE PASSPHRASE DESIGN IS BEING REPLACED, and the reason is worth keeping.
+The owner asked, reasonably, that the passphrase be remembered for him rather
+than written down somewhere. It cannot be: a session's container does not
+survive, so a promise to recall it is a promise to guess later. Worse, the
+design put a password inside the system it protects - if the database died and
+the only copy of the passphrase died with it, the backup is a locked box with
+the key inside.
+
+So the storage changes rather than the memory: the dumps go to a SECOND,
+PRIVATE repository instead of to an artifact on this public one. Access is
+then the owner's own GitHub login, which he already has and can recover by
+email, and there is no passphrase to keep at all. Agreed in principle on
+2026-10-22; waiting on him to create the private repository and a token that
+can write to it. The encryption step stays harmless either way, but the
+remembered-secret requirement goes.
+
+THIS REPOSITORY MUST STAY PUBLIC. Checked on 2026-10-22, because the obvious
+reaction to "member data must not be public" is to make the repository
+private, and that would take the platform offline. GitHub's own documentation:
+
+  "Any published GitHub Pages site will be automatically unpublished when a
+   repository is made private."
+
+The platform IS a Pages site. Publishing from a private repository needs a
+paid plan, and making the site itself private needs an organisation on
+Enterprise Cloud. Separately, Actions are free on public repositories but the
+Free plan allows 2,000 minutes a month on private ones - and this repo runs
+browser suites on every push. So: code public (no secret has ever been in it),
+member data in a separate private repository that has no Pages site and runs
+no tests, so neither limit applies to it.
+
+MOVING OFF GITHUB LATER, since it was asked: the site is static files and
+moves by copying them to another host and repointing the domain; Supabase does
+not move at all. What does not come along is the automation - backups, the
+email sender, the CI gate are written for GitHub Actions and would need
+rewriting. That is the part that gets forgotten when someone says "it is just
+files".
+
+WAITING ON THE OWNER: the private backup repository and its write token. Until
+backup storage is settled the workflow fails on purpose, loudly, at its first
+step. That red run IS the guard working.
+
+## Publishing is behind the gate (built 2026-10-25, switch pending)
+
+Until now GitHub Pages published `main` straight from the branch, on its own.
+Proven from GitHub's check runs on `556e185`: `deploy` 14:42:43, `Function
+checklist` 14:55:03. Members had each new version twelve minutes before the
+gate decided whether it worked, and a red run changed nothing they saw.
+
+Now `ci.yml` has a `deploy` job that `needs` database, checklist, stress,
+Safari and package. GitHub's documented rule - "If a job fails or is skipped,
+all jobs that need it are skipped" - makes it the gate, as long as its `if:`
+never uses always() or another status function. `npm run check:deploy`
+(`scripts/check-deploy-gate.js`) fails the build if that is ever weakened, if a
+required check is dropped from `needs`, if the main-only limit goes, or if any
+other workflow gains a publish step. Each of those four was tried on a scratch
+copy and refused.
+
+`scripts/assemble-site.sh` decides what is published and refuses an
+incomplete site. The old packaging copied css/, js/ and the pages and NOT
+films/, which register.html loads at runtime - deployed as it was, it would
+have removed the registration film and nothing would have failed. Proven: an
+intact copy passes; a missing stylesheet and a missing film are both refused.
+
+DELIBERATE CHANGE: branch publishing ran the repo through Jekyll, so every
+Markdown file was public on the site - /HANDOFF and /docs/CHECKLIST answered
+200. The deployed site is now the app only. The documents are unchanged in the
+repository.
+
+TO TAKE EFFECT the owner sets Settings > Pages > Source > "GitHub Actions".
+Until then the old branch publishing carries on. What the deploy job does on
+main before the switch is NOT verified - it is expected to fail because Pages
+is not set to accept a workflow deployment, but no documentation found says so. GitHub's documentation does not
+say what the live site does at the moment of the switch, so it is done while
+watched: switch, then re-run the deploy job of the latest green main run
+(it rebuilds from that run's own commit, so it does not depend on artifacts
+surviving a re-run), then confirm `/REVISION` on the live site shows that
+commit.
+
 ## Still open
 
 -2. **PARKED, by the owner, on 2026-10-19: the sender's id on a forwarded
