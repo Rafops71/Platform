@@ -68,6 +68,8 @@ const SETUP = [
   'sql/032_terms_3_0.sql',
   'sql/033_listing_statements.sql',
   'sql/034_signature_required_to_act.sql',
+  'sql/035_deal_files.sql',
+  'sql/036_terms_3_1.sql',
   'sql/seed_commodities.sql',
 ];
 

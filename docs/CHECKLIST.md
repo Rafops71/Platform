@@ -97,6 +97,9 @@ the suite: this platform's product is controlled disclosure, so proving a thing
 | 67 | An offer more than two steps from the principal is never accepted | MUST NOT |
 | 68 | Browse shows the poster's role and documents line, never the mandate or the chain | MUST NOT |
 | 69 | The truth tick is stamped with the server's time, and changing a listing asks for it again | does |
+| 70 | A deal file opens by itself when an Operator first forwards a negotiation, one per pair | does |
+| 71 | Members never see or change deal files or their outcomes | MUST NOT |
+| 72 | A deal file or its history is never deleted or rewritten; every change keeps the old answer, who and when | MUST NOT |
 
 ## Open questions on this list
 

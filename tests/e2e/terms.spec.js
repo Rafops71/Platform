@@ -84,7 +84,7 @@ test.describe.serial('Terms & Conditions', () => {
     expect(body).toContain('It is not a public marketplace');
     expect(body).toContain('may be suspended or revoked at any time without notice');
     expect(body).toContain('may act for both sides of the same transaction');
-    expect(body).toContain('agreed in writing between the Operators and each party before the introduction is made');
+    expect(body).toContain('agreed in writing between the Operators and the paying party during the negotiation, before the introduction is made');
     expect(body).toContain('a principal may send confidential documents directly to the introduced counterparty');
     expect(body).toContain('twenty-four (24) months from the date the introduction is made');
     expect(body).toContain('governed by and construed in accordance with the law of England and Wales');
@@ -172,7 +172,7 @@ test.describe.serial('Terms & Conditions', () => {
     expect(body).toContain('No es un mercado público');
     expect(body).toContain('podrá suspenderse o revocarse en cualquier momento sin previo aviso');
     expect(body).toContain('pueden actuar para ambas partes de una misma operación');
-    expect(body).toContain('se acuerdan por escrito entre los Operadores y cada parte antes de realizar la presentación');
+    expect(body).toContain('se acuerdan por escrito entre los Operadores y la parte que la paga durante la negociación, antes de realizar la presentación');
     expect(body).toContain('veinticuatro (24) meses');
     expect(body).toContain('conforme al Derecho de Inglaterra y Gales');
     expect(body).toContain('jurisdicción exclusiva de los Tribunales del Centro Financiero Internacional de Dubái');

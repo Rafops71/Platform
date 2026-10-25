@@ -35,6 +35,7 @@
     <button data-screen="doc-requests">Document Requests</button>
     <button data-screen="mailbox">Mailbox</button>
     <button data-screen="matches">Matches</button>
+    <button data-screen="deals">Deals</button>
     <button data-screen="analytics">Analytics</button>
     <button data-screen="activity">Activity Log</button>
   </div>
@@ -211,6 +212,16 @@
     <div class="card">
       <h2 class="mt-0">Match Suggestions</h2>
       <div id="matches-list" class="stack"><p class="empty-state">Loading…</p></div>
+    </div>
+  </section>
+
+  <!-- DEALS (sql/035): one file per negotiation, opened by itself on the first
+       forward. Operators only. -->
+  <section id="screen-deals" class="screen">
+    <div class="card">
+      <h2 class="mt-0">Deals</h2>
+      <p class="text-muted">A file opens by itself the first time you forward a member's message about a listing. Every change you make is kept, with the old answer, who and when.</p>
+      <div id="deals-list" class="stack"><p class="empty-state">Loading…</p></div>
     </div>
   </section>
 
