@@ -77,6 +77,36 @@ function readAssertion(res) {
   return { name, value, passed: value.startsWith('PASS') };
 }
 
+/** Every assertion a suite file declares, by its `as "T…"` label.
+ *
+ *  WHY THIS EXISTS. An assertion that raises an error produces no row, and
+ *  the loop below skips errors on purpose - most of them are the expected
+ *  rejections the suite exists to provoke. So a typo in an assertion did not
+ *  fail; it vanished, and the run still ended "All assertions passed."
+ *  Found on 2026-10-25: sql/tests/14 T22 had carried a stray second FROM
+ *  clause since 2026-10-13 and had never once run, while every run was green.
+ *  Comparing what each file declares against what actually reported is the
+ *  only way to tell "passed" from "never ran".
+ *
+ *  Labels are cut to 63 bytes because PostgreSQL truncates identifiers to
+ *  NAMEDATALEN-1, so a long label comes back shorter than it is written - cut
+ *  on a character boundary, as PostgreSQL does. Line comments are removed
+ *  first so an example label in a comment is not mistaken for a test. */
+function declaredAssertions(sqlText) {
+  const code = sqlText.replace(/--[^\n]*/g, '');
+  const out = [];
+  for (const m of code.matchAll(/\bas\s+"(T\d+[a-z]?\b[^"]*)"/g)) out.push(truncateIdent(m[1]));
+  return out;
+}
+
+function truncateIdent(label) {
+  const buf = Buffer.from(label, 'utf8');
+  if (buf.length <= 63) return label;
+  let end = 63;
+  while (end > 0 && (buf[end] & 0xc0) === 0x80) end--;   // never split a character
+  return buf.subarray(0, end).toString('utf8');
+}
+
 async function main() {
   // The harness picks the port, starts the server and applies the schema, the
   // migrations and the seed data. It is shared with scripts/stress-test.js so
@@ -86,6 +116,7 @@ async function main() {
   const client = pg.client;
 
   let failed = 0;
+  let neverRan = 0;
   try {
     // One statement at a time, in autocommit, exactly as psql would run it.
     // The suite deliberately performs statements that must be rejected — a
@@ -94,7 +125,10 @@ async function main() {
     // all of it in one transaction, where the first expected error aborted
     // every assertion after it.
     for (const suite of SUITES) {
-      const suiteSql = translateMetaCommands(fs.readFileSync(path.join(ROOT, suite), 'utf8'));
+      const rawSql = fs.readFileSync(path.join(ROOT, suite), 'utf8');
+      const suiteSql = translateMetaCommands(rawSql);
+      const declared = declaredAssertions(rawSql);
+      const reported = new Set();
 
       for (const statement of splitStatements(suiteSql)) {
         let res;
@@ -118,19 +152,31 @@ async function main() {
         if (item.heading !== undefined) {
           console.log(item.heading ? `\n${item.heading}` : '');
         } else if (item.passed) {
+          reported.add(item.name);
           console.log(`  PASS  ${item.name}`);
         } else {
+          reported.add(item.name);
           failed++;
           console.log(`  FAIL  ${item.name}  ->  ${item.value}`);
         }
+      }
+
+      // Anything this file declared that never reported is a failure, not a
+      // silence. Its statement errored before it could produce a row.
+      for (const name of declared) {
+        if (reported.has(name)) continue;
+        neverRan++;
+        console.log(`  FAIL  ${name}  ->  NEVER RAN: this assertion errored and produced no result (${suite})`);
       }
     }
   } finally {
     await pg.stop();
   }
 
-  console.log(failed === 0 ? '\nAll assertions passed.' : `\n${failed} assertion(s) FAILED.`);
-  process.exit(failed === 0 ? 0 : 1);
+  const total = failed + neverRan;
+  if (total === 0) console.log('\nAll assertions passed.');
+  else console.log(`\n${failed} assertion(s) FAILED, ${neverRan} NEVER RAN.`);
+  process.exit(total === 0 ? 0 : 1);
 }
 
 main().catch(err => {

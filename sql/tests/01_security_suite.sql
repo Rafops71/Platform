@@ -63,7 +63,13 @@ reset role; reset test.uid;
 \set QUIET off
 
 select case when count(*)=2 then 'PASS' else 'FAIL' end as "T7 Item14 participants can create listings" from public.listings;
-select string_agg(reference_number,', ' order by reference_number) as "T8 reference number format" from public.listings;
+-- Was a bare string_agg printing the numbers and asserting nothing, while
+-- carrying a test's name. Now it checks the format it was named for.
+select case when count(*) > 0
+             and bool_and(reference_number ~ '^(SELL|BUY)-[0-9]{2}-[0-9]{3,}$')
+            then 'PASS'
+            else 'FAIL — ' || coalesce(string_agg(reference_number, ', '), 'no listings') end
+  as "T8 reference number format" from public.listings;
 
 set role authenticated; set test.uid='33333333-3333-3333-3333-333333333333';
 select case when count(*)=1 then 'PASS' else 'FAIL (saw '||count(*)||')' end
@@ -218,9 +224,25 @@ insert into public.invitations (token, email, created_by, expires_at)
 \set QUIET off
 
 \echo '=========== INVITATION SECURITY ==========='
+-- Written to see zero rows. A later lockdown removed anon's SELECT on the
+-- table outright, so the query began to raise "permission denied" instead -
+-- a stronger refusal, but an assertion that errors produces no row, and this
+-- one silently stopped running. It now passes on either form of refusal, and
+-- fails only if anon actually reads a row.
+reset role;
+create temp table if not exists t01_result (name text, ok boolean, note text);
+grant all on t01_result to anon;
 set role anon;
-select case when count(*)=0 then 'PASS' else 'FAIL — anon read '||count(*)||' rows' end
-  as "T18 anon CANNOT list the invitations table" from public.invitations;
+do $$
+declare v_n integer;
+begin
+  select count(*) into v_n from public.invitations;
+  insert into t01_result values ('T18', v_n = 0, 'anon saw ' || v_n || ' rows');
+exception
+  when insufficient_privilege then insert into t01_result values ('T18', true, 'refused outright');
+end $$;
+select case when ok then 'PASS' else 'FAIL — ' || note end
+  as "T18 anon CANNOT list the invitations table" from t01_result where name = 'T18';
 select case when count(*)=1 then 'PASS' else 'FAIL' end
   as "T19 anon CAN validate one exact token via RPC" from public.get_invitation_by_token('valid-token-abc');
 select case when count(*)=0 then 'PASS' else 'FAIL' end

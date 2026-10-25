@@ -86,6 +86,14 @@ something fluent said it.
   quarantine one to get green.
 - When something many tests depend on changes, find every dependant in one
   search before pushing, not one failed run at a time.
+- **A test that never ran is not a pass.** `npm run test:sql` compares the
+  assertions each file declares (`as "T..."`) with those that reported, and
+  fails on any that did not. Until 2026-10-25 an assertion that errored simply
+  vanished: three had (T8 and T18 in 01, T22 in 14), one of them a security
+  prohibition, while every run said "All assertions passed".
+- **Work reaches main through a pull request.** CI runs on the pull request
+  before anything merges, and the second-opinion reviewer only runs there. A
+  direct push to main skips both.
 - When a failure turns out to be a real bug: fix it, and say plainly that the
   checklist caught it.
 
