@@ -102,6 +102,20 @@ jobs:
       - name: Run sql/tests
         run: npm run test:sql
 
+  purpose:
+    # The supervision plan's fifth step: a pull request that cannot say which
+    # checklist item or recorded decision it serves does not merge. Pull
+    # requests only - a push to main has no description to read.
+    name: Says what it serves
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: The description names a checklist item or a decision
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: node scripts/check-pr-purpose.js
+
   stress:
     name: Volume and concurrency
     runs-on: ubuntu-latest
