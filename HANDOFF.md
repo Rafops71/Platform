@@ -674,7 +674,7 @@ Team and Enterprise plans, and free-tier projects are told to export their own
 data and keep off-site copies. So there was nothing to photograph and nothing
 to switch on. The database had no backups of any kind.
 
-`.github/workflows/backup.yml` now takes one daily, encrypted, and restores it
+`docs/drafts/backup-workflow.yml` (INACTIVE since 2026-10-25, pending the private-repository rewrite) takes one daily, encrypted, and restores it
 into a throwaway PostgreSQL in the same run to prove it works.
 `docs/BACKUPS.md` has the whole design and what it deliberately is not.
 

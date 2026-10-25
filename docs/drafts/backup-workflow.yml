@@ -1,3 +1,14 @@
+# DRAFT - NOT ACTIVE. Moved out of .github/workflows/ on 2026-10-25.
+#
+# This is the first backup design: an encrypted artifact on this PUBLIC
+# repository, which needs a passphrase the owner would have to keep. He asked
+# for it to be remembered for him instead, which a session cannot do, so the
+# storage is being changed to a second, PRIVATE repository (see HANDOFF, "There
+# were no backups at all"). Left as a workflow, it would run every night at
+# 03:17 and fail on purpose for want of BACKUP_PASSPHRASE - turning every
+# morning red for a reason nobody needs telling twice, which is exactly how a
+# real red gets ignored. It returns to .github/workflows/ once rewritten.
+#
 name: Database backup
 
 # WHY THIS EXISTS

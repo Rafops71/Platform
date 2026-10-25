@@ -23,7 +23,7 @@ and no setting, because there was nothing there to photograph.
 
 ## What runs now
 
-`.github/workflows/backup.yml`, daily at 03:17 UTC and on demand.
+**Not running yet.** The workflow is parked at `docs/drafts/backup-workflow.yml` until its storage moves to a private repository; as written it would fail every night for want of a passphrase. Once rewritten it runs daily at 03:17 UTC and on demand.
 
 1. Refuses to run if `SUPABASE_DB_URL` or `BACKUP_PASSPHRASE` is missing.
 2. Dumps `public` and `auth` with `pg_dump --format=custom`, PostgreSQL 17
