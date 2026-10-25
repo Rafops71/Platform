@@ -17,11 +17,14 @@ const path = require('path');
 
 const body = process.env.PR_BODY || '';
 const checklist = fs.readFileSync(path.join(__dirname, '..', 'docs', 'CHECKLIST.md'), 'utf8');
-const known = new Set([...checklist.matchAll(/^\|\s*(\d{2})\s*\|/gm)].map((m) => m[1]));
+const known = new Set([...checklist.matchAll(/^\|\s*(\d{2,3})\s*\|/gm)].map((m) => m[1]));
 
-const items = [...body.matchAll(/\bItems?\s?(\d{2})\b/gi)].map((m) => m[1]);
+const items = [...body.matchAll(/\bItems?\s?(\d{1,3})\b/gi)].map((m) => m[1].padStart(2, '0'));
 const unknown = items.filter((n) => !known.has(n));
-const decisions = /docs\/AGREED-[\w.-]+\.md/.test(body);
+// The decisions file has to exist, not merely be named (raised by the
+// second-opinion reviewer on PR #20: "docs/AGREED-FAKE.md" would have passed).
+const decisions = [...body.matchAll(/docs\/AGREED-[\w.-]+\.md/g)]
+  .some((m) => fs.existsSync(path.join(__dirname, '..', m[0])));
 
 if (unknown.length) {
   console.error(`FAIL - the description names checklist item(s) that do not exist: ${[...new Set(unknown)].join(', ')}`);
