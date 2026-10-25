@@ -103,6 +103,7 @@ from public.email_outbox where to_email='edward@example.com';
 \set QUIET on
 update public.profiles set status='approved' where email='sofia@example.com';
 update public.profiles set status='approved' where email='edward@example.com';
+select public.test_sign_approved();
 update public.profiles set status='rejected' where email='noprefs@example.com';
 \set QUIET off
 

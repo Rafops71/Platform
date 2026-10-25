@@ -64,6 +64,7 @@ where user_id in ('b0b0b0b0-0000-4000-8000-00000000001a'::uuid,
 update public.profiles set status = 'approved'
  where user_id in ('b0b0b0b0-0000-4000-8000-00000000001a'::uuid,
                    'b0b0b0b0-0000-4000-8000-00000000001b'::uuid);
+select public.test_sign_approved();
 
 -- Something to look at, so "nothing visible" cannot pass for the wrong reason.
 insert into public.listings
@@ -100,6 +101,7 @@ select case when (select count(*) from public.get_public_listings()) > 0
 reset "test.uid";
 update public.profiles set status = 'suspended'
  where user_id = 'b0b0b0b0-0000-4000-8000-00000000001b'::uuid;
+select public.test_sign_approved();
 set "test.uid" = 'b0b0b0b0-0000-4000-8000-00000000001b';
 
 do $$

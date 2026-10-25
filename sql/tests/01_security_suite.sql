@@ -18,6 +18,7 @@ insert into auth.users (id, email, raw_user_meta_data) values
 ('44444444-4444-4444-4444-444444444444','mallory@example.com','{"first_name":"Mal","last_name":"M","country":"XX","phone":"+0"}');
 update public.profiles set role='operator', status='approved' where email='operator@example.com';
 update public.profiles set status='approved' where email in ('alice@example.com','bob@example.com');
+select public.test_sign_approved();
 \set QUIET off
 
 \echo ''
@@ -43,6 +44,7 @@ from public.profiles where user_id='22222222-2222-2222-2222-222222222222';
 
 set role authenticated; set test.uid='11111111-1111-1111-1111-111111111111';
 update public.profiles set status='approved' where email='mallory@example.com';
+select public.test_sign_approved();
 reset role; reset test.uid;
 select case when status='approved' then 'PASS' else 'FAIL' end as "T6 Item04 operator CAN approve a participant"
 from public.profiles where email='mallory@example.com';

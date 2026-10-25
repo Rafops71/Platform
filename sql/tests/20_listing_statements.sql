@@ -17,6 +17,7 @@ values ('c2c2c2c2-0001-0001-0001-000000000001'::uuid, 'stmt-member@example.inval
   jsonb_build_object('first_name','Stella','last_name','Statement','phone','+3200000201',
                      'country','Chile','language','en'));
 update public.profiles set status = 'approved' where email = 'stmt-member@example.invalid';
+select public.test_sign_approved();
 
 create temp table t20 (label text, msg text);
 grant all on t20 to authenticated;

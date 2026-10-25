@@ -37,7 +37,7 @@
 --      form supplied one, and an unsigned row otherwise - which the gate then
 --      makes them sign at first sign-in.
 --
--- NOT DONE HERE, and said plainly: the gate is enforced by the application at
+-- CLOSED BY sql/034 (2026-10-25), kept here as written. NOT DONE HERE, and said plainly: the gate is enforced by the application at
 -- sign-in, not by the posting and messaging policies themselves. A member who
 -- bypasses the interface could still post before re-signing. Closing that
 -- means changing is_approved_participant(), which every RLS policy for

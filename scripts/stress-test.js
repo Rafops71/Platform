@@ -138,6 +138,17 @@ async function main() {
     `, [MEMBERS]));
 
     await db.query(`update public.profiles set status = 'approved' where email like 'stress-member-%'`);
+    // Since sql/034 an unsigned member can neither post, message nor browse.
+    // These members signed the newest Terms, as every real member must.
+    await db.query(`
+      insert into public.terms_acceptances (profile_id, version, language, signed_name, signed_capacity, terms_sha256)
+      select p.id, v.version, v.language, 'Stress Signer', 'individual', v.sha256
+        from public.profiles p
+        cross join lateral (select version, language, sha256 from public.terms_versions
+                             order by published_at desc limit 1) v
+       where p.email like 'stress-member-%'
+      on conflict (profile_id, version) do update set signed_name = excluded.signed_name
+       where public.terms_acceptances.signed_name is null`);
 
     const { rows: memberRows } = await db.query(
       `select id, user_id from public.profiles where email like 'stress-member-%' order by email`
