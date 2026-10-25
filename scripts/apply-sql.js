@@ -61,6 +61,9 @@ const DEFAULT_ORDER = [
   '028_reference_numbers_from_the_server.sql',
   '029_browse_from_the_server.sql',
   '030_activity_log_write_only_through_a_function.sql',
+  '031_signing_and_acceptance.sql',
+  '032_terms_3_0.sql',
+  '033_listing_statements.sql',
   'seed_commodities.sql',
 ];
 

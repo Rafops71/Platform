@@ -74,6 +74,17 @@ async function openScreen(page, name) {
  *  the cause already gone from the page. Catching the toast here turns that
  *  into the database's or the form's own words.
  */
+/** The statements sql/033 requires on every listing, answered as a principal
+ *  who has seen documents - unless the test already answered them itself.
+ *  The truth box is always ticked here: a test about refusing an unticked
+ *  listing clicks the button directly instead of calling submitListing. */
+async function answerListingStatements(page) {
+  if (!(await page.locator('input[name="poster_role"]:checked').count())) await page.check('#role-principal');
+  if (!(await page.inputValue('#docs_seen'))) await page.selectOption('#docs_seen', 'yes');
+  if (!(await page.inputValue('#docs_showable'))) await page.selectOption('#docs_showable', 'on_request');
+  await page.check('#truth-confirm');
+}
+
 async function submitListing(page, selector = '#listing-submit-btn') {
   // Counted before and after, not merely looked for. An error toast lives about
   // four seconds, so a leftover one from an earlier step was enough to make
@@ -82,6 +93,7 @@ async function submitListing(page, selector = '#listing-submit-btn') {
   const toasts = page.locator('.toast-error');
   const before = await toasts.count();
 
+  if (selector === '#listing-submit-btn') await answerListingStatements(page);
   await page.click(selector);
 
   const refused = await page

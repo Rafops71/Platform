@@ -89,6 +89,14 @@ the suite: this platform's product is controlled disclosure, so proving a thing
 | 59 | A member who is not approved cannot read the market, however they ask | MUST NOT |
 | 60 | When the Platform cannot be reached, a member is told so in plain words | does |
 | 61 | A tab left open cannot undo work done elsewhere, and a dead session is not hidden | MUST NOT |
+| 62 | A member who has not signed the newest Terms is held at sign-in until they sign | does |
+| 63 | A signed acceptance is never lost or rewritten, even when the member is deleted | MUST NOT |
+| 64 | A PO box is never accepted as a signing address | MUST NOT |
+| 65 | A member can never write their own signing record | MUST NOT |
+| 66 | A listing is never published without the poster's role, both document answers and the truth tick | MUST NOT |
+| 67 | An offer more than two steps from the principal is never accepted | MUST NOT |
+| 68 | Browse shows the poster's role and documents line, never the mandate or the chain | MUST NOT |
+| 69 | The truth tick is stamped with the server's time, and changing a listing asks for it again | does |
 
 ## Open questions on this list
 

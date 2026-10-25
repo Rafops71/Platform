@@ -16,7 +16,7 @@
 const fs = require('fs');
 const path = require('path');
 const { test, expect } = require('@playwright/test');
-const { createAccount, cleanup, assertConfigured, testEmail, testPassword } = require('./helpers/fixtures');
+const { createAccount, cleanup, assertConfigured, testEmail, testPassword, fillSignature } = require('./helpers/fixtures');
 const { query } = require('../../scripts/db');
 const { signIn } = require('./helpers/session');
 
@@ -83,10 +83,15 @@ test.describe.serial('Terms & Conditions', () => {
     // the section merely being present.
     expect(body).toContain('It is not a public marketplace');
     expect(body).toContain('may be suspended or revoked at any time without notice');
-    expect(body).toContain('entitled to the commission agreed between the parties during negotiation');
+    expect(body).toContain('may act for both sides of the same transaction');
+    expect(body).toContain('agreed in writing between the Operators and each party before the introduction is made');
+    expect(body).toContain('a principal may send confidential documents directly to the introduced counterparty');
     expect(body).toContain('twenty-four (24) months from the date the introduction is made');
-    expect(body).toContain('governed by English law');
-    expect(body).toContain('exclusive jurisdiction of the courts of England and Wales');
+    expect(body).toContain('governed by and construed in accordance with the law of England and Wales');
+    expect(body).toContain('exclusive jurisdiction of the Courts of the Dubai International Financial Centre');
+    expect(body).toContain('Article 14(B) of Dubai Law No. (2) of 2025');
+    expect(body).toContain('may be served on you by email');
+    expect(body).toContain('bills of lading, assay reports and KYC material');
   });
 
   test('the Privacy Notice renders in full', async ({ page }) => {
@@ -166,10 +171,12 @@ test.describe.serial('Terms & Conditions', () => {
     // read and relied on in.
     expect(body).toContain('No es un mercado público');
     expect(body).toContain('podrá suspenderse o revocarse en cualquier momento sin previo aviso');
-    expect(body).toContain('la comisión acordada entre las partes durante la negociación');
+    expect(body).toContain('pueden actuar para ambas partes de una misma operación');
+    expect(body).toContain('se acuerdan por escrito entre los Operadores y cada parte antes de realizar la presentación');
     expect(body).toContain('veinticuatro (24) meses');
-    expect(body).toContain('se rigen por el Derecho inglés');
-    expect(body).toContain('jurisdicción exclusiva de los tribunales de Inglaterra y Gales');
+    expect(body).toContain('conforme al Derecho de Inglaterra y Gales');
+    expect(body).toContain('jurisdicción exclusiva de los Tribunales del Centro Financiero Internacional de Dubái');
+    expect(body).toContain('artículo 14(B) de la Ley de Dubái n.º (2) de 2025');
 
     // The Privacy Notice is translated too, not left in English.
     expect(body).toContain('Aviso de Privacidad');
@@ -194,7 +201,7 @@ test.describe.serial('Terms & Conditions', () => {
     // And no English left behind on a page claiming to be Spanish.
     expect(body).not.toContain(EN_MARKER);
     expect(body).not.toContain('Terms & Conditions, Disclaimer and Privacy Notice');
-    expect(body).not.toContain('governed by English law');
+    expect(body).not.toContain('the law of England and Wales');
   });
 
   // The Terms name a governing law and claim a commission, but the company
@@ -279,7 +286,7 @@ test.describe.serial('Terms & Conditions', () => {
     await page.fill('#last_name', 'Refused');
     await page.fill('#email', invite.email);
     await page.fill('#password', password);
-    await page.selectOption('#country', 'Belgium');
+    await fillSignature(page, { country: 'Belgium' });
     await page.fill('#phone', '+3200000009');
 
     await page.click('#register-btn');
@@ -304,7 +311,7 @@ test.describe.serial('Terms & Conditions', () => {
     await page.fill('#last_name', 'Accepted');
     await page.fill('#email', invite.email);
     await page.fill('#password', testPassword());
-    await page.selectOption('#country', 'Belgium');
+    await fillSignature(page, { country: 'Belgium' });
     await page.fill('#phone', '+3200000010');
     await page.check('#accept-terms');
 
@@ -338,7 +345,7 @@ test.describe.serial('Terms & Conditions', () => {
     await page.fill('#last_name', 'Aceptado');
     await page.fill('#email', invite.email);
     await page.fill('#password', testPassword());
-    await page.selectOption('#country', 'Spain');
+    await fillSignature(page, { country: 'Spain' });
     await page.fill('#phone', '+3400000011');
     await page.check('#accept-terms');
 
@@ -364,5 +371,55 @@ test.describe.serial('Terms & Conditions', () => {
     await expect(link).toBeVisible();
     await expect(link).toHaveAttribute('href', 'terms.html');
     await expect(link).toHaveText('Terms & Conditions');
+  });
+
+  test('Item64 a PO box is refused on the sign-up page, and no account is made', async ({ page }) => {
+    const invite = await createInvitation('en');
+    await page.goto(invite.link);
+    await expect(page.locator('#register-card')).toBeVisible();
+
+    await page.fill('#first_name', 'Box');
+    await page.fill('#last_name', 'Refused');
+    await page.fill('#email', invite.email);
+    await page.fill('#password', testPassword());
+    await page.fill('#phone', '+3200000012');
+    await fillSignature(page, { address_line1: 'P.O. Box 1234', signed_name: 'Box Refused' });
+    await page.check('#accept-terms');
+    await page.click('#register-btn');
+
+    await expect(page.getByText('A PO box cannot be used.', { exact: false })).toBeVisible();
+    expect(page.url()).toContain('register.html');
+    const { rows } = await query('select count(*)::int n from public.profiles where email = $1', [invite.email]);
+    expect(rows[0].n, 'an account was created with a PO box as its address').toBe(0);
+  });
+
+  test('Item62 a member who has not signed the newest Terms is held at sign-in until they sign', async ({ page }) => {
+    // Needs a published version: sql/031's terms_versions, seeded with the
+    // Terms text. Asserted rather than skipped - no version means no gate.
+    const { rows: versions } = await query(
+      'select version from public.terms_versions order by published_at desc limit 1');
+    expect(versions, 'no Terms version is published, so there is nothing to sign').toHaveLength(1);
+
+    const member = await createAccount({ label: 'unsigned' });
+    // Undo the fixture's signature, as if they registered under an older text.
+    await query('delete from public.terms_acceptances where profile_id = $1', [member.profileId]);
+
+    await page.goto('/index.html');
+    await page.fill('#email', member.email);
+    await page.fill('#password', member.password);
+    await page.click('#login-btn');
+    await page.waitForURL('**/app.html');
+
+    await expect(page.locator('#terms-gate')).toBeVisible();
+    await expect(page.locator('main')).toBeHidden();
+
+    await fillSignature(page, { signed_name: 'Unsigned Member' }, 'gate-');
+    await page.click('#gate-btn');
+
+    await expect(page.locator('#user-name')).not.toBeEmpty({ timeout: 20_000 });
+    await expect(page.locator('#terms-gate')).toBeHidden();
+    const { rows } = await query(
+      `select signed_name, version from public.terms_acceptances where profile_id = $1`, [member.profileId]);
+    expect(rows).toEqual([{ signed_name: 'Unsigned Member', version: versions[0].version }]);
   });
 });

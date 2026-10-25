@@ -92,6 +92,11 @@ jobs:
       # Proven from GitHub's own timestamps: until 2026-10-25 the site went
       # live twelve minutes before the checklist finished. The deploy job below
       # fixes that, and this keeps it fixed - one always() would undo it.
+      # An acceptance records the hash of the text in terms_versions. If the
+      # page's wording drifts from that copy, members sign one text while the
+      # record holds another.
+      - name: The Terms members read are the Terms the database holds
+        run: npm run check:terms
       - name: The site is published only after every check passes
         run: npm run check:deploy
       - name: Run sql/tests

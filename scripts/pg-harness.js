@@ -64,6 +64,9 @@ const SETUP = [
   'sql/028_reference_numbers_from_the_server.sql',
   'sql/029_browse_from_the_server.sql',
   'sql/030_activity_log_write_only_through_a_function.sql',
+  'sql/031_signing_and_acceptance.sql',
+  'sql/032_terms_3_0.sql',
+  'sql/033_listing_statements.sql',
   'sql/seed_commodities.sql',
 ];
 

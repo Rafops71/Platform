@@ -25,7 +25,7 @@
   </div>
 </header>
 
-<nav class="tabs">
+<nav class="tabs" data-gate-hides>
   <div class="container">
     <button data-screen="my-listings" class="active" data-i18n="nav.myListings">My Listings</button>
     <button data-screen="new-listing" data-i18n="nav.newListing">New Listing</button>
@@ -37,7 +37,22 @@
   </div>
 </nav>
 
-<main class="container">
+<!-- The sign-in gate (js/signing.js): shown instead of everything below to a
+     member who has not signed the newest published Terms. -->
+<div id="terms-gate" class="container hidden">
+  <div class="card">
+    <h2 data-i18n="sign.gate.title">Please sign the updated Terms</h2>
+    <p data-i18n="sign.gate.intro">The Terms &amp; Conditions have changed. Please read them and sign below to continue.</p>
+    <p><a href="terms.html" target="_blank" rel="noopener" data-i18n="sign.gate.read">Read the Terms &amp; Conditions</a></p>
+    <form id="gate-form">
+      <div id="gate-fields"></div>
+      <div id="gate-name"></div>
+      <button type="submit" class="btn btn-primary btn-block" style="margin-top:18px;" id="gate-btn" data-i18n="sign.gate.submit">Sign and continue</button>
+    </form>
+  </div>
+</div>
+
+<main class="container" data-gate-hides>
 
   <!-- MY LISTINGS -->
   <section id="screen-my-listings" class="screen active">
@@ -126,6 +141,60 @@
           <div id="doc-checklist" class="stack"></div>
         </fieldset>
 
+        <!-- What the poster says about this offer (sql/033 enforces every
+             answer again; js/app.js readListingStatements() checks first). -->
+        <fieldset>
+          <legend><span data-i18n="stmt.role">What is your role in this offer?</span> *</legend>
+          <label class="checkbox-row"><input type="radio" name="poster_role" id="role-principal" value="principal">
+            <span data-i18n="stmt.role.principal">Principal - I own the goods / I am the end buyer</span></label>
+          <label class="checkbox-row"><input type="radio" name="poster_role" id="role-mandated" value="mandated">
+            <span data-i18n="stmt.role.mandated">Mandated intermediary - I act directly for the principal, with their written authority</span></label>
+          <label class="checkbox-row"><input type="radio" name="poster_role" id="role-broker" value="broker">
+            <span data-i18n="stmt.role.broker">Broker</span></label>
+
+          <div id="mandate-row" class="hidden">
+            <p class="mb-0" data-i18n="stmt.mandate.q">Do you hold a signed mandate?</p>
+            <label class="checkbox-row"><input type="radio" name="has_mandate" id="mandate-yes" value="yes"> <span data-i18n="stmt.yes">Yes</span></label>
+            <label class="checkbox-row"><input type="radio" name="has_mandate" id="mandate-no" value="no"> <span data-i18n="stmt.no">No</span></label>
+            <label for="mandate_date" data-i18n="stmt.mandate.date">Date the mandate was signed</label>
+            <input type="date" id="mandate_date">
+          </div>
+
+          <div id="broker-row" class="hidden">
+            <label for="broker_via" data-i18n="stmt.via.q">Who do you act through?</label>
+            <select id="broker_via">
+              <option value="" data-i18n="stmt.choose">Choose…</option>
+              <option value="principal" data-i18n="stmt.via.principal">Directly the principal</option>
+              <option value="mandate_holder" data-i18n="stmt.via.mandate_holder">The principal's mandate holder</option>
+              <option value="one_broker" data-i18n="stmt.via.one_broker">One other broker, who is in direct contact with the principal</option>
+              <option value="further" data-i18n="stmt.via.further">Someone further from the principal</option>
+            </select>
+          </div>
+        </fieldset>
+
+        <label for="docs_seen"><span data-i18n="stmt.docsSeen.q">Have you personally seen documents for this offer?</span> *</label>
+        <select id="docs_seen">
+          <option value="" data-i18n="stmt.choose">Choose…</option>
+          <option value="yes" data-i18n="stmt.docsSeen.yes">Yes</option>
+          <option value="source_says" data-i18n="stmt.docsSeen.source_says">No, but my source says they exist</option>
+          <option value="no" data-i18n="stmt.docsSeen.no">No</option>
+        </select>
+
+        <label for="docs_showable"><span data-i18n="stmt.docsShowable.q">Can documents be shown during due diligence?</span> *</label>
+        <select id="docs_showable">
+          <option value="" data-i18n="stmt.choose">Choose…</option>
+          <option value="on_request" data-i18n="stmt.docsShowable.on_request">Yes, on request</option>
+          <option value="after_agreement" data-i18n="stmt.docsShowable.after_agreement">Only after an agreement is signed</option>
+          <option value="no" data-i18n="stmt.docsShowable.no">No</option>
+        </select>
+
+        <div class="terms-accept">
+          <label for="truth-confirm" class="checkbox-row">
+            <input type="checkbox" id="truth-confirm">
+            <span data-i18n="stmt.truth">I confirm this offer is true to the best of my knowledge, and that any documents I or my source provide are genuine and unaltered. I understand that false offers or documents lead to suspension or removal, are recorded, and may be reported.</span>
+          </label>
+        </div>
+
         <div class="row" style="margin-top:18px;">
           <button type="submit" class="btn btn-primary" id="listing-submit-btn" data-i18n="form.saveListing">Save Listing</button>
           <button type="button" class="btn btn-secondary" id="listing-cancel-btn" data-i18n="common.cancel">Cancel</button>
@@ -148,7 +217,7 @@
         <select id="browse-filter-commodity" style="max-width:240px;">
           <option value="" data-i18n="browse.allCommodities">All commodities</option>
         </select>
-        <input type="text" id="browse-filter-region" data-i18n-placeholder="browse.originDestination" placeholder="Origin / Destination" style="max-width:180px;">
+        <select id="browse-filter-region" style="max-width:180px;"><option value="" data-i18n="browse.anyCountry">Any origin / destination</option></select>
         <select id="browse-filter-status" style="max-width:170px;">
           <option value="" data-i18n="browse.allStatuses">All statuses</option>
           <option value="available" data-i18n="status.available">Available</option>
@@ -315,6 +384,7 @@
 <script src="js/supabase-config.js"></script>
 <script src="js/i18n.js"></script>
 <script src="js/utils.js"></script>
+<script src="js/signing.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

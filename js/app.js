@@ -14,6 +14,8 @@ let CONTACT_TARGET = null; // { listingId, referenceNumber, inReplyTo }
 document.addEventListener('DOMContentLoaded', async () => {
   CURRENT_PROFILE = await requireAuth('participant');
   if (!CURRENT_PROFILE) return; // requireAuth already redirected
+  // A member who has not signed the newest Terms signs before anything else.
+  if (!(await checkTermsGate())) return;
 
   document.getElementById('user-name').textContent = personName(CURRENT_PROFILE);
   document.getElementById('logout-link').addEventListener('click', (e) => { e.preventDefault(); logout(); });
@@ -101,6 +103,7 @@ window.onLanguageChange = function (lang) {
   // English values, so it repopulates like the others - and its own selection
   // has to survive that, or switching language would silently blank the
   // country a participant is about to save.
+  fillBrowseCountryFilter();
   const countrySelect = document.getElementById('p_country');
   if (countrySelect) {
     const chosen = countrySelect.value;
@@ -386,7 +389,54 @@ function wireListingForm() {
     showScreen('my-listings');
   });
 
+  document.querySelectorAll('input[name="poster_role"]').forEach(r =>
+    r.addEventListener('change', showRoleQuestions));
+
   document.getElementById('listing-form').addEventListener('submit', submitListingForm);
+}
+
+/** Browse's one line about the poster: role and documents, in the reader's
+ *  language. A listing from before sql/033 says "Not stated" - never a guess. */
+function statementsLine(l) {
+  const role = l.poster_role ? t(`stmt.browse.role.${l.poster_role}`) : t('stmt.notStated');
+  const docs = l.docs_seen ? t(`stmt.browse.docs.${l.docs_seen}`) : t('stmt.notStated');
+  return `${t('stmt.browse.role')}: ${role} · ${t('stmt.browse.docs')}: ${docs}`;
+}
+
+/** The mandate question for a mandated intermediary, the chain question for
+ *  a broker, nothing more for a principal. */
+function showRoleQuestions() {
+  const role = document.querySelector('input[name="poster_role"]:checked')?.value;
+  document.getElementById('mandate-row').classList.toggle('hidden', role !== 'mandated');
+  document.getElementById('broker-row').classList.toggle('hidden', role !== 'broker');
+}
+
+/** What the poster says about the offer. Returns { values } or { errorKey }.
+ *  sql/033 makes every one of these checks again; these exist so the member
+ *  reads the reason before pressing, in their own language. */
+function readListingStatements() {
+  const role = document.querySelector('input[name="poster_role"]:checked')?.value;
+  const mandate = document.querySelector('input[name="has_mandate"]:checked')?.value;
+  const mandateDate = document.getElementById('mandate_date').value;
+  const via = document.getElementById('broker_via').value;
+  const docsSeen = document.getElementById('docs_seen').value;
+  const docsShowable = document.getElementById('docs_showable').value;
+  if (!role) return { errorKey: 'stmt.err.role' };
+  if (role === 'mandated' && mandate !== 'yes') return { errorKey: 'stmt.err.noMandate' };
+  if (role === 'mandated' && !mandateDate) return { errorKey: 'stmt.err.mandateDate' };
+  if (role === 'broker' && via === 'further') return { errorKey: 'stmt.err.tooFar' };
+  if (role === 'broker' && !via) return { errorKey: 'stmt.err.via' };
+  if (!docsSeen || !docsShowable) return { errorKey: 'stmt.err.docs' };
+  if (!document.getElementById('truth-confirm').checked) return { errorKey: 'stmt.err.truth' };
+  return { values: {
+    poster_role: role,
+    has_mandate: role === 'mandated' ? true : null,
+    mandate_date: role === 'mandated' ? mandateDate : null,
+    broker_via: role === 'broker' ? via : null,
+    docs_seen: docsSeen,
+    docs_showable: docsShowable,
+    truth_confirmed: true,
+  } };
 }
 
 function resetListingForm() {
@@ -400,6 +450,7 @@ function resetListingForm() {
   populateSelect('unit', UNITS, true, unitLabel);
   populateSelect('price_unit', UNITS, true, unitLabel);
   populateSelect('location', COUNTRIES, true, countryLabel);
+  showRoleQuestions();
   renderDocChecklist();
 }
 
@@ -430,6 +481,17 @@ async function editListing(id) {
   setSelectValue('price_unit', listing.price_unit);
   document.getElementById('currency').value = listing.currency ?? '';
   document.getElementById('notes').value = listing.notes ?? '';
+  // The statements are filled back in; the truth box never is. Saving an edit
+  // is a new statement and has to be ticked again (sql/033).
+  const roleInput = listing.poster_role && document.querySelector(`input[name="poster_role"][value="${listing.poster_role}"]`);
+  if (roleInput) roleInput.checked = true;
+  if (listing.has_mandate) document.getElementById('mandate-yes').checked = true;
+  document.getElementById('mandate_date').value = listing.mandate_date ?? '';
+  document.getElementById('broker_via').value = listing.broker_via ?? '';
+  document.getElementById('docs_seen').value = listing.docs_seen ?? '';
+  document.getElementById('docs_showable').value = listing.docs_showable ?? '';
+  document.getElementById('truth-confirm').checked = false;
+  showRoleQuestions();
   renderDocChecklist(selected);
 
   showScreen('new-listing');
@@ -450,9 +512,13 @@ async function submitListingForm(e) {
     : commoditySelect;
   if (!commodity) { showError(t('form.chooseCommodity')); btn.disabled = false; btn.textContent = t('form.saveListing'); return; }
 
+  const statements = readListingStatements();
+  if (statements.errorKey) { showError(t(statements.errorKey)); btn.disabled = false; btn.textContent = t('form.saveListing'); return; }
+
   const location = document.getElementById('location').value.trim();
 
   const payload = {
+    ...statements.values,
     type, commodity,
     quantity: document.getElementById('quantity').value || null,
     unit: document.getElementById('unit').value.trim() || null,
@@ -498,7 +564,16 @@ async function submitListingForm(e) {
 }
 
 // -------------------------------------------------------------- BROWSE ----
+function fillBrowseCountryFilter() {
+  const select = document.getElementById('browse-filter-region');
+  const chosen = select.value;
+  select.innerHTML = `<option value="">${escapeHtml(t('browse.anyCountry'))}</option>`;
+  populateSelect('browse-filter-region', COUNTRIES, false, countryLabel);
+  select.value = chosen;
+}
+
 function wireBrowse() {
+  fillBrowseCountryFilter();
   document.getElementById('browse-refresh-btn').addEventListener('click', loadBrowseListings);
   document.getElementById('browse-save-search-btn').addEventListener('click', saveCurrentSearch);
 }
@@ -538,6 +613,7 @@ async function loadBrowseListings() {
       ${l.specification ? `<div class="list-row-meta">${escapeHtml(t('browse.specification', { value: l.specification }))}</div>` : ''}
       ${l.price_conditions ? `<div class="list-row-meta">${escapeHtml(t('browse.price', { value: priceLine(l) }))}</div>` : ''}
       ${l.notes ? `<div class="list-row-meta">${escapeHtml(t('browse.notes', { value: l.notes }))}</div>` : ''}
+      <div class="list-row-meta" data-statements>${escapeHtml(statementsLine(l))}</div>
       <div class="list-row-meta">
         ${l.has_documents ? escapeHtml(t('listings.documentsIndicated')) : `<strong>${escapeHtml(t('listings.noDocsIndicated'))}</strong>`} · ${escapeHtml(t('listings.posted', { date: formatDate(l.created_at) }))}
       </div>
@@ -652,7 +728,10 @@ function browseFilterCriteria() {
 function listingMatches(listing, c) {
   if (c.listing_type && listing.type !== c.listing_type) return false;
   if (c.commodity && !listing.commodity.toLowerCase().includes(c.commodity.toLowerCase())) return false;
-  if (c.region && !(listing.region || '').toLowerCase().includes(c.region.toLowerCase())) return false;
+  // Exact: the filter is a country picked from the list since 2026-10-25, and
+  // "Niger" must not match "Nigeria". Case-insensitive, because early listings
+  // stored "belgium" in lower case.
+  if (c.region && (listing.region || '').toLowerCase() !== c.region.toLowerCase()) return false;
   if (c.listing_status && listing.status !== c.listing_status) return false;
   return true;
 }

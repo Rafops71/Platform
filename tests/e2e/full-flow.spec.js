@@ -14,7 +14,7 @@
 'use strict';
 
 const { test, expect } = require('@playwright/test');
-const { createAccount, cleanup, assertConfigured, RUN_PREFIX } = require('./helpers/fixtures');
+const { createAccount, cleanup, assertConfigured, RUN_PREFIX, fillSignature } = require('./helpers/fixtures');
 const { openScreen, signIn, signOut, submitListing, pickCommodity } = require('./helpers/session');
 const { query } = require('../../scripts/db');
 
@@ -95,10 +95,10 @@ test.describe.serial('full participant lifecycle', () => {
 
     await page.fill('#first_name', POSTER.first_name);
     await page.fill('#last_name', POSTER.last_name);
-    await page.fill('#company', POSTER.company);
     await page.fill('#email', invitedEmail);
     await page.fill('#password', invitedPassword);
-    await page.selectOption('#country', 'Belgium');
+    await fillSignature(page, { capacity: 'company', company: POSTER.company,
+                                signed_name: `${POSTER.first_name} ${POSTER.last_name}` });
     await page.fill('#phone', POSTER.phone);
     // Required since sql/010. Without it the browser refuses to submit, and
     // this test would fail on the navigation rather than on anything to do

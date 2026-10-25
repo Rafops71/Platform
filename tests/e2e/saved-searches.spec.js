@@ -79,7 +79,7 @@ test.describe.serial('saved searches and watchlist', () => {
     await signIn(page, watcher);
     await openScreen(page, 'browse');
 
-    await page.fill('#browse-filter-region', 'Chile');
+    await page.selectOption('#browse-filter-region', 'Chile');
     await page.selectOption('#browse-filter-type', 'sell');
     await page.selectOption('#browse-filter-commodity', { label: COMMODITY });
     await page.click('#browse-save-search-btn');
@@ -125,7 +125,7 @@ test.describe.serial('saved searches and watchlist', () => {
     await openScreen(page, 'browse');
 
     await page.selectOption('#browse-filter-commodity', { label: COMMODITY });
-    await page.fill('#browse-filter-region', '');
+    await page.selectOption('#browse-filter-region', '');
     await page.selectOption('#browse-filter-type', '');
     await page.click('#browse-save-search-btn');
     await expect(page.locator('.toast-success')).toBeVisible({ timeout: 15_000 });
