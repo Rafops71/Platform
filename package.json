@@ -29,6 +29,7 @@
     "stress": "node scripts/stress-test.js",
     "terms:seed": "node scripts/terms-seed.js --write",
     "check:terms": "node scripts/terms-seed.js",
+    "check:purpose": "node scripts/check-pr-purpose.js",
     "check:deploy": "node scripts/check-deploy-gate.js"
   },
   "dependencies": {

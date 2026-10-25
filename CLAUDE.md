@@ -94,6 +94,10 @@ something fluent said it.
 - **Work reaches main through a pull request.** CI runs on the pull request
   before anything merges, and the second-opinion reviewer only runs there. A
   direct push to main skips both.
+- **Every pull request says what it serves.** Its description names a
+  checklist item ("Item 70") or the decisions file it carries out
+  (`docs/AGREED-....md`). `scripts/check-pr-purpose.js` fails the pull
+  request otherwise, and fails it for naming an item the checklist lacks.
 - When a failure turns out to be a real bug: fix it, and say plainly that the
   checklist caught it.
 
