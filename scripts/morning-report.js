@@ -88,7 +88,7 @@ async function main() {
   const head = (await gh(`/repos/${REPO}/commits/main`)).sha;
 
   // ------------------------------------------------------- workflow runs --
-  const runs = (await gh(`/repos/${REPO}/actions/runs?created=>=${since}&per_page=100`)).workflow_runs;
+  const runs = (await gh(`/repos/${REPO}/actions/runs?created=>=${since}&per_page=100`)).workflow_runs || [];
   const byWorkflow = new Map();
   for (const r of runs) {
     if (!byWorkflow.has(r.name)) byWorkflow.set(r.name, []);
@@ -101,7 +101,7 @@ async function main() {
   for (const [name, list] of byWorkflow) {
     const sched = list.find((r) => r.event === 'schedule' && r.status === 'completed');
     if (!sched) continue;
-    const jobs = (await gh(`/repos/${REPO}/actions/runs/${sched.id}/jobs`)).jobs;
+    const jobs = (await gh(`/repos/${REPO}/actions/runs/${sched.id}/jobs`)).jobs || [];
     for (const j of jobs) {
       for (const st of j.steps || []) {
         // GitHub's own post-job housekeeping steps are skipped routinely and
@@ -114,12 +114,12 @@ async function main() {
   }
 
   // ------------------------------------------------- latest CI on main --
-  const ciRuns = (await gh(`/repos/${REPO}/actions/workflows/ci.yml/runs?branch=main&per_page=1`)).workflow_runs;
+  const ciRuns = (await gh(`/repos/${REPO}/actions/workflows/ci.yml/runs?branch=main&per_page=1`)).workflow_runs || [];
   const ci = ciRuns[0];
   let ciJobs = [];
   let checklistLine = 'not read';
   if (ci) {
-    ciJobs = (await gh(`/repos/${REPO}/actions/runs/${ci.id}/jobs`)).jobs;
+    ciJobs = (await gh(`/repos/${REPO}/actions/runs/${ci.id}/jobs`)).jobs || [];
     const cl = ciJobs.find((j) => j.name === 'Function checklist');
     if (cl && cl.conclusion) {
       try {
@@ -154,13 +154,13 @@ async function main() {
   const prs = await gh(`/repos/${REPO}/pulls?state=open&per_page=20`);
   const prLines = [];
   for (const pr of prs) {
-    const checks = (await gh(`/repos/${REPO}/commits/${pr.head.sha}/check-runs?per_page=50`)).check_runs;
+    const checks = (await gh(`/repos/${REPO}/commits/${pr.head.sha}/check-runs?per_page=50`)).check_runs || [];
     // The test suite itself, by workflow, for this exact commit. Check runs
     // alone are not enough: a queued workflow creates none until its jobs
     // start, so the reviewer's job reporting green made the second version of
     // this report call a pull request "all checks green" whose tests had not
     // started. A pull request is green only when CI has FINISHED on its commit.
-    const ciForPr = (await gh(`/repos/${REPO}/actions/workflows/ci.yml/runs?head_sha=${pr.head.sha}&per_page=5`)).workflow_runs
+    const ciForPr = ((await gh(`/repos/${REPO}/actions/workflows/ci.yml/runs?head_sha=${pr.head.sha}&per_page=5`)).workflow_runs || [])
       .filter((r) => r.event === 'pull_request' || r.event === 'workflow_dispatch')[0];
     const bad = checks.filter((c) => c.conclusion && !['success', 'skipped', 'neutral'].includes(c.conclusion));
     const pending = checks.filter((c) => !c.conclusion);
@@ -177,7 +177,16 @@ async function main() {
   }
 
   // ------------------------------------------------------ assemble it --
-  const failedRuns = runs.filter((r) => r.conclusion && !['success', 'skipped', 'neutral'].includes(r.conclusion));
+  // A cancelled run is only a problem if nothing replaced it. GitHub keeps one
+  // pending run per concurrency group and cancels the older one when a newer
+  // push arrives - that is housekeeping, and reporting it daily would teach the
+  // owner to ignore the report. But a cancellation with no newer run of the
+  // same workflow on the same branch is work silently lost (it killed the
+  // Spanish film twice), so that one is still reported.
+  const replaced = (r) => runs.some((o) => o.workflow_id === r.workflow_id &&
+    o.head_branch === r.head_branch && new Date(o.created_at) > new Date(r.created_at));
+  const failedRuns = runs.filter((r) => r.conclusion && !['success', 'skipped', 'neutral'].includes(r.conclusion)
+    && !(r.conclusion === 'cancelled' && replaced(r)));
   for (const r of failedRuns) problems.push(`**${r.name}** ${r.conclusion} at ${hhmm(r.created_at)} UTC (run ${r.run_number}).`);
   for (const i of idle) problems.push(i + ' - so it is not doing its job.');
   const ciBad = ciJobs.filter((j) => j.conclusion && !['success', 'skipped'].includes(j.conclusion));

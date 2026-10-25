@@ -128,7 +128,11 @@ async function main() {
       const rawSql = fs.readFileSync(path.join(ROOT, suite), 'utf8');
       const suiteSql = translateMetaCommands(rawSql);
       const declared = declaredAssertions(rawSql);
-      const reported = new Set();
+      // Counted, not a set: with a set, two assertions sharing a label would
+      // let one report for both, hiding the other. (Raised by the second-opinion
+      // reviewer on PR #16 - in reverse: it worried about double counting.)
+      const reported = new Map();
+      const note = (n) => reported.set(n, (reported.get(n) || 0) + 1);
 
       for (const statement of splitStatements(suiteSql)) {
         let res;
@@ -152,10 +156,10 @@ async function main() {
         if (item.heading !== undefined) {
           console.log(item.heading ? `\n${item.heading}` : '');
         } else if (item.passed) {
-          reported.add(item.name);
+          note(item.name);
           console.log(`  PASS  ${item.name}`);
         } else {
-          reported.add(item.name);
+          note(item.name);
           failed++;
           console.log(`  FAIL  ${item.name}  ->  ${item.value}`);
         }
@@ -164,7 +168,8 @@ async function main() {
       // Anything this file declared that never reported is a failure, not a
       // silence. Its statement errored before it could produce a row.
       for (const name of declared) {
-        if (reported.has(name)) continue;
+        const left = reported.get(name) || 0;
+        if (left > 0) { reported.set(name, left - 1); continue; }
         neverRan++;
         console.log(`  FAIL  ${name}  ->  NEVER RAN: this assertion errored and produced no result (${suite})`);
       }

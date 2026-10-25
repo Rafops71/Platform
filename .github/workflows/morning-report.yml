@@ -46,13 +46,18 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Write it, and file it as an issue
-        if: github.event_name != 'pull_request'
+      # ONE step, deciding inside itself whether to post. Two steps with
+      # opposite `if:`s meant one was skipped on every run - and this report
+      # treats a skipped step in a scheduled job as "not doing its job", so it
+      # would have flagged itself every morning. Found from a point the
+      # second-opinion reviewer raised on PR #16.
+      - name: Write the report (posted as an issue, except on a pull request)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node scripts/morning-report.js --issue
-      - name: Dry run - report to the job summary only, post nothing
-        if: github.event_name == 'pull_request'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node scripts/morning-report.js
+          POST_ISSUE: ${{ github.event_name != 'pull_request' }}
+        run: |
+          if [ "$POST_ISSUE" = "true" ]; then
+            node scripts/morning-report.js --issue
+          else
+            node scripts/morning-report.js
+          fi
