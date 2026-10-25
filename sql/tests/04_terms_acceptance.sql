@@ -124,12 +124,17 @@ where p.email = 'terms-en@example.invalid';
 -- agreed to in 2.0 must survive them later accepting 3.0, because the question
 -- asked afterwards is always "what were they bound by at the time".
 
+-- Since sql/031 a member cannot insert an acceptance row directly any more -
+-- that route let a member manufacture their own signing record. Accepting a
+-- later version goes through accept_terms(), against a version the platform
+-- has published. What T10-T12 prove is unchanged; only the door is.
+insert into public.terms_versions (version, language, text, sha256)
+values ('3.0', 'en', 'Terms 3.0 (test text)', 'test-sha-3.0-en')
+on conflict do nothing;
+
 set role authenticated; set test.uid='a1a1a1a1-a1a1-a1a1-a1a1-a1a1a1a1a1a1';
-insert into public.terms_acceptances (profile_id, version, language)
-values (
-  (select id from public.profiles where email = 'terms-en@example.invalid'),
-  '3.0', 'en'
-);
+select public.accept_terms('3.0', 'en', 'Terms Tester', 'individual', null,
+                           '1 Test Street', null, 'Testville', null, 'Belgium');
 reset role; reset test.uid;
 
 select case when count(*) = 2 then 'PASS' else 'FAIL got ' || count(*) end
@@ -144,15 +149,12 @@ from public.terms_acceptances a
 join public.profiles p on p.id = a.profile_id
 where p.email = 'terms-en@example.invalid' and a.version = '2.0';
 
--- And the same version cannot be recorded twice for the same participant. The
--- insert below is expected to be rejected by the uniqueness constraint; the
--- count that follows is what decides the result.
+-- And the same version cannot be recorded twice for the same participant.
+-- Signing an already-signed version again is a no-op by design; the count
+-- that follows is what decides the result.
 set role authenticated; set test.uid='a1a1a1a1-a1a1-a1a1-a1a1-a1a1a1a1a1a1';
-insert into public.terms_acceptances (profile_id, version, language)
-values (
-  (select id from public.profiles where email = 'terms-en@example.invalid'),
-  '3.0', 'en'
-);
+select public.accept_terms('3.0', 'en', 'Someone Else', 'individual', null,
+                           '2 Other Road', null, 'Elsewhere', null, 'Spain');
 reset role; reset test.uid;
 
 select case when count(*) = 2 then 'PASS' else 'FAIL got ' || count(*) end
@@ -166,6 +168,7 @@ where p.email = 'terms-en@example.invalid';
 delete from public.terms_acceptances
 where version = '3.0'
   and profile_id = (select id from public.profiles where email = 'terms-en@example.invalid');
+delete from public.terms_versions where version = '3.0' and sha256 = 'test-sha-3.0-en';
 
 \echo
 \echo '=========== ACCEPTANCE IS PRIVATE ==========='
