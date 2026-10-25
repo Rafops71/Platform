@@ -103,6 +103,7 @@ window.onLanguageChange = function (lang) {
   // English values, so it repopulates like the others - and its own selection
   // has to survive that, or switching language would silently blank the
   // country a participant is about to save.
+  fillBrowseCountryFilter();
   const countrySelect = document.getElementById('p_country');
   if (countrySelect) {
     const chosen = countrySelect.value;
@@ -500,7 +501,16 @@ async function submitListingForm(e) {
 }
 
 // -------------------------------------------------------------- BROWSE ----
+function fillBrowseCountryFilter() {
+  const select = document.getElementById('browse-filter-region');
+  const chosen = select.value;
+  select.innerHTML = `<option value="">${escapeHtml(t('browse.anyCountry'))}</option>`;
+  populateSelect('browse-filter-region', COUNTRIES, false, countryLabel);
+  select.value = chosen;
+}
+
 function wireBrowse() {
+  fillBrowseCountryFilter();
   document.getElementById('browse-refresh-btn').addEventListener('click', loadBrowseListings);
   document.getElementById('browse-save-search-btn').addEventListener('click', saveCurrentSearch);
 }
@@ -654,7 +664,10 @@ function browseFilterCriteria() {
 function listingMatches(listing, c) {
   if (c.listing_type && listing.type !== c.listing_type) return false;
   if (c.commodity && !listing.commodity.toLowerCase().includes(c.commodity.toLowerCase())) return false;
-  if (c.region && !(listing.region || '').toLowerCase().includes(c.region.toLowerCase())) return false;
+  // Exact: the filter is a country picked from the list since 2026-10-25, and
+  // "Niger" must not match "Nigeria". Case-insensitive, because early listings
+  // stored "belgium" in lower case.
+  if (c.region && (listing.region || '').toLowerCase() !== c.region.toLowerCase()) return false;
   if (c.listing_status && listing.status !== c.listing_status) return false;
   return true;
 }

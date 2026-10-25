@@ -83,10 +83,15 @@ test.describe.serial('Terms & Conditions', () => {
     // the section merely being present.
     expect(body).toContain('It is not a public marketplace');
     expect(body).toContain('may be suspended or revoked at any time without notice');
-    expect(body).toContain('entitled to the commission agreed between the parties during negotiation');
+    expect(body).toContain('may act for both sides of the same transaction');
+    expect(body).toContain('agreed in writing between the Operators and each party before the introduction is made');
+    expect(body).toContain('a principal may send confidential documents directly to the introduced counterparty');
     expect(body).toContain('twenty-four (24) months from the date the introduction is made');
-    expect(body).toContain('governed by English law');
-    expect(body).toContain('exclusive jurisdiction of the courts of England and Wales');
+    expect(body).toContain('governed by and construed in accordance with the law of England and Wales');
+    expect(body).toContain('exclusive jurisdiction of the Courts of the Dubai International Financial Centre');
+    expect(body).toContain('Article 14(B) of Dubai Law No. (2) of 2025');
+    expect(body).toContain('may be served on you by email');
+    expect(body).toContain('bills of lading, assay reports and KYC material');
   });
 
   test('the Privacy Notice renders in full', async ({ page }) => {
@@ -194,7 +199,7 @@ test.describe.serial('Terms & Conditions', () => {
     // And no English left behind on a page claiming to be Spanish.
     expect(body).not.toContain(EN_MARKER);
     expect(body).not.toContain('Terms & Conditions, Disclaimer and Privacy Notice');
-    expect(body).not.toContain('governed by English law');
+    expect(body).not.toContain('the law of England and Wales');
   });
 
   // The Terms name a governing law and claim a commission, but the company

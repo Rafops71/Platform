@@ -136,3 +136,14 @@ where profile_id is null and signed_name = 'Bo Full'
 -- Cleanup: the test version must not stay "current" for later suites.
 delete from public.terms_acceptances where version = '9.0';
 delete from public.terms_versions where version = '9.0' and sha256 = 'test-sha-9.0-en';
+
+\echo
+\echo '=========== THE PUBLISHED TEXT ==========='
+
+-- sql/032 is generated from the page's own text. The recorded hash must be
+-- the hash of the text stored beside it, or a signature proves nothing.
+select case when count(*) = 2
+             and bool_and(sha256 = encode(sha256(convert_to(text, 'UTF8')), 'hex'))
+            then 'PASS' else 'FAIL got ' || count(*) end
+  as "T12 Terms 3.0 is published in both languages, hash matching its text"
+from public.terms_versions where version = '3.0';

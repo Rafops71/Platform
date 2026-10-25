@@ -293,6 +293,7 @@ function populateStatusFilter() {
     select.appendChild(opt);
   });
 
+  populateSelect('listing-filter-region', COUNTRIES);
   const incotermSelect = document.getElementById('listing-filter-incoterm');
   INCOTERMS.forEach(i => {
     const opt = document.createElement('option');
@@ -372,7 +373,7 @@ async function loadListings() {
   // Quoted, so a comma typed in the box stays text instead of becoming
   // another condition on the query. See pgLikeValue() in js/utils.js.
   if (region) {
-    const v = pgLikeValue(region);
+    const v = pgLikeValue(region, { exact: true });
     query = query.or(`origin.ilike.${v},destination.ilike.${v}`);
   }
 
