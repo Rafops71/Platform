@@ -1,0 +1,25 @@
+name: Purpose
+
+# The supervision plan's fifth step: a pull request must say which checklist
+# item or recorded decision it serves (scripts/check-pr-purpose.js).
+#
+# Its own workflow, not a job in ci.yml, so that fixing a description - the
+# usual remedy - re-runs this one check in seconds instead of the whole
+# live-database suite. `edited` is what makes that work.
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  purpose:
+    name: Says what it serves
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: The description names a checklist item or a decision
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: node scripts/check-pr-purpose.js
