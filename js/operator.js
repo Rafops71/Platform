@@ -66,6 +66,7 @@ function showScreen(name) {
   if (name === 'doc-requests') { loadListingsForDocRequest(); loadDocRequests(); }
   if (name === 'mailbox') loadOperatorMailbox();
   if (name === 'matches') loadMatches();
+  if (name === 'deals') loadDeals();
   if (name === 'analytics') loadAnalytics();
   if (name === 'activity') loadActivityLog();
 }
@@ -1177,6 +1178,108 @@ async function confirmReplyNow() {
   document.getElementById('reply-modal').classList.add('hidden');
   showSuccess('Reply sent.');
   loadOperatorMailbox();
+}
+
+// --------------------------------------------------------------- DEALS ----
+// sql/035. The stage dates are stamped by the database; this page sends only
+// the stage and the answers, and every change it saves lands in deal_history.
+const DEAL_STAGES = { negotiating: 'Negotiating', agreed: 'Agreed', introduced: 'Introduced', closed: 'Closed' };
+const DEAL_ANSWERS = {
+  docs_match:   { label: 'Documents', options: { matched: 'Matched what was claimed', not_matched: "Didn't match", never_arrived: 'Never arrived' } },
+  docs_genuine: { label: 'Documents genuine?', options: { genuine: 'Genuine', faulty: 'Faulty', false: 'False' } },
+  offer_real:   { label: 'Offer / client', options: { real: 'Real', did_not_happen: "Didn't materialise", not_genuine: 'Not genuine' } },
+  deal_result:  { label: 'Deal', options: { closed: 'Closed', fell_through: 'Fell through', open: 'Still open' } },
+};
+
+function dealSelect(id, field, current) {
+  const opts = Object.entries(DEAL_ANSWERS[field].options).map(([v, l]) =>
+    `<option value="${v}" ${v === current ? 'selected' : ''}>${escapeHtml(l)}</option>`).join('');
+  return `<label>${escapeHtml(DEAL_ANSWERS[field].label)}
+    <select data-deal-field="${field}" data-deal="${id}"><option value="">Not recorded</option>${opts}</select></label>`;
+}
+
+async function loadDeals() {
+  const fresh = renderToken('op:loadDeals');
+  const container = document.getElementById('deals-list');
+  container.innerHTML = '<p class="empty-state">Loading…</p>';
+  const { data, error } = await jericho.from('deals').select('*').order('opened_at', { ascending: false });
+  if (!fresh()) return;
+  if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
+  if (!data.length) { container.innerHTML = '<p class="empty-state">No deal files yet. One opens when you first forward a member\'s message about a listing.</p>'; return; }
+
+  const ids = [...new Set(data.flatMap(d => [d.owner_id, d.counterparty_id]).filter(Boolean))];
+  const names = new Map();
+  for (const part of chunked(ids)) {
+    const { data: ps } = await jericho.from('profiles').select('id,first_name,last_name,company').in('id', part);
+    if (!fresh()) return;
+    (ps || []).forEach(p => names.set(p.id, personName(p) + (p.company ? ` (${p.company})` : '')));
+  }
+  const nameOf = (id) => (id ? names.get(id) || 'Unknown' : 'Deleted member');
+
+  container.innerHTML = '';
+  for (const d of data) {
+    const row = document.createElement('div');
+    row.className = 'list-row';
+    row.dataset.dealRow = d.id;
+    const dates = [`opened ${formatDate(d.opened_at)}`,
+      d.agreed_at && `agreed ${formatDate(d.agreed_at)}`,
+      d.introduced_at && `introduced ${formatDate(d.introduced_at)}`,
+      d.closed_at && `closed ${formatDate(d.closed_at)}`].filter(Boolean).join(' · ');
+    row.innerHTML = `
+      <div class="list-row-top">
+        <span class="list-row-title">${escapeHtml(d.listing_ref)} · ${escapeHtml(nameOf(d.owner_id))} ↔ ${escapeHtml(nameOf(d.counterparty_id))}</span>
+        <span class="badge badge-grey" data-deal-stage="${d.id}">${escapeHtml(DEAL_STAGES[d.stage])}</span>
+      </div>
+      <div class="list-row-meta">${escapeHtml(dates)}</div>
+      <div class="row" style="margin-top:6px; flex-wrap:wrap; gap:8px;">
+        <label>Stage <select data-deal-field="stage" data-deal="${d.id}">${Object.entries(DEAL_STAGES).map(([v, l]) =>
+          `<option value="${v}" ${v === d.stage ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+        ${Object.keys(DEAL_ANSWERS).map(f => dealSelect(d.id, f, d[f])).join('')}
+      </div>
+      <label style="display:block; margin-top:6px;">Note
+        <textarea data-deal-field="note" data-deal="${d.id}" maxlength="2000" rows="2">${escapeHtml(d.note || '')}</textarea></label>
+      <div class="row" style="margin-top:4px;">
+        <button class="btn btn-primary btn-small" data-save-deal="${d.id}">Save</button>
+        <button class="btn btn-secondary btn-small" data-deal-history="${d.id}">History</button>
+      </div>
+      <div class="stack hidden" data-history-for="${d.id}"></div>
+    `;
+    container.appendChild(row);
+  }
+  container.querySelectorAll('[data-save-deal]').forEach(b =>
+    b.addEventListener('click', () => withButtonBusy(b, 'Saving…', () => saveDeal(b.dataset.saveDeal))));
+  container.querySelectorAll('[data-deal-history]').forEach(b =>
+    b.addEventListener('click', () => showDealHistory(b.dataset.dealHistory)));
+}
+
+async function saveDeal(id) {
+  const patch = {};
+  document.querySelectorAll(`[data-deal="${id}"]`).forEach(el => {
+    const v = el.value.trim();
+    patch[el.dataset.dealField] = v === '' ? null : v;
+  });
+  if (!patch.stage) delete patch.stage;
+  const { error } = await jericho.from('deals').update(patch).eq('id', id);
+  if (error) { showError(errorMessage(error)); return; }
+  showSuccess('Deal file saved.');
+  loadDeals();
+}
+
+async function showDealHistory(id) {
+  const box = document.querySelector(`[data-history-for="${id}"]`);
+  if (!box.classList.contains('hidden')) { box.classList.add('hidden'); return; }
+  const { data, error } = await jericho.from('deal_history').select('*').eq('deal_id', id).order('changed_at', { ascending: false });
+  if (error) { box.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; box.classList.remove('hidden'); return; }
+  const who = new Map();
+  const ids = [...new Set((data || []).map(h => h.changed_by).filter(Boolean))];
+  if (ids.length) {
+    const { data: ps } = await jericho.from('profiles').select('id,first_name,last_name').in('id', ids);
+    (ps || []).forEach(p => who.set(p.id, personName(p)));
+  }
+  box.innerHTML = (data && data.length)
+    ? data.map(h => `<div class="list-row-meta">${escapeHtml(formatDateTime(h.changed_at))} · ${escapeHtml(who.get(h.changed_by) || 'Unknown')}: ${escapeHtml(h.field)} ${escapeHtml(h.old_value ?? '—')} → ${escapeHtml(h.new_value ?? '—')}</div>`).join('')
+    : '<p class="empty-state">No changes yet.</p>';
+  box.classList.remove('hidden');
 }
 
 // ------------------------------------------------------------- MATCHES ----

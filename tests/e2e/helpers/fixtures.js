@@ -337,6 +337,11 @@ async function cleanup() {
     );
     // document_checklist, document_requests, matches and email_outbox all
     // cascade from listings, so they need no separate delete.
+    // sql/035: forwarding a test member's message opens a deal file, which
+    // keeps its row when the member goes (SET NULL). Removed here, while it
+    // still names them, or every run would leave files in the live table.
+    await client.query(
+      'delete from public.deals where owner_id = any($1) or counterparty_id = any($1)', [ids]);
     await client.query('delete from public.listings where user_id = any($1)', [ids]);
     // Since sql/031 a member's acceptances outlive the member (SET NULL, not
     // CASCADE), so a test account's would otherwise stay in the live table

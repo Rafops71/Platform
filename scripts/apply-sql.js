@@ -65,6 +65,8 @@ const DEFAULT_ORDER = [
   '032_terms_3_0.sql',
   '033_listing_statements.sql',
   '034_signature_required_to_act.sql',
+  '035_deal_files.sql',
+  '036_terms_3_1.sql',
   'seed_commodities.sql',
 ];
 
