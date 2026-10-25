@@ -297,6 +297,13 @@ const DOCUMENT_GROUPS = [
  *  which is exactly why the Spanish labels below are display-only. */
 const DOCUMENT_TYPES = DOCUMENT_GROUPS.flatMap(g => g.docs);
 
+/** What an Operator may ask for at due diligence that a poster is never asked
+ *  for at posting (decision 23, 2026-10-25). Past performance stays off the
+ *  listing form - newcomers and new stock have none and are not penalised for
+ *  it - but an Operator can request it once a deal is being looked at. */
+const OPERATOR_REQUEST_EXTRAS = ['Past performance record', 'COAs from previous shipments'];
+const DOCUMENT_REQUEST_TYPES = [...DOCUMENT_TYPES, ...OPERATOR_REQUEST_EXTRAS];
+
 /** Canonical doc_type -> translation key. Storage never changes language. */
 const DOCUMENT_TYPE_KEYS = {
   'Certificate of Analysis (COA)': 'docs.certificateOfAnalysis',
@@ -312,6 +319,8 @@ const DOCUMENT_TYPE_KEYS = {
   'KYC Documentation': 'docs.kyc',
   'CIS (Customer Information Sheet)': 'docs.cis',
   'Other': 'docs.other',
+  'Past performance record': 'docs.pastPerformance',
+  'COAs from previous shipments': 'docs.previousCoas',
 };
 
 /** Display label for a stored doc_type. English (the stored value) wherever

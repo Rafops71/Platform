@@ -310,9 +310,28 @@ function populateStatusFilter() {
     ['listing-filter-type','listing-filter-status','listing-filter-commodity',
      'listing-filter-incoterm','listing-filter-region','listing-filter-qty-min',
      'listing-filter-qty-max','listing-filter-date-from','listing-filter-date-to',
-     'listing-filter-docs'].forEach(id => { document.getElementById(id).value = ''; });
+     'listing-filter-docs','listing-filter-role'].forEach(id => { document.getElementById(id).value = ''; });
     loadListings();
   });
+}
+
+/** The poster's statements in full, for the Operators' eyes only (Browse
+ *  shows members the role and the documents line, never the mandate or the
+ *  chain - sql/033). Listings from before 033 say so rather than guess. */
+const POSTER_ROLE_LABELS = { principal: 'Principal', mandated: 'Mandated intermediary', broker: 'Broker' };
+const BROKER_VIA_LABELS = { principal: 'via the principal', mandate_holder: "via the principal's mandate holder", one_broker: 'via one other broker' };
+const DOCS_SEEN_LABELS = { yes: 'docs seen', source_says: 'docs not seen, source says they exist', no: 'docs not seen' };
+const DOCS_SHOWABLE_LABELS = { on_request: 'shown on request', after_agreement: 'shown after an agreement', no: 'not shown' };
+
+function posterDetail(l) {
+  if (!l.poster_role) return 'Not stated';
+  const parts = [POSTER_ROLE_LABELS[l.poster_role]];
+  if (l.poster_role === 'mandated') parts.push(`mandate signed ${l.mandate_date ? formatDate(l.mandate_date) : '(no date)'}`);
+  if (l.poster_role === 'broker') parts.push(BROKER_VIA_LABELS[l.broker_via] || 'chain not stated');
+  if (l.docs_seen) parts.push(DOCS_SEEN_LABELS[l.docs_seen]);
+  if (l.docs_showable) parts.push(DOCS_SHOWABLE_LABELS[l.docs_showable]);
+  if (l.truth_confirmed_at) parts.push(`confirmed true ${formatDateTime(l.truth_confirmed_at)}`);
+  return parts.join(' · ');
 }
 
 /** Fill the commodity filter dropdown from the Operator-managed list. */
@@ -332,7 +351,7 @@ async function populateCommodityFilter() {
 async function loadListings() {
   const fresh = renderToken('op:loadListings');
   const tbody = document.querySelector('#listings-table tbody');
-  tbody.innerHTML = '<tr><td colspan="10" class="empty-state">Loading…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="11" class="empty-state">Loading…</td></tr>';
 
   let query = jericho.from('listings')
     .select('*, profiles!listings_user_id_fkey(first_name,last_name,company)')
@@ -358,11 +377,14 @@ async function loadListings() {
   const dateFrom = document.getElementById('listing-filter-date-from').value;
   const dateTo = document.getElementById('listing-filter-date-to').value;
   const docsFilter = document.getElementById('listing-filter-docs').value;
+  const roleFilter = document.getElementById('listing-filter-role').value;
 
   if (type) query = query.eq('type', type);
   if (status) query = query.eq('status', status);
   if (commodity) query = query.eq('commodity', commodity);
   if (incoterm) query = query.eq('incoterm', incoterm);
+  if (roleFilter === 'none') query = query.is('poster_role', null);
+  else if (roleFilter) query = query.eq('poster_role', roleFilter);
   if (qtyMin) query = query.gte('quantity', qtyMin);
   if (qtyMax) query = query.lte('quantity', qtyMax);
   if (dateFrom) query = query.gte('created_at', dateFrom);
@@ -379,7 +401,7 @@ async function loadListings() {
 
   const { data, error } = await query;
   if (!fresh()) return;   // a newer render started while this waited
-  if (error) { tbody.innerHTML = `<tr><td colspan="10" class="empty-state">${escapeHtml(errorMessage(error))}</td></tr>`; return; }
+  if (error) { tbody.innerHTML = `<tr><td colspan="11" class="empty-state">${escapeHtml(errorMessage(error))}</td></tr>`; return; }
 
   // Which listings have at least one ticked document — fetched in one query
   // rather than per row.
@@ -400,7 +422,7 @@ async function loadListings() {
   // says now.
   document.getElementById('listing-stale-note').classList.toggle('hidden', !staleOnly);
 
-  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="10" class="empty-state">No listings match.</td></tr>'; return; }
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="11" class="empty-state">No listings match.</td></tr>'; return; }
 
   tbody.innerHTML = '';
   rows.forEach(l => {
@@ -412,6 +434,7 @@ async function loadListings() {
     tr.innerHTML = `
       <td data-label="Ref">${escapeHtml(l.reference_number)}</td>
       <td data-label="Owner">${escapeHtml(owner)}</td>
+      <td data-label="Poster" data-poster-for="${l.id}">${escapeHtml(posterDetail(l))}</td>
       <td data-label="Type">${l.type === 'sell' ? 'Sell' : 'Buy'}</td>
       <td data-label="Commodity">${escapeHtml(l.commodity)}</td>
       <td data-label="Qty">${l.quantity ? escapeHtml(String(l.quantity)) + ' ' + escapeHtml(l.unit || '') : '—'}</td>
@@ -868,7 +891,7 @@ async function deleteCommodity(id, name, usage) {
 
 // ----------------------------------------------------- DOCUMENT REQUESTS ----
 function wireDocRequests() {
-  populateSelect('dr-doctype', DOCUMENT_TYPES);
+  populateSelect('dr-doctype', DOCUMENT_REQUEST_TYPES);
   document.getElementById('create-doc-request-btn').addEventListener('click', createDocRequest);
 }
 function populateSelect(id, values) {

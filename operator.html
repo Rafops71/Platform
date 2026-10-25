@@ -106,6 +106,13 @@
         <input type="number" id="listing-filter-qty-max" placeholder="Qty max" style="max-width:120px;">
         <input type="date" id="listing-filter-date-from" style="max-width:170px;">
         <input type="date" id="listing-filter-date-to" style="max-width:170px;">
+        <select id="listing-filter-role" style="max-width:200px;">
+          <option value="">Poster: any role</option>
+          <option value="principal">Principal</option>
+          <option value="mandated">Mandated intermediary</option>
+          <option value="broker">Broker</option>
+          <option value="none">Not stated (older listings)</option>
+        </select>
         <select id="listing-filter-docs" style="max-width:200px;">
           <option value="">Documents: any</option>
           <option value="yes">Documents indicated</option>
@@ -116,7 +123,7 @@
       </div>
       <div style="overflow-x:auto;">
         <table class="data-table" id="listings-table">
-          <thead><tr><th>Ref</th><th>Owner</th><th>Type</th><th>Commodity</th><th>Qty</th><th>Incoterm</th><th>Docs</th><th>Status</th><th>Updated</th><th></th></tr></thead>
+          <thead><tr><th>Ref</th><th>Owner</th><th>Poster</th><th>Type</th><th>Commodity</th><th>Qty</th><th>Incoterm</th><th>Docs</th><th>Status</th><th>Updated</th><th></th></tr></thead>
           <tbody><tr><td colspan="10" class="empty-state">Loading…</td></tr></tbody>
         </table>
       </div>
