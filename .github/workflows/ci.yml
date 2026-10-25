@@ -89,6 +89,11 @@ jobs:
       # another condition on the query.
       - name: Typed text is never query syntax
         run: npm run check:filters
+      # Proven from GitHub's own timestamps: until 2026-10-25 the site went
+      # live twelve minutes before the checklist finished. The deploy job below
+      # fixes that, and this keeps it fixed - one always() would undo it.
+      - name: The site is published only after every check passes
+        run: npm run check:deploy
       - name: Run sql/tests
         run: npm run test:sql
 
@@ -234,13 +239,70 @@ jobs:
       - uses: actions/checkout@v4
       - name: Package the site
         # Reached only when both suites are green. A crossed function means this
-        # job never runs and no artifact exists to deploy.
-        run: |
-          mkdir -p dist
-          cp -r css js *.html dist/
-          echo "${{ github.sha }}" > dist/REVISION
+        # job never runs and no artifact exists to deploy. The same script the
+        # deploy job below uses, so the artifact is what would be published.
+        run: ./scripts/assemble-site.sh dist
       - uses: actions/upload-artifact@v4
         with:
           name: site-${{ github.sha }}
           path: dist/
           retention-days: 14
+
+  # --------------------------------------------------------------------------
+  # PUBLISH THE SITE - and only here.
+  #
+  # Until 2026-10-25 GitHub Pages published main straight from the branch, on
+  # its own, independently of everything above. Proven from GitHub's own check
+  # runs on commit 556e185: `deploy` finished 14:42:43, `Function checklist`
+  # finished 14:55:03. Members had the new version twelve minutes before the
+  # gate said whether it worked. A red run would have changed nothing they saw.
+  #
+  # This job is now the only way the site is published (Settings > Pages >
+  # Source must be "GitHub Actions" for it to take effect). It cannot run until
+  # every check has passed, because GitHub's documented rule for `needs` is:
+  #
+  #   "If a job fails or is skipped, all jobs that need it are skipped"
+  #
+  # unless the job uses always(). THIS JOB MUST NEVER USE always(), or a
+  # status function that ignores failure, in its `if:`. That one word would
+  # turn the gate back into an alarm.
+  #
+  # Safari is in the list deliberately: it was not in `package`'s, and a
+  # change that breaks the iPhone layout is a broken release.
+  #
+  # main only. A branch run reaches this job and is skipped, which is the
+  # evidence, on the branch, that the wiring holds.
+  # --------------------------------------------------------------------------
+  deploy:
+    name: Publish the site
+    needs: [database, checklist, stress, safari, package]
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: pages-deploy
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      # Assembled again here, from this run's own commit, rather than handed
+      # down from `package`: a re-run of this job alone then still publishes
+      # exactly the commit that passed, without depending on how GitHub treats
+      # artifacts across re-run attempts - which its documentation does not say.
+      - name: Assemble exactly what the site serves
+        run: ./scripts/assemble-site.sh dist
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist/
+      - name: Publish
+        id: deployment
+        uses: actions/deploy-pages@v4
+      - name: Say which version is live
+        run: |
+          echo "Published revision ${{ github.sha }} to ${{ steps.deployment.outputs.page_url }}"
+          echo "Check it from anywhere: ${{ steps.deployment.outputs.page_url }}REVISION"

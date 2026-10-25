@@ -26,7 +26,8 @@
     "safari": "playwright test --project=safari",
     "hygiene": "node scripts/verify-live.js",
     "timings": "node scripts/timings.js",
-    "stress": "node scripts/stress-test.js"
+    "stress": "node scripts/stress-test.js",
+    "check:deploy": "node scripts/check-deploy-gate.js"
   },
   "dependencies": {
     "pg": "^8.13.1"

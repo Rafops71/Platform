@@ -749,6 +749,43 @@ WAITING ON THE OWNER: the private backup repository and its write token. Until
 backup storage is settled the workflow fails on purpose, loudly, at its first
 step. That red run IS the guard working.
 
+## Publishing is behind the gate (built 2026-10-25, switch pending)
+
+Until now GitHub Pages published `main` straight from the branch, on its own.
+Proven from GitHub's check runs on `556e185`: `deploy` 14:42:43, `Function
+checklist` 14:55:03. Members had each new version twelve minutes before the
+gate decided whether it worked, and a red run changed nothing they saw.
+
+Now `ci.yml` has a `deploy` job that `needs` database, checklist, stress,
+Safari and package. GitHub's documented rule - "If a job fails or is skipped,
+all jobs that need it are skipped" - makes it the gate, as long as its `if:`
+never uses always() or another status function. `npm run check:deploy`
+(`scripts/check-deploy-gate.js`) fails the build if that is ever weakened, if a
+required check is dropped from `needs`, if the main-only limit goes, or if any
+other workflow gains a publish step. Each of those four was tried on a scratch
+copy and refused.
+
+`scripts/assemble-site.sh` decides what is published and refuses an
+incomplete site. The old packaging copied css/, js/ and the pages and NOT
+films/, which register.html loads at runtime - deployed as it was, it would
+have removed the registration film and nothing would have failed. Proven: an
+intact copy passes; a missing stylesheet and a missing film are both refused.
+
+DELIBERATE CHANGE: branch publishing ran the repo through Jekyll, so every
+Markdown file was public on the site - /HANDOFF and /docs/CHECKLIST answered
+200. The deployed site is now the app only. The documents are unchanged in the
+repository.
+
+TO TAKE EFFECT the owner sets Settings > Pages > Source > "GitHub Actions".
+Until then the old branch publishing carries on. What the deploy job does on
+main before the switch is NOT verified - it is expected to fail because Pages
+is not set to accept a workflow deployment, but no documentation found says so. GitHub's documentation does not
+say what the live site does at the moment of the switch, so it is done while
+watched: switch, then re-run the deploy job of the latest green main run
+(it rebuilds from that run's own commit, so it does not depend on artifacts
+surviving a re-run), then confirm `/REVISION` on the live site shows that
+commit.
+
 ## Still open
 
 -2. **PARKED, by the owner, on 2026-10-19: the sender's id on a forwarded

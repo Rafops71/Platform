@@ -35,7 +35,10 @@ happen is worth more than proving a button worked.
 - It fails three ways: an item with no test, an item whose test failed, and a
   test claiming an `ItemNN` the checklist does not list.
 - `.github/workflows/ci.yml` gates the build on it. A crossed function produces
-  no artifact.
+  no artifact **and publishes nothing**: the site is deployed only by ci.yml's
+  `deploy` job, which waits for every check (see HANDOFF, "Publishing is behind
+  the gate"). `npm run check:deploy` fails the build if that wiring is ever
+  weakened - one `always()` would undo it.
 
 Adding a function to the checklist without a test breaks the build on purpose.
 
