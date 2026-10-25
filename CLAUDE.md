@@ -133,6 +133,13 @@ the same commit.
 - **No "ask a lawyer".** He has said so plainly. Research statutes, case law
   and court rules directly, check each against the primary source, and mark
   anything that could not be verified. Say the limit once, then do the work.
+- **Standing permission for safe database changes (his yes, 2026-10-25).**
+  A live database change that only ADDS (a column, a table, a function, a
+  check, a lock, a new Terms version) and whose revert has been run and
+  proven locally may be applied without asking first. Tell him afterwards:
+  what changed, and that the checks passed. Still ask first, every time, for
+  anything that deletes, changes or removes members' data, or that could
+  stop an existing member from doing what they could do before.
 - **Latest information as of the day.** Re-check anything time-sensitive on
   the day it is asked, not from an earlier session.
 
