@@ -100,6 +100,9 @@ the suite: this platform's product is controlled disclosure, so proving a thing
 | 70 | A deal file opens by itself when an Operator first forwards a negotiation, one per pair | does |
 | 71 | Members never see or change deal files or their outcomes | MUST NOT |
 | 72 | A deal file or its history is never deleted or rewritten; every change keeps the old answer, who and when | MUST NOT |
+| 73 | A member can never read a scorecard, their own or anyone's | MUST NOT |
+| 74 | Scorecard figures are counts of what Operators recorded, kept apart by side | does |
+| 75 | An Operator sees deals opened, introduced, closed and fallen through, period by period | does |
 
 ## Open questions on this list
 

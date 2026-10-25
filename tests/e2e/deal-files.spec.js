@@ -6,6 +6,9 @@ const { createAccount, cleanup, assertConfigured } = require('./helpers/fixtures
 const { signIn, openScreen } = require('./helpers/session');
 const { query } = require('../../scripts/db');
 
+// Item74 reads what Item70 recorded, so the two run in order.
+test.describe.configure({ mode: 'serial' });
+
 let operator, owner, buyer, listingRef;
 
 test.beforeAll(async () => {
@@ -55,4 +58,23 @@ test('Item70 a forwarded negotiation appears as a deal file the Operator can mov
   const fresh = page.locator(`[data-deal-row="${deal.id}"]`);
   await fresh.locator('[data-deal-history]').click();
   await expect(page.locator(`[data-history-for="${deal.id}"]`)).toContainText('docs_match — → never_arrived');
+});
+
+test('Item74 the scorecard shows the counts recorded in the deal file, by side', async ({ page }) => {
+  await signIn(page, operator, 'operator.html');
+  await openScreen(page, 'scorecard');
+  // The Item70 test above recorded one file with Owner as poster and
+  // "never arrived" for its documents.
+  const row = page.locator(`[data-scorecard-for="${owner.profileId}"]`);
+  await expect(row.locator('[data-label="Deals"]')).toHaveText('1 / 0', { timeout: 15_000 });
+  await expect(row.locator('[data-label="Docs"]')).toHaveText('0 / 0 / 1');
+});
+
+test('Item75 Analytics counts deal files by stage, beside the message counts', async ({ page }) => {
+  await signIn(page, operator, 'operator.html');
+  await openScreen(page, 'analytics');
+  // The Item70 test moved this run's file to "agreed".
+  const agreed = page.locator('#deal-analytics-table [data-deal-total="agreed"]');
+  await expect(agreed).not.toHaveText('0', { timeout: 15_000 });
+  await expect(page.locator('#analytics-table thead')).toContainText('Messages forwarded');
 });

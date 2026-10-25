@@ -67,6 +67,8 @@ const DEFAULT_ORDER = [
   '034_signature_required_to_act.sql',
   '035_deal_files.sql',
   '036_terms_3_1.sql',
+  '037_member_scorecard.sql',
+  '038_deal_analytics.sql',
   'seed_commodities.sql',
 ];
 
