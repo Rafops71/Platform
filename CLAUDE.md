@@ -112,6 +112,19 @@ updating them. Two of its "still open" items were already done in later commits.
 If a change closes something a document claims is open, update the document in
 the same commit.
 
+## How to work with the owner (his words, 2026-10-25)
+
+- **One block at a time.** He reads on a 13-inch screen and cannot hold a long
+  list. Give one block; wait for his answer; then the next. Format each block
+  as **asked → you answered → my feedback**. Give no feedback until every
+  block has been answered, unless he says "respond now". The feedback comes in
+  blocks as well.
+- **No "ask a lawyer".** He has said so plainly. Research statutes, case law
+  and court rules directly, check each against the primary source, and mark
+  anything that could not be verified. Say the limit once, then do the work.
+- **Latest information as of the day.** Re-check anything time-sensitive on
+  the day it is asked, not from an earlier session.
+
 ## Audience
 
 The owner is not a developer, reads on a small screen, and wants short answers
