@@ -275,8 +275,9 @@ async function main() {
       await c.query(`set role authenticated`);
       await c.query(`set test.uid = '${racer.user_id}'`);
       return c.query(`
-        insert into public.listings (user_id, type, commodity, incoterm, origin, reference_number)
-        values ($1, 'sell', 'Iron Ore', 'FOB', 'Chile', $2)
+        insert into public.listings (user_id, type, commodity, incoterm, origin, reference_number,
+                                     poster_role, docs_seen, docs_showable, truth_confirmed)
+        values ($1, 'sell', 'Iron Ore', 'FOB', 'Chile', $2, 'principal', 'yes', 'on_request', true)
       `, [racer.id, `STRESS-RACE-${i}`]);
     }));
 

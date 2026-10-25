@@ -63,6 +63,7 @@ const DEFAULT_ORDER = [
   '030_activity_log_write_only_through_a_function.sql',
   '031_signing_and_acceptance.sql',
   '032_terms_3_0.sql',
+  '033_listing_statements.sql',
   'seed_commodities.sql',
 ];
 

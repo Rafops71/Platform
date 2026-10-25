@@ -26,7 +26,7 @@ Anything else is "written, not yet run" — say that instead.
 ## What the checklist is
 
 `docs/CHECKLIST.md` lists every core function in plain words. It is the source
-of truth, not a summary of the tests. 31 of the items are prohibitions: this
+of truth, not a summary of the tests. 34 of the items are prohibitions: this
 platform's product is controlled disclosure, so proving something *did not*
 happen is worth more than proving a button worked.
 

@@ -179,8 +179,8 @@ from public.email_outbox where to_email='legacy@example.com';
 -- and Omar (operator, profile says es) are the candidate recipients.
 \set QUIET on
 set role authenticated; set test.uid='aaaaaaaa-0000-0000-0000-000000000001';
-insert into public.listings (user_id, type, commodity, quantity, unit, incoterm, origin, specification, notes, price_conditions, currency, status, reference_number)
- select id,'sell','Antimony',1200,'Metric tons','FOB','Bolivia','Sb 99.65%','Sin observaciones',14000,'USD','available', public.next_reference('sell')
+insert into public.listings (user_id, type, commodity, quantity, unit, incoterm, origin, specification, notes, price_conditions, currency, status, reference_number, poster_role, docs_seen, docs_showable, truth_confirmed)
+ select id,'sell','Antimony',1200,'Metric tons','FOB','Bolivia','Sb 99.65%','Sin observaciones',14000,'USD','available', public.next_reference('sell'), 'principal','yes','on_request',true
  from public.profiles where user_id='aaaaaaaa-0000-0000-0000-000000000001';
 reset role; reset test.uid;
 \set QUIET off
@@ -212,8 +212,8 @@ where to_email='omar@example.com' and subject like '%Antimony%';
 \set QUIET on
 update public.profiles set language='es' where email='edward@example.com';
 set role authenticated; set test.uid='aaaaaaaa-0000-0000-0000-000000000001';
-insert into public.listings (user_id, type, commodity, quantity, unit, incoterm, destination, specification, status, reference_number)
- select id,'buy','Cobalt',75,'Dry Metric Ton Units (DMTU)','CIF','Spain','Co 20% min','available', public.next_reference('buy')
+insert into public.listings (user_id, type, commodity, quantity, unit, incoterm, destination, specification, status, reference_number, poster_role, docs_seen, docs_showable, truth_confirmed)
+ select id,'buy','Cobalt',75,'Dry Metric Ton Units (DMTU)','CIF','Spain','Co 20% min','available', public.next_reference('buy'), 'principal','yes','on_request',true
  from public.profiles where user_id='aaaaaaaa-0000-0000-0000-000000000001';
 reset role; reset test.uid;
 \set QUIET off
