@@ -14,6 +14,8 @@ let CONTACT_TARGET = null; // { listingId, referenceNumber, inReplyTo }
 document.addEventListener('DOMContentLoaded', async () => {
   CURRENT_PROFILE = await requireAuth('participant');
   if (!CURRENT_PROFILE) return; // requireAuth already redirected
+  // A member who has not signed the newest Terms signs before anything else.
+  if (!(await checkTermsGate())) return;
 
   document.getElementById('user-name').textContent = personName(CURRENT_PROFILE);
   document.getElementById('logout-link').addEventListener('click', (e) => { e.preventDefault(); logout(); });

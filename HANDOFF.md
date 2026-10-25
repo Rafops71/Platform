@@ -793,7 +793,7 @@ commit.
 it. No AI: it reads GitHub's records and the live site, costs no Claude usage,
 and says the same thing about the same night every time. It reports commits to
 main, every workflow run, the latest CI on main job by job with the
-checklist's own "N of 61 functions proven" line, which revision the live site
+checklist's own "N of N functions proven" line, which revision the live site
 serves (/REVISION), open pull requests, and - the one that matters most -
 scheduled jobs that ran GREEN WHILE SKIPPING their real work.
 

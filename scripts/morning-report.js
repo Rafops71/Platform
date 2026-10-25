@@ -17,7 +17,7 @@
 //   - commits to main in the last 24 hours, so nothing changes unannounced
 //   - every workflow run in that window, failures named
 //   - the latest CI run on main, job by job, and the checklist's own
-//     "N of 61 functions proven" line read from its log
+//     "N of N functions proven" line read from its log
 //   - scheduled jobs that went GREEN WHILE SKIPPING their real work. The email
 //     sender did exactly that for weeks: every run green, no email ever sent.
 //     A skipped step in a scheduled run is reported as NOT WORKING, never as ok.

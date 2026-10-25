@@ -16,7 +16,9 @@ window.onLanguageChange = function () {
     const select = document.getElementById('country');
     const chosen = select.value;
     select.innerHTML = `<option value="">${escapeHtml(t('register.countryPlaceholder'))}</option>`;
-    populateSelect('country', COUNTRIES, false, countryLabel);
+    renderSigningFields(document.getElementById('signing-fields'), '');
+  document.getElementById('signing-name').innerHTML = signedNameHtml('');
+  applyTranslations(document.getElementById('signing-name'));
     select.value = chosen;
   }
 };
@@ -148,7 +150,9 @@ async function initRegisterPage() {
   const checking = document.getElementById('invitation-checking');
   const invalidCard = document.getElementById('invitation-invalid');
   const registerCard = document.getElementById('register-card');
-  populateSelect('country', COUNTRIES, false, countryLabel);
+  renderSigningFields(document.getElementById('signing-fields'), '');
+  document.getElementById('signing-name').innerHTML = signedNameHtml('');
+  applyTranslations(document.getElementById('signing-name'));
 
   if (!invitationToken) {
     checking.classList.add('hidden');
@@ -189,6 +193,15 @@ async function handleRegisterSubmit(e) {
     return;
   }
 
+  // The signature. Checked here so the member is told in their own words;
+  // handle_new_user() records it only if it passes the same rules again.
+  const signature = readSignature('');
+  if (signature.errorKey) {
+    showError(t(signature.errorKey));
+    return;
+  }
+  const sig = signature.values;
+
   const btn = document.getElementById('register-btn');
   btn.disabled = true;
   btn.textContent = t('register.submitting');
@@ -197,8 +210,8 @@ async function handleRegisterSubmit(e) {
   const password = document.getElementById('password').value;
   const first_name = document.getElementById('first_name').value.trim();
   const last_name = document.getElementById('last_name').value.trim();
-  const company = document.getElementById('company').value.trim();
-  const country = document.getElementById('country').value.trim();
+  const company = sig.signing_capacity === 'company' ? sig.company : '';
+  const country = sig.country;
   const phone = document.getElementById('phone').value.trim();
 
   // The language they actually filled this form in becomes their stored
@@ -219,6 +232,12 @@ async function handleRegisterSubmit(e) {
         first_name, last_name, company, country, phone, language,
         terms_version: TERMS_VERSION,
         terms_language: language,
+        signed_name: sig.signed_name,
+        signing_capacity: sig.signing_capacity,
+        address_line1: sig.address_line1,
+        address_line2: sig.address_line2,
+        city: sig.city,
+        postal_code: sig.postal_code,
       }
     }
   });

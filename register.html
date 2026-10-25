@@ -58,9 +58,6 @@
         </div>
       </div>
 
-      <label for="company" data-i18n="register.company">Company (optional)</label>
-      <input type="text" id="company">
-
       <label for="email"><span data-i18n="common.email">Email</span> *</label>
       <input type="email" id="email" required autocomplete="username">
 
@@ -68,22 +65,18 @@
       <input type="password" id="password" required minlength="6" autocomplete="new-password">
       <div class="field-hint" data-i18n="register.passwordHint">At least 6 characters.</div>
 
-      <div class="grid-2">
-        <div>
-          <label for="country"><span data-i18n="register.country">Country</span> *</label>
-          <select id="country" required>
-            <option value="" data-i18n="register.countryPlaceholder">Select a country…</option>
-          </select>
-        </div>
-        <div>
-          <label for="phone"><span data-i18n="register.phone">Phone number</span> *</label>
-          <input type="tel" id="phone" required>
-        </div>
-      </div>
+      <label for="phone"><span data-i18n="register.phone">Phone number</span> *</label>
+      <input type="tel" id="phone" required>
+
+      <!-- Address, capacity and company: built by js/signing.js, the same
+           block the sign-in gate uses. sql/031 checks it all again. -->
+      <div id="signing-fields"></div>
 
       <!-- Required. The `required` attribute blocks submission in the browser;
            handleRegisterSubmit checks it again, and sql/010 records what was
            accepted so the consent is provable afterwards. -->
+      <div id="signing-name"></div>
+
       <div class="terms-accept">
         <label for="accept-terms" class="checkbox-row">
           <input type="checkbox" id="accept-terms" required>
@@ -103,6 +96,7 @@
 <script src="js/supabase-config.js"></script>
 <script src="js/i18n.js"></script>
 <script src="js/utils.js"></script>
+<script src="js/signing.js"></script>
 <script src="js/auth.js"></script>
 </body>
 </html>

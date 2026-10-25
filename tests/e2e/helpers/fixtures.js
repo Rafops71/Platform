@@ -141,6 +141,35 @@ async function inviteFixture(email) {
   }
 }
 
+/** Fill register.html's signing block (js/signing.js) the way a member
+ *  would. Everything is overridable, so a test can try a PO box. */
+async function fillSignature(page, over = {}, prefix = '') {
+  const v = { capacity: 'individual', address_line1: '1 Test Street', city: 'Testville',
+              country: 'Belgium', signed_name: 'Test Signer', ...over };
+  await page.check(`#${prefix}cap-${v.capacity}`);
+  if (v.capacity === 'company') await page.fill(`#${prefix}company`, v.company || 'Test Company Ltd');
+  await page.fill(`#${prefix}address_line1`, v.address_line1);
+  await page.fill(`#${prefix}city`, v.city);
+  await page.selectOption(`#${prefix}country`, v.country);
+  await page.fill(`#${prefix}signed_name`, v.signed_name);
+}
+
+/** The newest published Terms version in English, or null if none is. */
+async function latestTermsVersion() {
+  const client = await connect();
+  try {
+    const { rows } = await client.query(
+      `select version, language from public.terms_versions
+        where language = 'en' order by published_at desc limit 1`);
+    return rows[0] || null;
+  } catch (err) {
+    if (err.code === '42P01') return null;   // undefined_table: before sql/031
+    throw err;
+  } finally {
+    await client.end();
+  }
+}
+
 /** Create a confirmed auth user. The on_auth_user_created trigger builds the
  *  matching profile as a pending participant; `role` and `status` here are
  *  applied afterwards over SQL, exactly as an operator approval would. */
@@ -165,6 +194,11 @@ async function createAccount({ label, role = 'participant', status = 'approved',
   // world from nothing.
   await inviteFixture(email);
 
+  // Sign the newest published Terms at registration, as the sign-up form now
+  // does. Without it every signed-in test would stop at the acceptance gate.
+  // Before sql/031 the table does not exist; then there is nothing to sign.
+  const terms = await latestTermsVersion();
+
   const user = await admin('/users', {
     method: 'POST',
     body: JSON.stringify({
@@ -177,6 +211,15 @@ async function createAccount({ label, role = 'participant', status = 'approved',
         company: meta.company || null,
         phone: meta.phone || '+320000000',
         country: meta.country || 'Belgium',
+        ...(terms && {
+          terms_version: terms.version,
+          terms_language: terms.language,
+          signed_name: `${meta.first_name || 'E2E'} ${meta.last_name || label}`,
+          signing_capacity: meta.company ? 'company' : 'individual',
+          address_line1: '1 Test Street',
+          city: 'Testville',
+          ...meta.signature,
+        }),
       },
     }),
   });
@@ -295,6 +338,10 @@ async function cleanup() {
     // document_checklist, document_requests, matches and email_outbox all
     // cascade from listings, so they need no separate delete.
     await client.query('delete from public.listings where user_id = any($1)', [ids]);
+    // Since sql/031 a member's acceptances outlive the member (SET NULL, not
+    // CASCADE), so a test account's would otherwise stay in the live table
+    // forever with no owner. Removed here, while they still have one.
+    await client.query('delete from public.terms_acceptances where profile_id = any($1)', [ids]);
     await client.query(
       'delete from public.invitations where created_by = any($1) or used_by = any($1) or email like $2',
       [ids, `${E2E_PREFIX}%`]
@@ -386,5 +433,5 @@ async function cleanup() {
 
 module.exports = {
   E2E_PREFIX, RUN_PREFIX, RUN_TAG,
-  testEmail, testPassword, createAccount, cleanup, assertConfigured,
+  testEmail, testPassword, createAccount, cleanup, assertConfigured, fillSignature, latestTermsVersion,
 };

@@ -54,7 +54,7 @@ values ('b9b9b9b9-0003-0003-0003-000000000003'::uuid, 'sign-c@example.invalid',
                      'address_line1','P.O. Box 1234','city','Dubai'));
 
 select case when a.signed_name is null then 'PASS' else 'FAIL signed' end
-  as "T3 a PO box at registration is not accepted as a signature"
+  as "T3 Item64 a PO box at registration is not accepted as a signature"
 from public.terms_acceptances a join public.profiles p on p.id = a.profile_id
 where p.email = 'sign-c@example.invalid';
 
@@ -63,7 +63,7 @@ where p.email = 'sign-c@example.invalid';
 
 set role authenticated; set test.uid='b9b9b9b9-0001-0001-0001-000000000001';
 select case when not public.has_accepted_current_terms() then 'PASS' else 'FAIL' end
-  as "T4 an unsigned member is held at the gate";
+  as "T4 Item62 an unsigned member is held at the gate";
 reset role; reset test.uid;
 
 -- Each refusal below is expected to raise; the count after them decides.
@@ -77,7 +77,7 @@ select public.accept_terms('8.9','en','Ada Signer','individual',null,'1 Road',nu
 reset role; reset test.uid;
 
 select case when count(*) = 0 then 'PASS' else 'FAIL got ' || count(*) end
-  as "T5 one-word name, missing company, no street, PO box, unknown version all refused"
+  as "T5 Item64 one-word name, missing company, no street, PO box, unknown version all refused"
 from public.terms_acceptances a join public.profiles p on p.id = a.profile_id
 where p.email = 'sign-a@example.invalid' and a.signed_name is not null;
 
@@ -113,7 +113,7 @@ select id, 'forged', 'en', 'Ada Signer' from public.profiles where email = 'sign
 reset role; reset test.uid;
 
 select case when count(*) = 0 then 'PASS' else 'FAIL got ' || count(*) end
-  as "T9 a member cannot write an acceptance row directly"
+  as "T9 Item65 a member cannot write an acceptance row directly"
 from public.terms_acceptances where version = 'forged';
 
 select case when not has_function_privilege('anon',
@@ -128,7 +128,7 @@ select case when not has_function_privilege('anon',
 delete from public.profiles where email = 'sign-b@example.invalid';
 
 select case when count(*) = 1 then 'PASS' else 'FAIL got ' || count(*) end
-  as "T11 deleting a member keeps their signed acceptance"
+  as "T11 Item63 deleting a member keeps their signed acceptance"
 from public.terms_acceptances
 where profile_id is null and signed_name = 'Bo Full'
   and signed_details->>'email' = 'sign-b@example.invalid';

@@ -25,7 +25,7 @@
   </div>
 </header>
 
-<nav class="tabs">
+<nav class="tabs" data-gate-hides>
   <div class="container">
     <button data-screen="my-listings" class="active" data-i18n="nav.myListings">My Listings</button>
     <button data-screen="new-listing" data-i18n="nav.newListing">New Listing</button>
@@ -37,7 +37,22 @@
   </div>
 </nav>
 
-<main class="container">
+<!-- The sign-in gate (js/signing.js): shown instead of everything below to a
+     member who has not signed the newest published Terms. -->
+<div id="terms-gate" class="container hidden">
+  <div class="card">
+    <h2 data-i18n="sign.gate.title">Please sign the updated Terms</h2>
+    <p data-i18n="sign.gate.intro">The Terms &amp; Conditions have changed. Please read them and sign below to continue.</p>
+    <p><a href="terms.html" target="_blank" rel="noopener" data-i18n="sign.gate.read">Read the Terms &amp; Conditions</a></p>
+    <form id="gate-form">
+      <div id="gate-fields"></div>
+      <div id="gate-name"></div>
+      <button type="submit" class="btn btn-primary btn-block" style="margin-top:18px;" id="gate-btn" data-i18n="sign.gate.submit">Sign and continue</button>
+    </form>
+  </div>
+</div>
+
+<main class="container" data-gate-hides>
 
   <!-- MY LISTINGS -->
   <section id="screen-my-listings" class="screen active">
@@ -315,6 +330,7 @@
 <script src="js/supabase-config.js"></script>
 <script src="js/i18n.js"></script>
 <script src="js/utils.js"></script>
+<script src="js/signing.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
