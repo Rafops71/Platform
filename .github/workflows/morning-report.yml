@@ -1,0 +1,58 @@
+name: Morning report
+
+# One plain report every morning, filed as a GitHub issue that @mentions the
+# owner, so GitHub emails it to him. Written by scripts/morning-report.js from
+# GitHub's own records and the live site - no AI, so it costs no Claude usage
+# and says the same thing about the same night every time. See the script's
+# header for what it checks and why.
+#
+# On a pull request that touches the report, it runs as a dry run: the report
+# goes to the job summary and nothing is posted. A change to the report is
+# tested before it can file anything.
+#
+# Two things worth knowing, both from GitHub's documentation: scheduled
+# workflows run only from the default branch, and on a public repository they
+# are disabled after 60 days with no repository activity.
+
+on:
+  schedule:
+    # 05:43 UTC: 06:43 in Brussels in winter, 09:43 in Dubai. Off the hour on
+    # purpose - scheduled jobs asking for :00 queue behind everybody else's.
+    - cron: '43 5 * * *'
+  workflow_dispatch: {}
+  pull_request:
+    paths:
+      - scripts/morning-report.js
+      - .github/workflows/morning-report.yml
+
+permissions:
+  contents: read
+  actions: read
+  checks: read
+  pull-requests: read
+  issues: write
+
+concurrency:
+  group: morning-report
+  cancel-in-progress: false
+
+jobs:
+  report:
+    name: Write the morning report
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Write it, and file it as an issue
+        if: github.event_name != 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/morning-report.js --issue
+      - name: Dry run - report to the job summary only, post nothing
+        if: github.event_name == 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/morning-report.js
