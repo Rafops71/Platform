@@ -171,10 +171,12 @@ test.describe.serial('Terms & Conditions', () => {
     // read and relied on in.
     expect(body).toContain('No es un mercado público');
     expect(body).toContain('podrá suspenderse o revocarse en cualquier momento sin previo aviso');
-    expect(body).toContain('la comisión acordada entre las partes durante la negociación');
+    expect(body).toContain('pueden actuar para ambas partes de una misma operación');
+    expect(body).toContain('se acuerdan por escrito entre los Operadores y cada parte antes de realizar la presentación');
     expect(body).toContain('veinticuatro (24) meses');
-    expect(body).toContain('se rigen por el Derecho inglés');
-    expect(body).toContain('jurisdicción exclusiva de los tribunales de Inglaterra y Gales');
+    expect(body).toContain('conforme al Derecho de Inglaterra y Gales');
+    expect(body).toContain('jurisdicción exclusiva de los Tribunales del Centro Financiero Internacional de Dubái');
+    expect(body).toContain('artículo 14(B) de la Ley de Dubái n.º (2) de 2025');
 
     // The Privacy Notice is translated too, not left in English.
     expect(body).toContain('Aviso de Privacidad');

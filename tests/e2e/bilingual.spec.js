@@ -77,7 +77,8 @@ test.describe.serial('bilingual participant interface', () => {
     await page.click('button[data-screen="new-listing"]');
     await expect(page.locator('label[for="specification"]')).toHaveText('Especificación / Grado');
     await expect(page.locator('label[for="notes"]')).toHaveText('Observaciones');
-    await expect(page.locator('#listing-form legend')).toHaveText('Documentación disponible');
+    await expect(page.locator('#listing-form legend[data-i18n="form.documentsYouHave"]')).toHaveText('Documentación disponible');
+    await expect(page.locator('#listing-form legend span[data-i18n="stmt.role"]')).toHaveText('¿Cuál es su función en esta oferta?');
     await expect(page.locator('#doc-checklist')).toContainText('Certificado de análisis (COA)');
     await expect(page.locator('#doc-checklist')).toContainText('Documentación KYC');
   });
