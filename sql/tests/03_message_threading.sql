@@ -23,6 +23,7 @@ insert into auth.users (id, email, raw_user_meta_data) values
     '{"first_name":"Ravi","last_name":"Asker","country":"India","phone":"+91"}');
 update public.profiles set status='approved'
  where email in ('thowner@example.com','thasker@example.com');
+select public.test_sign_approved();
 
 -- Rows are set up on a direct connection, NOT inside a participant session.
 -- Under RLS a participant cannot see the other party's profile or listing at

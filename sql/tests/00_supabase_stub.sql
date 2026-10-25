@@ -55,3 +55,27 @@ begin
           now() + interval '1 day');
 end;
 $$;
+
+-- Sign the newest published Terms for every approved participant who has not.
+-- A fixture, like test_invite(): since sql/034 an unsigned member can neither
+-- post, message nor browse, so suites that exercise those as a member give
+-- their members a signature first. The signing route itself is proven by
+-- sql/tests/19, through accept_terms() and registration.
+create or replace function public.test_sign_approved()
+returns void
+language plpgsql
+security definer
+as $$
+begin
+  insert into public.terms_acceptances
+    (profile_id, version, language, signed_name, signed_capacity, terms_sha256)
+  select p.id, v.version, v.language, 'Test Signer', 'individual', v.sha256
+    from public.profiles p
+    cross join lateral (select version, language, sha256 from public.terms_versions
+                         order by published_at desc limit 1) v
+   where p.status = 'approved' and p.role = 'participant'
+  on conflict (profile_id, version) do update
+     set signed_name = excluded.signed_name, terms_sha256 = excluded.terms_sha256
+   where public.terms_acceptances.signed_name is null;
+end;
+$$;

@@ -147,3 +147,63 @@ select case when count(*) = 2
             then 'PASS' else 'FAIL got ' || count(*) end
   as "T12 Terms 3.0 is published in both languages, hash matching its text"
 from public.terms_versions where version = '3.0';
+
+\echo
+\echo '=========== THE DATABASE HOLDS AN UNSIGNED MEMBER (sql/034) ==========='
+
+select public.test_invite('sign-hold@example.invalid');
+insert into auth.users (id, email, raw_user_meta_data)
+values ('b9b9b9b9-0004-0004-0004-000000000004'::uuid, 'sign-hold@example.invalid',
+  jsonb_build_object('first_name','Hal','last_name','Held','phone','+3200000094',
+                     'country','Chile','language','en'));
+update public.profiles set status = 'approved' where email = 'sign-hold@example.invalid';
+
+create temp table t19_hold (label text, msg text);
+grant all on t19_hold to authenticated;
+
+set role authenticated; set test.uid='b9b9b9b9-0004-0004-0004-000000000004';
+do $$
+declare me uuid := (select id from public.profiles where email = 'sign-hold@example.invalid');
+begin
+  begin
+    insert into public.listings (user_id, type, commodity, incoterm, origin, reference_number,
+                                 poster_role, docs_seen, docs_showable, truth_confirmed)
+    values (me, 'sell', 'Held Copper', 'FOB', 'Chile', 'SELL-HOLD-1', 'principal', 'yes', 'on_request', true);
+    insert into t19_hold values ('post', 'ACCEPTED');
+  exception when others then insert into t19_hold values ('post', sqlerrm); end;
+  begin
+    perform count(*) from public.get_public_listings();
+    insert into t19_hold values ('browse', 'ACCEPTED');
+  exception when others then insert into t19_hold values ('browse', sqlerrm); end;
+  begin
+    insert into public.messages (sender_id, subject, body) values (me, 'Held', 'Held');
+    insert into t19_hold values ('message', 'ACCEPTED');
+  exception when others then insert into t19_hold values ('message', sqlerrm); end;
+end $$;
+reset role; reset test.uid;
+
+select case when count(*) = 3 and bool_and(msg <> 'ACCEPTED') then 'PASS'
+            else 'FAIL ' || string_agg(label || ': ' || msg, '; ') end
+  as "T13 Item62 unsigned, a member can neither post, browse nor message"
+from t19_hold;
+
+select case when msg like 'Please sign the updated Terms%' then 'PASS' else 'FAIL got ' || msg end
+  as "T14 Browse tells an unsigned member why"
+from t19_hold where label = 'browse';
+
+set role authenticated; set test.uid='b9b9b9b9-0004-0004-0004-000000000004';
+select public.accept_terms('3.0', 'en', 'Hal Held', 'individual', null,
+                           '4 Plaza Mayor', null, 'Santiago', null, 'Chile');
+insert into public.listings (user_id, type, commodity, incoterm, origin, reference_number,
+                             poster_role, docs_seen, docs_showable, truth_confirmed)
+select id, 'sell', 'Held Copper', 'FOB', 'Chile', 'SELL-HOLD-2', 'principal', 'yes', 'on_request', true
+  from public.profiles where email = 'sign-hold@example.invalid';
+select case when (select count(*) from public.get_public_listings()) > 0 then 'PASS' else 'FAIL' end
+  as "T15 once signed, the same member can post and browse";
+reset role; reset test.uid;
+
+select case when count(*) = 1 then 'PASS' else 'FAIL got ' || count(*) end
+  as "T16 the signed member's listing was saved"
+from public.listings where reference_number = 'SELL-HOLD-2';
+
+delete from public.listings where reference_number like 'SELL-HOLD-%';
