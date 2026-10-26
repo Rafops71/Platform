@@ -92,6 +92,7 @@ test.describe.serial('Terms & Conditions', () => {
     expect(body).toContain('Article 14(B) of Dubai Law No. (2) of 2025');
     expect(body).toContain('may be served on you by email');
     expect(body).toContain('bills of lading, assay reports and KYC material');
+    expect(body).toContain('The Operators also keep internal records of how each introduction progressed');
   });
 
   test('the Privacy Notice renders in full', async ({ page }) => {
