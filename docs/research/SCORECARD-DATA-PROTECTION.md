@@ -66,6 +66,20 @@ issued is **[not verified]**: recent secondary sources (one dated October
    decides whether the GDPRs and a representative apply), and whether to obtain
    the official Arabic PDPL text (the portal refused it from here).
 
+## Can a departing or expelled member have their records deleted? (2026-10-26)
+
+They can ask; records needed to defend the Operators' rights may be kept.
+- UAE PDPL Art. 15 (unofficial translation): the data subject "is not
+  entitled to request" erasure "if the request affects the investigation
+  procedures and claiming and defending rights".
+- UK GDPR Art. 17(3)(e) **[verified]**: erasure does not apply where
+  processing is necessary "for the establishment, exercise or defence of
+  legal claims".
+So deal files, outcomes, signatures and the reason for an expulsion may be
+kept for as long as a claim could be brought; contact details and content no
+longer needed should go (sql/018's deletion already does this). A fixed
+retention period is still the owner's decision.
+
 ## Sources
 - UAE PDPL, unofficial English text: https://www.privacyguide.in/UAELaw.html
 - Official portal (download refused tonight): https://uaelegislation.gov.ae/en/legislations/1972
