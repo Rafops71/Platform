@@ -840,10 +840,21 @@ Decisions behind each are in `docs/AGREED-2026-10-25.md`.
     the owner switches it on. Until then the pull-request rule holds only
     because Claude keeps it.
 
--5. **The films are out of date.** Made 2026-10-18, before signing, the
-    listing questions and the Deals tab. Remaking them with OpenMontage
-    (installed in the cloud session, `/home/user/OpenMontage`) is planned for
-    later, on the owner's word.
+-5. **The films are out of date, and ON HOLD by the owner (2026-10-26).**
+    Made 2026-10-18, before signing, the listing questions and the Deals
+    tab. Do not start them, and do not use multi-agent "arena" approaches:
+    the owner said films eat his usage. The agreed plan when he says go:
+    Claude writes one precise brief (scenes, EN+ES narration, screens to
+    record, an acceptance checklist); a FREE model does the heavy work on
+    the owner's PC with OpenMontage (`C:\OpenMontage`; a cloud session has
+    none - each one starts on a fresh machine, so it would need
+    `git clone https://github.com/calesthio/OpenMontage && make setup`,
+    ~10 min, plus `apt-get install ffmpeg`); Claude checks the
+    result against the checklist. The free brain is his choice: Mistral's
+    free API tier (its help centre says those requests may be used for
+    training - film material is not secret, so acceptable there) or Ollama
+    locally (depends on his PC). Keep the database, Terms and legal work on
+    Claude.
 
 -4. **The Privacy Notice does not yet mention outcome records or the
     scorecard.** The research says members must be told. A new Terms version

@@ -144,6 +144,28 @@ the same commit.
   what changed, and that the checks passed. Still ask first, every time, for
   anything that deletes, changes or removes members' data, or that could
   stop an existing member from doing what they could do before.
+- **Plain words, toddler style, with an example** whenever something is
+  explained. Start progress replies with a status line: "⏱ Now: … · time
+  left · need you: yes/no". Say how long each step takes, so he knows how
+  long to stay at the PC.
+- **Notify his phone** (push notification) when something finishes or needs
+  him.
+- **Passwords or keys pasted in chat:** he does not care who sees them. Do
+  not warn him or suggest rotating them.
+- **Grok** was given access to his GitHub and projects by him. Do not raise
+  it.
+- **Answers meant for another AI** (ChatGPT, Mistral, Grok) are written
+  addressed to that AI, not to him.
+- **His domain: intercommodities.net** (his, and the website is his too;
+  his email ends in @intercommodities.net). It is the placeholder for the
+  platform's email until the company is incorporated. New domains bought
+  later: .com only.
+- **Company placeholder:** until incorporation, the Terms use his own name
+  and address, as an independent broker trades under his own name.
+- **Domains: .com only. Nothing Belgian** - no .eu/.be, no Belgian company
+  forms or wording.
+- **Films are on hold** and cost his usage; do not start them or use
+  multi-agent "arena" approaches. Plan in HANDOFF.md.
 - **Latest information as of the day.** Re-check anything time-sensitive on
   the day it is asked, not from an earlier session.
 
