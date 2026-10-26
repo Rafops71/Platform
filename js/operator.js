@@ -67,6 +67,7 @@ function showScreen(name) {
   if (name === 'mailbox') loadOperatorMailbox();
   if (name === 'matches') loadMatches();
   if (name === 'deals') loadDeals();
+  if (name === 'scorecard') loadScorecard();
   if (name === 'analytics') loadAnalytics();
   if (name === 'activity') loadActivityLog();
 }
@@ -111,6 +112,28 @@ function analyticsPeriodLabel(isoDate, bucket) {
   return formatDate(isoDate);
 }
 
+const DEAL_ANALYTICS_COLUMNS = ['opened', 'agreed', 'introduced', 'closed_done', 'fell_through'];
+
+async function loadDealAnalytics(bucket, periods) {
+  const fresh = renderToken('op:loadDealAnalytics');
+  const table = document.getElementById('deal-analytics-table');
+  const tbody = table.querySelector('tbody');
+  const tfoot = table.querySelector('tfoot');
+  tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Loading…</td></tr>';
+  tfoot.innerHTML = '';
+  const { data, error } = await jericho.rpc('deal_analytics', { p_bucket: bucket, p_periods: periods });
+  if (!fresh()) return;
+  if (error) { tbody.innerHTML = `<tr><td colspan="6" class="empty-state">${escapeHtml(errorMessage(error))}</td></tr>`; return; }
+  const totals = Object.fromEntries(DEAL_ANALYTICS_COLUMNS.map(c => [c, 0]));
+  tbody.innerHTML = (data || []).map(row => {
+    DEAL_ANALYTICS_COLUMNS.forEach(c => { totals[c] += Number(row[c]); });
+    const busy = DEAL_ANALYTICS_COLUMNS.some(c => Number(row[c]) > 0);
+    return `<tr class="${busy ? '' : 'row-quiet'}"><td data-label="Period">${escapeHtml(analyticsPeriodLabel(row.period_start, bucket))}</td>
+      ${DEAL_ANALYTICS_COLUMNS.map(c => `<td data-label="${c}">${Number(row[c])}</td>`).join('')}</tr>`;
+  }).join('') || '<tr><td colspan="6" class="empty-state">No deal files yet.</td></tr>';
+  tfoot.innerHTML = `<tr><th>Total</th>${DEAL_ANALYTICS_COLUMNS.map(c => `<th data-deal-total="${c}">${totals[c]}</th>`).join('')}</tr>`;
+}
+
 async function loadAnalytics() {
   const fresh = renderToken('op:loadAnalytics');
   const tbody = document.querySelector('#analytics-table tbody');
@@ -124,6 +147,7 @@ async function loadAnalytics() {
   const bucket = document.getElementById('analytics-bucket').value;
   const periods = Number(document.getElementById('analytics-periods').value);
 
+  loadDealAnalytics(bucket, periods);
   const { data, error } = await jericho.rpc('operator_analytics', {
     p_bucket: bucket, p_periods: periods,
   });
@@ -1280,6 +1304,36 @@ async function showDealHistory(id) {
     ? data.map(h => `<div class="list-row-meta">${escapeHtml(formatDateTime(h.changed_at))} · ${escapeHtml(who.get(h.changed_by) || 'Unknown')}: ${escapeHtml(h.field)} ${escapeHtml(h.old_value ?? '—')} → ${escapeHtml(h.new_value ?? '—')}</div>`).join('')
     : '<p class="empty-state">No changes yet.</p>';
   box.classList.remove('hidden');
+}
+
+// ----------------------------------------------------------- SCORECARD ----
+// sql/037. Counts only; the database computes no score, and neither does this.
+async function loadScorecard() {
+  const fresh = renderToken('op:loadScorecard');
+  const tbody = document.getElementById('scorecard-tbody');
+  tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Loading…</td></tr>';
+  const { data, error } = await jericho.rpc('member_scorecard', { p_profile_id: null });
+  if (!fresh()) return;
+  if (error) { tbody.innerHTML = `<tr><td colspan="8" class="empty-state">${escapeHtml(errorMessage(error))}</td></tr>`; return; }
+  if (!data || !data.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Nothing recorded yet. Figures appear once deal files have outcomes.</td></tr>'; return; }
+
+  const names = new Map();
+  for (const part of chunked(data.map(r => r.profile_id))) {
+    const { data: ps } = await jericho.from('profiles').select('id,first_name,last_name,company').in('id', part);
+    if (!fresh()) return;
+    (ps || []).forEach(p => names.set(p.id, personName(p) + (p.company ? ` (${p.company})` : '')));
+  }
+  tbody.innerHTML = data.map(r => `
+    <tr data-scorecard-for="${r.profile_id}">
+      <td data-label="Member">${escapeHtml(names.get(r.profile_id) || 'Unknown')}</td>
+      <td data-label="Deals">${r.deals_as_poster} / ${r.deals_as_other}</td>
+      <td data-label="Introduced">${r.introduced}</td>
+      <td data-label="Closed / fell through">${r.closed_done} / ${r.fell_through}</td>
+      <td data-label="Docs">${r.docs_matched} / ${r.docs_not_matched} / ${r.docs_never_arrived}</td>
+      <td data-label="Faulty / false">${r.docs_faulty} / ${r.docs_false}</td>
+      <td data-label="Offer">${r.offer_real} / ${r.offer_did_not_happen} / ${r.offer_not_genuine}</td>
+      <td data-label="Last change">${r.last_activity ? formatDate(r.last_activity) : '—'}</td>
+    </tr>`).join('');
 }
 
 // ------------------------------------------------------------- MATCHES ----

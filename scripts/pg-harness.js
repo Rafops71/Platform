@@ -70,6 +70,8 @@ const SETUP = [
   'sql/034_signature_required_to_act.sql',
   'sql/035_deal_files.sql',
   'sql/036_terms_3_1.sql',
+  'sql/037_member_scorecard.sql',
+  'sql/038_deal_analytics.sql',
   'sql/seed_commodities.sql',
 ];
 

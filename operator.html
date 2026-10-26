@@ -36,6 +36,7 @@
     <button data-screen="mailbox">Mailbox</button>
     <button data-screen="matches">Matches</button>
     <button data-screen="deals">Deals</button>
+    <button data-screen="scorecard">Scorecard</button>
     <button data-screen="analytics">Analytics</button>
     <button data-screen="activity">Activity Log</button>
   </div>
@@ -225,6 +226,21 @@
     </div>
   </section>
 
+  <!-- SCORECARD (sql/037): counts of what Operators recorded in deal files.
+       No score and no verdict - see docs/research/SCORECARD-DATA-PROTECTION.md. -->
+  <section id="screen-scorecard" class="screen">
+    <div class="card">
+      <h2 class="mt-0">Scorecard</h2>
+      <p class="text-muted">Counts of what Operators recorded in deal files, split by the side the member was on. Facts, not a verdict: you decide what they mean. A member may ask to see what is held on them.</p>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Member</th><th>Deals (posted / other side)</th><th>Introduced</th><th>Closed / fell through</th><th>Docs matched / not / never arrived</th><th>Docs faulty / false</th><th>Offer real / didn't happen / not genuine</th><th>Last change</th></tr></thead>
+          <tbody id="scorecard-tbody"><tr><td colspan="8" class="empty-state">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
   <!-- ANALYTICS -->
   <!-- Counts over time, read-only. Five columns, one row per period, including
        the periods where nothing happened - a missing row would read as "no
@@ -255,7 +271,7 @@
               <th>Registrations</th>
               <th>New listings</th>
               <th>Messages reviewed</th>
-              <th>Introductions</th>
+              <th>Messages forwarded</th>
               <th>Matches reviewed</th>
             </tr>
           </thead>
@@ -268,6 +284,19 @@
         so a message that sat for a week counts in the week it was dealt with. Anything
         reviewed before this was recorded carries no date and appears in no period.
       </p>
+
+      <!-- sql/038: the deal files themselves. "Introduced" here is a deal
+           file reaching that stage, not a forwarded message. -->
+      <h3>Deals</h3>
+      <div style="overflow-x:auto;">
+        <table class="data-table" id="deal-analytics-table">
+          <thead>
+            <tr><th>Period</th><th>Opened</th><th>Agreed</th><th>Introduced</th><th>Closed</th><th>Fell through</th></tr>
+          </thead>
+          <tbody><tr><td colspan="6" class="empty-state">Loading…</td></tr></tbody>
+          <tfoot></tfoot>
+        </table>
+      </div>
     </div>
   </section>
 

@@ -749,7 +749,7 @@ WAITING ON THE OWNER: the private backup repository and its write token. Until
 backup storage is settled the workflow fails on purpose, loudly, at its first
 step. That red run IS the guard working.
 
-## Publishing is behind the gate (built 2026-10-25, switch pending)
+## Publishing is behind the gate (built and switched on 2026-10-25)
 
 Until now GitHub Pages published `main` straight from the branch, on its own.
 Proven from GitHub's check runs on `556e185`: `deploy` 14:42:43, `Function
@@ -805,7 +805,53 @@ only once CI has FINISHED on its exact commit.
 NOT YET VERIFIED: that the @mention reaches the owner's inbox. That depends on
 his GitHub notification settings; confirm on the first morning.
 
+## What 2026-10-25 added (CI proved 72 of 72 on PR #19; Items 73-75 arrive with sql/037-038)
+
+Decisions behind each are in `docs/AGREED-2026-10-25.md`.
+
+- **Terms 3.0, then 3.1** (sql/032, sql/036), generated from `js/i18n.js` by
+  `scripts/terms-seed.js`; `check:terms` fails the build if page and database
+  copy differ. 3.1 fixed the commission sentence to the owner's wording.
+- **Signing** (sql/031): capacity, street address (no PO boxes), typed name,
+  frozen copy, kept after deletion; members cannot write acceptance rows.
+  The sign-in gate, held by the database too since sql/034: an unsigned
+  member cannot post, message or browse. Nobody had signed any version when
+  3.1 went live.
+- **Listing statements** (sql/033): role, mandate or chain, the two-degrees
+  rule, two document questions, the truth tick dated by the server.
+- **Countries**: 250, ISO 3166-1 from the Debian iso-codes data plus Kosovo.
+- **Deal files** (sql/035): open on the first forward, one per listing and
+  pair; stages dated by the server; four outcome answers and a note,
+  Operators only; every change in `deal_history`; nothing deleted. A real bug
+  found by its own suite: the no-rewrite guard undid the foreign key's
+  SET NULL.
+- **Scorecard, numbers only** (sql/037) and **deal analytics** (sql/038).
+  No score, no ranking, no AI - see `docs/research/SCORECARD-DATA-PROTECTION.md`.
+  The Analytics column that counted every forwarded message as an
+  "Introduction" is now labelled "Messages forwarded".
+- **Every pull request names what it serves** (`purpose.yml`).
+- **Standing permissions** (CLAUDE.md): add-only, revert-proven database
+  changes without asking; and for the night of 2026-10-25, merging Claude's
+  own pull requests when every check is green.
+
 ## Still open
+
+-6. **Protect main on GitHub.** The API refuses it from Claude's session;
+    the owner switches it on. Until then the pull-request rule holds only
+    because Claude keeps it.
+
+-5. **The films are out of date.** Made 2026-10-18, before signing, the
+    listing questions and the Deals tab. Remaking them with OpenMontage
+    (installed in the cloud session, `/home/user/OpenMontage`) is planned for
+    later, on the owner's word.
+
+-4. **The Privacy Notice does not yet mention outcome records or the
+    scorecard.** The research says members must be told. A new Terms version
+    is the owner's decision; nothing has been published.
+
+-3. **The morning report is posted in a PUBLIC repository**, so deal figures
+    were deliberately kept out of it. Whether the owner wants them somewhere
+    private is open.
 
 -2. **PARKED, by the owner, on 2026-10-19: the sender's id on a forwarded
     message.** A member's mailbox receives each message's raw `sender_id`
