@@ -156,6 +156,12 @@ the same commit.
   it.
 - **Answers meant for another AI** (ChatGPT, Mistral, Grok) are written
   addressed to that AI, not to him.
+- **His domain: intercommodities.net** (his, and the website is his too;
+  his email ends in @intercommodities.net). It is the placeholder for the
+  platform's email until the company is incorporated. New domains bought
+  later: .com only.
+- **Company placeholder:** until incorporation, the Terms use his own name
+  and address, as an independent broker trades under his own name.
 - **Domains: .com only. Nothing Belgian** - no .eu/.be, no Belgian company
   forms or wording.
 - **Films are on hold** and cost his usage; do not start them or use
