@@ -846,7 +846,10 @@ Decisions behind each are in `docs/AGREED-2026-10-25.md`.
     the owner said films eat his usage. The agreed plan when he says go:
     Claude writes one precise brief (scenes, EN+ES narration, screens to
     record, an acceptance checklist); a FREE model does the heavy work on
-    the owner's PC with OpenMontage (`C:\OpenMontage`); Claude checks the
+    the owner's PC with OpenMontage (`C:\OpenMontage`; a cloud session has
+    none - each one starts on a fresh machine, so it would need
+    `git clone https://github.com/calesthio/OpenMontage && make setup`,
+    ~10 min, plus `apt-get install ffmpeg`); Claude checks the
     result against the checklist. The free brain is his choice: Mistral's
     free API tier (its help centre says those requests may be used for
     training - film material is not secret, so acceptable there) or Ollama
