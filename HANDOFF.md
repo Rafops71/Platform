@@ -652,7 +652,7 @@ NOT a replacement for Resend: Purelymail explicitly discourages bulk and
 marketing use, and the platform's notifications are machine-sent to every
 member. Keep the platform on Resend and the human mailbox on Purelymail.
 
-STILL OPEN: the domain itself. Nothing can be set up until one is bought.
+UPDATE 2026-10-26: the owner already owns intercommodities.net (see docs/AGREED-2026-10-25.md). Next: verify mail.intercommodities.net in Resend; no purchase needed.
 The owner's constraints, stated on 2026-10-19: .com only; no .eu, .be or
 anything Belgian (NV, BV and Dutch or French wording included); the words
 commodities, trade, market and capital are all out, because the business
