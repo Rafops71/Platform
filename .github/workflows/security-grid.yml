@@ -1,0 +1,57 @@
+name: Security grid (staging)
+
+# Knocks on every door of the database as every kind of caller, on the
+# STAGING Supabase project, never the live one (scripts/security-grid.js
+# refuses the live project outright). See the script's header for why: on
+# Supabase the table grants are wide open by default and row-level security is
+# the only lock, so the only honest test is to try every door.
+#
+# Staging is first brought up to the repository's SQL (apply-sql.js is safe
+# to re-run), so the grid always tests the rules this commit would deploy.
+# The nightly run also keeps the free staging project awake: Supabase pauses
+# a free project after a week without use.
+#
+# The staging URL and publishable key are not secret; the service role key
+# and database address are repository secrets.
+
+on:
+  schedule:
+    - cron: '17 2 * * *'
+  workflow_dispatch: {}
+  pull_request:
+    paths:
+      - 'sql/**'
+      - 'scripts/security-grid.js'
+      - '.github/workflows/security-grid.yml'
+
+permissions:
+  contents: read
+
+# One run at a time on the one staging database.
+concurrency:
+  group: staging-database
+  cancel-in-progress: false
+
+env:
+  SUPABASE_URL: https://pqxlfgvjoowawzgoszna.supabase.co
+  SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxeGxmZ3Zqb293YXd6Z29zem5hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxMTUyNTMsImV4cCI6MjEwODY5MTI1M30.d-5Hk6gljO5IOgsLus3AtddsOD7g9xJ6ra4beHGFtEQ
+
+jobs:
+  grid:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+
+      - name: Bring staging up to this commit's SQL
+        run: node scripts/apply-sql.js
+        env:
+          SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+
+      - name: Every door, every caller
+        run: node scripts/security-grid.js
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
