@@ -92,7 +92,7 @@ for (const [key, value] of en) {
 const used = new Map(); // key -> where
 for (const file of fs.readdirSync(ROOT).filter(f => f.endsWith('.html'))) {
   const html = fs.readFileSync(path.join(ROOT, file), 'utf8');
-  const tag = /data-i18n(?:-[a-z]+)?="([\w.]+)"/g;
+  const tag = /data-i18n(?:-[a-z]+)*="([\w.]+)"/g;   // -aria-label has two parts
   let m;
   while ((m = tag.exec(html))) if (!used.has(m[1])) used.set(m[1], file);
 }

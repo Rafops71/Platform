@@ -466,7 +466,7 @@ async function loadListings() {
       <td data-label="Incoterm">${escapeHtml(l.incoterm)}</td>
       <td data-label="Docs">${hasDocs ? 'Yes' : '<strong>None</strong>'}</td>
       <td data-label="Status">
-        <select data-status-for="${l.id}">
+        <select data-status-for="${l.id}" aria-label="Listing status">
           ${['available','under_review','negotiation','closed','archived'].map(st =>
             `<option value="${st}" ${st === l.status ? 'selected' : ''}>${statusLabel(st)}</option>`).join('')}
         </select>
