@@ -10,6 +10,7 @@
 //     always English), with every slot filled - no "{{", no "undefined",
 //     no "null", no untranslated phrase key such as "unit.Metric tons";
 //   - every web address in it belongs to the platform;
+//   - nobody gets the same email twice;
 //   - a new-listing email never names the member who posted it.
 //
 // Nothing is sent: the outbox rows are read and then deleted with the test
@@ -86,6 +87,7 @@ async function main() {
     // 3. Read every email written to this run's addresses.
     mails = (await must('outbox', http(`/rest/v1/email_outbox?select=id,to_email,subject,body_text,related_listing_id&to_email=like.${TAG}*`)));
     const seen = new Set();
+    const sent = new Set();
     for (const m of mails) {
       const reader = lang.get(m.to_email) || 'en';
       const key = m.related_listing_id ? 'new_listing'
@@ -97,6 +99,11 @@ async function main() {
         fail(`${where}: not written from the ${reader === 'es' ? 'Spanish' : 'English'} template`);
       }
       seen.add(`${key}/${reader}`);
+      // One email per reader per event: a listing mails each member once, and
+      // every other kind is written once for its one reader.
+      const once = `${m.to_email}/${key}/${m.related_listing_id || ''}`;
+      if (sent.has(once)) fail(`${where}: written twice`);
+      sent.add(once);
       const all = `${m.subject}\n${m.body_text}`;
       if (/\{\{|\}\}/.test(all)) fail(`${where}: a slot was left unfilled`);
       if (/\bundefined\b|\bnull\b|\bNaN\b|\[object Object\]/.test(all)) fail(`${where}: says "undefined", "null" or similar`);
@@ -106,7 +113,7 @@ async function main() {
         if (!ALLOWED_URL.test(url)) fail(`${where}: links outside the platform - ${url}`);
       }
       if (key === 'new_listing') {
-        for (const v of [poster.email, poster.identity.first_name, poster.identity.last_name, poster.identity.company, poster.identity.phone]) {
+        for (const v of Object.values(poster.identity)) {
           if (v && all.includes(v)) fail(`${where}: names the member who posted it ("${v}")`);
         }
         if (reader === 'es' && !all.includes('Toneladas métricas')) fail(`${where}: the unit is not in Spanish`);
