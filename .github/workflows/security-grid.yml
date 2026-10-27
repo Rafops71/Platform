@@ -117,3 +117,11 @@ jobs:
         env:
           BROWSER: firefox
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+
+      # Last, so its 40 sign-ins come after the others' (staging allows 150
+      # token requests per 5 minutes): 40 members acting at the same instant
+      # through the real API. Every one answered, quickly, and stored once.
+      - name: Forty members at once
+        run: node scripts/crowd-scan.js
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
