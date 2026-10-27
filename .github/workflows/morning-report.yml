@@ -1,7 +1,8 @@
 name: Morning report
 
-# One plain report every morning, filed as a GitHub issue that @mentions the
-# owner, so GitHub emails it to him. Written by scripts/morning-report.js from
+# One plain report every morning, filed as a GitHub issue (no @mention since
+# 2026-10-27: a scheduled Claude session reads it and briefs the owner).
+# Written by scripts/morning-report.js from
 # GitHub's own records and the live site - no AI, so it costs no Claude usage
 # and says the same thing about the same night every time. See the script's
 # header for what it checks and why.

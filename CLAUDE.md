@@ -157,8 +157,11 @@ the same commit.
 - **Answers meant for another AI** (ChatGPT, Mistral, Grok) are written
   addressed to that AI, not to him.
 - **His domain: intercommodities.net** (his, and the website is his too;
-  his email ends in @intercommodities.net). It is the placeholder for the
-  platform's email until the company is incorporated. New domains bought
+  his email ends in @intercommodities.net). The platform's own domain is
+  now **myplatform.trade** (placeholder, 2026-10-27): platform mail goes out
+  from noreply@mail.myplatform.trade, and his platform address is
+  rafael@myplatform.trade. The .trade name is his own deliberate,
+  one-year placeholder, not a breach of the rule below. New domains bought
   later: .com only.
 - **Company placeholder:** until incorporation, the Terms use his own name
   and address, as an independent broker trades under his own name.

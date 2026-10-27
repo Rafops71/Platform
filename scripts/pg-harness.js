@@ -73,6 +73,7 @@ const SETUP = [
   'sql/037_member_scorecard.sql',
   'sql/038_deal_analytics.sql',
   'sql/039_terms_3_2.sql',
+  'sql/040_terms_3_3.sql',
   'sql/seed_commodities.sql',
 ];
 

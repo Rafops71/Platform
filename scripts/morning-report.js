@@ -39,7 +39,11 @@
 const REPO = process.env.GITHUB_REPOSITORY || 'Rafops71/Platform';
 const TOKEN = process.env.GITHUB_TOKEN || '';
 const SITE = process.env.SITE_URL || 'https://rafops71.github.io/Platform/';
-const OWNER_LOGIN = process.env.REPORT_MENTION || 'Rafops71';
+// No @mention by default (owner, 2026-10-27): the report is read each morning
+// by a scheduled Claude session, which sends him a plain brief only when
+// something is wrong. A mention would email him the raw report as well.
+// Set REPORT_MENTION to a login to bring the email back.
+const OWNER_LOGIN = process.env.REPORT_MENTION || '';
 const FILE_ISSUE = process.argv.includes('--issue');
 const API = 'https://api.github.com';
 const HOURS = 24;
@@ -234,7 +238,7 @@ async function main() {
   out.push(prLines.length ? prLines.join('\n') : '- none');
   out.push('');
   out.push('---');
-  out.push(`Written by \`scripts/morning-report.js\` from GitHub's own records — no AI, no guesswork. @${OWNER_LOGIN}`);
+  out.push(`Written by \`scripts/morning-report.js\` from GitHub's own records — no AI, no guesswork.${OWNER_LOGIN ? ` @${OWNER_LOGIN}` : ''}`);
 
   const text = out.join('\n');
   console.log(text);

@@ -415,7 +415,9 @@ minted through the admin API came back carrying
 back to the Site URL when a redirect is not allow-listed, so the link echoing
 the asked-for address is the proof that both settings took.
 
-Still off, and still the owner's to change: leaked-password protection.
+Leaked-password protection: off, and stays off by the owner's choice
+(2026-10-27). Supabase offers it only on the Pro plan and above (their
+password-security page, read that day); this organization is on Free.
 
 ## The sweep of 2026-10-13: what asked WHO but never WHETHER
 
@@ -652,7 +654,13 @@ NOT a replacement for Resend: Purelymail explicitly discourages bulk and
 marketing use, and the platform's notifications are machine-sent to every
 member. Keep the platform on Resend and the human mailbox on Purelymail.
 
-UPDATE 2026-10-26: the owner already owns intercommodities.net (see docs/AGREED-2026-10-25.md). Next: verify mail.intercommodities.net in Resend; no purchase needed.
+UPDATE 2026-10-27: the platform's domain is **myplatform.trade** (owner's
+placeholder, bought 2026-10-26 at Spaceship, valid to 2027-10-26), replacing
+intercommodities.net for this purpose. Resend sends from
+`mail.myplatform.trade` (region eu-west-1), VERIFIED 2026-10-27; its three
+records were added through Spaceship's API and read back. The owner's
+mailbox rafael@myplatform.trade is at OquMail (MX mail.oqumail.com) and was
+not touched. A test mail from noreply@mail.myplatform.trade was delivered.
 The owner's constraints, stated on 2026-10-19: .com only; no .eu, .be or
 anything Belgian (NV, BV and Dutch or French wording included); the words
 commodities, trade, market and capital are all out, because the business
@@ -789,8 +797,10 @@ commit.
 ## The morning report (built 2026-10-25)
 
 `.github/workflows/morning-report.yml` runs `scripts/morning-report.js` at
-05:43 UTC and files a GitHub issue that @mentions the owner, so GitHub emails
-it. No AI: it reads GitHub's records and the live site, costs no Claude usage,
+05:43 UTC and files a GitHub issue. Since 2026-10-27 it no longer @mentions
+the owner (his choice): a scheduled Claude session reads it at 07:46
+Brussels time, fixes what it can through a pull request, and pushes him a
+plain brief only when something was wrong. No AI: it reads GitHub's records and the live site, costs no Claude usage,
 and says the same thing about the same night every time. It reports commits to
 main, every workflow run, the latest CI on main job by job with the
 checklist's own "N of N functions proven" line, which revision the live site
@@ -836,7 +846,10 @@ Decisions behind each are in `docs/AGREED-2026-10-25.md`.
 
 ## Still open
 
--6. **Protect main on GitHub.** The API refuses it from Claude's session;
+-6. ~~**Protect main on GitHub.**~~ DONE 2026-10-27 by the owner: ruleset
+    "Protect main", active on the default branch, empty bypass list - no
+    deletion, no force push, pull request required (0 approvals). Read back
+    through the API. Was: the API refuses it from Claude's session;
     the owner switches it on. Until then the pull-request rule holds only
     because Claude keeps it.
 
@@ -949,7 +962,10 @@ Decisions behind each are in `docs/AGREED-2026-10-25.md`.
     wrong. That ratio is the reason it posts a comment and cannot fail a build,
     and the reason nobody should promote it to a gate later.
 
-0. **No email is being sent at all. Nothing.** Verified 2026-10-12 in the
+0. ~~**No email is being sent at all.**~~ FIXED 2026-10-27: both secrets
+   are set (RESEND_API_KEY, LISTING_EMAIL_FROM = noreply@mail.myplatform.trade);
+   run 366 of send-emails.yml ran "Flush the email queue" instead of
+   skipping it. History below. Verified 2026-10-12 in the
    workflow's own log, run 274:
 
        Skipped — no mail can be sent until these repository secrets are set:
@@ -982,7 +998,8 @@ Decisions behind each are in `docs/AGREED-2026-10-25.md`.
    domain means Resend only accepts the account owner's own address, which is
    exactly the HTTP 403 on the one August attempt.
 
-1. **Verify the Resend sending domain.** Highest-value item. Until it is done,
+1. ~~**Verify the Resend sending domain.**~~ DONE 2026-10-27
+   (mail.myplatform.trade, verified). Was: Until it is done,
    the sandbox sender only delivers to the Resend account owner's own address —
    any other recipient is rejected with an HTTP 403 saying testing emails can
    only go to your own address. The pipeline is correct; this is an account

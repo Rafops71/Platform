@@ -150,7 +150,8 @@ test.describe.serial('Terms & Conditions', () => {
     // The controller and the complaints route are the two privacy details that
     // depend on a company existing, so both are present and both are marked.
     expect(text).toContain('Data controller');
-    expect(text).toContain('data controller legal name');
+    expect(text).toContain('controller responsible for your personal data is Rafael Efraim');
+    expect(text).toContain('data controller registered address');
     expect(text).toContain('Complaints');
     expect(text).toContain('competent data protection supervisory authority');
   });
@@ -222,20 +223,23 @@ test.describe.serial('Terms & Conditions', () => {
     await expect(company.locator('p')).toHaveCount(6);
 
     const text = await company.innerText();
-    expect(text).toContain('operating company legal name');
+    // Terms 3.3: the owner's own name and email until the company exists
+    // (docs/AGREED-2026-10-25.md); the rest stays marked.
+    expect(text).toContain('operated by Rafael Efraim');
+    expect(text).not.toContain('operating company legal name');
     expect(text).toContain('country of incorporation');
     expect(text).toContain('company registration number');
     expect(text).toContain('registered office address');
     expect(text).toContain('trading address');
     expect(text).toContain('VAT or tax registration number');
-    expect(text).toContain('legal notices email address');
+    expect(text).toContain('in writing to rafael@myplatform.trade');
     expect(text).toContain('reviewed by a qualified lawyer');
 
     // Nothing bracketed anywhere in the terms may be unmarked. This is the
     // assertion that fails if someone fills a bracket with a working guess.
     const body = await page.locator('#terms-body').innerText();
     const bracketed = body.split('[').slice(1).map((part) => part.split(']')[0]);
-    expect(bracketed.length).toBeGreaterThanOrEqual(11);
+    expect(bracketed.length).toBeGreaterThanOrEqual(10);
     for (const item of bracketed) expect(item).toContain('PLACEHOLDER');
   });
 
@@ -251,15 +255,15 @@ test.describe.serial('Terms & Conditions', () => {
       .toHaveText('16. Los Operadores: datos de la sociedad y notificaciones');
 
     const text = await company.innerText();
-    expect(text).toContain('razón social de la empresa operadora');
+    expect(text).toContain('operada por Rafael Efraim');
     expect(text).toContain('domicilio social');
     expect(text).toContain('número de registro mercantil');
     expect(text).toContain('ser revisados por un abogado');
-    expect(text).not.toContain('operating company legal name');
+    expect(text).not.toContain('independent broker trading under his own name');
 
     const body = await page.locator('#terms-body').innerText();
     const bracketed = body.split('[').slice(1).map((part) => part.split(']')[0]);
-    expect(bracketed.length).toBeGreaterThanOrEqual(11);
+    expect(bracketed.length).toBeGreaterThanOrEqual(10);
     for (const item of bracketed) expect(item).toContain('PLACEHOLDER');
   });
 
