@@ -229,8 +229,18 @@ function foreignFilter(row, who) {
 
 function isOwn(row, who) {
   if (!who.profileId) return false;
+  // A message an Operator forwarded TO the caller is theirs to read: that is
+  // the product (the forward log row names them as to_user_id).
+  if (row.to_user_id === who.profileId) return true;
+  if (who.forwardedToMe && who.forwardedToMe.has(row.id)) return true;
   return ['user_id', 'sender_id', 'profile_id', 'participant_id', 'owner_id', 'requester_id', 'operator_id', 'created_by', 'changed_by']
     .some((c) => row[c] === who.profileId) || (row.id === who.profileId);
+}
+
+async function markForwarded(who) {
+  if (!who.profileId) return;
+  const rows = await must('forwards', http(`/rest/v1/message_forward_log?select=message_id&to_user_id=eq.${who.profileId}`));
+  who.forwardedToMe = new Set(rows.map((r) => r.message_id));
 }
 
 async function probe(table, roleName, who, failures, results) {
@@ -304,6 +314,7 @@ async function main() {
     for (const t of names) if (!(t in EXPECTED)) failures.push(`table ${t} is not in the grid: decide who may touch it, then add it to EXPECTED`);
     for (const t of Object.keys(EXPECTED)) if (!names.includes(t)) failures.push(`EXPECTED lists ${t}, which the database no longer has`);
     const callers = { anon: {}, pending: world.pending, suspended: world.suspended, member: world.A, operator: world.operator };
+    for (const who of Object.values(callers)) await markForwarded(who);
     for (const t of names.filter((n) => n in EXPECTED)) {
       for (const r of ROLES) await probe(t, r, callers[r], failures, results);
     }
