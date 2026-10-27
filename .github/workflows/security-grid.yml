@@ -92,6 +92,14 @@ jobs:
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
 
+      # Every email, by the real triggers, in English and Spanish: each one
+      # matches its template in its reader's language, fully filled, linking
+      # only to the platform, naming no poster.
+      - name: Every email, both languages
+        run: node scripts/email-scan.js
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+
       # The real pages, in a real browser, against staging: every page and
       # every dashboard tab as a stranger, a member and an Operator, in both
       # languages - no script errors, no dead tabs, nothing stuck loading, no

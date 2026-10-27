@@ -99,7 +99,7 @@ async function must(label, p) {
 
 const made = { users: [], rows: [] };
 
-async function account(label, { role = 'participant', status = 'approved', inviter } = {}) {
+async function account(label, { role = 'participant', status = 'approved', inviter, language = 'en' } = {}) {
   const email = `${TAG}-${label}@example.invalid`;
   const password = crypto.randomBytes(18).toString('base64url') + 'aA1!';
   if (inviter) {
@@ -120,13 +120,15 @@ async function account(label, { role = 'participant', status = 'approved', invit
         first_name: `Gridname${crypto.randomBytes(3).toString('hex')}`, last_name: `Surname${crypto.randomBytes(3).toString('hex')}`,
         phone: `+32${crypto.randomInt(100000000, 999999999)}`, country: 'Belgium', company: `Company${crypto.randomBytes(3).toString('hex')}`,
         terms_version: terms.version, terms_language: 'en', signed_name: `Grid ${label}`,
-        signing_capacity: 'individual', address_line1: '1 Grid Street', city: 'Testville',
+        signing_capacity: 'individual', address_line1: '1 Grid Street', city: 'Testville', language,
       },
     },
   }));
   made.users.push(user.id);
+  // Left as registered when 'pending' (the default), so that no decision -
+  // and no decision email - is made for it here.
   const [profile] = await must(`set ${label}`, http(`/rest/v1/profiles?user_id=eq.${user.id}`, {
-    method: 'PATCH', prefer: 'return=representation', body: { role, status },
+    method: 'PATCH', prefer: 'return=representation', body: status === 'pending' ? { role } : { role, status },
   }));
   const session = await must(`sign in ${label}`, http('/auth/v1/token?grant_type=password', {
     method: 'POST', key: ANON, body: { email, password },
@@ -333,7 +335,7 @@ async function main() {
   console.log('PASS - every door that should be shut, is.');
 }
 
-module.exports = { buildWorld, account, cleanup, http, asUser, must, guardNotLive: () => {
+module.exports = { TAG, buildWorld, account, cleanup, http, asUser, must, guardNotLive: () => {
   if (!URL_ || !ANON || !SERVICE) throw new Error('SUPABASE_URL, SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY are required');
   if (URL_.includes(LIVE_REF)) throw new Error('Refusing to run against the live project.');
   const keyRef = JSON.parse(Buffer.from(SERVICE.split('.')[1] || '', 'base64url').toString() || '{}').ref;
