@@ -136,10 +136,18 @@ async function asUser(who, path, opts) {
 }
 
 async function buildWorld() {
-  const profiles = await must('profiles', http('/rest/v1/profiles?select=id&limit=1'));
   // An empty project lets its first account in without an invitation
-  // (handle_new_user, sql/024); after that the Operator invites everyone.
-  const operator = await account('operator', { role: 'operator', inviter: profiles.length ? undefined : undefined });
+  // (handle_new_user, sql/024); after that someone must invite. If staging is
+  // not empty (an earlier run died before cleaning up), an existing Operator
+  // invites ours - and with no Operator the run stops and says why.
+  const profiles = await must('profiles', http('/rest/v1/profiles?select=id,role,status&limit=50'));
+  let opInviter;
+  if (profiles.length) {
+    const existing = profiles.find((p) => p.role === 'operator' && p.status === 'approved');
+    if (!existing) throw new Error('Staging holds accounts but no approved Operator to invite with. Empty it first.');
+    opInviter = existing.id;
+  }
+  const operator = await account('operator', { role: 'operator', inviter: opInviter });
   const inviter = operator.profileId;
   const A = await account('member-a', { inviter });
   const B = await account('member-b', { inviter });
