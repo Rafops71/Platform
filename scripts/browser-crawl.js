@@ -70,6 +70,9 @@ async function newPage(browser, label) {
     // and the browser reports 4xx answers it was expected to get; neither is
     // a fault. Anything else is.
     if (/^\[jericho\]|Failed to load resource: the server responded with a status of 4\d\d/.test(text)) return;
+    // Firefox reports a font download it cancelled itself (NS_BINDING_ABORTED,
+    // 2152398850) when a signed-out visitor is sent away mid-load. Not a fault.
+    if (/downloadable font: download failed .*status=2152398850/.test(text)) return;
     findings.push(`${label}: console error on ${page.url()}: ${text.slice(0, 200)}`);
   });
   return page;
