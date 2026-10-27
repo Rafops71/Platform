@@ -70,6 +70,7 @@ const DEFAULT_ORDER = [
   '037_member_scorecard.sql',
   '038_deal_analytics.sql',
   '039_terms_3_2.sql',
+  '040_terms_3_3.sql',
   'seed_commodities.sql',
 ];
 
