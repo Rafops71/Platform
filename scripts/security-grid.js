@@ -265,6 +265,12 @@ async function cleanup() {
 async function main() {
   if (!URL_ || !ANON || !SERVICE) throw new Error('SUPABASE_URL, SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY are required');
   if (URL_.includes(LIVE_REF)) throw new Error('Refusing to run against the live project: this script writes and deletes.');
+  // A second lock, independent of the address: the service key names its own
+  // project. A key for the live project is refused whatever URL it is sent to.
+  const keyRef = JSON.parse(Buffer.from(SERVICE.split('.')[1] || '', 'base64url').toString() || '{}').ref;
+  if (!keyRef || keyRef === LIVE_REF || !URL_.includes(keyRef)) {
+    throw new Error(`Refusing to run: the service key belongs to project "${keyRef}", which is the live project or not the one at ${URL_}.`);
+  }
 
   const failures = [];
   const results = [];
