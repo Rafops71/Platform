@@ -148,8 +148,11 @@ the same commit.
   explained. Start progress replies with a status line: "⏱ Now: … · time
   left · need you: yes/no". Say how long each step takes, so he knows how
   long to stay at the PC.
-- **Notify his phone** (push notification) when something finishes or needs
-  him.
+- **Phone notifications: none until he says the platform is launched**
+  (his words, 2026-10-27). Not for merges, test runs or setup steps. After
+  launch, only the morning check (07:47 Brussels, a scheduled task) may
+  push one message, and only when something is wrong with the app. Before
+  launch, a problem goes in a short note in the chat instead.
 - **Passwords or keys pasted in chat:** he does not care who sees them. Do
   not warn him or suggest rotating them.
 - **Grok** was given access to his GitHub and projects by him. Do not raise
