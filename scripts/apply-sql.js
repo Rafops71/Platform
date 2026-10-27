@@ -111,7 +111,15 @@ function loadEnv() {
 async function main() {
   loadEnv();
 
-  const files = process.argv.slice(2);
+  // --only-new: apply only the files a ledger in the target database has not
+  // seen, and record each one. Used for the STAGING project, which is kept in
+  // step with every commit (.github/workflows/security-grid.yml). Re-running
+  // the whole list is not actually safe, whatever the header above says: on
+  // 2026-10-27 rls_policies.sql failed on a database that already had 029's
+  // get_public_listings() ("cannot change return type of existing function").
+  // The ledger lives in its own schema, out of PostgREST's reach.
+  const onlyNew = process.argv.includes('--only-new');
+  const files = process.argv.slice(2).filter((a) => !a.startsWith('--'));
   const targets = files.length ? files : DEFAULT_ORDER;
 
   const dbUrl = process.env.SUPABASE_DB_URL;
@@ -135,7 +143,19 @@ async function main() {
   await client.connect();
 
   try {
+    let seen = new Set();
+    if (onlyNew) {
+      await client.query(`create schema if not exists ops;
+        create table if not exists ops.applied_sql (file text primary key, applied_at timestamptz not null default now());
+        revoke all on schema ops from public, anon, authenticated;`);
+      seen = new Set((await client.query('select file from ops.applied_sql')).rows.map((r) => r.file));
+      if (!seen.size) {
+        console.error('ERROR: --only-new found an empty ledger. Record what this database already holds first.');
+        process.exit(1);
+      }
+    }
     for (const f of targets) {
+      if (onlyNew && seen.has(f)) continue;
       const filePath = path.join(ROOT, 'sql', f);
       if (!fs.existsSync(filePath)) {
         console.error(`ERROR: sql/${f} not found`);
@@ -145,6 +165,7 @@ async function main() {
       const sql = fs.readFileSync(filePath, 'utf8');
       try {
         await client.query(sql);
+        if (onlyNew) await client.query('insert into ops.applied_sql (file) values ($1) on conflict do nothing', [f]);
         console.log('    OK');
       } catch (err) {
         console.error(`    FAILED on ${f} — stopping.`);

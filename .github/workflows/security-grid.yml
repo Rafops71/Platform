@@ -47,7 +47,7 @@ jobs:
       - run: npm ci
 
       - name: Bring staging up to this commit's SQL
-        run: node scripts/apply-sql.js
+        run: node scripts/apply-sql.js --only-new
         env:
           SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
 
