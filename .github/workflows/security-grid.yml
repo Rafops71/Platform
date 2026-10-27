@@ -80,3 +80,10 @@ jobs:
         run: node scripts/token-scan.js
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+
+      # Collisions: the same action by two hands at the same instant, fired
+      # truly in parallel, then the database read to see what stuck.
+      - name: Nothing happens twice that should happen once
+        run: node scripts/collision-scan.js
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}

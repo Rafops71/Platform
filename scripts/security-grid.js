@@ -333,7 +333,7 @@ async function main() {
   console.log('PASS - every door that should be shut, is.');
 }
 
-module.exports = { buildWorld, cleanup, http, asUser, must, guardNotLive: () => {
+module.exports = { buildWorld, account, cleanup, http, asUser, must, guardNotLive: () => {
   if (!URL_ || !ANON || !SERVICE) throw new Error('SUPABASE_URL, SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY are required');
   if (URL_.includes(LIVE_REF)) throw new Error('Refusing to run against the live project.');
   const keyRef = JSON.parse(Buffer.from(SERVICE.split('.')[1] || '', 'base64url').toString() || '{}').ref;
