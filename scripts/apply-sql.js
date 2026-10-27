@@ -71,6 +71,7 @@ const DEFAULT_ORDER = [
   '038_deal_analytics.sql',
   '039_terms_3_2.sql',
   '040_terms_3_3.sql',
+  '041_email_unit_as_typed.sql',
   'seed_commodities.sql',
 ];
 
