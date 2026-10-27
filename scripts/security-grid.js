@@ -131,7 +131,7 @@ async function account(label, { role = 'participant', status = 'approved', invit
   const session = await must(`sign in ${label}`, http('/auth/v1/token?grant_type=password', {
     method: 'POST', key: ANON, body: { email, password },
   }));
-  return { label, email, profileId: profile.id, userId: user.id, token: session.access_token,
+  return { label, email, password, profileId: profile.id, userId: user.id, token: session.access_token,
            identity: { email, first_name: profile.first_name, last_name: profile.last_name, phone: profile.phone,
                        company: profile.company, profile_id: profile.id, user_id: user.id } };
 }

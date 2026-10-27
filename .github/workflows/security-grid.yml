@@ -71,3 +71,12 @@ jobs:
         run: node scripts/privilege-scan.js
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+
+      # Secret codes and sessions: invitation codes cannot be guessed or
+      # reused, signing out ends the refresh token, a member suspended or
+      # deleted mid-session is shut out with the token they still hold, and
+      # no token is ever stored where people read.
+      - name: No code can be guessed, reused or kept
+        run: node scripts/token-scan.js
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
