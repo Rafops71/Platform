@@ -91,6 +91,17 @@ const LIVE_RESET_URL = process.env.SITE_RESET_URL ||
 /** Follow a recovery link the way a member would, and end up on the copy of
  *  reset.html that this suite is testing, carrying the real session. */
 async function followRecoveryLink(page, link, baseURL) {
+  // Do not let the LIVE reset page run. supabase-js reads the session out of
+  // the fragment and then clears it (window.location.hash = '', checked in
+  // supabase-js 2.112.4's _getSessionFromURL), so the loop below raced the
+  // live page's script for the fragment: it won when it read first and lost
+  // when the script did. That race is why this test failed now and then
+  // (2026-10-27, twice in one day) while the app was fine - a member opens
+  // the link once, on one page. An empty page at the live address keeps the
+  // fragment exactly as Supabase sent it.
+  const live = new URL(LIVE_RESET_URL);
+  await page.route(`${live.origin}/**`, (route) =>
+    route.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><title>held</title>' }));
   await page.goto(link);
 
   // Supabase verifies the token and redirects to the allow-listed address with
@@ -109,6 +120,7 @@ async function followRecoveryLink(page, link, baseURL) {
     await page.waitForTimeout(250);
   }
 
+  await page.unroute(`${live.origin}/**`);
   await page.goto(new URL('/reset.html', baseURL).href + fragment);
   return fragment;
 }
