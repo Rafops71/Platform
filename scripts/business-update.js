@@ -132,8 +132,14 @@ async function main() {
   await client.connect();
   try {
     const mail = compose(await figures(client));
-    console.log(mail.subject + '\n\n' + mail.text);
-    if (!dryRun) console.log('\nSent:', await send(mail));
+    // Never print the figures when sending: this runs in GitHub Actions on a
+    // public repository, and its logs are public. Only --dry-run, run by hand,
+    // shows them.
+    if (dryRun) console.log(mail.subject + '\n\n' + mail.text);
+    else {
+      const { id } = JSON.parse(await send(mail));
+      console.log(`Weekly update sent (Resend id ${id}). Figures are in the email only.`);
+    }
   } finally {
     await client.end();
   }
