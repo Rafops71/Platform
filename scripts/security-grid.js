@@ -115,7 +115,10 @@ async function account(label, { role = 'participant', status = 'approved', invit
     body: {
       email, password, email_confirm: true,
       user_metadata: {
-        first_name: 'Grid', last_name: label, phone: '+3200000000', country: 'Belgium',
+        // Unique per account and per run, so scripts/identity-scan.js can look
+        // for exactly these strings in everything another caller is sent.
+        first_name: `Gridname${crypto.randomBytes(3).toString('hex')}`, last_name: `Surname${crypto.randomBytes(3).toString('hex')}`,
+        phone: `+32${crypto.randomInt(100000000, 999999999)}`, country: 'Belgium', company: `Company${crypto.randomBytes(3).toString('hex')}`,
         terms_version: terms.version, terms_language: 'en', signed_name: `Grid ${label}`,
         signing_capacity: 'individual', address_line1: '1 Grid Street', city: 'Testville',
       },
@@ -128,7 +131,9 @@ async function account(label, { role = 'participant', status = 'approved', invit
   const session = await must(`sign in ${label}`, http('/auth/v1/token?grant_type=password', {
     method: 'POST', key: ANON, body: { email, password },
   }));
-  return { label, email, profileId: profile.id, token: session.access_token };
+  return { label, email, profileId: profile.id, userId: user.id, token: session.access_token,
+           identity: { email, first_name: profile.first_name, last_name: profile.last_name, phone: profile.phone,
+                       company: profile.company, profile_id: profile.id, user_id: user.id } };
 }
 
 async function asUser(who, path, opts) {
@@ -182,6 +187,16 @@ async function buildWorld() {
   await must('document request', asUser(operator, '/rest/v1/document_requests', {
     method: 'POST', prefer: 'return=minimal',
     body: { listing_id: listing.id, participant_id: B.profileId, requester_id: operator.profileId, doc_type: DOC },
+  }));
+  // B answers the forwarded enquiry, and the Operator forwards the answer to
+  // A: the full round trip, so the identity scan sees what A is really sent.
+  const [reply] = await must('reply', asUser(B, '/rest/v1/messages', {
+    method: 'POST', prefer: 'return=representation',
+    body: { sender_id: B.profileId, listing_id: listing.id, in_reply_to: message.id, body: 'Grid reply' },
+  }));
+  await must('forward reply', asUser(operator, '/rest/v1/message_forward_log', {
+    method: 'POST', prefer: 'return=minimal',
+    body: { message_id: reply.id, operator_id: operator.profileId, to_user_id: A.profileId },
   }));
   return { operator, A, B, pending, suspended, listingId: listing.id };
 }
@@ -307,4 +322,13 @@ async function main() {
   console.log('PASS - every door that should be shut, is.');
 }
 
-main().catch((err) => { console.error(err.message); cleanup().finally(() => process.exit(1)); });
+module.exports = { buildWorld, cleanup, http, asUser, must, guardNotLive: () => {
+  if (!URL_ || !ANON || !SERVICE) throw new Error('SUPABASE_URL, SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY are required');
+  if (URL_.includes(LIVE_REF)) throw new Error('Refusing to run against the live project.');
+  const keyRef = JSON.parse(Buffer.from(SERVICE.split('.')[1] || '', 'base64url').toString() || '{}').ref;
+  if (!keyRef || keyRef === LIVE_REF || !URL_.includes(keyRef)) throw new Error(`Refusing to run: the service key belongs to "${keyRef}".`);
+} };
+
+if (require.main === module) {
+  main().catch((err) => { console.error(err.message); cleanup().finally(() => process.exit(1)); });
+}

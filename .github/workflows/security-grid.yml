@@ -55,3 +55,11 @@ jobs:
         run: node scripts/security-grid.js
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+
+      # Same staging world, a different question: is any member ever SENT
+      # another member's name, email, phone, company or ids - through any
+      # table, any function, or any error message?
+      - name: Nobody is sent anybody else's identity
+        run: node scripts/identity-scan.js
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
