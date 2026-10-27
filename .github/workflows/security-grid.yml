@@ -63,3 +63,11 @@ jobs:
         run: node scripts/identity-scan.js
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+
+      # And: can anybody make themselves more than they are? Self-promotion,
+      # forged tokens, Operator-only functions, the suspended acting active -
+      # then the database is read past every policy to prove nothing moved.
+      - name: Nobody rises above their station
+        run: node scripts/privilege-scan.js
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
