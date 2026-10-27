@@ -873,7 +873,9 @@ Decisions behind each are in `docs/AGREED-2026-10-25.md`.
     scorecard.** The research says members must be told. A new Terms version
     is the owner's decision; nothing has been published.
 
--3. **The morning report is posted in a PUBLIC repository**, so deal figures
+-3. ~~**The morning report is posted in a PUBLIC repository**~~ RESOLVED
+    2026-10-27: business figures now go by email only, every Monday
+    (`business-update.yml`). Was: so deal figures
     were deliberately kept out of it. Whether the owner wants them somewhere
     private is open.
 

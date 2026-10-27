@@ -1,0 +1,37 @@
+name: Weekly business update
+
+# Plain business figures for the owner, by email, every Monday morning
+# (asked for on 2026-10-27; docs/AGREED-2026-10-25.md). Written by
+# scripts/business-update.js. The figures go by email only, never into the
+# repository or an issue: the repository is public.
+#
+# GitHub's schedule is in UTC and has no time zones. 07:03 UTC is 08:03 in
+# Brussels in winter and 09:03 in summer. Off the hour on purpose: scheduled
+# jobs asking for :00 queue behind everybody else's.
+
+on:
+  schedule:
+    - cron: '3 7 * * 1'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  business-update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+
+      # Fails rather than skipping: a weekly report that silently does not
+      # arrive looks exactly like a quiet week.
+      - name: Send the weekly update
+        run: node scripts/business-update.js
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          LISTING_EMAIL_FROM: ${{ secrets.LISTING_EMAIL_FROM }}
