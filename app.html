@@ -91,7 +91,7 @@
         </div>
 
         <label for="commodity"><span data-i18n="form.commodity">Commodity</span> *</label>
-        <select id="commodity-select">
+        <select id="commodity-select" aria-label="Commodity" data-i18n-aria-label="a11y.commodity">
           <option value="" data-i18n="form.commodityLoading">Loading commodities…</option>
           <option value="__other__" data-i18n="form.commodityOther">Other (specify)</option>
         </select>
@@ -209,16 +209,16 @@
       <h2 class="mt-0" data-i18n="browse.title">Browse Listings</h2>
       <p class="text-muted" style="font-size:var(--text-base);" data-i18n="browse.anonymous">Anonymous — you never see who posted a listing.</p>
       <div class="row" style="margin-bottom:12px;">
-        <select id="browse-filter-type" style="max-width:160px;">
+        <select id="browse-filter-type" aria-label="Filter by type" data-i18n-aria-label="a11y.filterType" style="max-width:160px;">
           <option value="" data-i18n="browse.allTypes">All types</option>
           <option value="sell" data-i18n="browse.sellOffers">Sell Offers</option>
           <option value="buy" data-i18n="browse.buyRequests">Buy Requests</option>
         </select>
-        <select id="browse-filter-commodity" style="max-width:240px;">
+        <select id="browse-filter-commodity" aria-label="Filter by commodity" data-i18n-aria-label="a11y.filterCommodity" style="max-width:240px;">
           <option value="" data-i18n="browse.allCommodities">All commodities</option>
         </select>
-        <select id="browse-filter-region" style="max-width:180px;"><option value="" data-i18n="browse.anyCountry">Any origin / destination</option></select>
-        <select id="browse-filter-status" style="max-width:170px;">
+        <select id="browse-filter-region" aria-label="Filter by origin or destination" data-i18n-aria-label="a11y.filterRegion" style="max-width:180px;"><option value="" data-i18n="browse.anyCountry">Any origin / destination</option></select>
+        <select id="browse-filter-status" aria-label="Filter by status" data-i18n-aria-label="a11y.filterStatus" style="max-width:170px;">
           <option value="" data-i18n="browse.allStatuses">All statuses</option>
           <option value="available" data-i18n="status.available">Available</option>
           <option value="under_review" data-i18n="status.under_review">Under Review</option>
@@ -327,7 +327,7 @@
       <h3 data-i18n="profile.emailSection">Email address</h3>
       <form id="email-form">
         <label data-i18n="profile.currentEmail">Current email</label>
-        <input type="email" id="p_email" disabled>
+        <input type="email" id="p_email" aria-label="Email address" data-i18n-aria-label="a11y.email" disabled>
         <label for="p_new_email" data-i18n="profile.newEmail">New email</label>
         <input type="email" id="p_new_email" required>
         <label for="p_email_password" data-i18n="profile.currentPassword">Current password</label>

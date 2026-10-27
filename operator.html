@@ -97,25 +97,25 @@
         <a href="#" id="listing-stale-clear">Show all</a>
       </p>
       <div class="row" style="margin-bottom:12px;">
-        <select id="listing-filter-type"><option value="">All types</option><option value="sell">Sell</option><option value="buy">Buy</option></select>
-        <select id="listing-filter-status"><option value="">All statuses</option></select>
-        <select id="listing-filter-commodity"><option value="">All commodities</option></select>
-        <select id="listing-filter-incoterm"><option value="">All incoterms</option></select>
-        <select id="listing-filter-region" style="max-width:170px;"><option value="">Any origin / destination</option></select>
+        <select id="listing-filter-type" aria-label="Filter by type"><option value="">All types</option><option value="sell">Sell</option><option value="buy">Buy</option></select>
+        <select id="listing-filter-status" aria-label="Filter by status"><option value="">All statuses</option></select>
+        <select id="listing-filter-commodity" aria-label="Filter by commodity"><option value="">All commodities</option></select>
+        <select id="listing-filter-incoterm" aria-label="Filter by incoterm"><option value="">All incoterms</option></select>
+        <select id="listing-filter-region" aria-label="Filter by origin or destination" style="max-width:170px;"><option value="">Any origin / destination</option></select>
       </div>
       <div class="row" style="margin-bottom:12px;">
         <input type="number" id="listing-filter-qty-min" placeholder="Qty min" style="max-width:120px;">
         <input type="number" id="listing-filter-qty-max" placeholder="Qty max" style="max-width:120px;">
-        <input type="date" id="listing-filter-date-from" style="max-width:170px;">
-        <input type="date" id="listing-filter-date-to" style="max-width:170px;">
-        <select id="listing-filter-role" style="max-width:200px;">
+        <input type="date" id="listing-filter-date-from" aria-label="Posted from" style="max-width:170px;">
+        <input type="date" id="listing-filter-date-to" aria-label="Posted until" style="max-width:170px;">
+        <select id="listing-filter-role" aria-label="Filter by poster's role" style="max-width:200px;">
           <option value="">Poster: any role</option>
           <option value="principal">Principal</option>
           <option value="mandated">Mandated intermediary</option>
           <option value="broker">Broker</option>
           <option value="none">Not stated (older listings)</option>
         </select>
-        <select id="listing-filter-docs" style="max-width:200px;">
+        <select id="listing-filter-docs" aria-label="Filter by documents" style="max-width:200px;">
           <option value="">Documents: any</option>
           <option value="yes">Documents indicated</option>
           <option value="no">No documents indicated</option>
@@ -250,12 +250,12 @@
       <div class="flex-between">
         <h2 class="mt-0">Analytics</h2>
         <div class="row">
-          <select id="analytics-bucket" style="max-width:150px;">
+          <select id="analytics-bucket" aria-label="Group figures by" style="max-width:150px;">
             <option value="week" selected>By week</option>
             <option value="month">By month</option>
             <option value="day">By day</option>
           </select>
-          <select id="analytics-periods" style="max-width:150px;">
+          <select id="analytics-periods" aria-label="Number of periods" style="max-width:150px;">
             <option value="8">Last 8</option>
             <option value="12" selected>Last 12</option>
             <option value="26">Last 26</option>

@@ -22,6 +22,10 @@ on:
     paths:
       - 'sql/**'
       - 'scripts/security-grid.js'
+      - 'scripts/*-scan.js'
+      - 'scripts/browser-crawl.js'
+      - '*.html'
+      - 'js/**'
       - '.github/workflows/security-grid.yml'
 
 permissions:
@@ -86,4 +90,22 @@ jobs:
       - name: Nothing happens twice that should happen once
         run: node scripts/collision-scan.js
         env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+
+      # The real pages, in a real browser, against staging: every page and
+      # every dashboard tab as a stranger, a member and an Operator, in both
+      # languages - no script errors, no dead tabs, nothing stuck loading, no
+      # critical accessibility fault (axe-core). Two engines: Chromium and
+      # Firefox (Safari's engine already runs in ci.yml).
+      - name: Install the browsers
+        run: npx playwright install --with-deps chromium firefox
+      - name: Every page, every tab (Chromium)
+        run: node scripts/browser-crawl.js
+        env:
+          BROWSER: chromium
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+      - name: Every page, every tab (Firefox)
+        run: node scripts/browser-crawl.js
+        env:
+          BROWSER: firefox
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}

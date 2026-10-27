@@ -189,6 +189,12 @@ const STRINGS = {
     'browse.allCommodities': 'All commodities',
     'browse.originDestination': 'Origin / Destination',
     'browse.anyCountry': 'Any origin / destination',
+    'a11y.commodity': 'Commodity',
+    'a11y.filterType': 'Filter by type',
+    'a11y.filterCommodity': 'Filter by commodity',
+    'a11y.filterRegion': 'Filter by origin or destination',
+    'a11y.filterStatus': 'Filter by status',
+    'a11y.email': 'Email address',
     'stmt.role': 'What is your role in this offer?',
     'stmt.role.principal': 'Principal - I own the goods / I am the end buyer',
     'stmt.role.mandated': 'Mandated intermediary - I act directly for the principal, with their written authority',
@@ -630,6 +636,12 @@ const STRINGS = {
     'browse.allCommodities': 'Todas las materias primas',
     'browse.originDestination': 'Origen / Destino',
     'browse.anyCountry': 'Cualquier origen / destino',
+    'a11y.commodity': 'Materia prima',
+    'a11y.filterType': 'Filtrar por tipo',
+    'a11y.filterCommodity': 'Filtrar por materia prima',
+    'a11y.filterRegion': 'Filtrar por origen o destino',
+    'a11y.filterStatus': 'Filtrar por estado',
+    'a11y.email': 'Correo electrónico',
     'stmt.role': '¿Cuál es su función en esta oferta?',
     'stmt.role.principal': 'Principal: soy el propietario de la mercancía / soy el comprador final',
     'stmt.role.mandated': 'Intermediario con mandato: actúo directamente para el principal, con su autorización por escrito',
@@ -1088,6 +1100,9 @@ function localizedOptions(values, labelFn) {
  *    data-i18n             -> textContent
  *    data-i18n-placeholder -> placeholder attribute
  *    data-i18n-title       -> title attribute
+ *    data-i18n-aria-label  -> aria-label: the name a screen reader speaks for
+ *                             a box with no visible label (browser crawl,
+ *                             axe-core select-name / label, 2026-10-27)
  *    data-i18n-html        -> innerHTML (only for text this file controls) */
 function applyTranslations(root = document) {
   root.querySelectorAll('[data-i18n]').forEach(el => {
@@ -1098,6 +1113,9 @@ function applyTranslations(root = document) {
   });
   root.querySelectorAll('[data-i18n-title]').forEach(el => {
     el.setAttribute('title', t(el.getAttribute('data-i18n-title')));
+  });
+  root.querySelectorAll('[data-i18n-aria-label]').forEach(el => {
+    el.setAttribute('aria-label', t(el.getAttribute('data-i18n-aria-label')));
   });
   document.documentElement.lang = currentLang();
 }
