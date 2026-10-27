@@ -51,6 +51,8 @@ async function main() {
     const w = await buildWorld();
     const before = await http(`/rest/v1/profiles?select=id,role,status&id=in.(${[w.A, w.pending, w.suspended].map((x) => x.profileId).join(',')})`);
     const invitationsBefore = (await http('/rest/v1/invitations?select=id')).json.length;
+    const outboxBefore = (await http('/rest/v1/email_outbox?select=id&to_email=eq.probe@example.invalid')).json.length;
+    const forgedBefore = (await http(`/rest/v1/activity_log?select=id&action=eq.${encodeURIComponent('operator agreed to waive documents')}`)).json.length;
 
     for (const who of [w.A, w.pending, w.suspended]) {
       // 1. Own profile.
@@ -102,9 +104,9 @@ async function main() {
     const invitationsAfter = (await http('/rest/v1/invitations?select=id')).json.length;
     if (invitationsAfter !== invitationsBefore) fail(`invitations changed from ${invitationsBefore} to ${invitationsAfter}`);
     const forgedLog = await http(`/rest/v1/activity_log?select=id&action=eq.${encodeURIComponent('operator agreed to waive documents')}`);
-    if (forgedLog.json.length) fail('a forged line reached the activity log');
+    if (forgedLog.json.length !== forgedBefore) fail('a forged line reached the activity log');
     const outbox = await http('/rest/v1/email_outbox?select=id&to_email=eq.probe@example.invalid');
-    if (outbox.json.length) fail('a member queued an invitation email');
+    if (outbox.json.length !== outboxBefore) fail('a member queued an invitation email');
   } finally {
     await cleanup();
   }
