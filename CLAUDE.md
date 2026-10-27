@@ -160,7 +160,9 @@ the same commit.
   his email ends in @intercommodities.net). The platform's own domain is
   now **myplatform.trade** (placeholder, 2026-10-27): platform mail goes out
   from noreply@mail.myplatform.trade, and his platform address is
-  rafael@myplatform.trade. New domains bought later: .com only.
+  rafael@myplatform.trade. The .trade name is his own deliberate,
+  one-year placeholder, not a breach of the rule below. New domains bought
+  later: .com only.
 - **Company placeholder:** until incorporation, the Terms use his own name
   and address, as an independent broker trades under his own name.
 - **Domains: .com only. Nothing Belgian** - no .eu/.be, no Belgian company
