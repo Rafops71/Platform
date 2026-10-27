@@ -797,8 +797,10 @@ commit.
 ## The morning report (built 2026-10-25)
 
 `.github/workflows/morning-report.yml` runs `scripts/morning-report.js` at
-05:43 UTC and files a GitHub issue that @mentions the owner, so GitHub emails
-it. No AI: it reads GitHub's records and the live site, costs no Claude usage,
+05:43 UTC and files a GitHub issue. Since 2026-10-27 it no longer @mentions
+the owner (his choice): a scheduled Claude session reads it at 07:46
+Brussels time, fixes what it can through a pull request, and pushes him a
+plain brief only when something was wrong. No AI: it reads GitHub's records and the live site, costs no Claude usage,
 and says the same thing about the same night every time. It reports commits to
 main, every workflow run, the latest CI on main job by job with the
 checklist's own "N of N functions proven" line, which revision the live site
