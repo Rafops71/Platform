@@ -2,7 +2,7 @@
 
 The animated opening of every film. Agreed with the owner on 2026-10-28:
 the trailer is made with OpenMontage; the walkthroughs with this
-repository's own pipeline (`video/`). Current version: 5 (60 s, English).
+repository's own pipeline (`video/`). Current version: 6 (60 s, English, with subtitles).
 Every word in `script.md` was chosen by the owner, scene by scene - do not
 reword anything without asking him, and never suggest the platform checks
 or verifies anything (his rule).
@@ -26,6 +26,10 @@ or verifies anything (his rule).
   the free tier is slow (one request hung for 35 minutes on 2026-10-28;
   call it one line at a time with a time limit).
 - `build.py` - how the voice lines were joined and the cut list made.
+- Subtitles: `trailer-en.json` carries `captions`, one entry per spoken
+  word with its time, measured from the voice track with faster-whisper
+  (small.en) - which also confirmed the voice says exactly the agreed
+  words. A new subtitle line starts after each sentence.
 
 ## Not in this repository, on purpose
 
