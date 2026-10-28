@@ -16,9 +16,9 @@
 // sends, saves or deletes is pressed: exploring must not change anything.
 //
 // Accessibility (axe-core 4.10.2, loaded from jsDelivr) runs on every screen
-// visited. Its "critical" findings fail the run; the rest are listed, because
-// they are quality targets to work through, not proof that something is
-// unsafe.
+// visited. Its "critical" and "serious" findings fail the run (serious since
+// 2026-10-28, when the last of them - low colour contrast - was fixed); the
+// rest are listed, as quality targets to work through.
 //
 //   BROWSER=chromium|firefox|webkit node scripts/browser-crawl.js
 //
@@ -87,7 +87,7 @@ async function accessibility(page, where) {
     return r.violations.map((v) => ({ id: v.id, impact: v.impact, help: v.help, nodes: v.nodes.length, targets: v.nodes.map((n) => n.target.join(' ')).slice(0, 10) }));
   });
   for (const v of result) {
-    if (v.impact === 'critical') findings.push(`${where}: accessibility (critical) - ${v.help} [${v.id}]: ${v.targets.join(', ')}`);
+    if (v.impact === 'critical' || v.impact === 'serious') findings.push(`${where}: accessibility (${v.impact}) - ${v.help} [${v.id}]: ${v.targets.join(', ')}`);
     else {
       const key = `${v.impact} - ${v.help} [${v.id}]`;
       a11yNotes.set(key, (a11yNotes.get(key) || new Set()).add(where));
@@ -185,7 +185,7 @@ async function main() {
     for (const f of [...new Set(findings)]) console.log(`  - ${f}`);
     process.exit(1);
   }
-  console.log('\nPASS - no script errors, every tab opened, nothing stuck loading, no critical accessibility fault.');
+  console.log('\nPASS - no script errors, every tab opened, nothing stuck loading, no critical or serious accessibility fault.');
 }
 
 main().catch(async (err) => { console.error(err.message); await cleanup(); process.exit(1); });

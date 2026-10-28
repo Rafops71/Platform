@@ -14,7 +14,7 @@
   --surface: #ffffff;         /* chosen: same white, so cards do not float */
   --border: #e2ebf3;          /* chosen: hairline */
   --text: #15202b;            /* chosen */
-  --text-muted: #5f7488;      /* chosen: quiet text */
+  --text-muted: #52677a;      /* chosen: quiet text; darkened from #5f7488 on 2026-10-28 to pass the 4.5:1 contrast check (axe) on grey and tinted fills */
   --blue: #27618f;            /* chosen: accent - buttons, active tab */
   --blue-tint: #f0f6fb;       /* chosen: the listing block fill */
 
@@ -32,9 +32,9 @@
   /* The status colours are untouched. They carry MEANING - approved, waiting,
      refused - and restyling them is a change to what a screen says, not to
      how it looks. docs/LOOK-DECISION.md draws exactly that line. */
-  --green: #2e8b57;
+  --green: #22744a;           /* darkened from #2e8b57 (2026-10-28): 5.1:1 on --green-tint */
   --green-tint: #e7f5ec;
-  --amber: #b8860b;
+  --amber: #876208;           /* darkened from #b8860b (2026-10-28): 5.0:1 on --amber-tint */
   --amber-tint: #fbf3de;
   --red: #b3423a;
   --red-tint: #fbeae8;
@@ -340,7 +340,10 @@ table.data-table th { color: var(--text-muted); font-size: var(--text-sm); text-
 .auth-shell .card { padding: 24px 20px; }
 .logo-row { text-align: center; margin-bottom: 20px; }
 .logo-row h1 { color: var(--blue-dark); font-size: var(--text-3xl); margin: 0; }
-.logo-row p { color: var(--text-muted); font-size: var(--text-base); margin: 4px 0 0; }
+.logo-row p, .logo-row .logo-sub { color: var(--text-muted); font-size: var(--text-base); margin: 4px 0 0; }
+/* The Terms page subtitle is an h2 (so its h3 sections follow in order) that
+   looks like the plain subtitle on every other page. */
+.logo-row .logo-sub { font-family: var(--font-body); font-weight: 400; line-height: inherit; }
 .notification-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--red); margin-left: 4px; }
 
 /* ---- Workload overview (operator) ----
@@ -460,7 +463,9 @@ tr.row-quiet td { color: var(--text-muted); }
   background: transparent;
   border: 1px solid currentColor;
   color: inherit;
-  opacity: 0.65;
+  /* Full strength: at 0.65 the label failed the contrast check. The active
+     language is still marked by its grey wash. */
+  opacity: 1;
   font-size: var(--text-xs);
   font-weight: 600;
   letter-spacing: 0.5px;
@@ -536,3 +541,10 @@ tr.row-quiet td { color: var(--text-muted); }
   color: var(--text-muted);
 }
 .app-footer a { color: var(--text-muted); }
+
+/* Read by screen readers, not shown: names a table column whose cells are
+   buttons, so the header is not empty. */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
