@@ -1,0 +1,20 @@
+diff --git a/remotion-composer/src/Explainer.tsx b/remotion-composer/src/Explainer.tsx
+index 707e6db..88eb486 100644
+--- a/remotion-composer/src/Explainer.tsx
++++ b/remotion-composer/src/Explainer.tsx
+@@ -1,3 +1,4 @@
++import { MyPlatformScene } from "./components/MyPlatformScenes";
+ import {
+   AbsoluteFill,
+   Audio,
+@@ -588,6 +589,10 @@ const SceneRenderer: React.FC<{ cut: Cut; theme: ThemeConfig }> = ({ cut, theme
+   const accent = cut.accentColor || theme.accentColor;
+ 
+   // Explicit component types — use theme-derived defaults for colors
++  if ((cut as any).type === "mp_scene") {
++    const c = cut as any;
++    return <MyPlatformScene kind={c.mpKind} labels={c.mpLabels || {}} seconds={c.out_seconds - c.in_seconds} at={c.mpAt} />;
++  }
+   if (cut.type === "text_card" && cut.text) {
+     return maybeWrapWithBg(
+       <TextCard text={cut.text} fontSize={cut.fontSize} color={textColor} backgroundColor={bgColor} />
