@@ -15,8 +15,8 @@ Owner's rules for the wording (2026-10-28):
   sequence of document exchange;
 - the closing line is "Where opportunity meets discretion."
 
-Every text below was chosen by the owner, scene by scene. Spanish is still
-to be agreed the same way.
+Every text below was chosen by the owner, scene by scene. Spanish was
+to be agreed the same way (done: see the Spanish section below).
 
 ## 1. Opening
 Picture: a spinning dotted globe; trade routes draw themselves between
@@ -67,3 +67,36 @@ who arranges introductions.
 Picture: the tagline letter by letter, a gold light sweep, particles
 gathering.
 On screen and spoken: Where opportunity meets discretion.
+
+---
+
+# Spanish (agreed with the owner, 2026-10-28, scene by scene)
+
+The owner does not read Spanish: each scene was agreed from an English
+back-translation that matched his English line for line. Same rules as above.
+Still needed before release: a native Spanish speaker listens to the voice.
+
+## 1. Apertura
+On screen: La Plataforma
+Spoken: Un mercado privado de materias primas físicas. Solo por invitación.
+
+## 2. El problema
+Caption: ¿Hasta qué punto es legítima la contraparte?
+Labels: Lado de la oferta / Lado de la demanda
+Spoken: Sea cual sea su papel en el comercio de materias primas, ya sea como comprador, vendedor o representante de un principal, establecer la buena fe de su contraparte no siempre es evidente, y revelar su posición demasiado pronto puede exponer sus intereses comerciales antes de que se hayan establecido la confianza o la reciprocidad.
+
+## 3. Cómo funciona
+Caption at the start: Todas las comunicaciones se canalizan a través del operador
+Caption at the end: Las presentaciones se producen tras acordar condiciones, procedimientos y protocolo de documentos
+Labels: Lado de la oferta / Lado de la demanda
+Spoken: En la plataforma, los miembros ven oportunidades de compra y venta, presentadas con los datos comerciales clave, mientras las identidades permanecen confidenciales. Toda la comunicación pasa por el operador, y las presentaciones directas solo tienen lugar tras acordar el precio, los procedimientos de la transacción y la secuencia de intercambio de documentos.
+
+## 4. Tres beneficios
+Cards:
+- Discreción - Su identidad permanece confidencial hasta la presentación
+- Ofertas claras - El papel declarado por quien las envía y la documentación declarada.
+- Comunicación facilitada - Todos los mensajes se transmiten a través del operador, que organiza las presentaciones.
+Spoken: Discreción, su identidad permanece confidencial hasta la presentación. Ofertas claras, el papel declarado por quien las envía y la documentación declarada. Comunicación facilitada, todos los mensajes se transmiten a través del operador, que organiza las presentaciones.
+
+## 5. Cierre
+On screen and spoken: Donde la oportunidad se encuentra con la discreción.
