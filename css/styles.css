@@ -494,7 +494,9 @@ tr.row-quiet td { color: var(--text-muted); }
   right: 16px;
   display: flex;
   justify-content: flex-end;
-  color: var(--text-muted, #667);
+  /* The logo's dark blue: the muted grey failed contrast on the active
+     button's grey wash once the class stopped being stripped. */
+  color: var(--blue-dark);
 }
 .help-item { border-bottom: 1px solid var(--border, #dde5ee); padding: 10px 0; }
 .help-item summary { cursor: pointer; font-weight: 600; }
