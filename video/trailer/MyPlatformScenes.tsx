@@ -277,10 +277,15 @@ const LockIcon: React.FC<{ p: number }> = ({ p }) => (
     <circle cx="65" cy="86" r="8" fill={NAVY} />
   </svg>
 );
+// A document whose lines write themselves in: offers state what exists.
+// Deliberately not a tick - the platform verifies nothing (owner, 2026-10-28).
 const CheckIcon: React.FC<{ p: number }> = ({ p }) => (
   <svg width="130" height="130" viewBox="0 0 130 130">
-    <circle cx="65" cy="65" r="54" fill={GREEN} />
-    <path d="M38 67 L57 86 L93 46" stroke="#FFFFFF" strokeWidth="12" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="90" strokeDashoffset={90 * (1 - p)} />
+    <path d="M30 14 H82 L102 34 V116 H30 Z" fill="#FFFFFF" stroke={BLUE} strokeWidth="6" strokeLinejoin="round" />
+    <path d="M82 14 V34 H102" fill="none" stroke={BLUE} strokeWidth="6" strokeLinejoin="round" />
+    {[0, 1, 2, 3].map((i) => (
+      <rect key={i} x="42" y={50 + i * 15} width={(i === 3 ? 30 : 48) * Math.max(0, Math.min(1, p * 4 - i))} height="7" rx="3" fill={i === 0 ? GOLD : BLUE} />
+    ))}
   </svg>
 );
 const LinkIcon: React.FC<{ p: number }> = ({ p }) => (
@@ -359,7 +364,181 @@ const TaglineScene: React.FC<{ labels: Labels; seconds: number }> = ({ labels, s
   );
 };
 
+// ---------------------------------------------------------------- globe
+// A spinning dotted globe (orthographic), continents from rough lon/lat
+// ellipses, great-circle routes drawing themselves, ships travelling them.
+const LAND = [
+  [-100, 45, 32, 20], [-80, 30, 12, 10], [-60, -15, 16, 26], [15, 50, 18, 11], [20, 5, 21, 28],
+  [90, 47, 48, 20], [78, 20, 9, 11], [110, 25, 14, 12], [115, 0, 14, 6], [135, -25, 17, 11], [45, 25, 10, 8],
+];
+const isLand = (lon: number, lat: number) => LAND.some(([cx, cy, rx, ry]) => ((lon - cx) / rx) ** 2 + ((lat - cy) / ry) ** 2 < 1);
+const CITIES: Record<string, [number, number]> = {
+  santos: [-46, -24], rotterdam: [4, 52], lagos: [3, 6], shanghai: [121, 31], houston: [-95, 30],
+  singapore: [104, 1], perth: [116, -32], dubai: [55, 25], mumbai: [73, 19],
+};
+const GROUTES: [string, string][] = [["santos", "rotterdam"], ["houston", "rotterdam"], ["lagos", "shanghai"], ["perth", "singapore"], ["dubai", "mumbai"], ["singapore", "rotterdam"]];
+const toVec = (lon: number, lat: number) => {
+  const a = (lon * Math.PI) / 180, b = (lat * Math.PI) / 180;
+  return [Math.cos(b) * Math.cos(a), Math.cos(b) * Math.sin(a), Math.sin(b)];
+};
+const slerp = (p: number[], q: number[], t: number) => {
+  const d = Math.acos(Math.min(1, p[0] * q[0] + p[1] * q[1] + p[2] * q[2]));
+  if (d < 1e-6) return p;
+  const s = Math.sin(d), a = Math.sin((1 - t) * d) / s, b = Math.sin(t * d) / s;
+  return [a * p[0] + b * q[0], a * p[1] + b * q[1], a * p[2] + b * q[2]];
+};
+
+const GlobeScene: React.FC<{ labels: Labels; seconds: number }> = ({ labels, seconds }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const R = 360, CX = 960, CY = 600;
+  const rot = -40 + frame * 0.45;            // degrees of spin
+  const tilt = (18 * Math.PI) / 180;
+  const project = (v: number[]) => {
+    const r = (rot * Math.PI) / 180;
+    // spin about the polar axis, then tilt towards the viewer
+    const x1 = v[0] * Math.cos(r) - v[1] * Math.sin(r);
+    const y1 = v[0] * Math.sin(r) + v[1] * Math.cos(r);
+    const z1 = v[2];
+    const y2 = y1, z2 = z1 * Math.cos(tilt) - x1 * Math.sin(tilt), x2 = z1 * Math.sin(tilt) + x1 * Math.cos(tilt);
+    return { sx: CX + R * y2, sy: CY - R * z2, front: x2 > 0, depth: x2 };
+  };
+  const dots: React.ReactNode[] = [];
+  for (let lat = -70; lat <= 75; lat += 3) for (let lon = -180; lon < 180; lon += 3) {
+    if (!isLand(lon, lat)) continue;
+    const p = project(toVec(lon, lat));
+    if (!p.front) continue;
+    dots.push(<circle key={`${lon},${lat}`} cx={p.sx} cy={p.sy} r={3.2} fill={BLUE} opacity={0.35 + 0.6 * p.depth} />);
+  }
+  const appear = spring({ frame, fps, config: { damping: 16 } });
+  return (
+    <Stage seconds={seconds} seed={1}>
+      <div style={{ position: "absolute", left: CX - R - 40, top: CY - R - 40, width: 2 * R + 80, height: 2 * R + 80, borderRadius: "50%", background: "radial-gradient(circle at 40% 35%, rgba(255,255,255,0.95), rgba(214,233,248,0.9) 55%, rgba(170,205,232,0.9))", boxShadow: "0 40px 120px rgba(29,74,109,0.25)", transform: `scale(${0.85 + 0.15 * appear})` }} />
+      <svg width="1920" height="1080" style={{ position: "absolute", transform: `scale(${0.85 + 0.15 * appear})`, transformOrigin: `${CX}px ${CY}px` }}>
+        {dots}
+        {GROUTES.map(([a, b], i) => {
+          const P = toVec(...CITIES[a]), Q = toVec(...CITIES[b]);
+          const start = fps * (0.6 + i * 0.45);
+          const prog = interpolate(frame, [start, start + fps * 1.6], [0, 1], { ...clamp, easing: Easing.out(Easing.cubic) });
+          const pts: string[] = [];
+          const N = 40;
+          for (let k = 0; k <= N * prog; k++) {
+            const v = slerp(P, Q, k / N);
+            const lift = 1 + 0.12 * Math.sin((Math.PI * k) / N);   // arc above the surface
+            const p = project([v[0] * lift, v[1] * lift, v[2] * lift]);
+            pts.push(p.front ? `${p.sx},${p.sy}` : "|");
+          }
+          // a route behind the globe is hidden: split wherever it goes round
+          const segs = pts.join(" ").split("|").map((x) => x.trim()).filter((x) => x.includes(" "));
+          const ship = frame > start + fps * 1.6 ? ((frame - start - fps * 1.6) / (fps * 2.6)) % 1 : -1;
+          let shipP = null;
+          if (ship >= 0) { const v = slerp(P, Q, ship); const l = 1 + 0.12 * Math.sin(Math.PI * ship); shipP = project([v[0] * l, v[1] * l, v[2] * l]); }
+          const ends = [P, Q].map((v) => project(v));
+          return (
+            <g key={i}>
+              {segs.map((s, j) => <polyline key={j} points={s.trim()} stroke={i % 2 ? GOLD : GREEN} strokeWidth={5} fill="none" strokeLinecap="round" />)}
+              {ends.map((e, j) => e.front && <circle key={j} cx={e.sx} cy={e.sy} r={9 * prog} fill={GOLD} stroke="#fff" strokeWidth={3} />)}
+              {shipP && shipP.front && <circle cx={shipP.sx} cy={shipP.sy} r={9} fill={NAVY} stroke="#fff" strokeWidth={3} />}
+            </g>
+          );
+        })}
+      </svg>
+      <div style={{ position: "absolute", top: 50, width: "100%", textAlign: "center" }}>
+        <Kinetic text={labels.title || "The Platform"} start={fps * 0.3} size={104} font={SERIF} weight={600} step={6} />
+      </div>
+      <div style={{ position: "absolute", bottom: 40, width: "100%", textAlign: "center", padding: "0 160px", boxSizing: "border-box" }}>
+        <Kinetic text={labels.caption || ""} start={fps * 1.2} size={46} weight={700} color={BLUE} step={3} />
+      </div>
+    </Stage>
+  );
+};
+
+// ---------------------------------------------------------------- port
+// Sea with moving waves, a container ship sailing in, a crane lifting a
+// container onto a truck, ore trucks driving past; a producer and an end
+// buyer above, unsure of each other, and a deal that cracks.
+const Truck: React.FC<{ ore?: boolean; box?: boolean }> = ({ ore, box }) => (
+  <svg width="260" height="110" viewBox="0 0 260 110">
+    {ore && <path d="M70 40 Q110 4 150 22 Q190 6 230 40 Z" fill="#8A6F4D" />}
+    {box && <rect x="70" y="6" width="160" height="48" rx="3" fill={GREEN} />}
+    <rect x="66" y="38" width="170" height="30" rx="4" fill={BLUE} />
+    <path d="M4 68 V36 Q4 26 14 26 H50 L62 44 V68 Z" fill={GOLD} /><rect x="14" y="32" width="26" height="14" rx="2" fill="#D6E9F8" />
+    {[40, 140, 205].map((x) => <g key={x}><circle cx={x} cy="84" r="16" fill={NAVY} /><circle cx={x} cy="84" r="6" fill="#B7C6D3" /></g>)}
+  </svg>
+);
+const CShip: React.FC = () => (
+  <svg width="620" height="200" viewBox="0 0 620 200">
+    <path d="M10 110 H600 L560 190 H60 Z" fill={NAVY} /><rect x="10" y="104" width="590" height="10" fill={RED} />
+    <rect x="470" y="36" width="80" height="70" rx="4" fill="#FFFFFF" /><rect x="482" y="48" width="56" height="12" fill="#9EC1DD" />
+    {[0, 1, 2, 3, 4, 5].map((c) => [0, 1].map((r) => (
+      <rect key={`${c}-${r}`} x={70 + c * 64} y={60 + r * 24} width="60" height="22" fill={[GREEN, GOLD, "#6FA3C8", RED][(c + r) % 4]} stroke="#fff" strokeWidth="1.5" />
+    )))}
+  </svg>
+);
+
+const PortScene: React.FC<{ labels: Labels; seconds: number }> = ({ labels, seconds }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const end = seconds * fps;
+  const shipX = interpolate(frame, [0, fps * 2.6], [-700, 120], { ...clamp, easing: Easing.out(Easing.cubic) });
+  const bob = 6 * Math.sin(frame / 9);
+  // crane cycle: trolley moves over the ship, the hook lowers, lifts a box,
+  // carries it over the truck, lowers it.
+  const cyc = fps * 3.2, f = Math.max(0, frame - fps * 2.4) % cyc, u = f / cyc;
+  const trolley = u < 0.25 ? 520 : u < 0.5 ? interpolate(u, [0.25, 0.5], [520, 1080]) : u < 0.75 ? 1080 : interpolate(u, [0.75, 1], [1080, 520]);
+  const hook = u < 0.12 ? interpolate(u, [0, 0.12], [80, 250]) : u < 0.25 ? interpolate(u, [0.12, 0.25], [250, 80]) : u < 0.5 ? 80 : u < 0.62 ? interpolate(u, [0.5, 0.62], [80, 250]) : u < 0.75 ? interpolate(u, [0.62, 0.75], [250, 80]) : 80;
+  const carrying = (u >= 0.12 && u < 0.62) && frame > fps * 2.4;
+  // trucks stay on the quay road (x 980-1920), entering and leaving at its ends
+  const truck1 = 980 + ((frame * 6) % 1200) - 260;
+  const truck2 = 980 + ((frame * 4.5 + 600) % 1200) - 260;
+  const crackAt = end * 0.62;
+  const crack = interpolate(frame, [crackAt, crackAt + fps * 0.5], [0, 40], { ...clamp, easing: Easing.out(Easing.back(2)) });
+  const shake = frame > crackAt && frame < crackAt + fps * 0.5 ? 9 * Math.sin(frame * 2.3) : 0;
+  const waves = (k: number) => {
+    let d = `M0 ${760 + k * 30}`;
+    for (let x = 0; x <= 1920; x += 40) d += ` L${x} ${760 + k * 30 + 9 * Math.sin((x + frame * (4 + k * 2)) / 70)}`;
+    return d + " L1920 1080 L0 1080 Z";
+  };
+  return (
+    <Stage seconds={seconds} seed={2}>
+      {/* sea */}
+      {[0, 1, 2].map((k) => <svg key={k} width="1920" height="1080" style={{ position: "absolute" }}><path d={waves(k)} fill={["#9CC6E6", "#7DB2DB", "#5E9CCB"][k]} opacity={0.9} /></svg>)}
+      {/* quay and road on the right */}
+      <div style={{ position: "absolute", left: 980, top: 700, width: 940, height: 380, background: "#C9D6E2" }} />
+      <div style={{ position: "absolute", left: 980, top: 880, width: 940, height: 90, background: "#7F93A6" }} />
+      {/* ship */}
+      <div style={{ position: "absolute", left: shipX, top: 600 + bob }}><CShip /></div>
+      {/* crane */}
+      <svg width="1920" height="1080" style={{ position: "absolute" }}>
+        <rect x="1000" y="400" width="22" height="320" fill={GOLD} /><rect x="1140" y="400" width="22" height="320" fill={GOLD} />
+        <rect x="440" y="390" width="760" height="22" fill={GOLD} />
+        <rect x={trolley - 30} y="412" width="60" height="18" fill={NAVY} />
+        <line x1={trolley} y1="430" x2={trolley} y2={430 + hook * 0.75} stroke={NAVY} strokeWidth="4" />
+        {carrying && <rect x={trolley - 32} y={430 + hook * 0.75} width="64" height="24" fill={GREEN} stroke="#fff" strokeWidth="2" />}
+      </svg>
+      {/* trucks */}
+      <div style={{ position: "absolute", left: truck1, top: 830 }}><Truck ore /></div>
+      <div style={{ position: "absolute", left: truck2, top: 830 }}><Truck box /></div>
+      {/* producer and end buyer */}
+      <Person x={360} y={260} label={labels.producer} bob={6 * Math.sin(frame / 10)} />
+      <Person x={1560} y={260} label={labels.buyer} bob={6 * Math.sin(frame / 10 + 2)} />
+      {[0, 1, 2].map((i) => {
+        const o = interpolate(frame, [fps * (0.4 + i * 0.3), fps * (0.8 + i * 0.3), crackAt - 6, crackAt], [0, 1, 1, 0], clamp);
+        return <div key={i} style={{ position: "absolute", left: 820 + i * 110, top: 120 - 26 * Math.abs(Math.sin((frame + i * 9) / 7)), fontFamily: FONT, fontWeight: 800, fontSize: 96, color: i === 1 ? GOLD : BLUE, opacity: o }}>?</div>;
+      })}
+      <div style={{ position: "absolute", left: 810, top: 200, opacity: interpolate(frame, [crackAt - fps * 0.8, crackAt - fps * 0.4], [0, 1], clamp) }}>
+        <Handshake split={crack} shake={shake} color={crack > 5 ? RED : BLUE} />
+      </div>
+      <div style={{ position: "absolute", width: "100%", top: 30, textAlign: "center" }}>
+        <Kinetic text={labels.caption || ""} start={fps * 0.6} size={48} weight={800} step={3} />
+      </div>
+    </Stage>
+  );
+};
+
 export const MyPlatformScene: React.FC<{ kind: string; labels: Labels; seconds: number; at?: number[] }> = ({ kind, labels, seconds, at = [0, 5, 10] }) => {
+  if (kind === "globe") return <GlobeScene labels={labels} seconds={seconds} />;
+  if (kind === "port") return <PortScene labels={labels} seconds={seconds} />;
   if (kind === "trust") return <TrustScene labels={labels} seconds={seconds} />;
   if (kind === "broker") return <BrokerScene labels={labels} seconds={seconds} />;
   if (kind === "benefits") return <BenefitsScene labels={labels} at={at} seconds={seconds} />;

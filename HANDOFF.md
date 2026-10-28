@@ -880,6 +880,22 @@ Decisions behind each are in `docs/AGREED-2026-10-25.md`.
     EN, members EN, members ES), each a short trailer first - what it is,
     the concept, the benefits - then the walkthrough: every tab and button,
     its purpose, animated and zoomed in (docs/VIDEO-BRIEF.md).
+    **DECIDED 2026-10-28:** trailer with OpenMontage, driven by Claude in a
+    cloud session (the owner's choice); walkthroughs with our own GitHub
+    pipeline. Voice: Gemini TTS "algieba" (free tier; the owner's key, not
+    in the repo). English trailer v5 made and sent - see
+    video/trailer/README.md for the files, the owner's wording rules and
+    how to re-render; the owner may restyle colours later, keeping voice
+    and length. Next: Spanish text agreed scene by scene, Operator film,
+    walkthroughs switched to the Gemini voice.
+    **Migration to Cloudflare Pages (planned 2026-10-28, not started):**
+    www.myplatform.trade = front page, app.myplatform.trade = the platform;
+    DNS stays at Spaceship (only two CNAMEs; apex cannot point to Pages
+    without Cloudflare nameservers); deploy stays behind the CI gate;
+    Supabase redirect URLs must include app.myplatform.trade; GitHub Pages
+    runs until the checklist passes on the new address. Needs from the
+    owner: Cloudflare API token + Account ID, OK for the Spaceship records,
+    the Supabase redirect setting, and the front-page text.
 
 -4. ~~**The Privacy Notice does not yet mention outcome records or the
     scorecard.**~~ RESOLVED 2026-10-28: Terms 3.4 (sql/042), live. The research says members must be told. A new Terms version
