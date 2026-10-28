@@ -188,4 +188,9 @@ async function main() {
   console.log('\nPASS - no script errors, every tab opened, nothing stuck loading, no critical or serious accessibility fault.');
 }
 
-main().catch(async (err) => { console.error(err.message); await cleanup(); process.exit(1); });
+// scripts/browser-leak-scan.js borrows the server, staging pages and sign-in.
+module.exports = { BASE, serve, waitForServer, newPage, signIn };
+
+if (require.main === module) {
+  main().catch(async (err) => { console.error(err.message); await cleanup(); process.exit(1); });
+}

@@ -119,6 +119,10 @@ jobs:
         # accepted against a limit of 20, which no single-connection test could
         # have seen.
         run: npm run stress
+      - name: The email sender, made to fail on purpose
+        # Lost answers, provider errors, refusals and two senders at once,
+        # against a fake provider: every email goes out once or is given up.
+        run: npm run test:sender
 
   safari:
     name: Safari on an iPhone

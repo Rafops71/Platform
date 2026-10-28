@@ -24,6 +24,7 @@ on:
       - 'scripts/security-grid.js'
       - 'scripts/*-scan.js'
       - 'scripts/browser-crawl.js'
+      - 'scripts/browser-leak-scan.js'
       - '*.html'
       - 'js/**'
       - '.github/workflows/security-grid.yml'
@@ -116,6 +117,14 @@ jobs:
         run: node scripts/browser-crawl.js
         env:
           BROWSER: firefox
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+
+      # What the real pages pull down and keep, as members A and B: every
+      # download, localStorage, sessionStorage, cookies and the screen,
+      # searched for another member's name, company, phone or email.
+      - name: No member's browser gets another member's identity
+        run: node scripts/browser-leak-scan.js
+        env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
 
       # Last, so its 40 sign-ins come after the others' (staging allows 150
