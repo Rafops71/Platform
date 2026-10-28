@@ -21,9 +21,13 @@
 //     lines across 8 files).
 //   - Lock files, build output and minified bundles are skipped. The
 //     reviewer's attention is worth more on the code.
-//   - The diff is truncated, with a visible note saying so, rather than being
-//     silently cut: a review of half a change that does not say it read half a
-//     change is worse than no review.
+//   - A diff larger than one request is read in parts, whole files together
+//     (since 2026-10-28: the first-12,000-characters cut read the start of
+//     PR 36 only, and the reviewer then called finished code "unfinished").
+//     Parts are a minute apart, for the free tier's per-minute limit. Past
+//     MAX_PARTS the rest is named as unread, never silently cut: a review of
+//     half a change that does not say it read half a change is worse than
+//     no review.
 //   - It is told to say when it has nothing to say. A reviewer that always
 //     finds something teaches everybody to stop reading it.
 //
@@ -58,6 +62,8 @@ const {
 // that short. Raise either number only against a measured limit, not a hope.
 const MAX_DIFF_CHARS = 12_000;
 const MAX_ANSWER_TOKENS = 2_200;
+const MAX_PARTS = 6;
+const PAUSE_MS = 62_000;
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 /** Paths whose diff teaches a reviewer nothing. */
@@ -79,6 +85,27 @@ function git(args) {
   return execFileSync('git', args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
 }
 
+// One question to the reviewer; null when it gives no text.
+async function ask(system, user) {
+  try {
+    const res = await fetch(GROQ_URL, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: REVIEW_MODEL, temperature: 0.2, reasoning_effort: 'low', max_tokens: MAX_ANSWER_TOKENS,
+        messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
+      }),
+    });
+    const body = await res.json();
+    if (!res.ok) { note(`the review service answered ${res.status}: ${JSON.stringify(body).slice(0, 300)}`); return null; }
+    const answer = body && body.choices && body.choices[0] && body.choices[0].message && body.choices[0].message.content;
+    return (answer && answer.trim()) || null;
+  } catch (err) {
+    note(`could not reach the review service: ${err.message}`);
+    return null;
+  }
+}
+
 async function main() {
   if (!GROQ_API_KEY) bail('no GROQ_API_KEY is set, so there is nobody to ask.');
   // GITHUB_TOKEN is no longer needed: nothing is posted (see the end of main).
@@ -86,8 +113,10 @@ async function main() {
 
   // The merge base, not the branch tip: what this PR actually changes, rather
   // than everything that has landed on main since it was opened.
-  let base;
-  try {
+  // REVIEW_BASE: compare with a given commit instead, to try the reviewer
+  // on a change already merged.
+  let base = process.env.REVIEW_BASE;
+  if (!base) try {
     git(['fetch', '--no-tags', '--depth=200', 'origin', BASE_REF]);
     base = git(['merge-base', 'HEAD', `origin/${BASE_REF}`]).trim();
   } catch (err) {
@@ -97,11 +126,27 @@ async function main() {
   let diff = git(['diff', '--unified=3', base, 'HEAD', '--', '.', ...SKIP]);
   if (!diff.trim()) bail('this pull request changes nothing readable.');
 
-  let truncated = false;
-  if (diff.length > MAX_DIFF_CHARS) {
-    diff = diff.slice(0, MAX_DIFF_CHARS);
-    truncated = true;
+  // Whole files together, up to MAX_DIFF_CHARS a part; a file larger than
+  // that is cut at its own hunks.
+  const pieces = [];
+  for (const file of diff.split(/(?=^diff --git )/m)) {
+    if (file.length <= MAX_DIFF_CHARS) { pieces.push(file); continue; }
+    const [head, ...hunks] = file.split(/(?=^@@ )/m);
+    let cur = head;
+    for (const h of hunks) {
+      if (cur.length + h.length > MAX_DIFF_CHARS && cur !== head) { pieces.push(cur); cur = head; }
+      cur += h.slice(0, MAX_DIFF_CHARS - head.length);
+    }
+    pieces.push(cur);
   }
+  const parts = [];
+  for (const piece of pieces) {
+    if (parts.length && parts[parts.length - 1].length + piece.length <= MAX_DIFF_CHARS) parts[parts.length - 1] += piece;
+    else parts.push(piece);
+  }
+  const fileOf = (t) => [...t.matchAll(/^diff --git a\/(\S+)/gm)].map((m) => m[1]);
+  const read = parts.slice(0, MAX_PARTS);
+  const unread = [...new Set(parts.slice(MAX_PARTS).flatMap(fileOf))];
 
   const system = [
     'You are reviewing a pull request for Jericho Platform, a private brokered',
@@ -125,55 +170,30 @@ async function main() {
     '- Be brief. The reader has little patience for long text.',
   ].join('\n');
 
-  const user = [
-    truncated
-      ? `Here is the FIRST ${MAX_DIFF_CHARS} characters of the diff; it was cut short.\n`
-      : 'Here is the complete diff.\n',
-    '```diff',
-    diff,
-    '```',
-  ].join('\n');
-
-  let answer;
-  try {
-    const res = await fetch(GROQ_URL, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${GROQ_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: REVIEW_MODEL,
-        temperature: 0.2,
-        reasoning_effort: 'low',
-        max_tokens: MAX_ANSWER_TOKENS,
-        messages: [
-          { role: 'system', content: system },
-          { role: 'user', content: user },
-        ],
-      }),
-    });
-    const body = await res.json();
-    if (!res.ok) {
-      bail(`the review service answered ${res.status}: ${JSON.stringify(body).slice(0, 300)}`);
-    }
-    answer = body && body.choices && body.choices[0]
-      && body.choices[0].message && body.choices[0].message.content;
-    answer = answer && answer.trim();
-    if (!answer) {
-      bail('the review service returned no text. Nothing to post.');
-    }
-  } catch (err) {
-    bail(`could not reach the review service: ${err.message}`);
+  const answers = [];
+  for (let i = 0; i < read.length; i += 1) {
+    if (i) await new Promise((r) => setTimeout(r, PAUSE_MS));
+    const user = [
+      read.length > 1
+        ? `This is part ${i + 1} of ${read.length} of the diff (whole files: ${fileOf(read[i]).join(', ')}). Review this part; other parts are reviewed separately.\n`
+        : 'Here is the complete diff.\n',
+      '```diff',
+      read[i],
+      '```',
+    ].join('\n');
+    const answer = await ask(system, user);
+    if (answer) answers.push(read.length > 1 ? `### Part ${i + 1}: ${fileOf(read[i]).join(', ')}\n\n${answer}` : answer);
+    else answers.push(`### Part ${i + 1}: ${fileOf(read[i]).join(', ')}\n\n_Not reviewed - the service gave no answer for this part._`);
   }
+  if (!answers.some((a) => !a.includes('_Not reviewed'))) bail('the review service gave no answer at all.');
 
   const comment = [
     '## Second opinion',
     '',
-    answer,
+    answers.join('\n\n'),
     '',
-    truncated
-      ? `_This change is larger than one free-tier request can hold (${MAX_DIFF_CHARS} characters), so the reviewer read only the beginning of the diff. Treat the silence about everything after that as silence, not approval._`
+    unread.length
+      ? `_Not read (more than ${MAX_PARTS} parts): ${unread.join(', ')}. Treat the silence about these as silence, not approval._`
       : '',
     '',
     `_Reviewed by \`${REVIEW_MODEL}\` via Groq - a model that did not write this code._`,

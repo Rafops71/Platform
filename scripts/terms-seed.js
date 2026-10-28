@@ -22,7 +22,7 @@ const crypto = require('crypto');
 
 const ROOT = path.join(__dirname, '..');
 
-const SEED_FILE_NUMBERS = { '3.0': '032', '3.1': '036', '3.2': '039', '3.3': '040' };
+const SEED_FILE_NUMBERS = { '3.0': '032', '3.1': '036', '3.2': '039', '3.3': '040', '3.4': '042' };
 
 function load() {
   const stub = { classList: { add() {}, remove() {}, toggle() {} } };

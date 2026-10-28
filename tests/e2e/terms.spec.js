@@ -104,10 +104,11 @@ test.describe.serial('Terms & Conditions', () => {
     // is supposed to cover.
     const privacy = page.locator('#terms-body .terms-section').nth(9);
     await expect(privacy.locator('h3')).toHaveText('10. Privacy Notice');
-    await expect(privacy.locator('p')).toHaveCount(10);
+    await expect(privacy.locator('p')).toHaveCount(11);   // 11 since Terms 3.4
 
     const text = await privacy.innerText();
     expect(text).toContain('What is collected');
+    expect(text).toContain('Outcome records');
     expect(text).toContain('language preference');
     expect(text).toContain('Why it is collected');
     expect(text).toContain('audit trail');

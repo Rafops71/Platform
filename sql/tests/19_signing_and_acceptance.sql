@@ -192,7 +192,9 @@ select case when msg like 'Please sign the updated Terms%' then 'PASS' else 'FAI
 from t19_hold where label = 'browse';
 
 set role authenticated; set test.uid='b9b9b9b9-0004-0004-0004-000000000004';
-select public.accept_terms('3.3', 'en', 'Hal Held', 'individual', null,
+-- The version in force, whatever it is: naming one went stale at 3.4.
+select public.accept_terms((select version from public.terms_versions where language = 'en'
+                            order by published_at desc limit 1), 'en', 'Hal Held', 'individual', null,
                            '4 Plaza Mayor', null, 'Santiago', null, 'Chile');
 insert into public.listings (user_id, type, commodity, incoterm, origin, reference_number,
                              poster_role, docs_seen, docs_showable, truth_confirmed)

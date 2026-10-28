@@ -1,0 +1,18 @@
+/* Used only by tests/visual/dashboards.spec.js. Anything that holds data -
+   lists, tables, counts, names - is given one fixed size, so a list that
+   grows by a row on staging does not move the rest of the picture. The test
+   then paints a box over each (Playwright's mask). */
+#browse-list, #mailbox-list, #my-listings-list, #notifications-list, #saved-searches-list,
+#doc-requests-list, #doc-checklist, #activity-list, #analytics-table, #approvals-list,
+#commodities-list, #deal-analytics-table, #deals-list, #invitations-list, #listings-table,
+#matches-list, #operator-mailbox-list, #users-list, #scorecard-tbody, .stat-value, .badge {
+  height: 160px !important; min-height: 160px !important; max-height: 160px !important;
+  overflow: hidden !important; display: block !important;
+}
+
+/* The signed-in name is random on every run, and its width moved the EN/ES
+   buttons on the phone picture (first approved run, 526 pixels). One width. */
+#user-name {
+  display: inline-block !important; width: 12em !important; max-width: 12em !important;
+  overflow: hidden !important; white-space: nowrap !important; vertical-align: bottom !important;
+}
