@@ -81,7 +81,7 @@ function git(args) {
 
 async function main() {
   if (!GROQ_API_KEY) bail('no GROQ_API_KEY is set, so there is nobody to ask.');
-  if (!GITHUB_TOKEN) bail('no GITHUB_TOKEN, so a comment could not be posted.');
+  // GITHUB_TOKEN is no longer needed: nothing is posted (see the end of main).
   if (!PR_NUMBER) bail('no pull request number.');
 
   // The merge base, not the branch tip: what this PR actually changes, rather
@@ -180,22 +180,14 @@ async function main() {
     '_This is an opinion, not a gate. The checklist and CI decide whether the platform works._',
   ].filter(Boolean).join('\n');
 
-  const res = await fetch(
-    `https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${GITHUB_TOKEN}`,
-        Accept: 'application/vnd.github+json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ body: comment }),
-    }
-  );
-  if (!res.ok) {
-    bail(`could not post the comment: ${res.status} ${(await res.text()).slice(0, 200)}`);
+  // Written to the run's own page and log, not posted as a comment: every
+  // comment emailed the owner, who asked for no more GitHub mail
+  // (2026-10-28). Claude reads it from the run.
+  console.log(comment);
+  if (process.env.GITHUB_STEP_SUMMARY) {
+    require('fs').appendFileSync(process.env.GITHUB_STEP_SUMMARY, comment + '\n');
   }
-  note(`Posted a second opinion on PR #${PR_NUMBER}.`);
+  note(`Wrote a second opinion for PR #${PR_NUMBER} to the run summary.`);
 }
 
 main().catch(err => {
