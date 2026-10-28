@@ -9,14 +9,17 @@
 //   sessions          - after signing out everywhere, the refresh token no
 //                       longer works; a member suspended while signed in is
 //                       refused the market and posting with the token they
-//                       already hold; a deleted member's token opens nothing;
+//                       already hold, and refreshing that session gives
+//                       them nothing back; an Operator demoted to member
+//                       keeps no Operator power through the token they
+//                       hold; a deleted member's token opens nothing;
 //   storage           - no session, refresh or invitation token of anybody
 //                       is written into the activity log or notifications.
 //
 // Refuses the live project.
 
 const crypto = require('crypto');
-const { buildWorld, cleanup, http, asUser, must, guardNotLive } = require('./security-grid');
+const { buildWorld, account, cleanup, http, asUser, must, guardNotLive } = require('./security-grid');
 
 async function main() {
   guardNotLive();
@@ -77,12 +80,47 @@ async function main() {
 
     // 4. Suspended while signed in: the token already held opens nothing.
     const heldByA = w.A.token;
+    const sessionA = await must('A session', anon('/auth/v1/token?grant_type=password', {
+      method: 'POST', body: { email: w.A.email, password: w.A.password },
+    }));
     await must('suspend A', http(`/rest/v1/profiles?id=eq.${w.A.profileId}`, { method: 'PATCH', prefer: 'return=minimal', body: { status: 'suspended' } }));
     tries += 2;
     const market = await http('/rest/v1/rpc/get_public_listings', { method: 'POST', key: process.env.SUPABASE_ANON_KEY, token: heldByA, body: {} });
     if (market.ok && Array.isArray(market.json) && market.json.length) fail('a member suspended mid-session still read the market');
     const ref = await http('/rest/v1/rpc/next_reference', { method: 'POST', key: process.env.SUPABASE_ANON_KEY, token: heldByA, body: { p_type: 'buy' } });
     if (ref.ok) fail('a member suspended mid-session still drew a listing reference');
+
+    // Refreshing the session after suspension (docs/AGREED-2026-10-25.md,
+    // review Block 4): a new token may be issued, but it must open nothing.
+    tries += 1;
+    const renewed = await anon('/auth/v1/token?grant_type=refresh_token', {
+      method: 'POST', body: { refresh_token: sessionA.refresh_token },
+    });
+    if (renewed.ok && renewed.json.access_token) {
+      const t = renewed.json.access_token;
+      const m2 = await http('/rest/v1/rpc/get_public_listings', { method: 'POST', key: process.env.SUPABASE_ANON_KEY, token: t, body: {} });
+      if (m2.ok && Array.isArray(m2.json) && m2.json.length) fail('a suspended member read the market with a refreshed session');
+      const r2 = await http('/rest/v1/rpc/next_reference', { method: 'POST', key: process.env.SUPABASE_ANON_KEY, token: t, body: { p_type: 'buy' } });
+      if (r2.ok) fail('a suspended member drew a listing reference with a refreshed session');
+    }
+
+    // Demoted: an Operator made a member keeps no Operator power through the
+    // token already held (same Block 4).
+    const demoted = await account('demoted', { role: 'operator', inviter: w.operator.profileId });
+    await must('demote', http(`/rest/v1/profiles?id=eq.${demoted.profileId}`, { method: 'PATCH', prefer: 'return=minimal', body: { role: 'participant' } }));
+    tries += 4;
+    const seen = await asUser(demoted, '/rest/v1/profiles?select=id');
+    if (seen.ok && seen.json.some((r) => r.id !== demoted.profileId)) fail('a demoted Operator still read other members\' profiles');
+    await asUser(demoted, `/rest/v1/profiles?id=eq.${w.pending.profileId}`, { method: 'PATCH', prefer: 'return=minimal', body: { status: 'approved' } });
+    const [still] = (await http(`/rest/v1/profiles?select=status&id=eq.${w.pending.profileId}`)).json;
+    if (still && still.status === 'approved') fail('a demoted Operator still approved a registration');
+    const inv = await asUser(demoted, '/rest/v1/rpc/queue_invitation_email', {
+      method: 'POST', body: { p_to_email: 'demoted-invite@example.invalid', p_link: 'https://rafops71.github.io/Platform/register.html', p_lang: 'en' },
+    });
+    if (inv.ok) fail('a demoted Operator still sent an invitation');
+    await http('/rest/v1/email_outbox?to_email=eq.demoted-invite@example.invalid', { method: 'DELETE' });
+    const log = await asUser(demoted, '/rest/v1/activity_log?select=id&limit=50');
+    if (log.ok && Array.isArray(log.json) && log.json.length) fail('a demoted Operator still read the activity log');
 
     // 5. Deleted: the token a deleted member still holds opens nothing.
     const heldByPending = w.pending.token;

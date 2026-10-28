@@ -27,6 +27,7 @@
     "hygiene": "node scripts/verify-live.js",
     "timings": "node scripts/timings.js",
     "stress": "node scripts/stress-test.js",
+    "test:sender": "node scripts/email-sender-test.js",
     "terms:seed": "node scripts/terms-seed.js --write",
     "check:terms": "node scripts/terms-seed.js",
     "check:purpose": "node scripts/check-pr-purpose.js",

@@ -19,6 +19,12 @@ on:
     - cron: '*/15 * * * *'   # every 15 minutes
   workflow_dispatch: {}
 
+# One sender at a time: a run that starts while the last is still sending
+# waits instead of reading the same queue and mailing the same rows twice.
+concurrency:
+  group: send-listing-emails
+  cancel-in-progress: false
+
 jobs:
   send-listing-emails:
     runs-on: ubuntu-latest

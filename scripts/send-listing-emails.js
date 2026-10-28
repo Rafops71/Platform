@@ -44,6 +44,10 @@ const RETRY_FAILED = process.argv.includes('--retry-failed');
 // Permanent rejections ignore this and fail on the first attempt.
 const MAX_ATTEMPTS = 5;
 
+// Overridable only so scripts/email-sender-test.js can point the sender at a
+// fake provider that fails on purpose. Production never sets it.
+const RESEND_URL = process.env.RESEND_API_URL || 'https://api.resend.com/emails';
+
 function loadEnv() {
   // .env is a local-development convenience, not a requirement. CI has no
   // .env at all — it is git-ignored — and passes the same values as real
@@ -114,11 +118,17 @@ async function recordFailure(client, row, message, permanent) {
 async function sendOne(client, row) {
   let res;
   try {
-    res = await fetch('https://api.resend.com/emails', {
+    res = await fetch(RESEND_URL, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
         'Content-Type': 'application/json',
+        // One key per outbox row. If Resend accepted a send but the answer
+        // was lost (timeout, crash before sent_at was written), the retry
+        // carries the same key and Resend does not send it again - it keeps
+        // keys for 24 hours (resend.com/docs, "Idempotency Keys", checked
+        // 2026-10-28). docs/AGREED-2026-10-25.md, review Block 3.
+        'Idempotency-Key': `email-outbox/${row.id}`,
       },
       body: JSON.stringify({
         from: process.env.LISTING_EMAIL_FROM,
@@ -156,7 +166,8 @@ async function main() {
 
   const client = new Client({
     connectionString: process.env.SUPABASE_DB_URL,
-    ssl: { rejectUnauthorized: false },
+    // sslmode=disable only for the throwaway local database of the test.
+    ssl: /sslmode=disable/.test(process.env.SUPABASE_DB_URL) ? false : { rejectUnauthorized: false },
     connectionTimeoutMillis: 10000,
   });
   await client.connect();
