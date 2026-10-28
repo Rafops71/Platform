@@ -870,7 +870,12 @@ Decisions behind each are in `docs/AGREED-2026-10-25.md`.
     training - film material is not secret, so acceptable there) or Ollama
     locally (depends on his PC). Keep the database, Terms and legal work on
     Claude.
-    **Owner, 2026-10-28:** brain = Mistral (free tier). Start once the
+    **CORRECTION 2026-10-28:** OpenMontage's own page (read that day) says
+    its brain must be an AI coding assistant (Claude Code, Cursor, Copilot,
+    Windsurf, Codex); local models are "coming soon" and Mistral is not
+    supported. The Mistral plan above was never checked and does not work.
+    Options put to the owner: A our own video/ pipeline on GitHub (free),
+    B OpenMontage + free Copilot on his PC, C OpenMontage + Claude Code. Start once the
     MyPlatform header is live, so the films show it. Three films (Operator
     EN, members EN, members ES), each a short trailer first - what it is,
     the concept, the benefits - then the walkthrough: every tab and button,
