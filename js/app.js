@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Labels are translated; the stored values stay canonical English.
   populateSelect('unit', UNITS, true, unitLabel);
   populateSelect('price_unit', UNITS, true, unitLabel);
+  renderHelp(document.getElementById('help-list'));
   populateSelect('location', COUNTRIES, true, countryLabel);
   await loadCommodities();
   renderDocChecklist();
@@ -137,6 +138,7 @@ window.onLanguageChange = function (lang) {
   if (screen === 'doc-requests') loadDocRequests();
   if (screen === 'mailbox') loadMailbox();
   if (screen === 'notifications') loadNotifications();
+  if (screen === 'help') renderHelp(document.getElementById('help-list'));
   if (screen === 'new-listing' && !EDITING_LISTING_ID) {
     document.getElementById('listing-form-title').textContent = t('form.newListing');
   }

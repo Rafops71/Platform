@@ -487,11 +487,19 @@ tr.row-quiet td { color: var(--text-muted); }
 /* On the sign-in and registration cards the toggle sits above the logo,
    right-aligned, so it never competes with the form. */
 .lang-toggle-auth {
+  /* The page's top-right corner, not above the centred card (owner,
+     2026-10-28). */
+  position: absolute;
+  top: 16px;
+  right: 16px;
   display: flex;
   justify-content: flex-end;
-  margin-bottom: 8px;
   color: var(--text-muted, #667);
 }
+.help-item { border-bottom: 1px solid var(--border, #dde5ee); padding: 10px 0; }
+.help-item summary { cursor: pointer; font-weight: 600; }
+.help-item p { margin: 8px 0 0; }
+.help-link { text-align: center; margin-top: 16px; }
 
 /* ---- Terms & Conditions ------------------------------------------------ */
 
