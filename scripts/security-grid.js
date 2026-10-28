@@ -283,7 +283,12 @@ async function probe(table, roleName, who, failures, results) {
     if (added && copy.id) made.rows.push([table, `id=eq.${copy.id}`]);
     // DELETE last, and only report: a refused delete leaves the world intact.
     const del = await call(`/rest/v1/${table}?${filter}`, { method: 'DELETE', prefer: 'return=representation' });
-    record('delete', del.ok && Array.isArray(del.json) && del.json.length > 0, '');
+    const deleted = del.ok && Array.isArray(del.json) ? del.json : [];
+    record('delete', deleted.length > 0, '');
+    // An allowed delete (an Operator removing a commodity) took a real row:
+    // put it back, exactly as it was. Until 2026-10-28 it was not, and each
+    // run took one more commodity until staging had none left.
+    if (deleted.length) await must(`restore ${table}`, http(`/rest/v1/${table}`, { method: 'POST', prefer: 'return=minimal', body: deleted }));
   }
 }
 
