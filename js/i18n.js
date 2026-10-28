@@ -31,7 +31,7 @@ const STRINGS = {
     'lang.name.es': 'Español',
     'lang.switch': 'Language',
 
-    'brand': 'Jericho Platform',
+    'brand': 'MyPlatform',
     'common.loading': 'Loading…',
     'common.save': 'Save',
     'err.notAllowed': 'You are not allowed to do that. If you think you should be, ask the Operator.',
@@ -93,7 +93,7 @@ const STRINGS = {
 
     // ---- Registration --------------------------------------------------
     'register.title': 'Complete your registration',
-    'register.watchTitle': 'Before you register — how Jericho works',
+    'register.watchTitle': 'Before you register — how MyPlatform works',
     'register.watchHelp': 'A three-minute walkthrough. Nothing is downloaded until you press play.',
     'register.checking': 'Checking invitation link…',
     'register.invalid': 'This invitation link is invalid, expired, or already used.',
@@ -222,7 +222,7 @@ const STRINGS = {
     'stmt.err.noMandate': 'Without a signed mandate you act as a broker. Please choose Broker as your role.',
     'stmt.err.mandateDate': 'Please give the date your mandate was signed.',
     'stmt.err.via': 'Please say who you act through.',
-    'stmt.err.tooFar': 'Jericho accepts offers no more than two steps from the principal. Please post only offers within that distance.',
+    'stmt.err.tooFar': 'MyPlatform accepts offers no more than two steps from the principal. Please post only offers within that distance.',
     'stmt.err.docs': 'Please answer both questions about documents.',
     'stmt.err.truth': 'Please confirm that this offer is true before publishing it.',
     'stmt.browse.role': 'Poster',
@@ -483,7 +483,7 @@ const STRINGS = {
     'lang.name.es': 'Español',
     'lang.switch': 'Idioma',
 
-    'brand': 'Jericho Platform',
+    'brand': 'MyPlatform',
     'common.loading': 'Cargando…',
     'common.save': 'Guardar',
     'err.notAllowed': 'No tiene permiso para hacer eso. Si cree que debería tenerlo, consulte al Operador.',
@@ -541,7 +541,7 @@ const STRINGS = {
 
     // ---- Registration --------------------------------------------------
     'register.title': 'Complete su registro',
-    'register.watchTitle': 'Antes de registrarse — cómo funciona Jericho',
+    'register.watchTitle': 'Antes de registrarse — cómo funciona MyPlatform',
     'register.watchHelp': 'Un recorrido de tres minutos. No se descarga nada hasta que pulse reproducir.',
     'register.checking': 'Verificando el enlace de invitación…',
     'register.invalid': 'Este enlace de invitación no es válido, ha caducado o ya se ha utilizado.',
@@ -670,7 +670,7 @@ const STRINGS = {
     'stmt.err.noMandate': 'Sin un mandato firmado usted actúa como corredor. Elija «Corredor» como función.',
     'stmt.err.mandateDate': 'Indique la fecha de firma de su mandato.',
     'stmt.err.via': 'Indique a través de quién actúa.',
-    'stmt.err.tooFar': 'Jericho acepta ofertas a no más de dos pasos del principal. Publique solo ofertas dentro de esa distancia.',
+    'stmt.err.tooFar': 'MyPlatform acepta ofertas a no más de dos pasos del principal. Publique solo ofertas dentro de esa distancia.',
     'stmt.err.docs': 'Responda a las dos preguntas sobre documentos.',
     'stmt.err.truth': 'Confirme que esta oferta es veraz antes de publicarla.',
     'stmt.browse.role': 'Anunciante',
