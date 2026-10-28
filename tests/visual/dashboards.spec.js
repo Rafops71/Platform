@@ -43,10 +43,15 @@ for (const d of DASHBOARDS) {
     await page.fill('#password', who.password);
     await page.click('#login-btn');
     await page.waitForURL(`**/${d.file}`, { timeout: 20_000 });
+    // Ready only once the signed-in name is shown: clicking a tab before
+    // that is undone when the page finishes starting (first CI run).
+    await page.waitForFunction(() => document.querySelector('#user-name')?.textContent.trim().length > 0, null, { timeout: 20_000 });
+    await page.waitForLoadState('networkidle');
     for (const tab of d.tabs) {
       const btn = page.locator(`nav.tabs button[data-screen="${tab}"]`);
       if (await btn.isVisible()) await btn.click();
       else await page.evaluate((t) => document.querySelector(`nav.tabs button[data-screen="${t}"]`).click(), tab);
+      await expect(page.locator(`#screen-${tab}`)).toHaveClass(/\bactive\b/);
       await page.waitForLoadState('networkidle');
       await page.evaluate(() => document.fonts.ready);
       await expect.soft(page).toHaveScreenshot(`${d.file.replace('.html', '')}-${tab}.png`, {

@@ -53,7 +53,7 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
+  pull-requests: read
 
 concurrency:
   group: review-${{ github.event.pull_request.number || inputs.pr }}

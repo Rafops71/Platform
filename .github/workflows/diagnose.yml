@@ -1,0 +1,33 @@
+name: Failure diagnosis
+
+# When one of these workflows fails, scripts/diagnose-failure.js has a free
+# model (Groq) read the end of each failed job's log and write a five-line
+# guess at the cause to this run's summary page. Never fails, never posts
+# comments, never sends mail beyond what GitHub already does.
+on:
+  workflow_run:
+    workflows: ['CI', 'Security grid (staging)', 'Picture check', 'Listing Email Notifications', 'Morning report']
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  diagnose:
+    if: github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Read the failed log
+        run: node scripts/diagnose-failure.js
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          RUN_NAME: ${{ github.event.workflow_run.name }}
