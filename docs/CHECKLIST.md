@@ -103,6 +103,7 @@ the suite: this platform's product is controlled disclosure, so proving a thing
 | 73 | A member can never read a scorecard, their own or anyone's | MUST NOT |
 | 74 | Scorecard figures are counts of what Operators recorded, kept apart by side | does |
 | 75 | An Operator sees deals opened, introduced, closed and fallen through, period by period | does |
+| 76 | Help answers the common questions in English and Spanish, before signing in and inside the platform | does |
 
 ## Open questions on this list
 

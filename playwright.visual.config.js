@@ -8,7 +8,7 @@
 //   npx playwright test -c playwright.visual.config.js --update-snapshots
 //
 // The second form re-takes the references; do it only after looking at the
-// new pictures and deciding the change was meant. Run in security-grid.yml,
+// new pictures and deciding the change was meant. Run in security-grid.yml (its pictures job),
 // on the same Ubuntu runner every time, so fonts render alike.
 
 'use strict';

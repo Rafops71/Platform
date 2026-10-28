@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyPlatform — Help</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600&family=Source+Sans+3:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<!-- The members' Help questions, readable without an account, so somebody
+     who cannot sign in can still find the answer. The same questions are the
+     Help tab inside the platform (js/help.js). -->
+<main class="auth-shell terms-shell">
+  <div id="lang-toggle" class="lang-toggle lang-toggle-auth"></div>
+
+  <div class="logo-row">
+    <h1>MyPlatform</h1>
+    <h2 class="logo-sub" data-i18n="help.title">Help and questions</h2>
+  </div>
+
+  <div class="card">
+    <p class="text-muted" data-i18n="help.intro"></p>
+    <div id="help-list" class="stack"></div>
+    <p style="margin-top:22px;"><a href="index.html" data-i18n="terms.back">Back</a></p>
+  </div>
+</main>
+
+<script src="js/i18n.js"></script>
+<script src="js/help.js"></script>
+<script>
+  window.onLanguageChange = () => renderHelp(document.getElementById('help-list'));
+  renderLanguageToggle('lang-toggle');
+  applyTranslations();
+  renderHelp(document.getElementById('help-list'));
+</script>
+</body>
+</html>

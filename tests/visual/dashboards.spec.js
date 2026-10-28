@@ -27,8 +27,8 @@ test.beforeAll(async () => { guardNotLive(); world = await buildWorld(); });
 test.afterAll(async () => { await cleanup(); });
 
 const DASHBOARDS = [
-  { who: 'operator', file: 'operator.html', tabs: ['overview', 'approvals', 'users', 'invitations', 'listings', 'matches', 'deals', 'mailbox', 'doc-requests', 'commodities', 'analytics', 'scorecard', 'activity'] },
-  { who: 'A', file: 'app.html', tabs: ['browse', 'new-listing', 'my-listings', 'mailbox', 'notifications', 'doc-requests', 'profile'] },
+  { who: 'operator', file: 'operator.html', tabs: ['overview', 'approvals', 'users', 'invitations', 'listings', 'matches', 'deals', 'mailbox', 'doc-requests', 'commodities', 'analytics', 'scorecard', 'activity', 'help'] },
+  { who: 'A', file: 'app.html', tabs: ['browse', 'new-listing', 'my-listings', 'mailbox', 'notifications', 'doc-requests', 'profile', 'help'] },
 ];
 
 for (const d of DASHBOARDS) {

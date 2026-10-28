@@ -54,7 +54,7 @@ test.describe.serial('listing statements', () => {
     await page.click('#listing-submit-btn');
 
     await expect(page.locator('.toast-error').last()).toContainText(
-      'Jericho accepts offers no more than two steps from the principal. Please post only offers within that distance.');
+      'MyPlatform accepts offers no more than two steps from the principal. Please post only offers within that distance.');
     expect(await postedBy(poster), 'a listing was saved beyond the two-step limit').toBe(0);
   });
 

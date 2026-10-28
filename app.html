@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Jericho Platform — Dashboard</title>
+<title>MyPlatform — Dashboard</title>
 <!-- "Sky Tint" (docs/LOOK-DECISION.md): Spectral for headings and listing
      titles, Source Sans 3 for everything read as information. display=swap so
      a slow or blocked Google Fonts shows Georgia and the system sans rather
@@ -16,7 +16,7 @@
 <body>
 <header class="site-header">
   <div class="container">
-    <h1>Jericho Platform</h1>
+    <h1>MyPlatform</h1>
     <div class="user-info">
       <span id="user-name"></span> ·
       <span id="lang-toggle" class="lang-toggle"></span> ·
@@ -34,6 +34,7 @@
     <button data-screen="mailbox" data-i18n="nav.mailbox">Mailbox</button>
     <button data-screen="notifications"><span data-i18n="nav.notifications">Notifications</span><span id="notif-dot" class="notification-dot hidden"></span></button>
     <button data-screen="profile" data-i18n="nav.profile">Profile</button>
+    <button data-screen="help" data-i18n="nav.help">Help</button>
   </div>
 </nav>
 
@@ -258,6 +259,15 @@
     </div>
   </section>
 
+  <!-- HELP -->
+  <section id="screen-help" class="screen">
+    <div class="card">
+      <h2 class="mt-0" data-i18n="help.title">Help and questions</h2>
+      <p class="text-muted" data-i18n="help.intro"></p>
+      <div id="help-list" class="stack"></div>
+    </div>
+  </section>
+
   <!-- PROFILE -->
   <section id="screen-profile" class="screen">
     <div class="card">
@@ -385,6 +395,7 @@
 <script src="js/i18n.js"></script>
 <script src="js/utils.js"></script>
 <script src="js/signing.js"></script>
+<script src="js/help.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

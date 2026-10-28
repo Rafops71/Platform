@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Jericho Platform — Operator</title>
+<title>MyPlatform — Operator</title>
 <!-- "Sky Tint" (docs/LOOK-DECISION.md): Spectral for headings and listing
      titles, Source Sans 3 for everything read as information. display=swap so
      a slow or blocked Google Fonts shows Georgia and the system sans rather
@@ -16,7 +16,7 @@
 <body>
 <header class="site-header">
   <div class="container">
-    <h1>Jericho Platform — Operator</h1>
+    <h1>MyPlatform</h1>
     <div class="user-info">
       <span id="user-name"></span> ·
       <a href="#" id="logout-link" style="color:#fff;">Sign out</a>
@@ -39,6 +39,7 @@
     <button data-screen="scorecard">Scorecard</button>
     <button data-screen="analytics">Analytics</button>
     <button data-screen="activity">Activity Log</button>
+    <button data-screen="help">Help</button>
   </div>
 </nav>
 
@@ -301,6 +302,25 @@
   </section>
 
   <!-- ACTIVITY LOG -->
+  <!-- HELP: the Operator's common questions (English, like this console). -->
+  <section id="screen-help" class="screen">
+    <div class="card">
+      <h2 class="mt-0">Help and questions</h2>
+      <p class="text-muted">Answers to the questions Operators ask most. Tap a question to open it.</p>
+      <div id="operator-help" class="stack">
+        <details class="help-item"><summary>How do I invite somebody?</summary><p>Invitations: choose the language of the invitation email (their email is optional, for your own reference) and create it. You get a link to send them; it is valid 5 days and works once. If it expires, you can send a new one or change the expiry date in the list.</p></details>
+        <details class="help-item"><summary>A registration is waiting. What do I do?</summary><p>Approvals: check the person's details and approve or reject. They are emailed either way, in their language. Only approved members can sign in.</p></details>
+        <details class="help-item"><summary>How do messages reach the other member?</summary><p>Every enquiry and reply arrives in your Mailbox first. Read it, then Forward it, Reply to the sender, or leave it. A message is forwarded exactly as written, so if it names the sender, reply and ask them to send it again without. Members never see who wrote to them.</p></details>
+        <details class="help-item"><summary>What is a deal file?</summary><p>Deals: a file opens by itself the first time you forward a negotiation between two members about a listing, one per pair. Move it through its stages and record the outcome. Every change is kept, with who and when.</p></details>
+        <details class="help-item"><summary>What is the Scorecard?</summary><p>Counts of the outcomes Operators recorded in deal files, per member and per side. Facts, not a verdict: you decide what they mean. Members never see it; a member may ask to see what is held on them.</p></details>
+        <details class="help-item"><summary>How do I check whether a member holds a document?</summary><p>Document Requests: ask about a document for one of their listings. They answer "I have this document" or "Not available". Nothing is ever uploaded.</p></details>
+        <details class="help-item"><summary>Which listings need attention?</summary><p>Overview shows the workload: pending registrations, messages awaiting review, open document requests, unreviewed matches and listings not updated in 30 days.</p></details>
+        <details class="help-item"><summary>Where can I see what happened, and when?</summary><p>Activity Log lists sign-ins, approvals, invitations and other actions. Analytics shows the figures by period.</p></details>
+        <details class="help-item"><summary>Something is not working.</summary><p>Write down what you pressed and what you saw, and email rafael@myplatform.trade.</p></details>
+      </div>
+    </div>
+  </section>
+
   <section id="screen-activity" class="screen">
     <div class="card">
       <h2 class="mt-0">Activity Log</h2>

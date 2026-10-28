@@ -13,7 +13,7 @@ const SUPABASE_PUBLISHABLE_KEY = 'picture-check';
 const jericho = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 `;
 
-const PAGES = ['index', 'register', 'reset', 'terms'];
+const PAGES = ['index', 'register', 'reset', 'terms', 'help'];
 
 for (const lang of ['en', 'es']) {
   for (const name of PAGES) {

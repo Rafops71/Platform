@@ -870,9 +870,19 @@ Decisions behind each are in `docs/AGREED-2026-10-25.md`.
     training - film material is not secret, so acceptable there) or Ollama
     locally (depends on his PC). Keep the database, Terms and legal work on
     Claude.
+    **CORRECTION 2026-10-28:** OpenMontage's own page (read that day) says
+    its brain must be an AI coding assistant (Claude Code, Cursor, Copilot,
+    Windsurf, Codex); local models are "coming soon" and Mistral is not
+    supported. The Mistral plan above was never checked and does not work.
+    Options put to the owner: A our own video/ pipeline on GitHub (free),
+    B OpenMontage + free Copilot on his PC, C OpenMontage + Claude Code. Start once the
+    MyPlatform header is live, so the films show it. Three films (Operator
+    EN, members EN, members ES), each a short trailer first - what it is,
+    the concept, the benefits - then the walkthrough: every tab and button,
+    its purpose, animated and zoomed in (docs/VIDEO-BRIEF.md).
 
--4. **The Privacy Notice does not yet mention outcome records or the
-    scorecard.** The research says members must be told. A new Terms version
+-4. ~~**The Privacy Notice does not yet mention outcome records or the
+    scorecard.**~~ RESOLVED 2026-10-28: Terms 3.4 (sql/042), live. The research says members must be told. A new Terms version
     is the owner's decision; nothing has been published.
 
 -3. ~~**The morning report is posted in a PUBLIC repository**~~ RESOLVED

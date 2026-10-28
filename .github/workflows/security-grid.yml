@@ -27,6 +27,9 @@ on:
       - 'scripts/browser-leak-scan.js'
       - '*.html'
       - 'js/**'
+      - 'css/**'
+      - 'tests/visual/**'
+      - 'playwright.visual.config.js'
       - '.github/workflows/security-grid.yml'
 
 permissions:
@@ -134,3 +137,36 @@ jobs:
         run: node scripts/crowd-scan.js
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+
+  # The picture check (playwright.visual.config.js): the public pages and
+  # every dashboard tab, against the approved pictures. A job of this
+  # workflow, after the grid, and not a workflow of its own: two workflows
+  # in the one staging-database line threw each other out (GitHub keeps one
+  # waiting run per line), and the pictures were cancelled on PR 38.
+  # A page with no approved picture fails, and its new picture is kept as
+  # the "pictures" artifact to look at and commit.
+  pictures:
+    needs: grid
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - name: Install the browser
+        run: npx playwright install --with-deps chromium
+      - name: Every page and every tab looks as approved
+        run: npx playwright test -c playwright.visual.config.js
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+      - name: Keep the pictures
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pictures
+          path: |
+            test-results/
+            tests/visual/screenshots/
+          retention-days: 7

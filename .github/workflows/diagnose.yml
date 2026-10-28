@@ -6,7 +6,7 @@ name: Failure diagnosis
 # comments, never sends mail beyond what GitHub already does.
 on:
   workflow_run:
-    workflows: ['CI', 'Security grid (staging)', 'Picture check', 'Listing Email Notifications', 'Morning report']
+    workflows: ['CI', 'Security grid (staging)', 'Listing Email Notifications', 'Morning report']
     types: [completed]
 
 permissions:

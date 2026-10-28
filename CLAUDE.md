@@ -174,6 +174,10 @@ the same commit.
   forms or wording.
 - **Films are on hold** and cost his usage; do not start them or use
   multi-agent "arena" approaches. Plan in HANDOFF.md.
+- **Multitask, supervised (his rule, 2026-10-28).** Never sit idle while
+  something runs: do the next independent piece of work in parallel. Every
+  parallel result is checked with a tool before it is reported, never from
+  memory - the checks, the second opinion and the test suite supervise it.
 - **Latest information as of the day.** Re-check anything time-sensitive on
   the day it is asked, not from an earlier session.
 
