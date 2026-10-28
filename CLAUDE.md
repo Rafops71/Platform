@@ -45,7 +45,9 @@ Adding a function to the checklist without a test breaks the build on purpose.
 ## The second opinion
 
 `.github/workflows/review.yml` asks a model that did not write the code to read
-every pull request and comment. It exists because the owner said the obvious
+every pull request. Its review is written to the run's summary page and log,
+not posted as a comment (comments emailed the owner; his ask, 2026-10-28) -
+read it there. It exists because the owner said the obvious
 thing out loud: Claude cannot be judge, jury and executioner on its own work.
 
 It is an opinion and nothing more. It cannot fail a build, and promoting it to
