@@ -797,7 +797,9 @@ commit.
 ## The morning report (built 2026-10-25)
 
 `.github/workflows/morning-report.yml` runs `scripts/morning-report.js` at
-05:43 UTC and files a GitHub issue. Since 2026-10-27 it no longer @mentions
+05:43 UTC and files a GitHub issue only when something needs attention
+(since 2026-10-28, the owner's ask: too much GitHub email); an all-clear
+report stays on the run's summary page. Since 2026-10-27 it no longer @mentions
 the owner (his choice): a scheduled Claude session reads it at 07:46
 Brussels time, fixes what it can through a pull request, and pushes him a
 plain brief only when something was wrong. No AI: it reads GitHub's records and the live site, costs no Claude usage,

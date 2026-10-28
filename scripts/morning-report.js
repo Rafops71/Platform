@@ -246,7 +246,9 @@ async function main() {
   if (process.env.GITHUB_STEP_SUMMARY) {
     require('fs').appendFileSync(process.env.GITHUB_STEP_SUMMARY, text + '\n');
   }
-  if (FILE_ISSUE) {
+  // Filed only when something needs attention (owner, 2026-10-28: too much
+  // GitHub email). An all-clear report stays in the run's summary page.
+  if (FILE_ISSUE && problems.length) {
     const issue = await gh(`/repos/${REPO}/issues`, {
       method: 'POST',
       body: { title: `Morning report — ${day}${problems.length ? ` — ${problems.length} need attention` : ' — all clear'}`, body: text },
