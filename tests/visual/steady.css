@@ -9,3 +9,10 @@
   height: 160px !important; min-height: 160px !important; max-height: 160px !important;
   overflow: hidden !important; display: block !important;
 }
+
+/* The signed-in name is random on every run, and its width moved the EN/ES
+   buttons on the phone picture (first approved run, 526 pixels). One width. */
+#user-name {
+  display: inline-block !important; width: 12em !important; max-width: 12em !important;
+  overflow: hidden !important; white-space: nowrap !important; vertical-align: bottom !important;
+}
