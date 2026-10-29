@@ -1,0 +1,93 @@
+# Runs the function checklist against an ALREADY DEPLOYED address, by hand.
+#
+# TEST ONLY. It never publishes: no deploy step, no Cloudflare secret, and
+# read-only access to the code. `npm run check:deploy` fails the build if this
+# file (or any file other than ci.yml) ever gains a publish step.
+#
+# Why it exists: the migration to Cloudflare Pages is proven only when the
+# checklist passes on the new address (docs/AGREED-2026-10-28-cloudflare.md).
+#
+# Shares ci.yml's live-database lock, so it never runs beside another suite:
+# two runs at once delete each other's fixtures (HANDOFF, "One live database
+# cannot serve two test runs").
+#
+# Item 54 asks Supabase for a recovery link that redirects to THIS address's
+# reset.html, so that address must be in Supabase's Redirect URLs first.
+
+name: Checklist on an address (test only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      address:
+        description: 'Deployed address to test, e.g. https://platform-84i.pages.dev'
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-live-database
+  cancel-in-progress: false
+
+jobs:
+  checklist:
+    name: Function checklist on ${{ inputs.address }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Only addresses we own
+        env:
+          ADDRESS: ${{ inputs.address }}
+        run: |
+          if ! printf '%s' "$ADDRESS" | grep -Eq '^https://([a-z0-9-]+\.)*(pages\.dev|myplatform\.trade)/?$'; then
+            echo "::error::Refusing to test '$ADDRESS': only https addresses on pages.dev or myplatform.trade."
+            exit 1
+          fi
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+
+      - name: Confirm the secrets this suite needs are present
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          missing=
+          for name in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY SUPABASE_DB_URL SUPABASE_ANON_KEY; do
+            if [ -z "${!name}" ]; then missing="$missing $name"; fi
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository secret(s):$missing"
+            exit 1
+          fi
+
+      - name: Which version is that address serving?
+        env:
+          ADDRESS: ${{ inputs.address }}
+        run: |
+          base="${ADDRESS%/}"
+          echo "Address:  $base"
+          echo "Serving:  $(curl -fsS "$base/REVISION")"
+          echo "This run: ${{ github.sha }}"
+
+      - name: Install the browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Tick/cross table against that address
+        env:
+          E2E_BASE_URL: ${{ inputs.address }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          OPERATOR_EMAIL: ${{ secrets.OPERATOR_EMAIL }}
+        run: npm run checklist
+
+      - name: Why it failed
+        if: failure()
+        run: npm run why || true
