@@ -115,7 +115,7 @@ async function main() {
     const [still] = (await http(`/rest/v1/profiles?select=status&id=eq.${w.pending.profileId}`)).json;
     if (still && still.status === 'approved') fail('a demoted Operator still approved a registration');
     const inv = await asUser(demoted, '/rest/v1/rpc/queue_invitation_email', {
-      method: 'POST', body: { p_to_email: 'demoted-invite@example.invalid', p_link: 'https://rafops71.github.io/Platform/register.html', p_lang: 'en' },
+      method: 'POST', body: { p_to_email: 'demoted-invite@example.invalid', p_link: 'https://app.myplatform.trade/register.html', p_lang: 'en' },
     });
     if (inv.ok) fail('a demoted Operator still sent an invitation');
     await http('/rest/v1/email_outbox?to_email=eq.demoted-invite@example.invalid', { method: 'DELETE' });

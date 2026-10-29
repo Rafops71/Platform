@@ -888,14 +888,27 @@ Decisions behind each are in `docs/AGREED-2026-10-25.md`.
     how to re-render; the owner may restyle colours later, keeping voice
     and length. Next: Spanish text agreed scene by scene, Operator film,
     walkthroughs switched to the Gemini voice.
-    **Migration to Cloudflare Pages (planned 2026-10-28; step 1 done 2026-10-29, see docs/AGREED-2026-10-28-cloudflare.md: token tested, empty project `platform` made at platform-84i.pages.dev, first publish proven 2026-10-29: 27 files uploaded, /REVISION identical on both addresses; the test-only manual run `checklist-on-address.yml` is built and merged; the front page (www/, owner's exact words, EN+ES approved) deploys to its own project `platform-www` (platform-www.pages.dev) through the gated `deploy-www` job; checklist on the Cloudflare address RAN 2026-10-29 and FAILED: 55 of 76 proven, 21 not (run 40853784654) - Cloudflare Pages redirects /x.html to /x, which the tests' URL expectations (`**/app.html` etc.) do not allow, plus one real app bug (js/operator.js invitationLink: the invitation link pointed at /operator instead of register; fixed in the Gate 2 pull request). the tests' URL expectations now accept the address with or without .html (pagePattern in tests/e2e/helpers/session.js; owner's go 2026-10-29, conditions in docs/AGREED-2026-10-28-cloudflare.md); re-run on the Cloudflare address 2026-10-29 14:01 Brussels: **76 of 76 proven** (run 40873698934, commit 5fea738, with the first, looser address pattern; Item 54 6 passing, Item 01 passing); the address pattern is then tightened to be no looser than the old checks (owner's condition), which needs one more re-run; NOT yet done: that re-run, domains and DNS, and (after the migration) steadying the Operator Activity tab picture and making the second-opinion parts see each other (www./app.myplatform.trade), Supabase redirect entries for app.myplatform.trade; the front page is deployed to platform-www.pages.dev but not yet reachable on www.myplatform.trade; the app reads ?lang=es|en from the link, so the front page's button opens the app in the visitor's language):**
-    www.myplatform.trade = front page, app.myplatform.trade = the platform;
-    DNS stays at Spaceship (only two CNAMEs; apex cannot point to Pages
-    without Cloudflare nameservers); deploy stays behind the CI gate;
-    Supabase redirect URLs must include app.myplatform.trade; GitHub Pages
-    runs until the checklist passes on the new address. Needs from the
-    owner: Cloudflare API token + Account ID, OK for the Spaceship records,
-    the Supabase redirect setting, and the front-page text.
+    **Migration to Cloudflare Pages - DONE 2026-10-29 (record: docs/AGREED-2026-10-28-cloudflare.md).**
+    app.myplatform.trade = the platform (Pages project `platform`, also
+    platform-84i.pages.dev); www.myplatform.trade = the front page (project
+    `platform-www`, from www/). DNS stays at Spaceship: two CNAMEs added, the
+    list went from 8 to 10 records, mail records untouched (before/after in the
+    record). Supabase: 3 Redirect URLs, Site URL https://app.myplatform.trade/
+    (set by the owner). Proof: full checklist **76 of 76 on
+    https://app.myplatform.trade**, Item 54 = 6 passing (ui) after the Site URL
+    change (run 40904353833). Deploy of both sites is behind the CI gate
+    (`deploy-cloudflare`, `deploy-www`; `npm run check:deploy` enforces it).
+    The morning report now watches app.myplatform.trade (/REVISION) and
+    www.myplatform.trade (must show "Where opportunity meets discretion.");
+    email-scan and token-scan use the new address. Language carries over from
+    the front page (`?lang=es`). GitHub Pages is still published as well -
+    switching it off is the owner's later decision. UNDO: delete the two
+    CNAMEs at Spaceship (www, app) and the two Pages domains; GitHub Pages
+    keeps serving. Still open: Operator Activity-tab picture wobble (cover the
+    moving rows in steady.css, do not retake the picture); second opinion
+    reads a big diff in parts blind to each other (make it read the whole
+    change); Spanish film render (voice lines exist; needs OpenMontage set
+    up); native-speaker listen to the Spanish voice.
 
 -4. ~~**The Privacy Notice does not yet mention outcome records or the
     scorecard.**~~ RESOLVED 2026-10-28: Terms 3.4 (sql/042), live. The research says members must be told. A new Terms version
