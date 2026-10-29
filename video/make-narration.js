@@ -162,6 +162,11 @@ function main() {
   const args = process.argv.slice(2);
   const langArg = args.includes('--lang') ? args[args.indexOf('--lang') + 1] : null;
   const filmArg = args.includes('--film') ? args[args.indexOf('--film') + 1] : null;
+  // --stills: nobody is going to hear this run, so no voice is asked for (a
+  // paid or rate-limited one least of all). Each line's length is ESTIMATED
+  // from its text - about fifteen characters a second, never under three
+  // seconds - which is all the recorder needs to walk the scenes.
+  const stills = args.includes('--stills');
 
   const allLanguages = langArg ? [langArg] : ['en', 'es'];
   const films = filmArg ? [filmArg] : Object.keys(SCRIPT.films);
@@ -189,6 +194,13 @@ function main() {
         const text = scene.say[lang];
         if (!text) throw new Error(`${film}/${scene.id} has no ${lang} line`);
         const file = path.join(OUT, `${film}-${lang}-${scene.id}.wav`);
+        if (stills) {
+          const seconds = Math.max(3, text.length / 15);
+          timings[`${film}-${lang}-${scene.id}`] = Number(seconds.toFixed(3));
+          total += seconds;
+          console.log(`  ${lang}  ${scene.id.padEnd(14)} ~${seconds.toFixed(2)}s (estimated, no voice)`);
+          continue;
+        }
         if (ENGINE === 'gemini') speakGemini(text, lang, file);
         else if (ENGINE === 'kokoro') speakKokoro(text, lang, file);
         else speak(text, model, file);
