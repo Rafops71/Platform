@@ -515,7 +515,7 @@ function wireInvitations() {
 
 /** Rebuild the registration link for an invitation token. */
 function invitationLink(token) {
-  return `${window.location.origin}${window.location.pathname.replace('operator.html', 'register.html')}?token=${token}`;
+  return `${window.location.origin}${window.location.pathname.replace(/operator(\.html)?$/, 'register.html')}?token=${token}`;
 }
 
 /** Queue the invitation email. The outbox is not writable by any client
