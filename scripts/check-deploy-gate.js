@@ -31,9 +31,9 @@ const problems = [];
 // A publishing job's block: from "  <job>:" to the next two-space job key.
 // Every job that publishes anywhere gets the same checks.
 function checkPublishingJob(job) {
-const start = lines.findIndex(l => l === `  ${job}:`);
+const start = lines.findIndex(l => new RegExp(`^  ${job}:\\s*$`).test(l));
 if (start === -1) {
-  problems.push('ci.yml has no `${job}` job, so nothing publishes the site behind the gate.');
+  problems.push(`ci.yml has no \`${job}\` job, so nothing publishes the site behind the gate.`);
 } else {
   let end = lines.length;
   for (let i = start + 1; i < lines.length; i++) {
@@ -43,7 +43,7 @@ if (start === -1) {
 
   const needs = (block.match(/^\s{4}needs:\s*\[([^\]]*)\]/m) || [])[1];
   if (!needs) {
-    problems.push('the ${job} job has no `needs:` list, so it would not wait for the checks.');
+    problems.push(`the ${job} job has no \`needs:\` list, so it would not wait for the checks.`);
   } else {
     const have = needs.split(',').map(s => s.trim()).filter(Boolean);
     for (const req of REQUIRED) {
@@ -56,7 +56,7 @@ if (start === -1) {
     problems.push(`the ${job} job's \`if:\` uses a status function (${cond.trim()}), so it would publish even after a failed check.`);
   }
   if (!/refs\/heads\/main/.test(cond)) {
-    problems.push('the ${job} job is not limited to main, so a branch run could publish.');
+    problems.push(`the ${job} job is not limited to main, so a branch run could publish.`);
   }
 }
 }
