@@ -23,6 +23,8 @@
 //     A skipped step in a scheduled run is reported as NOT WORKING, never as ok.
 //   - which revision the live site is actually serving (/REVISION), compared
 //     with main, so "deployed" is a fact read off the site and not an inference
+//   - that the front page (www.myplatform.trade) answers and still shows the
+//     owner's line "Where opportunity meets discretion."
 //   - open pull requests and whether their checks pass
 //
 // RUNNING IT
@@ -42,6 +44,11 @@ const TOKEN = process.env.GITHUB_TOKEN || '';
 // Cloudflare Pages. GitHub Pages still serves a copy, but it is no longer what
 // members use, so it is not what this report watches. SITE_URL overrides it.
 const SITE = (process.env.SITE_URL || 'https://app.myplatform.trade/').replace(/\/?$/, '/');
+// The front page (since 2026-10-29): a separate Cloudflare project. It has no
+// REVISION file, so it is checked by what a visitor sees: it answers, and it
+// carries the owner's headline. FRONT_URL and FRONT_PHRASE override them.
+const FRONT_URL = (process.env.FRONT_URL || 'https://www.myplatform.trade/');
+const FRONT_PHRASE = process.env.FRONT_PHRASE || 'Where opportunity meets discretion.';
 // No @mention by default (owner, 2026-10-27): the report is read each morning
 // by a scheduled Claude session, which sends him a plain brief only when
 // something is wrong. A mention would email him the raw report as well.
@@ -114,6 +121,26 @@ async function checkLiveSite(site, head, doFetch = fetch) {
   };
 }
 
+/** Does the front page answer, and does it show the owner's headline?
+ *  Checked in the HTML a visitor's browser receives, which carries the English
+ *  headline as written (the Spanish one is set by script). */
+async function checkFrontPage(url, phrase, doFetch = fetch) {
+  let res;
+  try {
+    res = await doFetch(url, { cache: 'no-store', signal: AbortSignal.timeout(20_000) });
+  } catch (e) {
+    return { front: `could not be reached (${e.message})`, problem: `The front page at ${url} could not be reached (${e.message}).` };
+  }
+  if (!res.ok) {
+    return { front: `answered HTTP ${res.status}`, problem: `The front page at ${url} answered HTTP ${res.status}.` };
+  }
+  const html = await res.text();
+  if (!html.includes(phrase)) {
+    return { front: 'answers, but the headline is missing', problem: `The front page at ${url} answers but does not show "${phrase}".` };
+  }
+  return { front: `answers and shows "${phrase}"`, problem: null };
+}
+
 async function main() {
   const since = new Date(Date.now() - HOURS * 3600e3).toISOString();
   const problems = [];   // anything that needs the owner, in plain words
@@ -179,6 +206,8 @@ async function main() {
   // ------------------------------------------------------- the live site --
   const { live, problem } = await checkLiveSite(SITE, head);
   if (problem) problems.push(problem);
+  const { front, problem: frontProblem } = await checkFrontPage(FRONT_URL, FRONT_PHRASE);
+  if (frontProblem) problems.push(frontProblem);
 
   // ------------------------------------------------------ pull requests --
   const prs = await gh(`/repos/${REPO}/pulls?state=open&per_page=20`);
@@ -260,7 +289,8 @@ async function main() {
   }
   out.push('');
   out.push('## Live site');
-  out.push(`- ${live}`);
+  out.push(`- the platform (${SITE}): ${live}`);
+  out.push(`- the front page (${FRONT_URL}): ${front}`);
   out.push('');
   out.push(`## Everything that ran, last ${HOURS} hours`);
   for (const [name, list] of byWorkflow) {
