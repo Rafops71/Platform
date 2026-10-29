@@ -85,8 +85,13 @@ async function tokenFor(email, password) {
  *  the same redirect rules. Only the final hop is local, and it has to be:
  *  the live site serves whatever is on main, which is not what is under test.
  */
+// When the suite is pointed at a deployed address (E2E_BASE_URL), the link must
+// redirect to THAT address's reset.html, or the run proves nothing about it.
+// Locally the default stays the GitHub Pages address, as before.
 const LIVE_RESET_URL = process.env.SITE_RESET_URL ||
-  'https://rafops71.github.io/Platform/reset.html';
+  (process.env.E2E_BASE_URL
+    ? new URL('reset.html', process.env.E2E_BASE_URL.replace(/\/?$/, '/')).href
+    : 'https://rafops71.github.io/Platform/reset.html');
 
 /** Follow a recovery link the way a member would, and end up on the copy of
  *  reset.html that this suite is testing, carrying the real session. */

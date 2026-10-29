@@ -21,3 +21,19 @@ one permission at a time:
 
 Still to come: the two secrets, the Spaceship CNAMEs, the Supabase redirect
 URLs for app.myplatform.trade, the front-page text.
+
+## Rules the owner set on 2026-10-29
+
+- A green run is not proof. Before domains or Supabase are touched, show all
+  three: (1) the Cloudflare job log shows the files uploaded, not skipped;
+  (2) the Cloudflare address serves the same /REVISION and front page as the
+  live site; (3) the checklist passes against the Cloudflare address.
+- A missing Cloudflare secret fails the job (done in the same push as this
+  note); it never skips.
+- The manual checklist run only tests, never publishes (no publish step, no
+  Cloudflare secrets; check:deploy refuses a publish step in any other file).
+- Item 54 follows the address under test (E2E_BASE_URL). Supabase Redirect
+  URLs, added by the owner himself, exact entries, no wildcards:
+  `https://platform-84i.pages.dev/reset.html` for the test run, and
+  `https://app.myplatform.trade/reset.html` only at the domain switch.
+  Nothing is added to Supabase without his say-so.

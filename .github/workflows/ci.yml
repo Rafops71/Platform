@@ -327,10 +327,9 @@ jobs:
   # always() or other status function here, ever. It is NOT a second way round
   # the gate, because it cannot start until every check has passed.
   #
-  # Until the two repository secrets exist, the upload step is skipped and the
-  # job says so in a warning. That is deliberate for the switch-over period only:
-  # once the migration is finished, a missing secret must fail this job, not
-  # skip it (the lesson of send-emails.yml).
+  # A missing secret FAILS this job; it never skips and goes green (the lesson
+  # of send-emails.yml, and a second-opinion finding on PR 42). The failure
+  # touches only this job: `deploy` above publishes to GitHub Pages on its own.
   # --------------------------------------------------------------------------
   deploy-cloudflare:
     name: Publish to Cloudflare Pages
@@ -349,19 +348,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Are the secrets configured?
-        id: cfg
         run: |
-          if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::Not published to Cloudflare: CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are not both set."
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::Cloudflare publish cannot run: CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID must both be set."
+            exit 1
           fi
       - name: Assemble exactly what the site serves
-        if: steps.cfg.outputs.ready == 'true'
         run: ./scripts/assemble-site.sh dist
       - name: Publish
-        if: steps.cfg.outputs.ready == 'true'
         uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
