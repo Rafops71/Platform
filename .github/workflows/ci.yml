@@ -361,3 +361,40 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist --project-name=platform --branch=main --commit-hash=${{ github.sha }}
+
+  # --------------------------------------------------------------------------
+  # PUBLISH THE FRONT PAGE (www/) TO ITS OWN CLOUDFLARE PROJECT.
+  #
+  # www.myplatform.trade is a separate project (`platform-www`) from the app,
+  # so the app never serves the front page and the front page never serves the
+  # app. Same gate, same main-only rule, same fail-on-missing-secret rule as
+  # `deploy-cloudflare`: no always() here, ever.
+  # --------------------------------------------------------------------------
+  deploy-www:
+    name: Publish the front page to Cloudflare Pages
+    needs: [database, checklist, stress, safari, package]
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    concurrency:
+      group: cloudflare-www-deploy
+      cancel-in-progress: false
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Are the secrets configured?
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::Cloudflare publish cannot run: CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID must both be set."
+            exit 1
+          fi
+      - name: Publish
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy www --project-name=platform-www --branch=main --commit-hash=${{ github.sha }}

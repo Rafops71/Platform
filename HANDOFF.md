@@ -888,7 +888,7 @@ Decisions behind each are in `docs/AGREED-2026-10-25.md`.
     how to re-render; the owner may restyle colours later, keeping voice
     and length. Next: Spanish text agreed scene by scene, Operator film,
     walkthroughs switched to the Gemini voice.
-    **Migration to Cloudflare Pages (planned 2026-10-28; step 1 done 2026-10-29, see docs/AGREED-2026-10-28-cloudflare.md: token tested, empty project `platform` made at platform-84i.pages.dev, first publish proven 2026-10-29: 27 files uploaded, /REVISION identical on both addresses; the test-only manual run `checklist-on-address.yml` is built; NOT yet done: checklist on the Cloudflare address, domains, Supabase redirect entries, front page):**
+    **Migration to Cloudflare Pages (planned 2026-10-28; step 1 done 2026-10-29, see docs/AGREED-2026-10-28-cloudflare.md: token tested, empty project `platform` made at platform-84i.pages.dev, first publish proven 2026-10-29: 27 files uploaded, /REVISION identical on both addresses; the test-only manual run `checklist-on-address.yml` is built and merged; the front page (www/, owner's exact words, EN+ES approved) deploys to its own project `platform-www` (platform-www.pages.dev) through the gated `deploy-www` job; NOT yet done: checklist on the Cloudflare address, domains, Supabase redirect entries, front page):**
     www.myplatform.trade = front page, app.myplatform.trade = the platform;
     DNS stays at Spaceship (only two CNAMEs; apex cannot point to Pages
     without Cloudflare nameservers); deploy stays behind the CI gate;
