@@ -58,7 +58,7 @@ h1 { font-family: var(--font-head); font-weight: 600; color: var(--blue-dark); f
     </section>
   </div>
 
-  <a class="btn" href="https://app.myplatform.trade" data-i18n="btn">Member sign-in</a>
+  <a class="btn" id="signin" href="https://app.myplatform.trade/?lang=en" data-i18n="btn">Member sign-in</a>
 </main>
 <script>
 var STRINGS = {
@@ -92,6 +92,8 @@ function current() {
 }
 function apply(lang) {
   document.documentElement.lang = lang;
+  // The app opens in the language chosen here (js/i18n.js adoptLanguageFromLink).
+  document.getElementById('signin').href = 'https://app.myplatform.trade/?lang=' + lang;
   document.querySelectorAll('[data-i18n]').forEach(function (el) {
     el.textContent = STRINGS[lang][el.getAttribute('data-i18n')];
   });
