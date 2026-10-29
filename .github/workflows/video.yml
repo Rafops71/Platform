@@ -28,7 +28,11 @@ on:
         required: false
         default: 'en'
       voice:
-        description: 'Voice, e.g. af_heart (Kokoro) or en_GB-cori-high (Piper). Blank uses script.json.'
+        description: 'Voice, e.g. af_heart (Kokoro) or en_GB-cori-high (Piper). Blank uses script.json (Gemini Algieba).'
+        required: false
+        default: ''
+      stills:
+        description: 'true = one still picture per scene (uploaded, nothing committed) instead of the film'
         required: false
         default: ''
 
@@ -105,6 +109,9 @@ jobs:
       - name: Speak every line, and measure it
         run: node video/make-narration.js --film ${{ inputs.film }} --lang ${{ inputs.lang }}
         env:
+          # The owner's Gemini key, a repository secret. It is read here and
+          # nowhere else, and is in no file of the repository.
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           PIPER_VOICE_DIR: ${{ github.workspace }}
           KOKORO_DIR: ${{ github.workspace }}
           # A voice named at dispatch overrides the scripted one, whichever
@@ -135,9 +142,10 @@ jobs:
             sleep 1
           done
           curl -sf http://localhost:8000/index.html >/dev/null || { echo "::error::the static server never answered"; exit 1; }
-          node video/record.js --film ${{ inputs.film }} --lang ${{ inputs.lang }}
+          node video/record.js --film ${{ inputs.film }} --lang ${{ inputs.lang }} ${{ inputs.stills == 'true' && '--stills' || '' }}
 
       - name: Join the voice to the picture
+        if: inputs.stills != 'true'
         # ffmpeg is proved again HERE, in this step's own environment, rather
         # than trusting the earlier check. Attempt three failed on the first
         # ffmpeg call with an empty stderr - the signature of a binary that was
@@ -151,6 +159,7 @@ jobs:
           node video/assemble.js --film ${{ inputs.film }} --lang ${{ inputs.lang }}
 
       - name: Prove the film is actually a film
+        if: inputs.stills != 'true'
         # video/check-film.js asks three questions: is there a picture, is
         # there a soundtrack, and does the length match the measured
         # narration. All three can be wrong on a run that finishes green.
@@ -167,6 +176,7 @@ jobs:
           node video/check-film.js --film ${{ inputs.film }} --lang ${{ inputs.lang }}
 
       - name: Hand the film over through git
+        if: inputs.stills != 'true'
         # The artifact is served from a host the authoring session cannot
         # reach, so the film is also committed to films/ on the branch this
         # run was dispatched from. Git is the one channel that works in both
@@ -220,11 +230,21 @@ jobs:
           exit 1
 
       - name: Here is the film
+        if: inputs.stills != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: jericho-${{ inputs.film }}-${{ inputs.lang }}
           path: video/out/*.mp4
           retention-days: 30
+          if-no-files-found: error
+
+      - name: Here are the stills
+        if: inputs.stills == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: jericho-${{ inputs.film }}-${{ inputs.lang }}-stills
+          path: video/stills/*.png
+          retention-days: 14
           if-no-files-found: error
 
       - name: What went wrong

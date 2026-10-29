@@ -49,9 +49,14 @@
       "speed is Kokoro's own multiplier - below 1.0 is slower. Piper's equivalent",
       "is the lengthScale in the pacing block, which is not the same number and",
       "is deliberately kept separate.",
-      "The owner listened to four Kokoro voices on 2026-10-17 and chose am_michael. Its own VOICES.md grades that voice C+ against af_heart's A - the owner was told that and chose it anyway, which is his call to make and not Claude's: Claude cannot hear any of them."
+      "The owner listened to four Kokoro voices on 2026-10-17 and chose am_michael. Its own VOICES.md grades that voice C+ against af_heart's A - the owner was told that and chose it anyway, which is his call to make and not Claude's: Claude cannot hear any of them.",
+      "",
+      "gemini: the owner's choice on 2026-10-29 - Gemini text-to-speech, voice Algieba,",
+      "for every film (the trailer already uses it). The key is the GEMINI_API_KEY",
+      "environment variable or repository secret; it is never in this file or any",
+      "other file in the repository. Kokoro and Piper stay available above."
     ],
-    "engine": "kokoro",
+    "engine": "gemini",
     "kokoro": {
       "en": "am_michael",
       "es": "ef_dora",
@@ -60,6 +65,14 @@
     "piper": {
       "en": "en_US-joe-medium",
       "es": "es_ES-davefx-medium"
+    },
+    "gemini": {
+      "voice": "Algieba",
+      "model": "gemini-3.8-flash-tts",
+      "style": {
+        "en": "Confident, warm, polished narrator for a premium private trading platform. Brisk, engaging pace, energetic but discreet. Do not drag.",
+        "es": "Confident, warm, polished narrator for a premium private trading platform. Brisk, engaging pace, energetic but discreet. Do not drag. Speak in neutral international Spanish."
+      }
     }
   },
   "films": {

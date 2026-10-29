@@ -129,6 +129,19 @@ function speakKokoro(text, lang, outFile) {
   }
 }
 
+/** Speak one line with Gemini (voice, model and style from script.json). The
+ *  key comes from GEMINI_API_KEY in the environment; see video/gemini_say.py. */
+function speakGemini(text, lang, outFile) {
+  const g = VOICE.gemini;
+  const res = spawnSync('python3', [
+    path.join(__dirname, 'gemini_say.py'), g.model, g.voice, g.style[lang], outFile,
+  ], { input: text, encoding: 'utf8' });
+  if (res.status !== 0 || !fs.existsSync(outFile)) {
+    throw new Error(`Gemini failed on "${text.slice(0, 40)}…"\n` +
+      ((res.stderr || '').trim() || '(no error output)'));
+  }
+}
+
 function speak(text, model, outFile) {
   // --length-scale above 1.0 slows the delivery; --sentence-silence puts
   // breath between sentences. Both read from script.json's pacing block, so
@@ -157,7 +170,9 @@ function main() {
   const timings = {};
 
   console.log(`Speaking with ${ENGINE}: ` +
-    (ENGINE === 'kokoro'
+    (ENGINE === 'gemini'
+      ? `Gemini "${VOICE.gemini.voice}"`
+      : ENGINE === 'kokoro'
       ? `${KOKORO_VOICES.en} / ${KOKORO_VOICES.es} at speed ${VOICE.kokoro.speed}`
       : `${VOICES.en} / ${VOICES.es} at length-scale ${PACING.lengthScale}`));
 
@@ -167,14 +182,15 @@ function main() {
     // languages it is made in; the default is both.
     const made = SCRIPT.films[film].languages || ['en', 'es'];
     for (const lang of allLanguages.filter((l) => made.includes(l))) {
-      const model = ENGINE === 'kokoro' ? null : modelFor(lang);
+      const model = ENGINE === 'kokoro' || ENGINE === 'gemini' ? null : modelFor(lang);
       let total = 0;
 
       for (const scene of scenes) {
         const text = scene.say[lang];
         if (!text) throw new Error(`${film}/${scene.id} has no ${lang} line`);
         const file = path.join(OUT, `${film}-${lang}-${scene.id}.wav`);
-        if (ENGINE === 'kokoro') speakKokoro(text, lang, file);
+        if (ENGINE === 'gemini') speakGemini(text, lang, file);
+        else if (ENGINE === 'kokoro') speakKokoro(text, lang, file);
         else speak(text, model, file);
         const seconds = wavSeconds(file);
         timings[`${film}-${lang}-${scene.id}`] = Number(seconds.toFixed(3));
