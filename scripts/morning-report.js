@@ -46,7 +46,7 @@ const SITE = process.env.SITE_URL || 'https://rafops71.github.io/Platform/';
 const OWNER_LOGIN = process.env.REPORT_MENTION || '';
 const FILE_ISSUE = process.argv.includes('--issue');
 const API = 'https://api.github.com';
-const HOURS = 24;
+const HOURS = Number(process.env.REPORT_HOURS) || 24;
 
 // Local testing only: REPORT_VIA_GH=1 reads GitHub through the `gh` command a
 // Claude Code session already has, so the report can be checked against real
@@ -92,7 +92,14 @@ async function main() {
   const head = (await gh(`/repos/${REPO}/commits/main`)).sha;
 
   // ------------------------------------------------------- workflow runs --
-  const runs = (await gh(`/repos/${REPO}/actions/runs?created=>=${since}&per_page=100`)).workflow_runs || [];
+  // Every page: the email sender alone runs about 96 times a day, so the first
+  // 100 runs could leave a real failure unread.
+  const runs = [];
+  for (let page = 1; page <= 10; page += 1) {
+    const batch = (await gh(`/repos/${REPO}/actions/runs?created=>=${since}&per_page=100&page=${page}`)).workflow_runs || [];
+    runs.push(...batch);
+    if (batch.length < 100) break;
+  }
   const byWorkflow = new Map();
   for (const r of runs) {
     if (!byWorkflow.has(r.name)) byWorkflow.set(r.name, []);
@@ -189,8 +196,20 @@ async function main() {
   // Spanish film twice), so that one is still reported.
   const replaced = (r) => runs.some((o) => o.workflow_id === r.workflow_id &&
     o.head_branch === r.head_branch && new Date(o.created_at) > new Date(r.created_at));
+  // On a work-in-progress branch, a failure followed by a newer run of the same
+  // workflow is a try that was fixed, not a problem: on 2026-10-28 thirteen of
+  // them (picture-check tries on a pull request, all green before merging)
+  // filed a "14 need attention" issue and emailed the owner for nothing. A
+  // branch's latest run still counts, so a pull request left red is reported,
+  // and every failure on main is reported whatever came after it.
   const failedRuns = runs.filter((r) => r.conclusion && !['success', 'skipped', 'neutral'].includes(r.conclusion)
-    && !(r.conclusion === 'cancelled' && replaced(r)));
+    && !(r.conclusion === 'cancelled' && replaced(r))
+    && !(r.head_branch !== 'main' && replaced(r))
+    // A workflow since removed from the repository can never run again, so its
+    // last run is history, not lost work (pictures.yml became a job of the
+    // security grid on 2026-10-28).
+    && !(String(r.path).startsWith('.github/workflows/')
+      && !require('fs').existsSync(require('path').join(__dirname, '..', r.path))));
   for (const r of failedRuns) problems.push(`**${r.name}** ${r.conclusion} at ${hhmm(r.created_at)} UTC (run ${r.run_number}).`);
   for (const i of idle) problems.push(i + ' - so it is not doing its job.');
   const ciBad = ciJobs.filter((j) => j.conclusion && !['success', 'skipped'].includes(j.conclusion));
