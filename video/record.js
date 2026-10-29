@@ -31,6 +31,8 @@ const { query } = require('../scripts/db');
 
 const SCRIPT = JSON.parse(fs.readFileSync(path.join(__dirname, 'script.json'), 'utf8'));
 const OUT = path.join(__dirname, 'out');
+const STILLS = process.argv.includes('--stills');
+const STILLS_DIR = path.join(__dirname, 'stills');
 const BASE = process.env.E2E_BASE_URL || 'http://localhost:8000';
 
 // A pause either side of each line, so the film breathes instead of reading a
@@ -538,13 +540,22 @@ async function main() {
     // match what was being said.
     const used = Date.now() - began;
     const hold = budget - used;
-    if (hold < 0) {
+    if (hold < 0 && !STILLS) {
       overruns.push({ id: scene.id, seconds, over: (-hold / 1000) });
       console.log(`  ${scene.id.padEnd(16)} OVERRAN by ${(-hold / 1000).toFixed(1)}s ` +
                   `(line ${seconds.toFixed(1)}s, actions took ${(used / 1000).toFixed(1)}s)`);
     } else {
       console.log(`  ${scene.id.padEnd(16)} ${(used / 1000).toFixed(1)}s acting, ` +
                   `${(hold / 1000).toFixed(1)}s holding`);
+    }
+    // A STILL, not a film: --stills takes one picture at the end of each
+    // scene (after its action and its ring) and moves on at once, so the owner
+    // can see every scene before anything is recorded for real.
+    if (STILLS) {
+      fs.mkdirSync(STILLS_DIR, { recursive: true });
+      await page.screenshot({ path: path.join(STILLS_DIR, `${film}-${lang}-${scene.id}.png`) });
+      console.log(`  ${scene.id.padEnd(16)} still taken`);
+      continue;
     }
     await wait(Math.max(hold, 0));
   }
