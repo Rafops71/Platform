@@ -103,3 +103,15 @@ Also recorded: the second opinion's parts are reviewed blind to each other
 (#47: the part that held helpers/session.js was reviewed separately from the
 specs that import it, hence "not exported" claims). Fix to be shown after the
 migration.
+
+## Final state (2026-10-29, Brussels time)
+
+Both domains active (app.myplatform.trade, www.myplatform.trade). DNS 8 -> 10
+records, only the two CNAMEs added. Supabase: 3 Redirect URLs and Site URL
+https://app.myplatform.trade/ (owner). Checklist on the final address:
+76 of 76 proven; Item 54 6 passing (ui) after the Site URL change (run
+40904353833); Item 01 1 passing (ui). The scripts that named the old address
+(morning report, email scan, token scan) now watch the new one, and the morning
+report also checks the front page shows "Where opportunity meets discretion.".
+Open: GitHub Pages switch-off (owner's decision); picture wobble; reviewer
+parts; Spanish film.
