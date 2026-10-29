@@ -15,7 +15,7 @@
 
 const { test, expect } = require('@playwright/test');
 const { createAccount, cleanup, assertConfigured, RUN_PREFIX, fillSignature } = require('./helpers/fixtures');
-const { openScreen, signIn, signOut, submitListing, pickCommodity } = require('./helpers/session');
+const { openScreen, signIn, signOut, submitListing, pickCommodity, pagePattern } = require('./helpers/session');
 const { query } = require('../../scripts/db');
 
 // Distinctive so a match in the page can only have come from the profile —
@@ -106,7 +106,7 @@ test.describe.serial('full participant lifecycle', () => {
     await page.check('#accept-terms');
     await page.click('#register-btn');
 
-    await page.waitForURL('**/index.html**', { timeout: 20_000 });
+    await page.waitForURL(pagePattern('index.html'), { timeout: 20_000 });
 
     const { rows } = await query('select status, role from public.profiles where email = $1', [invitedEmail]);
     expect(rows[0]).toMatchObject({ status: 'pending', role: 'participant' });
@@ -126,7 +126,7 @@ test.describe.serial('full participant lifecycle', () => {
     await page.click('#login-btn');
     // requireAuth() bounces a pending profile back with ?pending=1 rather than
     // letting it reach the app.
-    await page.waitForURL('**/index.html?pending=1', { timeout: 20_000 });
+    await page.waitForURL(pagePattern('index.html', '?pending=1'), { timeout: 20_000 });
   });
 
   test('operator approves the registration', async ({ page }) => {

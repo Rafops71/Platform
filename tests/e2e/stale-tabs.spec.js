@@ -24,7 +24,7 @@
 
 const { test, expect } = require('@playwright/test');
 const { createAccount, cleanup, assertConfigured } = require('./helpers/fixtures');
-const { signIn, openScreen } = require('./helpers/session');
+const { signIn, openScreen, pagePattern } = require('./helpers/session');
 const { query } = require('../../scripts/db');
 
 let member;
@@ -137,7 +137,7 @@ test.describe('a second tab that has fallen behind', () => {
       await expect
         .poll(async () => {
           const url = page.url();
-          if (/index\.html/.test(url)) return 'sent to sign in';
+          if (pagePattern('index.html').test(url)) return 'sent to sign in';
           const body = (await page.locator('body').innerText()).toLowerCase();
           if (/signed out|sign in again|acced|sesión/.test(body)) return 'told plainly';
           return 'still looks signed in';

@@ -69,3 +69,18 @@ Proposed, not done (needs the owner's go because it edits the checklist's
 tests): make the URL expectations accept the extension-less form on every
 host, in one change, without touching what each test asserts; then re-run
 the checklist on the Cloudflare address.
+
+## Owner's go and conditions, 2026-10-29 (after Gate 2)
+
+Go to make the tests accept the address with or without `.html`, on three
+conditions: (1) change only the address checks and show that no assertion was
+changed or removed (done in the pull request that carries it); (2) on the
+re-run Item 54 must actually run its password checks, reaching the page is not
+enough; (3) never retake an approved picture without showing why first.
+
+Also asked, AFTER the migration (not done yet): the Operator's Activity tab
+picture check is wobbly (it failed once on 38c7219 and passed on 4d024c2 with
+nothing touching that screen). Find exactly which rows change between runs,
+show them, and cover them in tests/visual steady.css like the other moving
+parts. Do not retake the reference picture. The failed run's pictures were
+kept as the "pictures" artifact of run 40857388841 until about 2026-11-05.

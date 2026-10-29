@@ -18,6 +18,26 @@ const { expect } = require('@playwright/test');
 // short enough that a genuinely stuck test still fails inside the 60s
 // per-test timeout in playwright.config.js.
 const NAV_TIMEOUT = 20_000;
+
+/**
+ * The address of a page, with or without its ".html".
+ *
+ * GitHub Pages serves app.html at /app.html. Cloudflare Pages answers that
+ * with a 308 to /app, and index.html to /. A test that waits for the literal
+ * ".html" therefore times out on Cloudflare although the member is on the
+ * right page. This matches the page either way and nothing else: 'app.html'
+ * never matches /operator, and 'index.html' matches the site root, /index.html
+ * and either with a query ('?pending=1').
+ *
+ * @param {string} file   e.g. 'app.html'
+ * @param {string} [suffix] e.g. '?pending=1' - must end the address
+ */
+function pagePattern(file, suffix = '') {
+  const base = file.replace(/\.html$/, '');
+  const stem = base === 'index' ? '(?:index(?:\\.html)?)?' : `${base}(?:\\.html)?`;
+  const tail = suffix ? suffix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$' : '(?:[?#]|$)';
+  return new RegExp('/' + stem + tail);
+}
 const SCREEN_TIMEOUT = 15_000;
 
 /**
@@ -32,7 +52,7 @@ async function signIn(page, account, expectedPath = 'app.html') {
   await page.fill('#email', account.email);
   await page.fill('#password', account.password);
   await page.click('#login-btn');
-  await page.waitForURL(`**/${expectedPath}`, { timeout: NAV_TIMEOUT });
+  await page.waitForURL(pagePattern(expectedPath), { timeout: NAV_TIMEOUT });
 
   // waitForURL resolves on navigation, but both dashboards wire their tab
   // handlers inside an async DOMContentLoaded callback, after requireAuth()
@@ -57,7 +77,7 @@ async function signIn(page, account, expectedPath = 'app.html') {
  */
 async function signOut(page) {
   await page.click('#logout-link');
-  await page.waitForURL('**/index.html', { timeout: NAV_TIMEOUT });
+  await page.waitForURL(pagePattern('index.html'), { timeout: NAV_TIMEOUT });
 }
 
 /** Switch screens and confirm the switch actually took. */
@@ -153,6 +173,6 @@ async function pickCommodity(page, name) {
 }
 
 module.exports = {
-  signIn, signOut, openScreen, submitListing, pickCommodity,
+  signIn, signOut, openScreen, submitListing, pickCommodity, pagePattern,
   NAV_TIMEOUT, SCREEN_TIMEOUT,
 };
