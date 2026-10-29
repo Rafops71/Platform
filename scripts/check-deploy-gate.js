@@ -60,7 +60,7 @@ if (start === -1) {
   }
 }
 }
-for (const job of ['deploy', 'deploy-cloudflare']) checkPublishingJob(job);
+for (const job of ['deploy', 'deploy-cloudflare', 'deploy-www']) checkPublishingJob(job);
 
 // Exactly one place may publish. A second deploy-pages step anywhere else in
 // the workflows would be a way round the gate.
@@ -73,8 +73,8 @@ for (const f of fs.readdirSync(wfDir).filter(n => /\.ya?ml$/.test(n))) {
     problems.push(`${f} contains ${count} deploy-pages step(s); only ci.yml's deploy job may publish.`);
   }
   const cf = (body.match(/cloudflare\/wrangler-action@/g) || []).length;
-  if (f === 'ci.yml' ? cf !== 1 : cf !== 0) {
-    problems.push(`${f} contains ${cf} wrangler-action step(s); only ci.yml's deploy-cloudflare job may publish there.`);
+  if (f === 'ci.yml' ? cf !== 2 : cf !== 0) {
+    problems.push(`${f} contains ${cf} wrangler-action step(s); only ci.yml's deploy-cloudflare and deploy-www jobs may publish there (ci.yml: exactly 2).`);
   }
 }
 

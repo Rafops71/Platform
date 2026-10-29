@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyPlatform</title>
+<!-- Front page for www.myplatform.trade. Every word on it was chosen by the
+     owner (2026-10-29); the Spanish was approved line by line. Do not reword
+     anything without asking him. Look: the platform's "Sky Tint" tokens. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600&family=Source+Sans+3:wght@400;600&display=swap">
+<style>
+:root {
+  --bg: #ffffff; --border: #e2ebf3; --text: #15202b; --text-muted: #52677a;
+  --blue: #27618f; --blue-tint: #f0f6fb; --blue-dark: #1d4a6d;
+  --radius: 10px; --shadow: 0 1px 2px rgba(21, 32, 43, 0.06);
+  --font-head: "Spectral", Georgia, "Times New Roman", serif;
+  --font-body: "Source Sans 3", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font-body); font-size: 17px; line-height: 1.5; }
+main { max-width: 960px; margin: 0 auto; padding: 96px 16px 64px; text-align: center; }
+h1 { font-family: var(--font-head); font-weight: 600; color: var(--blue-dark); font-size: clamp(30px, 6vw, 52px); line-height: 1.15; margin: 0; }
+.sub { color: var(--text-muted); font-size: 20px; margin: 12px 0 0; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin: 48px 0 40px; text-align: left; }
+.card { background: var(--blue-tint); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 22px 20px; }
+.card h2 { font-family: var(--font-head); font-weight: 600; color: var(--blue-dark); font-size: 21px; margin: 0 0 8px; }
+.card p { margin: 0; color: var(--text); }
+.btn { display: inline-block; background: var(--blue); color: #fff; text-decoration: none; font-weight: 600; font-size: 17px; padding: 13px 28px; border-radius: var(--radius); min-height: 44px; }
+.btn:hover { background: var(--blue-dark); }
+.btn:focus-visible, .lang-btn:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+/* The platform's own language switch (css/styles.css .lang-btn), top-right. */
+.lang-toggle { position: absolute; top: 16px; right: 16px; display: flex; gap: 2px; color: var(--blue-dark); }
+.lang-btn { background: transparent; border: 1px solid currentColor; color: inherit; font: 600 13px/1 var(--font-body); letter-spacing: 0.5px; padding: 6px 10px; min-height: 34px; border-radius: 3px; cursor: pointer; }
+.lang-btn:hover { opacity: 0.9; }
+.lang-btn-active { background: rgba(128, 128, 128, 0.3); }
+</style>
+</head>
+<body>
+<div id="lang-toggle" class="lang-toggle" role="group" aria-label="Language"></div>
+<main>
+  <h1 data-i18n="headline">Where opportunity meets discretion.</h1>
+  <p class="sub" data-i18n="sub">By invitation only.</p>
+
+  <div class="cards">
+    <section class="card">
+      <h2 data-i18n="c1t">Discretion</h2>
+      <p data-i18n="c1p">Your identity remains confidential until introduction.</p>
+    </section>
+    <section class="card">
+      <h2 data-i18n="c2t">Clear offers</h2>
+      <p data-i18n="c2p">Each opportunity displays the capacity in which the poster is acting and the documentation status they have stated.</p>
+    </section>
+    <section class="card">
+      <h2 data-i18n="c3t">Facilitated Communication</h2>
+      <p data-i18n="c3p">All messages are relayed through the operator, who arranges introductions.</p>
+    </section>
+  </div>
+
+  <a class="btn" href="https://app.myplatform.trade" data-i18n="btn">Member sign-in</a>
+</main>
+<script>
+var STRINGS = {
+  en: {
+    headline: 'Where opportunity meets discretion.',
+    sub: 'By invitation only.',
+    c1t: 'Discretion',
+    c1p: 'Your identity remains confidential until introduction.',
+    c2t: 'Clear offers',
+    c2p: 'Each opportunity displays the capacity in which the poster is acting and the documentation status they have stated.',
+    c3t: 'Facilitated Communication',
+    c3p: 'All messages are relayed through the operator, who arranges introductions.',
+    btn: 'Member sign-in'
+  },
+  es: {
+    headline: 'Donde la oportunidad se encuentra con la discreción.',
+    sub: 'Solo por invitación.',
+    c1t: 'Discreción',
+    c1p: 'Su identidad permanece confidencial hasta la presentación.',
+    c2t: 'Ofertas claras',
+    c2p: 'Cada oportunidad muestra la calidad en la que actúa quien la publica y el estado de la documentación que ha declarado.',
+    c3t: 'Comunicación facilitada',
+    c3p: 'Todos los mensajes se transmiten a través del operador, que organiza las presentaciones.',
+    btn: 'Acceso de miembros'
+  }
+};
+var KEY = 'mp-www-lang';
+function current() {
+  try { var s = localStorage.getItem(KEY); if (s === 'en' || s === 'es') return s; } catch (e) {}
+  return 'en';
+}
+function apply(lang) {
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-i18n]').forEach(function (el) {
+    el.textContent = STRINGS[lang][el.getAttribute('data-i18n')];
+  });
+  var host = document.getElementById('lang-toggle');
+  host.innerHTML = '';
+  ['en', 'es'].forEach(function (l) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'lang-btn' + (l === lang ? ' lang-btn-active' : '');
+    b.textContent = l.toUpperCase();
+    b.setAttribute('aria-pressed', String(l === lang));
+    b.addEventListener('click', function () {
+      try { localStorage.setItem(KEY, l); } catch (e) {}
+      apply(l);
+    });
+    host.appendChild(b);
+  });
+}
+apply(current());
+</script>
+</body>
+</html>
