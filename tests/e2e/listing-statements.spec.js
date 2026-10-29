@@ -62,6 +62,9 @@ test.describe.serial('listing statements', () => {
     await signIn(page, poster, 'app.html');
     await fillOffer(page);
     await page.check('#role-principal');
+    // A principal's Sell offer also answers Producer or Trader (sql/043); the
+    // question under test here is the missing truth tick, so answer that one.
+    await page.check('#kind-producer');
     await page.selectOption('#docs_seen', 'yes');
     await page.selectOption('#docs_showable', 'on_request');
     await page.click('#listing-submit-btn');
