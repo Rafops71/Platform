@@ -5,9 +5,9 @@
 // the staging project, and then the database is read to see what actually
 // stuck - because a collision that "worked" twice is the failure:
 //
-//   - two Operators approve the same registration at once: one approval,
-//     one approval email;
-//   - two Operators forward the same enquiry at once: one deal file;
+//   - the same registration approved twice at once (two requests racing):
+//     one approval, one approval email;
+//   - the same enquiry forwarded twice at once: one deal file;
 //   - twenty listing references drawn at once: twenty different numbers;
 //   - one member posts thirty listings at once: the hourly limit (20) holds;
 //   - one member signs the Terms twice at once: one signature on record;
@@ -27,11 +27,11 @@ async function main() {
   const checked = [];
   try {
     const w = await buildWorld();
-    const op2 = await account('operator-2', { role: 'operator', inviter: w.operator.profileId });
+    const opB = await account('operator-b', { role: 'operator', inviter: w.operator.profileId });
 
-    // 1. Two Operators approve the same pending registration.
+    // 1. The same pending registration is approved twice at once.
     const p = await account('race-pending', { status: 'pending', inviter: w.operator.profileId });
-    await Promise.all([w.operator, op2].map((op) =>
+    await Promise.all([w.operator, opB].map((op) =>
       asUser(op, `/rest/v1/profiles?id=eq.${p.profileId}`, { method: 'PATCH', prefer: 'return=minimal', body: { status: 'approved' } })));
     const [prof] = (await http(`/rest/v1/profiles?select=status&id=eq.${p.profileId}`)).json;
     if (prof.status !== 'approved') fail(`double approval left status "${prof.status}"`);
@@ -40,14 +40,14 @@ async function main() {
     if (mails.length !== 1) fail(`double approval queued ${mails.length} approval emails`);
     checked.push('double approval');
 
-    // 2. Two Operators forward the same enquiry.
+    // 2. The same enquiry is forwarded twice at once.
     const [listing] = (await http(`/rest/v1/listings?select=id&id=eq.${w.listingId}`)).json;
     const [enq] = await must('enquiry', asUser(w.A, '/rest/v1/messages', {
       method: 'POST', prefer: 'return=representation',
       body: { sender_id: w.A.profileId, listing_id: listing.id, body: 'race enquiry' },
     }));
     const dealsBefore = (await http(`/rest/v1/deals?select=id&listing_id=eq.${listing.id}`)).json.length;
-    await Promise.all([w.operator, op2].map((op) =>
+    await Promise.all([w.operator, opB].map((op) =>
       asUser(op, '/rest/v1/message_forward_log', {
         method: 'POST', prefer: 'return=minimal',
         body: { message_id: enq.id, operator_id: op.profileId, to_user_id: w.B.profileId },

@@ -64,7 +64,7 @@
   },
   "films": {
     "member": {
-      "title": "Jericho Platform — for members",
+      "title": "MyPlatform — for members",
       "as": "member",
       "scenes": [
         {
@@ -72,8 +72,8 @@
           "do": "hold",
           "highlight": ".logo-row",
           "say": {
-            "en": "Welcome to Jericho Platform: a private market for bulk commodities, invitation only, where nothing posted ever appears in public.",
-            "es": "Bienvenido a Jericho Platform: un mercado privado de materias primas a granel, solo por invitación, donde nada de lo publicado aparece nunca en público."
+            "en": "Welcome to MyPlatform: a private market for physical commodities, invitation only, where nothing posted ever appears in public.",
+            "es": "Le damos la bienvenida a MyPlatform: un mercado privado de materias primas físicas, solo por invitación, donde nada de lo publicado aparece nunca en público."
           },
           "zoom": ".logo-row",
           "zoomScale": 1.3,
@@ -84,8 +84,8 @@
           "do": "signIn",
           "highlight": "#login-form",
           "say": {
-            "en": "You get in by invitation only. The Operator invites you, you register with that invitation, and the Operator approves you. After that, this is all it takes.",
-            "es": "Solo se entra por invitación. El Operador le invita, usted se registra con esa invitación, y el Operador le aprueba. Después de eso, esto es todo lo que hace falta."
+            "en": "You get in by invitation only. The Operator invites you, you register with that invitation, and the Operator approves you. The first time you sign in, a short welcome page explains how the platform works. After that, this is all it takes.",
+            "es": "Solo se entra por invitación. El Operador le invita, usted se registra con esa invitación, y el Operador le aprueba. La primera vez que inicie sesión, una breve página de bienvenida le explica cómo funciona la Plataforma. Después de eso, esto es todo lo que hace falta."
           },
           "zoom": "#login-form",
           "zoomScale": 1.3,
@@ -98,8 +98,8 @@
           "zoomScale": 1.45,
           "highlight": "nav.tabs",
           "say": {
-            "en": "Inside, this row is the whole platform. And the rule behind all of it: members never deal with each other directly. Every message goes through an Operator.",
-            "es": "Dentro, esta fila es toda la Plataforma. Y la regla detrás de todo: los miembros nunca tratan entre sí directamente. Cada mensaje pasa por un Operador."
+            "en": "Inside, this row is the whole platform. And the rule behind all of it: members never deal with each other directly. Every message goes through the Operator.",
+            "es": "Dentro, esta fila es toda la Plataforma. Y la regla detrás de todo: los miembros nunca tratan entre sí directamente. Cada mensaje pasa por el Operador."
           },
           "zoomOutAfter": true
         },
@@ -133,8 +133,8 @@
           "do": "hold",
           "highlight": ".list-row:has([data-contact=\"{demandId}\"])",
           "say": {
-            "en": "Notice what the row does not tell you. No name, no company, no email address. You can see exactly what they want, and nothing about who they are.",
-            "es": "Fíjese en lo que la fila no le dice. Ni nombre, ni empresa, ni correo electrónico. Puede ver exactamente qué quieren, y nada sobre quiénes son."
+            "en": "Notice what the row does not tell you. No name, no company, no email address. You can see exactly what they want, and nothing about who they are. The row does show what the poster states about their own role and their documents.",
+            "es": "Fíjese en lo que la fila no le dice. Ni nombre, ni empresa, ni correo electrónico. Puede ver exactamente qué quieren, y nada sobre quiénes son. La fila sí muestra lo que el anunciante declara sobre su propio papel y sus documentos."
           }
         },
         {
@@ -147,7 +147,7 @@
           "highlightAfter": "#listing-form",
           "say": {
             "en": "Say you have that copper. You answer with an offer of your own, and this is the button: New Listing.",
-            "es": "Supongamos que tiene ese cobre. Usted responde con una oferta propia, y este es el botón: Nueva Oferta."
+            "es": "Supongamos que tiene ese cobre. Usted responde con una oferta propia, y este es el botón: Nueva publicación."
           }
         },
         {
@@ -158,7 +158,7 @@
           "highlight": "input[name=\"type\"][value=\"sell\"]",
           "say": {
             "en": "First: are you selling, or buying? You are the seller here, so Sell Offer.",
-            "es": "Primero: ¿vende o compra? Aquí usted es el vendedor, así que Oferta de Venta."
+            "es": "Primero: ¿vende o compra? Aquí usted es el vendedor, así que Oferta de venta."
           },
           "zoomOutAfter": true
         },
@@ -223,6 +223,42 @@
           "zoomOutAfter": true
         },
         {
+          "id": "form-role",
+          "do": "check:#role-principal && check:#kind-producer",
+          "zoom": "#role-principal",
+          "zoomScale": 1.6,
+          "highlight": "#role-principal",
+          "zoomOutAfter": true,
+          "say": {
+            "en": "Then your role in this offer: principal, mandated intermediary or broker. A principal selling also says whether they are a producer or a trader.",
+            "es": "Después, su papel en esta oferta: principal, intermediario con mandato o corredor. Un principal que vende indica además si es productor o comerciante."
+          }
+        },
+        {
+          "id": "form-docs",
+          "do": "select:#docs_seen|yes && select:#docs_showable|on_request",
+          "zoom": "#docs_seen",
+          "zoomScale": 1.6,
+          "highlight": "#docs_seen",
+          "zoomOutAfter": true,
+          "say": {
+            "en": "Two questions about documents: have you personally seen them, and can they be shown during due diligence. Your answers appear on the offer as what you state, nothing more.",
+            "es": "Dos preguntas sobre los documentos: si usted mismo los ha visto y si pueden mostrarse durante la diligencia debida. Sus respuestas aparecen en la oferta como lo que usted declara, nada más."
+          }
+        },
+        {
+          "id": "form-truth",
+          "do": "check:#truth-confirm",
+          "zoom": "#truth-confirm",
+          "zoomScale": 1.6,
+          "highlight": "#truth-confirm",
+          "zoomOutAfter": true,
+          "say": {
+            "en": "And one box to tick: that the offer is true to the best of your knowledge. The platform records when you ticked it.",
+            "es": "Y una casilla que marcar: que la oferta es veraz según su leal saber y entender. La Plataforma registra cuándo la marcó."
+          }
+        },
+        {
           "id": "form-save",
           "do": "press:#listing-submit-btn",
           "zoom": "#listing-submit-btn",
@@ -231,8 +267,8 @@
           "highlight": "#listing-submit-btn",
           "highlightAfter": "#my-listings-list",
           "say": {
-            "en": "Then Save Listing. One press, and your offer is on the market - and the platform takes you straight to it.",
-            "es": "Luego Guardar Oferta. Una pulsación, y su oferta está en el mercado; y la Plataforma le lleva directamente a ella."
+            "en": "Then Save Listing. Once the questions are answered and the box is ticked, your offer is on the market - and the platform takes you straight to it.",
+            "es": "Luego Guardar publicación. Una vez respondidas las preguntas y marcada la casilla, su oferta está en el mercado; y la Plataforma le lleva directamente a ella."
           }
         },
         {
@@ -317,8 +353,8 @@
           "do": "hold",
           "highlight": null,
           "say": {
-            "en": "A buyer asked. A seller answered. They have a deal to discuss, and neither of them knows who the other is. That is Jericho.",
-            "es": "Un comprador preguntó. Un vendedor respondió. Tienen un negocio que tratar, y ninguno sabe quién es el otro. Eso es Jericho."
+            "en": "A buyer asked. A seller answered. They have a deal to discuss, and neither of them knows who the other is. That is MyPlatform.",
+            "es": "Un comprador preguntó. Un vendedor respondió. Tienen un negocio que tratar, y ninguno sabe quién es el otro. Eso es MyPlatform."
           }
         }
       ],
@@ -371,13 +407,13 @@
       ]
     },
     "operator": {
-      "title": "Jericho Platform — the Operator's desk",
+      "title": "MyPlatform — the Operator's desk",
       "_comment": [
         "The Operator film. Same rules as the member film: every button zoomed into",
         "before it is pressed and zoomed out of after, nothing above 1.9x, no run of",
         "still shots over 20 seconds, and only claims about what is on the screen.",
         "",
-        "The console has ELEVEN screens. Seven are filmed, in the order that tells",
+        "The console has FOURTEEN screens. All are filmed, the first ones in the order that tells",
         "the story rather than the order of the nav bar: nobody gets in without an",
         "invitation, nobody is in until approved, no message moves without a person",
         "forwarding it, and all of it is written down.",
@@ -389,7 +425,11 @@
         "The fixtures this needs are in buildWorld('operator') in video/record.js: a",
         "registration waiting, a message awaiting review, an invitation already",
         "sent. A console with nothing in it films as a row of empty tables, and the",
-        "voice would be describing work that is not on the screen."
+        "voice would be describing work that is not on the screen.",
+        "",
+        "The Operator film is English only (owner, 2026-10-29): the console itself is",
+        "English only, so no Spanish line is written for it. \"languages\" says so and",
+        "video/make-narration.js reads it."
       ],
       "scenes": [
         {
@@ -400,8 +440,7 @@
           "zoomOutAfter": true,
           "highlight": ".logo-row",
           "say": {
-            "en": "This is the other side of Jericho Platform: the Operator's desk. Members never see this, and it is where every decision on the platform is actually made.",
-            "es": "Este es el otro lado de Jericho Platform: el escritorio del Operador. Los miembros nunca ven esto, y es donde se toman realmente todas las decisiones de la Plataforma."
+            "en": "This is the other side of MyPlatform: the Operator's desk. Members never see this, and it is where every decision on the platform is actually made."
           }
         },
         {
@@ -412,8 +451,7 @@
           "zoomOutAfter": true,
           "highlight": "#login-form",
           "say": {
-            "en": "An Operator signs in with their own account, exactly as a member does. What they get afterwards is a different console entirely.",
-            "es": "El Operador entra con su propia cuenta, igual que un miembro. Lo que recibe después es una consola completamente distinta."
+            "en": "The Operator signs in with their own account, exactly as a member does. What they get afterwards is a different console entirely."
           }
         },
         {
@@ -424,8 +462,7 @@
           "zoomOutAfter": true,
           "highlight": "nav.tabs",
           "say": {
-            "en": "Eleven screens instead of seven. Everything the platform knows is reachable from this row, which is the whole point of the role: nothing happens here without somebody deciding it.",
-            "es": "Once pantallas en lugar de siete. Todo lo que la Plataforma sabe es accesible desde esta fila, que es el sentido del cargo: aquí nada ocurre sin que alguien lo decida."
+            "en": "Fourteen screens instead of eight. Everything the platform knows is reachable from this row, which is the whole point of the role: nothing happens here without somebody deciding it."
           }
         },
         {
@@ -436,8 +473,7 @@
           "zoomOutAfter": true,
           "highlight": "#overview-stats",
           "say": {
-            "en": "The Overview is a list of work waiting. Registrations to approve, messages to review, documents outstanding, offers going stale. Each number is a link to the screen where that work is done.",
-            "es": "El Resumen es una lista del trabajo pendiente. Registros por aprobar, mensajes por revisar, documentos pendientes, ofertas que caducan. Cada número es un enlace a la pantalla donde se hace ese trabajo."
+            "en": "The Overview is a list of work waiting. Registrations to approve, messages to review, documents outstanding, offers going stale. Each number is a link to the screen where that work is done."
           }
         },
         {
@@ -449,8 +485,7 @@
           "highlight": "button[data-screen=\"approvals\"]",
           "highlightAfter": "#approvals-list",
           "say": {
-            "en": "Approvals first, because nobody gets in without passing through here. Somebody has registered and is waiting. Until an Operator approves them they can see nothing at all - not one offer.",
-            "es": "Primero Aprobaciones, porque nadie entra sin pasar por aquí. Alguien se ha registrado y está esperando. Hasta que un Operador le apruebe no puede ver nada en absoluto; ni una sola oferta."
+            "en": "Approvals first, because nobody gets in without passing through here. Somebody has registered and is waiting. Until the Operator approves them they can see nothing at all - not one offer."
           }
         },
         {
@@ -462,8 +497,7 @@
           "highlight": "button[data-screen=\"invitations\"]",
           "highlightAfter": "#invite-email",
           "say": {
-            "en": "And nobody can even register without an invitation sent from this screen. You type an address, choose a language, and the platform sends a single-use link. That is the only door in.",
-            "es": "Y nadie puede ni registrarse sin una invitación enviada desde esta pantalla. Se escribe una dirección, se elige un idioma, y la Plataforma envía un enlace de un solo uso. Esa es la única puerta de entrada."
+            "en": "And nobody can even register without an invitation sent from this screen. You type an address, choose a language, and the platform sends a single-use link. That is the only door in."
           }
         },
         {
@@ -475,8 +509,7 @@
           "highlight": "button[data-screen=\"mailbox\"]",
           "highlightAfter": "#operator-mailbox-list",
           "say": {
-            "en": "This is the heart of it. A member has written about somebody else's offer, and the message is sitting here, unsent. Nothing has reached the other member yet.",
-            "es": "Este es el corazón de todo. Un miembro ha escrito sobre la oferta de otro, y el mensaje está aquí, sin enviar. Todavía no ha llegado al otro miembro."
+            "en": "This is the heart of it. A member has written about somebody else's offer, and the message is sitting here, unsent. Nothing has reached the other member yet."
           }
         },
         {
@@ -487,8 +520,7 @@
           "zoomOutAfter": true,
           "highlight": "#operator-mailbox-list",
           "say": {
-            "en": "The Operator reads it and chooses: forward it, reply to the sender, or ignore it. Forwarding is the only way two members ever reach each other, and it is a decision a person makes every time.",
-            "es": "El Operador lo lee y decide: transmitirlo, responder al remitente, o ignorarlo. Transmitir es la única forma en que dos miembros llegan el uno al otro, y es una decisión que una persona toma cada vez."
+            "en": "The Operator reads it and chooses: forward it, reply to the sender, or ignore it. Forwarding is the only way two members ever reach each other, and it is a decision a person makes every time."
           }
         },
         {
@@ -500,8 +532,7 @@
           "highlight": "button[data-screen=\"listings\"]",
           "highlightAfter": "#listings-table",
           "say": {
-            "en": "All Listings shows every offer and request on the platform - and here, unlike on a member's screen, each one carries the name of whoever posted it. The Operator is the only person who sees both sides.",
-            "es": "Todas las Ofertas muestra cada oferta y solicitud de la Plataforma; y aquí, a diferencia de la pantalla de un miembro, cada una lleva el nombre de quien la publicó. El Operador es la única persona que ve ambos lados."
+            "en": "All Listings shows every offer and request on the platform - and here, unlike on a member's screen, each one carries the name of whoever posted it. The Operator is the only person who sees both sides. It also shows what the poster stated: their role, their documents, and when they ticked that the offer is true."
           }
         },
         {
@@ -513,8 +544,7 @@
           "highlight": "button[data-screen=\"users\"]",
           "highlightAfter": "#users-list",
           "say": {
-            "en": "Users is the register of everybody here. From this screen a member can be suspended, and the moment they are, the market closes to them - even in a tab they already had open.",
-            "es": "Usuarios es el registro de todos los que están aquí. Desde esta pantalla se puede suspender a un miembro, y en ese momento el mercado se le cierra; incluso en una pestaña que ya tuviera abierta."
+            "en": "Users is the register of everybody here. From this screen a member can be suspended, and the moment they are, the market closes to them - even in a tab they already had open."
           }
         },
         {
@@ -526,8 +556,55 @@
           "highlight": "button[data-screen=\"matches\"]",
           "highlightAfter": "#matches-list",
           "say": {
-            "en": "Matches is the platform doing some of the thinking: it puts a buyer's request next to a seller's offer and suggests the pair. It only ever suggests. An Operator still decides whether to introduce them.",
-            "es": "Coincidencias es la Plataforma pensando un poco por usted: pone la solicitud de un comprador junto a la oferta de un vendedor y sugiere la pareja. Solo sugiere. El Operador sigue decidiendo si los presenta."
+            "en": "Matches is the platform doing some of the thinking: it puts a buyer's request next to a seller's offer and suggests the pair. It only ever suggests. The Operator still decides whether to introduce them."
+          }
+        },
+        {
+          "id": "doc-requests",
+          "do": "screen:doc-requests",
+          "zoom": "button[data-screen=\"doc-requests\"]",
+          "zoomScale": 1.8,
+          "zoomOutAfter": true,
+          "highlight": "button[data-screen=\"doc-requests\"]",
+          "highlightAfter": "#doc-requests-list",
+          "say": {
+            "en": "Document Requests is how the Operator asks about a document for a member's listing. The member answers that they have it, or that it is not available. Nothing is ever uploaded to the platform."
+          }
+        },
+        {
+          "id": "deals",
+          "do": "screen:deals",
+          "zoom": "button[data-screen=\"deals\"]",
+          "zoomScale": 1.8,
+          "zoomOutAfter": true,
+          "highlight": "button[data-screen=\"deals\"]",
+          "highlightAfter": "#deals-list",
+          "say": {
+            "en": "Deals. A file opens by itself the first time the Operator forwards a negotiation between two members about a listing, one file for each pair. The Operator moves it through its stages and records the outcome, and every change is kept, with who made it and when."
+          }
+        },
+        {
+          "id": "scorecard",
+          "do": "screen:scorecard",
+          "zoom": "button[data-screen=\"scorecard\"]",
+          "zoomScale": 1.8,
+          "zoomOutAfter": true,
+          "highlight": "button[data-screen=\"scorecard\"]",
+          "highlightAfter": "#scorecard-tbody",
+          "say": {
+            "en": "Scorecard. Counts of what the Operator recorded in the deal files, for each member and for each side. Facts, not a verdict: the Operator decides what they mean. Members never see it, though a member may ask to see what is held on them."
+          }
+        },
+        {
+          "id": "commodities",
+          "do": "screen:commodities",
+          "zoom": "button[data-screen=\"commodities\"]",
+          "zoomScale": 1.8,
+          "zoomOutAfter": true,
+          "highlight": "button[data-screen=\"commodities\"]",
+          "highlightAfter": "#commodities-list",
+          "say": {
+            "en": "Commodities is the list behind the commodity choice on every listing form. The Operator adds a name here so that everybody uses the same one. A member can still type something that is not on the list, under Other."
           }
         },
         {
@@ -539,8 +616,31 @@
           "highlight": "button[data-screen=\"activity\"]",
           "highlightAfter": "#activity-list",
           "say": {
-            "en": "And everything anybody did is written down here, in the Activity Log. Who was approved, which message was forwarded, who was suspended and when. The record is what makes the discretion safe.",
-            "es": "Y todo lo que cualquiera hizo queda escrito aquí, en el Registro de Actividad. Quién fue aprobado, qué mensaje se transmitió, a quién se suspendió y cuándo. El registro es lo que hace segura la discreción."
+            "en": "And everything anybody did is written down here, in the Activity Log. Who was approved, which message was forwarded, who was suspended and when. The record is what makes the discretion safe."
+          }
+        },
+        {
+          "id": "analytics",
+          "do": "screen:analytics",
+          "zoom": "button[data-screen=\"analytics\"]",
+          "zoomScale": 1.8,
+          "zoomOutAfter": true,
+          "highlight": "button[data-screen=\"analytics\"]",
+          "highlightAfter": "#analytics-table",
+          "say": {
+            "en": "Analytics puts the work into numbers, by week, month or day: registrations, new listings, messages reviewed and forwarded. For deals it counts how many were opened, agreed, introduced, closed and fell through."
+          }
+        },
+        {
+          "id": "help",
+          "do": "screen:help",
+          "zoom": "button[data-screen=\"help\"]",
+          "zoomScale": 1.8,
+          "zoomOutAfter": true,
+          "highlight": "button[data-screen=\"help\"]",
+          "highlightAfter": "#operator-help",
+          "say": {
+            "en": "And Help, at the end of the row, answers the questions the Operator asks most, in plain words. Tap a question to open it. It also says what to do when something is not working."
           }
         },
         {
@@ -548,203 +648,12 @@
           "do": "hold",
           "highlight": null,
           "say": {
-            "en": "So the Operator is the only route between two members, and every step of that route is recorded. That is what members are trusting when they post an offer here and no name goes with it.",
-            "es": "Así que el Operador es la única ruta entre dos miembros, y cada paso de esa ruta queda registrado. Eso es lo que los miembros confían cuando publican una oferta aquí y no va ningún nombre con ella."
+            "en": "So the Operator is the only route between two members, and every step of that route is recorded. That is what members are trusting when they post an offer here and no name goes with it."
           }
         }
-      ]
-    },
-    "overview": {
-      "title": "Jericho Platform — a three-minute overview",
-      "_comment": [
-        "FOR A NEW OPERATOR, and for anybody who needs the idea rather than the",
-        "buttons. It is the only film that shows BOTH sides, which is why it signs",
-        "in twice - signInAs:member, then signInAs:operator. Each account carries",
-        "its own landing page, because the console and the app are different URLs.",
-        "",
-        "It deliberately does NOT teach the buttons. It shows a member's market",
-        "with no names on it, then the same platform from the desk where the names",
-        "are visible, and closes by pointing at the two longer films.",
-        "",
-        "Same rules as the others: nothing zoomed closer than 1.9x, every zoom",
-        "comes back out, no run of still shots over 20 seconds.",
-        "",
-        "{offerId} is the other member's listing, so the anonymity scene rings a",
-        "row that is genuinely not the signed-in member's own."
       ],
-      "scenes": [
-        {
-          "id": "welcome",
-          "do": "hold",
-          "zoom": ".logo-row",
-          "zoomScale": 1.3,
-          "zoomOutAfter": true,
-          "highlight": ".logo-row",
-          "say": {
-            "en": "Jericho Platform, in three minutes. What it is, what you will do, and what a member sees.",
-            "es": "Jericho Platform, en tres minutos. Qué es, qué hará usted, y qué ve un miembro."
-          }
-        },
-        {
-          "id": "principle",
-          "do": "hold",
-          "zoom": ".logo-row",
-          "zoomScale": 1.2,
-          "zoomOutAfter": true,
-          "highlight": ".logo-row",
-          "say": {
-            "en": "One idea holds the whole thing up. Members never deal with each other directly. They never learn each other's name, company or address. Everything passes through an Operator - through you.",
-            "es": "Una sola idea sostiene todo esto. Los miembros nunca tratan entre sí directamente. Nunca saben el nombre, la empresa ni la dirección del otro. Todo pasa por un Operador: por usted."
-          }
-        },
-        {
-          "id": "member-in",
-          "do": "signInAs:member",
-          "zoom": "#login-form",
-          "zoomScale": 1.3,
-          "zoomOutAfter": true,
-          "highlight": "#login-form",
-          "say": {
-            "en": "First, the member's side - what somebody you have invited signs into. Their own email, their own password, and nothing else. There is no public sign-up anywhere on this Platform, and no way to create an account without an invitation you sent.",
-            "es": "Primero, el lado del miembro: lo que ve alguien a quien usted ha invitado. Su propio correo, su propia contraseña, y nada más. No hay registro público en ninguna parte de esta Plataforma, ni forma de crear una cuenta sin una invitación enviada por usted."
-          }
-        },
-        {
-          "id": "member-browse",
-          "do": "screen:browse",
-          "zoom": "button[data-screen=\"browse\"]",
-          "zoomScale": 1.8,
-          "zoomOutAfter": true,
-          "highlight": "button[data-screen=\"browse\"]",
-          "highlightAfter": "#browse-list",
-          "say": {
-            "en": "The market. Every offer and every request on the Platform, in one list.",
-            "es": "El mercado. Todas las ofertas y solicitudes de la Plataforma, en una lista."
-          }
-        },
-        {
-          "id": "member-anon",
-          "do": "hold",
-          "zoom": ".list-row:has([data-contact=\"{offerId}\"])",
-          "zoomScale": 1.4,
-          "zoomOutAfter": true,
-          "highlight": ".list-row:has([data-contact=\"{offerId}\"])",
-          "say": {
-            "en": "Look at a row. The grade, the quantity, the terms, the origin - all there. No name, no company, no email. That absence is the product.",
-            "es": "Mire una fila. El grado, la cantidad, las condiciones, el origen: todo está. Ni nombre, ni empresa, ni correo. Esa ausencia es el producto."
-          }
-        },
-        {
-          "id": "member-post",
-          "do": "screen:new-listing",
-          "zoom": "button[data-screen=\"new-listing\"]",
-          "zoomScale": 1.8,
-          "zoomOutAfter": true,
-          "highlight": "button[data-screen=\"new-listing\"]",
-          "highlightAfter": "#listing-form",
-          "say": {
-            "en": "A member offers something with one form, and withdraws it whenever they like.",
-            "es": "Un miembro ofrece algo con un solo formulario, y lo retira cuando quiera."
-          }
-        },
-        {
-          "id": "member-contact",
-          "do": "screen:browse",
-          "zoom": "button[data-screen=\"browse\"]",
-          "zoomScale": 1.8,
-          "zoomOutAfter": true,
-          "highlight": "button[data-screen=\"browse\"]",
-          "highlightAfter": "[data-contact=\"{offerId}\"]",
-          "say": {
-            "en": "And when an offer interests them, they write about it. Not to the other member - to you. They never need a name to do business.",
-            "es": "Y cuando una oferta les interesa, escriben sobre ella. No al otro miembro: a usted. Nunca necesitan un nombre para hacer negocio."
-          }
-        },
-        {
-          "id": "operator-in",
-          "do": "signInAs:operator",
-          "zoom": "#login-form",
-          "zoomScale": 1.3,
-          "zoomOutAfter": true,
-          "highlight": "#login-form",
-          "say": {
-            "en": "Now your own side. The same sign-in page, the same kind of account - but what opens afterwards is a different console entirely, and only an Operator ever sees it. Watch what changes once the password goes in.",
-            "es": "Ahora su propio lado. La misma página de entrada, el mismo tipo de cuenta; pero lo que se abre después es una consola completamente distinta, y solo un Operador llega a verla. Mire lo que cambia en cuanto se introduce la contraseña."
-          }
-        },
-        {
-          "id": "operator-desk",
-          "do": "hold",
-          "zoom": "nav.tabs",
-          "zoomScale": 1.45,
-          "zoomOutAfter": true,
-          "highlight": "nav.tabs",
-          "say": {
-            "en": "Eleven screens instead of seven. Nothing happens on this Platform without somebody here deciding it.",
-            "es": "Once pantallas en lugar de siete. Nada ocurre en esta Plataforma sin que alguien de aquí lo decida."
-          }
-        },
-        {
-          "id": "operator-approvals",
-          "do": "screen:approvals",
-          "zoom": "button[data-screen=\"approvals\"]",
-          "zoomScale": 1.8,
-          "zoomOutAfter": true,
-          "highlight": "button[data-screen=\"approvals\"]",
-          "highlightAfter": "#approvals-list",
-          "say": {
-            "en": "Nobody gets in by themselves. You invite them, and you approve them. Until you do, they see nothing at all.",
-            "es": "Nadie entra por su cuenta. Usted les invita, y usted les aprueba. Hasta entonces, no ven absolutamente nada."
-          }
-        },
-        {
-          "id": "operator-mailbox",
-          "do": "screen:mailbox",
-          "zoom": "button[data-screen=\"mailbox\"]",
-          "zoomScale": 1.8,
-          "zoomOutAfter": true,
-          "highlight": "button[data-screen=\"mailbox\"]",
-          "highlightAfter": "#operator-mailbox-list",
-          "say": {
-            "en": "Here is that enquiry, stopped. It has not reached the seller. You read it, and you choose: forward it, reply, or ignore it. That decision is the business.",
-            "es": "Aquí está esa consulta, detenida. No ha llegado al vendedor. Usted la lee y decide: transmitirla, responder, o ignorarla. Esa decisión es el negocio."
-          }
-        },
-        {
-          "id": "operator-sees",
-          "do": "screen:listings",
-          "zoom": "button[data-screen=\"listings\"]",
-          "zoomScale": 1.8,
-          "zoomOutAfter": true,
-          "highlight": "button[data-screen=\"listings\"]",
-          "highlightAfter": "#listings-table",
-          "say": {
-            "en": "And here, unlike anywhere a member can reach, every offer carries the name of whoever posted it. You are the only person who sees both sides.",
-            "es": "Y aquí, a diferencia de cualquier sitio al que llegue un miembro, cada oferta lleva el nombre de quien la publicó. Usted es la única persona que ve ambos lados."
-          }
-        },
-        {
-          "id": "operator-log",
-          "do": "screen:activity",
-          "zoom": "button[data-screen=\"activity\"]",
-          "zoomScale": 1.8,
-          "zoomOutAfter": true,
-          "highlight": "button[data-screen=\"activity\"]",
-          "highlightAfter": "#activity-list",
-          "say": {
-            "en": "Every approval, every forward, every suspension is written down here. The record is what makes that much discretion safe to hold.",
-            "es": "Cada aprobación, cada reenvío, cada suspensión queda escrita aquí. El registro es lo que hace seguro tener tanta discreción."
-          }
-        },
-        {
-          "id": "close",
-          "do": "hold",
-          "highlight": null,
-          "say": {
-            "en": "That is the whole idea: a market where people trade without meeting, and an Operator who carries everything between them. There are two longer films when you want the detail - one that walks through a member's side step by step, and one that does the same for yours.",
-            "es": "Esa es toda la idea: un mercado donde la gente negocia sin conocerse, y un Operador que lo lleva todo entre ellos. Hay dos películas más largas cuando quiera el detalle: una recorre el lado del miembro paso a paso, y otra hace lo mismo con el suyo."
-          }
-        }
+      "languages": [
+        "en"
       ]
     }
   }

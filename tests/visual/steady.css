@@ -29,3 +29,13 @@ table { table-layout: fixed !important; width: 100% !important; }
 /* Counts change with the data ("23" or "24" commodities), and with them
    the width of their mask (PR 38, Commodities, 2,600 pixels). One width. */
 [id$="-count"] { display: inline-block !important; width: 8em !important; overflow: hidden !important; white-space: nowrap !important; }
+
+/* An empty count is as tall as a filled one. The Operator's Activity tab fills
+   #activity-count only once its rows have loaded (and leaves it empty when the
+   log is empty), and an empty inline-block has no line of text: the list
+   below sat 13 pixels higher on some runs, which failed the picture check
+   (PR 50, 14,030 pixels on the phone, with the box above the list missing).
+   One invisible character gives an empty count the same line as a filled one,
+   so nothing moves whichever it is - and the approved pictures, taken with the
+   count filled, are unchanged. */
+[id$="-count"]:empty::before { content: "\200b"; }

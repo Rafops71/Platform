@@ -63,6 +63,8 @@ const {
 const MAX_DIFF_CHARS = 12_000;
 const MAX_ANSWER_TOKENS = 2_200;
 const MAX_PARTS = 6;
+// About 850 tokens of the 8,000: 12,000 characters of diff + this + a 2,200-token answer is ~6,500.
+const MAX_MAP_CHARS = 3_000;
 const PAUSE_MS = 62_000;
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
@@ -126,6 +128,17 @@ async function main() {
   let diff = git(['diff', '--unified=3', base, 'HEAD', '--', '.', ...SKIP]);
   if (!diff.trim()) bail('this pull request changes nothing readable.');
 
+  // The whole change in one glance, given to EVERY part. The parts are read by
+  // separate requests that cannot see each other, so a part holding a spec
+  // could not see the file that defines what the spec imports, and the
+  // reviewer reported it "not exported" (PR 47, 49 and 50 all had reviews like
+  // that). The map says what else changed; the rule below says what to do
+  // about the parts it cannot see. Capped, because the free tier counts it.
+  let changeMap = git(['diff', '--numstat', base, 'HEAD', '--', '.', ...SKIP]).trim().split('\n')
+    .map((l) => l.split('\t')).filter((c) => c.length === 3)
+    .map(([add, del, file]) => `${file} (+${add} -${del})`).join('\n');
+  if (changeMap.length > MAX_MAP_CHARS) changeMap = `${changeMap.slice(0, MAX_MAP_CHARS)}\n... (more files)`;
+
   // Whole files together, up to MAX_DIFF_CHARS a part; a file larger than
   // that is cut at its own hunks.
   const pieces = [];
@@ -168,6 +181,13 @@ async function main() {
     '- Do not comment on formatting or style.',
     '- At most five points, most serious first.',
     '- Be brief. The reader has little patience for long text.',
+    '- You may be shown only PART of the change. Everything that changed is',
+    '  listed under "All files in this pull request"; the rest of it is read by',
+    '  someone who cannot see your part, and you cannot see theirs. So a helper,',
+    '  export, translation key, column or function you cannot find may well be',
+    '  defined in a file you were not shown. Never report something as missing,',
+    '  undefined, not exported or not translated unless the file that would',
+    '  define it is in YOUR part and you can see that it is not there.',
   ].join('\n');
 
   const answers = [];
@@ -177,6 +197,9 @@ async function main() {
       read.length > 1
         ? `This is part ${i + 1} of ${read.length} of the diff (whole files: ${fileOf(read[i]).join(', ')}). Review this part; other parts are reviewed separately.\n`
         : 'Here is the complete diff.\n',
+      'All files in this pull request:',
+      changeMap,
+      '',
       '```diff',
       read[i],
       '```',

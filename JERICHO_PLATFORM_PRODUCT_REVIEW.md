@@ -326,7 +326,7 @@ advisor can judge which matter most.
 **Operator tooling**
 - **No workload or performance dashboard** — no view of how many messages are
   waiting, how long they have been waiting, or how quickly they are handled.
-- No way to divide work between two Operators, or to see who handled what.
+- No way to see who handled what.
 - No reporting on platform activity, member engagement, or deal flow.
 
 **Participant transparency**

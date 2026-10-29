@@ -173,7 +173,7 @@ async function latestTermsVersion() {
 /** Create a confirmed auth user. The on_auth_user_created trigger builds the
  *  matching profile as a pending participant; `role` and `status` here are
  *  applied afterwards over SQL, exactly as an operator approval would. */
-async function createAccount({ label, role = 'participant', status = 'approved', meta = {}, domain }) {
+async function createAccount({ label, role = 'participant', status = 'approved', meta = {}, domain, welcomeSeen = true }) {
   const email = testEmail(label, domain);
   const password = testPassword();
 
@@ -227,8 +227,10 @@ async function createAccount({ label, role = 'participant', status = 'approved',
   const client = await connect();
   try {
     const { rows } = await client.query(
-      'update public.profiles set role = $2, status = $3 where user_id = $1 returning id',
-      [user.id, role, status]
+      // The welcome page (sql/044) is shown once at a first sign-in; a fixture
+      // has "already seen it" unless the test is about the page itself.
+      'update public.profiles set role = $2, status = $3, welcome_seen_at = $4 where user_id = $1 returning id',
+      [user.id, role, status, welcomeSeen ? new Date().toISOString() : null]
     );
     if (!rows.length) throw new Error(`No profile was created for ${email}`);
     return { email, password, userId: user.id, profileId: rows[0].id };

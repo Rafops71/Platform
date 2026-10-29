@@ -150,7 +150,7 @@ function main() {
   const langArg = args.includes('--lang') ? args[args.indexOf('--lang') + 1] : null;
   const filmArg = args.includes('--film') ? args[args.indexOf('--film') + 1] : null;
 
-  const languages = langArg ? [langArg] : ['en', 'es'];
+  const allLanguages = langArg ? [langArg] : ['en', 'es'];
   const films = filmArg ? [filmArg] : Object.keys(SCRIPT.films);
 
   fs.mkdirSync(OUT, { recursive: true });
@@ -163,7 +163,10 @@ function main() {
 
   for (const film of films) {
     const scenes = SCRIPT.films[film].scenes;
-    for (const lang of languages) {
+    // The Operator film is English only (owner, 2026-10-29): a film lists the
+    // languages it is made in; the default is both.
+    const made = SCRIPT.films[film].languages || ['en', 'es'];
+    for (const lang of allLanguages.filter((l) => made.includes(l))) {
       const model = ENGINE === 'kokoro' ? null : modelFor(lang);
       let total = 0;
 

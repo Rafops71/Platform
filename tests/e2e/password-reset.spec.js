@@ -3,7 +3,7 @@
 // Before this flow existed there was no way back into an account at all. The
 // owner lost his own password and it took somebody with a service key to let
 // him in again - which is not a recovery path, it is a person. With email not
-// yet sending and no second Operator to ask, that person would eventually not
+// yet sending and nobody else to ask, that person would eventually not
 // be available, and he would be locked out of his own platform.
 //
 // WHAT THIS PROVES, AND HOW, WITHOUT WORKING EMAIL

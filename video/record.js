@@ -100,6 +100,12 @@ async function openScreen(page, name) {
  */
 async function perform(page, action, world) {
   if (!action || action === 'hold') return;
+  // Two things on one screen at once (a role AND the producer/trader answer
+  // that appears with it) are written "check:#a && check:#b".
+  if (action.includes(' && ')) {
+    for (const one of action.split(' && ')) await perform(page, one, world);
+    return;
+  }
 
   const [verb, rest] = [action.slice(0, action.indexOf(':')) || action,
                         action.slice(action.indexOf(':') + 1)];
@@ -313,63 +319,6 @@ async function buildWorld(film) {
     return world;
   }
 
-  if (film === 'overview') {
-    // ONE FILM, BOTH SIDES. It signs in as a member, then as the Operator, so
-    // the world hands back two accounts rather than one - each carrying the
-    // page it belongs on, because signInAs waits for that URL.
-    const member = await createAccount({
-      label: 'ov-member', role: 'participant', status: 'approved',
-      meta: { first_name: 'Ingrid', last_name: 'Solberg', company: 'Solberg Metals' },
-    });
-    const operator = await createAccount({
-      label: 'ov-op', role: 'operator', status: 'approved',
-      meta: { first_name: 'Operator', last_name: 'Desk', company: 'Jericho Platform' },
-    });
-    world.member = { ...member, landing: 'app.html' };
-    world.operator = { ...operator, landing: 'operator.html' };
-
-    // signIn (the one-account verb) is not used by this film, but record.js
-    // reads world.signInAs before the scenes run. Pointing it at the member
-    // keeps the two verbs from disagreeing about who starts the film.
-    world.signInAs = member;
-    world.landing = 'app.html';
-
-    // Somebody waiting to be let in, so Approvals is not an empty table when
-    // the voice says nobody gets in without an Operator.
-    await createAccount({
-      label: 'ov-pending', role: 'participant', status: 'pending',
-      meta: { first_name: 'Anneke', last_name: 'de Vries', company: 'De Vries Metalen' },
-    });
-
-    // Another member's offer for the market, and an enquiry about it waiting
-    // for review - the two things the overview actually explains.
-    const other = await createAccount({
-      label: 'ov-other', role: 'participant', status: 'approved',
-      meta: { first_name: 'Marco', last_name: 'Ferrari', company: 'Ferrari Commodities' },
-    });
-    const listing = await query(
-      `insert into public.listings
-         (user_id, type, commodity, quantity, unit, incoterm, origin,
-          specification, status, reference_number)
-       values ($1, 'sell', 'copper cathodes', 500, 'Metric tons', 'CIF', 'Chile',
-               'LME Grade A, 99.99% Cu', 'available', $2)
-       returning id`,
-      [other.profileId, `SELL-OVER-${Date.now().toString().slice(-6)}`]
-    );
-    world.offerId = listing.rows[0].id;
-
-    const message = await query(
-      `insert into public.messages (sender_id, listing_id, subject, body)
-       values ($1, $2, $3, $4) returning id`,
-      [member.profileId, listing.rows[0].id,
-       'Enquiry about 500 mt copper cathodes',
-       'We can take the full parcel, CIF Rotterdam. Please pass this to the seller.']
-    );
-    world.messageId = message.rows[0].id;
-    console.log(`Overview world: offer ${world.offerId}, enquiry ${world.messageId}`);
-    return world;
-  }
-
   throw new Error(`no fixtures written for a film called "${film}"`);
 }
 
@@ -408,7 +357,7 @@ async function main() {
   const KNOWN_VERBS = ['hold', 'screen', 'press', 'type', 'select', 'check',
                        'wait', 'goto', 'signInAs', 'signIn', 'language'];
   const unknown = scenes
-    .map(scene => (scene.do || 'hold').split(':')[0])
+    .flatMap(scene => (scene.do || 'hold').split(' && ').map(one => one.split(':')[0]))
     .filter(verb => !KNOWN_VERBS.includes(verb));
   if (unknown.length) {
     throw new Error(

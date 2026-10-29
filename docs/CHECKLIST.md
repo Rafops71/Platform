@@ -104,6 +104,7 @@ the suite: this platform's product is controlled disclosure, so proving a thing
 | 74 | Scorecard figures are counts of what Operators recorded, kept apart by side | does |
 | 75 | An Operator sees deals opened, introduced, closed and fallen through, period by period | does |
 | 76 | Help answers the common questions in English and Spanish, before signing in and inside the platform | does |
+| 77 | A new member sees the welcome page once, at their first sign-in, in their own language; it never comes back | does |
 
 ## Open questions on this list
 
