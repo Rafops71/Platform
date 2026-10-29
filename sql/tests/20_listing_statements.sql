@@ -59,15 +59,15 @@ begin
 
   begin
     insert into public.listings (user_id, type, commodity, incoterm, origin, reference_number,
-                                 poster_role, docs_seen, truth_confirmed)
-    values (me, 'sell', 'Stmt Copper', 'FOB', 'Chile', 'SELL-STMT-5', 'principal', 'yes', true);
+                                 poster_role, principal_kind, docs_seen, truth_confirmed)
+    values (me, 'sell', 'Stmt Copper', 'FOB', 'Chile', 'SELL-STMT-5', 'principal', 'producer', 'yes', true);
     insert into t20 values ('one docs answer', 'ACCEPTED');
   exception when others then insert into t20 values ('one docs answer', sqlerrm); end;
 
   begin
     insert into public.listings (user_id, type, commodity, incoterm, origin, reference_number,
-                                 poster_role, docs_seen, docs_showable)
-    values (me, 'sell', 'Stmt Copper', 'FOB', 'Chile', 'SELL-STMT-6', 'principal', 'yes', 'on_request');
+                                 poster_role, principal_kind, docs_seen, docs_showable)
+    values (me, 'sell', 'Stmt Copper', 'FOB', 'Chile', 'SELL-STMT-6', 'principal', 'producer', 'yes', 'on_request');
     insert into t20 values ('no tick', 'ACCEPTED');
   exception when others then insert into t20 values ('no tick', sqlerrm); end;
 end $$;
@@ -75,9 +75,9 @@ end $$;
 -- The valid ones. A browser-supplied time and stray chain details are sent
 -- on purpose: both must be overwritten.
 insert into public.listings (user_id, type, commodity, incoterm, origin, reference_number,
-                             poster_role, broker_via, has_mandate, docs_seen, docs_showable,
+                             poster_role, principal_kind, broker_via, has_mandate, docs_seen, docs_showable,
                              truth_confirmed, truth_confirmed_at)
-select id, 'sell', 'Stmt Copper', 'FOB', 'Chile', 'SELL-STMT-OK', 'principal', 'one_broker', true,
+select id, 'sell', 'Stmt Copper', 'FOB', 'Chile', 'SELL-STMT-OK', 'principal', 'trader', 'one_broker', true,
        'source_says', 'after_agreement', true, '2001-01-01'
   from public.profiles where email = 'stmt-member@example.invalid';
 
@@ -174,5 +174,77 @@ select case when poster_role is null and docs_seen is null and truth_confirmed_a
             then 'PASS' else 'FAIL' end
   as "T11 a listing from before this stays blank, not guessed"
 from public.listings where reference_number = 'SELL-STMT-OLD';
+
+\echo
+\echo '=========== PRODUCER OR TRADER (sql/043) ==========='
+
+create temp table t20k (label text, msg text);
+grant all on t20k to authenticated;
+
+set role authenticated; set test.uid='c2c2c2c2-0001-0001-0001-000000000001';
+do $$
+declare
+  me uuid := (select id from public.profiles where email = 'stmt-member@example.invalid');
+begin
+  begin
+    insert into public.listings (user_id, type, commodity, incoterm, origin, reference_number,
+                                 poster_role, docs_seen, docs_showable, truth_confirmed)
+    values (me, 'sell', 'Stmt Copper', 'FOB', 'Chile', 'SELL-STMT-K1', 'principal', 'yes', 'on_request', true);
+    insert into t20k values ('sell no kind', 'ACCEPTED');
+  exception when others then insert into t20k values ('sell no kind', sqlerrm); end;
+
+  begin
+    insert into public.listings (user_id, type, commodity, incoterm, origin, reference_number,
+                                 poster_role, principal_kind, docs_seen, docs_showable, truth_confirmed)
+    values (me, 'sell', 'Stmt Copper', 'FOB', 'Chile', 'SELL-STMT-K2', 'principal', 'dealer', 'yes', 'on_request', true);
+    insert into t20k values ('sell bad kind', 'ACCEPTED');
+  exception when others then insert into t20k values ('sell bad kind', 'refused'); end;
+
+  begin
+    insert into public.listings (user_id, type, commodity, incoterm, destination, reference_number,
+                                 poster_role, principal_kind, docs_seen, docs_showable, truth_confirmed)
+    values (me, 'buy', 'Stmt Copper', 'FOB', 'Chile', 'SELL-STMT-K3', 'principal', 'trader', 'yes', 'on_request', true);
+    insert into t20k values ('buy kind', 'ACCEPTED');
+  exception when others then insert into t20k values ('buy kind', sqlerrm); end;
+
+  begin
+    insert into public.listings (user_id, type, commodity, incoterm, origin, reference_number,
+                                 poster_role, principal_kind, broker_via, docs_seen, docs_showable, truth_confirmed)
+    values (me, 'sell', 'Stmt Copper', 'FOB', 'Chile', 'SELL-STMT-K4', 'broker', 'trader', 'one_broker', 'yes', 'on_request', true);
+    insert into t20k values ('broker kind', 'ACCEPTED');
+  exception when others then insert into t20k values ('broker kind', 'refused'); end;
+
+  begin
+    insert into public.listings (user_id, type, commodity, incoterm, origin, reference_number,
+                                 poster_role, principal_kind, docs_seen, docs_showable, truth_confirmed)
+    values (me, 'sell', 'Stmt Copper', 'FOB', 'Chile', 'SELL-STMT-K5', 'principal', 'trader', 'yes', 'on_request', true);
+    insert into t20k values ('sell trader', 'ACCEPTED');
+  exception when others then insert into t20k values ('sell trader', sqlerrm); end;
+end $$;
+reset role; reset test.uid;
+
+select case when msg = 'Please say whether you are a producer or a trader.' then 'PASS' else 'FAIL got ' || msg end
+  as "T12 a principal's Sell offer without Producer or Trader is refused"
+from t20k where label = 'sell no kind';
+
+select case when msg = 'refused' then 'PASS' else 'FAIL got ' || msg end
+  as "T13 a value other than producer or trader is refused"
+from t20k where label = 'sell bad kind';
+
+select case when (select msg from t20k where label = 'buy kind') = 'ACCEPTED'
+             and (select principal_kind is null from public.listings where reference_number = 'SELL-STMT-K3')
+            then 'PASS' else 'FAIL' end
+  as "T14 a Buy request never carries Producer or Trader";
+
+select case when (select msg from t20k where label = 'broker kind') = 'ACCEPTED'
+             and (select principal_kind is null from public.listings where reference_number = 'SELL-STMT-K4')
+            then 'PASS' else 'FAIL' end
+  as "T15 a broker's Sell offer never carries Producer or Trader";
+
+set role authenticated; set test.uid='c2c2c2c2-0001-0001-0001-000000000001';
+select case when principal_kind = 'trader' then 'PASS' else 'FAIL got ' || coalesce(principal_kind, 'null') end
+  as "T16 Browse carries a principal's Producer or Trader on a Sell offer"
+from public.get_public_listings() where reference_number = 'SELL-STMT-K5';
+reset role; reset test.uid;
 
 delete from public.listings where reference_number like 'SELL-STMT-%';

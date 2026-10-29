@@ -344,6 +344,7 @@ function populateStatusFilter() {
  *  shows members the role and the documents line, never the mandate or the
  *  chain - sql/033). Listings from before 033 say so rather than guess. */
 const POSTER_ROLE_LABELS = { principal: 'Principal', mandated: 'Mandated intermediary', broker: 'Broker' };
+const PRINCIPAL_KIND_LABELS = { producer: 'Producer', trader: 'Trader' };
 const BROKER_VIA_LABELS = { principal: 'via the principal', mandate_holder: "via the principal's mandate holder", one_broker: 'via one other broker' };
 const DOCS_SEEN_LABELS = { yes: 'docs seen', source_says: 'docs not seen, source says they exist', no: 'docs not seen' };
 const DOCS_SHOWABLE_LABELS = { on_request: 'shown on request', after_agreement: 'shown after an agreement', no: 'not shown' };
@@ -351,6 +352,7 @@ const DOCS_SHOWABLE_LABELS = { on_request: 'shown on request', after_agreement: 
 function posterDetail(l) {
   if (!l.poster_role) return 'Not stated';
   const parts = [POSTER_ROLE_LABELS[l.poster_role]];
+  if (l.poster_role === 'principal' && l.type === 'sell') parts[0] += ` (${l.principal_kind ? PRINCIPAL_KIND_LABELS[l.principal_kind] : 'producer or trader not stated'})`;
   if (l.poster_role === 'mandated') parts.push(`mandate signed ${l.mandate_date ? formatDate(l.mandate_date) : '(no date)'}`);
   if (l.poster_role === 'broker') parts.push(BROKER_VIA_LABELS[l.broker_via] || 'chain not stated');
   if (l.docs_seen) parts.push(DOCS_SEEN_LABELS[l.docs_seen]);

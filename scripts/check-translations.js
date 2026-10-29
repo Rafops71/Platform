@@ -65,6 +65,7 @@ const SAME_IN_BOTH = new Set([
   'form.incoterm',  // Incoterms are published by the ICC under that one name
   'lang.name.en',   // a language picker shows each language in its own words
   'lang.name.es',
+  'stmt.browse.role.principal', // "Principal" is the Spanish word too (owner's Spanish: 'Principal (Productor)')
   'unit.Bushels',   // see the note below
 ]);
 

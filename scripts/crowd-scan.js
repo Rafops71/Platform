@@ -60,7 +60,7 @@ async function main() {
           body: { user_id: m.profileId, reference_number: `CROWD-${crypto.randomBytes(5).toString('hex')}-${i}`,
                   type: i % 2 ? 'buy' : 'sell', commodity: commodity.name, incoterm: 'CIF',
                   ...(i % 2 ? { destination: 'Crowdport' } : { origin: 'Crowdport' }),
-                  poster_role: 'principal', docs_seen: 'no', docs_showable: 'no', truth_confirmed: true },
+                  poster_role: 'principal', ...(i % 2 ? {} : { principal_kind: 'trader' }), docs_seen: 'no', docs_showable: 'no', truth_confirmed: true },
         })),
         timed('enquiry', asUser(m, '/rest/v1/messages', {
           method: 'POST', prefer: 'return=minimal',

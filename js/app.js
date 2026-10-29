@@ -380,6 +380,7 @@ function wireListingForm() {
   document.querySelectorAll('input[name="type"]').forEach(r =>
     r.addEventListener('change', () => {
       document.getElementById('location-label').textContent = r.value === 'sell' ? t('form.origin') : t('form.destination');
+      showRoleQuestions();
     }));
 
   document.getElementById('commodity-select').addEventListener('change', (e) => {
@@ -400,15 +401,18 @@ function wireListingForm() {
 /** Browse's one line about the poster: role and documents, in the reader's
  *  language. A listing from before sql/033 says "Not stated" - never a guess. */
 function statementsLine(l) {
-  const role = l.poster_role ? t(`stmt.browse.role.${l.poster_role}`) : t('stmt.notStated');
+  let role = l.poster_role ? t(`stmt.browse.role.${l.poster_role}`) : t('stmt.notStated');
+  if (l.poster_role === 'principal' && l.type === 'sell' && l.principal_kind) role += ` (${t(`stmt.browse.kind.${l.principal_kind}`)})`;
   const docs = l.docs_seen ? t(`stmt.browse.docs.${l.docs_seen}`) : t('stmt.notStated');
   return `${t('stmt.browse.role')}: ${role} · ${t('stmt.browse.docs')}: ${docs}`;
 }
 
 /** The mandate question for a mandated intermediary, the chain question for
- *  a broker, nothing more for a principal. */
+ *  a broker, Producer-or-Trader for a principal on a Sell offer only. */
 function showRoleQuestions() {
   const role = document.querySelector('input[name="poster_role"]:checked')?.value;
+  const isSell = document.querySelector('input[name="type"]:checked')?.value === 'sell';
+  document.getElementById('kind-row').classList.toggle('hidden', !(role === 'principal' && isSell));
   document.getElementById('mandate-row').classList.toggle('hidden', role !== 'mandated');
   document.getElementById('broker-row').classList.toggle('hidden', role !== 'broker');
 }
@@ -418,12 +422,15 @@ function showRoleQuestions() {
  *  reads the reason before pressing, in their own language. */
 function readListingStatements() {
   const role = document.querySelector('input[name="poster_role"]:checked')?.value;
+  const kindShown = role === 'principal' && document.querySelector('input[name="type"]:checked')?.value === 'sell';
+  const kind = document.querySelector('input[name="principal_kind"]:checked')?.value;
   const mandate = document.querySelector('input[name="has_mandate"]:checked')?.value;
   const mandateDate = document.getElementById('mandate_date').value;
   const via = document.getElementById('broker_via').value;
   const docsSeen = document.getElementById('docs_seen').value;
   const docsShowable = document.getElementById('docs_showable').value;
   if (!role) return { errorKey: 'stmt.err.role' };
+  if (kindShown && !kind) return { errorKey: 'stmt.err.kind' };
   if (role === 'mandated' && mandate !== 'yes') return { errorKey: 'stmt.err.noMandate' };
   if (role === 'mandated' && !mandateDate) return { errorKey: 'stmt.err.mandateDate' };
   if (role === 'broker' && via === 'further') return { errorKey: 'stmt.err.tooFar' };
@@ -432,6 +439,7 @@ function readListingStatements() {
   if (!document.getElementById('truth-confirm').checked) return { errorKey: 'stmt.err.truth' };
   return { values: {
     poster_role: role,
+    principal_kind: kindShown ? kind : null,
     has_mandate: role === 'mandated' ? true : null,
     mandate_date: role === 'mandated' ? mandateDate : null,
     broker_via: role === 'broker' ? via : null,
@@ -487,6 +495,8 @@ async function editListing(id) {
   // is a new statement and has to be ticked again (sql/033).
   const roleInput = listing.poster_role && document.querySelector(`input[name="poster_role"][value="${listing.poster_role}"]`);
   if (roleInput) roleInput.checked = true;
+  const kindInput = listing.principal_kind && document.querySelector(`input[name="principal_kind"][value="${listing.principal_kind}"]`);
+  if (kindInput) kindInput.checked = true;
   if (listing.has_mandate) document.getElementById('mandate-yes').checked = true;
   document.getElementById('mandate_date').value = listing.mandate_date ?? '';
   document.getElementById('broker_via').value = listing.broker_via ?? '';

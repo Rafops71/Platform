@@ -166,7 +166,7 @@ async function buildWorld() {
   const [listing] = await must('listing', asUser(B, '/rest/v1/listings', {
     method: 'POST', prefer: 'return=representation',
     body: { user_id: B.profileId, reference_number: ref, type: 'sell', commodity, incoterm: 'FOB',
-            origin: 'Grid', poster_role: 'principal', docs_seen: 'yes', docs_showable: 'on_request',
+            origin: 'Grid', poster_role: 'principal', principal_kind: 'producer', docs_seen: 'yes', docs_showable: 'on_request',
             truth_confirmed: true, quantity: 100, unit: 'MT' },
   }));
   await must('checklist', asUser(B, '/rest/v1/document_checklist', {

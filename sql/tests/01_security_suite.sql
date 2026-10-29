@@ -53,8 +53,8 @@ from public.profiles where email='mallory@example.com';
 \echo '=========== LISTINGS & ANONYMITY ==========='
 \set QUIET on
 set role authenticated; set test.uid='22222222-2222-2222-2222-222222222222';
-insert into public.listings (user_id, type, commodity, quantity, unit, incoterm, origin, status, reference_number, poster_role, docs_seen, docs_showable, truth_confirmed)
- select id,'sell','Copper Cathodes — Grade A',500,'MT','FOB','Zambia','available', public.next_reference('sell'), 'principal','yes','on_request',true
+insert into public.listings (user_id, type, commodity, quantity, unit, incoterm, origin, status, reference_number, poster_role, principal_kind, docs_seen, docs_showable, truth_confirmed)
+ select id,'sell','Copper Cathodes — Grade A',500,'MT','FOB','Zambia','available', public.next_reference('sell'), 'principal','producer','yes','on_request',true
  from public.profiles where user_id='22222222-2222-2222-2222-222222222222';
 reset role; reset test.uid;
 set role authenticated; set test.uid='33333333-3333-3333-3333-333333333333';

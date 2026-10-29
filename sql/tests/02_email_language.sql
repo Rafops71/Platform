@@ -180,8 +180,8 @@ from public.email_outbox where to_email='legacy@example.com';
 -- and Omar (operator, profile says es) are the candidate recipients.
 \set QUIET on
 set role authenticated; set test.uid='aaaaaaaa-0000-0000-0000-000000000001';
-insert into public.listings (user_id, type, commodity, quantity, unit, incoterm, origin, specification, notes, price_conditions, currency, status, reference_number, poster_role, docs_seen, docs_showable, truth_confirmed)
- select id,'sell','Antimony',1200,'Metric tons','FOB','Bolivia','Sb 99.65%','Sin observaciones',14000,'USD','available', public.next_reference('sell'), 'principal','yes','on_request',true
+insert into public.listings (user_id, type, commodity, quantity, unit, incoterm, origin, specification, notes, price_conditions, currency, status, reference_number, poster_role, principal_kind, docs_seen, docs_showable, truth_confirmed)
+ select id,'sell','Antimony',1200,'Metric tons','FOB','Bolivia','Sb 99.65%','Sin observaciones',14000,'USD','available', public.next_reference('sell'), 'principal','producer','yes','on_request',true
  from public.profiles where user_id='aaaaaaaa-0000-0000-0000-000000000001';
 reset role; reset test.uid;
 \set QUIET off

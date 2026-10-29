@@ -73,6 +73,7 @@ const DEFAULT_ORDER = [
   '040_terms_3_3.sql',
   '041_email_unit_as_typed.sql',
   '042_terms_3_4.sql',
+  '043_principal_kind.sql',
   'seed_commodities.sql',
 ];
 

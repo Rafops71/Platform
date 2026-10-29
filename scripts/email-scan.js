@@ -81,7 +81,7 @@ async function main() {
         body: { user_id: poster.profileId, reference_number: ref, type, commodity: commodity.name, incoterm: 'CIF',
                 ...(type === 'sell' ? { origin: 'Mailport' } : { destination: 'Mailport' }),
                 quantity: 250, unit: 'Metric tons', price_conditions: '13850', currency: 'USD',
-                poster_role: 'principal', docs_seen: 'no', docs_showable: 'no', truth_confirmed: true },
+                poster_role: 'principal', ...(type === 'sell' ? { principal_kind: 'producer' } : {}), docs_seen: 'no', docs_showable: 'no', truth_confirmed: true },
       }));
     }
 
