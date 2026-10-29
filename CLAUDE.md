@@ -131,6 +131,7 @@ the same commit.
 
 ## How to work with the owner (his words, 2026-10-25)
 
+- **His rule, 2026-10-29 (his exact words).** Never decide on the owner’s behalf. Any wording, translation, label, name, design choice, or anything members will see or sign is the owner’s choice. Present options with a recommendation, then wait for his answer. If a message from him contains a blank or placeholder, ask; never fill it in. If unsure whether something is his choice, it is.
 - **One block at a time.** He reads on a 13-inch screen and cannot hold a long
   list. Give one block; wait for his answer; then the next. Format each block
   as **asked → you answered → my feedback**. Give no feedback until every

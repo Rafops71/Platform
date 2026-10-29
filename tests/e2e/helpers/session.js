@@ -123,6 +123,8 @@ async function openScreen(page, name) {
  *  listing clicks the button directly instead of calling submitListing. */
 async function answerListingStatements(page) {
   if (!(await page.locator('input[name="poster_role"]:checked').count())) await page.check('#role-principal');
+  // A principal on a Sell offer also says Producer or Trader (sql/043).
+  if (await page.locator('#kind-row:not(.hidden)').count() && !(await page.locator('input[name="principal_kind"]:checked').count())) await page.check('#kind-producer');
   if (!(await page.inputValue('#docs_seen'))) await page.selectOption('#docs_seen', 'yes');
   if (!(await page.inputValue('#docs_showable'))) await page.selectOption('#docs_showable', 'on_request');
   await page.check('#truth-confirm');

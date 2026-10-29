@@ -147,11 +147,17 @@
         <fieldset>
           <legend><span data-i18n="stmt.role">What is your role in this offer?</span> *</legend>
           <label class="checkbox-row"><input type="radio" name="poster_role" id="role-principal" value="principal">
-            <span data-i18n="stmt.role.principal">Principal - I own the goods / I am the end buyer</span></label>
+            <span data-i18n="stmt.role.principal">Principal - I produce the goods or hold legal title to them / I purchase as the contracting party</span></label>
           <label class="checkbox-row"><input type="radio" name="poster_role" id="role-mandated" value="mandated">
             <span data-i18n="stmt.role.mandated">Mandated intermediary - I act directly for the principal, with their written authority</span></label>
           <label class="checkbox-row"><input type="radio" name="poster_role" id="role-broker" value="broker">
             <span data-i18n="stmt.role.broker">Broker</span></label>
+
+          <div id="kind-row" class="hidden">
+            <p class="mb-0" data-i18n="stmt.kind.q">Which describes you?</p>
+            <label class="checkbox-row"><input type="radio" name="principal_kind" id="kind-producer" value="producer"> <span data-i18n="stmt.kind.producer">Producer</span></label>
+            <label class="checkbox-row"><input type="radio" name="principal_kind" id="kind-trader" value="trader"> <span data-i18n="stmt.kind.trader">Trader</span></label>
+          </div>
 
           <div id="mandate-row" class="hidden">
             <p class="mb-0" data-i18n="stmt.mandate.q">Do you hold a signed mandate?</p>

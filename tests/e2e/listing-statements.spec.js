@@ -100,4 +100,59 @@ test.describe.serial('listing statements', () => {
     await expect(page.locator(`[data-poster-for="${listing.id}"]`))
       .toContainText('Broker · via one other broker', { timeout: 15_000 });
   });
+
+  test('Item66 a principal on a Sell offer must say Producer or Trader; a Buy request is never asked', async ({ page }) => {
+    const before = await postedBy(poster);
+    await signIn(page, poster, 'app.html');
+    await fillOffer(page);
+    await page.check('#role-principal');
+    await expect(page.locator('#kind-row')).toBeVisible();
+    await page.selectOption('#docs_seen', 'yes');
+    await page.selectOption('#docs_showable', 'on_request');
+    await page.check('#truth-confirm');
+    await page.click('#listing-submit-btn');
+    await expect(page.locator('.toast-error').last()).toContainText('Please say whether you are a producer or a trader.');
+    expect(await postedBy(poster), 'a Sell offer was saved with no Producer or Trader answer').toBe(before);
+
+    await page.check('#kind-trader');
+    await submitListing(page);
+    await expect.poll(() => postedBy(poster), { timeout: 20_000 }).toBe(before + 1);
+    const { rows } = await query(
+      `select reference_number, principal_kind from public.listings
+        where user_id = (select id from public.profiles where email = $1)
+        order by created_at desc limit 1`, [poster.email]);
+    expect(rows[0].principal_kind).toBe('trader');
+    const sellRef = rows[0].reference_number;
+
+    await openScreen(page, 'new-listing');
+    await page.check('input[name="type"][value="buy"]');
+    await page.check('#role-principal');
+    await expect(page.locator('#kind-row'), 'Buy requests must not ask Producer or Trader').toBeHidden();
+    await page.check('input[name="type"][value="sell"]');
+    await expect(page.locator('#kind-row')).toBeVisible();
+    await page.check('input[name="type"][value="buy"]');
+    await pickCommodity(page, OFFER.commodity);
+    await page.fill('#quantity', OFFER.quantity);
+    await page.selectOption('#unit', OFFER.unit);
+    await page.selectOption('#incoterm', OFFER.incoterm);
+    await page.selectOption('#location', OFFER.origin);
+    await page.selectOption('#docs_seen', 'yes');
+    await page.selectOption('#docs_showable', 'on_request');
+    await page.check('#truth-confirm');
+    await submitListing(page);
+    await expect.poll(() => postedBy(poster), { timeout: 20_000 }).toBe(before + 2);
+    const { rows: buy } = await query(
+      `select reference_number, principal_kind from public.listings
+        where user_id = (select id from public.profiles where email = $1)
+        order by created_at desc limit 1`, [poster.email]);
+    expect(buy[0].principal_kind, 'a Buy request carries no Producer or Trader').toBeNull();
+    await signOut(page);
+
+    await signIn(page, reader, 'app.html');
+    await openScreen(page, 'browse');
+    await expect(page.locator('.list-row', { hasText: sellRef }).locator('[data-statements]'))
+      .toHaveText('Poster: Principal (Trader) · Documents: Seen by the poster', { timeout: 15_000 });
+    await expect(page.locator('.list-row', { hasText: buy[0].reference_number }).locator('[data-statements]'))
+      .toHaveText('Poster: Principal · Documents: Seen by the poster', { timeout: 15_000 });
+  });
 });
