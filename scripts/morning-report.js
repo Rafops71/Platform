@@ -38,7 +38,10 @@
 
 const REPO = process.env.GITHUB_REPOSITORY || 'Rafops71/Platform';
 const TOKEN = process.env.GITHUB_TOKEN || '';
-const SITE = process.env.SITE_URL || 'https://rafops71.github.io/Platform/';
+// The platform's own address (since 2026-10-29): app.myplatform.trade, on
+// Cloudflare Pages. GitHub Pages still serves a copy, but it is no longer what
+// members use, so it is not what this report watches. SITE_URL overrides it.
+const SITE = (process.env.SITE_URL || 'https://app.myplatform.trade/').replace(/\/?$/, '/');
 // No @mention by default (owner, 2026-10-27): the report is read each morning
 // by a scheduled Claude session, which sends him a plain brief only when
 // something is wrong. A mention would email him the raw report as well.
@@ -81,6 +84,35 @@ async function gh(pathname, { raw = false, method = 'GET', body } = {}) {
 const short = (sha) => (sha || '').slice(0, 7);
 const firstLine = (s) => String(s || '').split('\n')[0];
 const hhmm = (iso) => (iso || '').slice(11, 16);
+
+/** Is the platform up, and is it the commit main is at?
+ *
+ *  Three different failures used to look alike: a network error, an error page
+ *  (a 404 or Cloudflare's 522 is HTML, not a revision) and a site that answers
+ *  without a revision. The error page was reported as "still on the old branch
+ *  publishing, Settings > Pages" - a GitHub Pages sentence that is wrong now.
+ *  Each is named for what it is, and none waits for ever (20 s). */
+async function checkLiveSite(site, head, doFetch = fetch) {
+  let res;
+  try {
+    res = await doFetch(site + 'REVISION', { cache: 'no-store', signal: AbortSignal.timeout(20_000) });
+  } catch (e) {
+    return { live: `could not be reached (${e.message})`, problem: `The platform at ${site} could not be reached (${e.message}).` };
+  }
+  const rev = (await res.text()).trim();
+  if (!res.ok) {
+    return { live: `answered HTTP ${res.status}`, problem: `The platform at ${site} answered HTTP ${res.status}, so it is not being served.` };
+  }
+  if (!/^[0-9a-f]{40}$/.test(rev)) {
+    return { live: 'answered, but not with a revision', problem: `${site}REVISION is not a commit: the site is not being published by the gate.` };
+  }
+  return {
+    live: rev === head
+      ? `serving the latest main, \`${short(rev)}\``
+      : `serving \`${short(rev)}\`; main is at \`${short(head)}\` - the newer commit has not passed every check, or has not been published yet`,
+    problem: null,
+  };
+}
 
 async function main() {
   const since = new Date(Date.now() - HOURS * 3600e3).toISOString();
@@ -145,21 +177,8 @@ async function main() {
   }
 
   // ------------------------------------------------------- the live site --
-  let live = 'unknown';
-  try {
-    const rev = (await (await fetch(SITE + 'REVISION', { cache: 'no-store' })).text()).trim();
-    if (/^[0-9a-f]{40}$/.test(rev)) {
-      live = rev === head
-        ? `serving the latest main, \`${short(rev)}\``
-        : `serving \`${short(rev)}\`; main is at \`${short(head)}\` - the newer commit has not passed every check, or has not been published yet`;
-    } else {
-      live = 'not publishing a revision - the site is still on the old branch publishing, outside the gate';
-      problems.push('The live site is not yet published by the gate (Settings > Pages > Source is not "GitHub Actions").');
-    }
-  } catch (e) {
-    live = `could not be reached (${e.message})`;
-    problems.push('The live site could not be reached.');
-  }
+  const { live, problem } = await checkLiveSite(SITE, head);
+  if (problem) problems.push(problem);
 
   // ------------------------------------------------------ pull requests --
   const prs = await gh(`/repos/${REPO}/pulls?state=open&per_page=20`);

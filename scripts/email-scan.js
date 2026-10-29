@@ -19,7 +19,8 @@
 const { TAG, buildWorld, account, cleanup, http, asUser, must, guardNotLive } = require('./security-grid');
 
 const KEYS = ['invitation', 'registration_submitted', 'registration_approved', 'registration_rejected', 'new_listing'];
-const SITE = 'https://rafops71.github.io/Platform/';
+// The address the invitation link points at: the platform's own (2026-10-29).
+const SITE = 'https://app.myplatform.trade/';
 const ALLOWED_URL = /^https:\/\/(rafops71\.github\.io\/Platform\/|([a-z0-9-]+\.)*myplatform\.trade(\/|$))/;
 const slots = (s) => [...new Set(s.match(/\{\{\w+\}\}/g) || [])].sort();
 const escape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
