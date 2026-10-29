@@ -3,7 +3,7 @@
 // opens. The text is the help.qN / help.aN keys in i18n.js, so it follows the
 // language switch like everything else.
 
-const HELP_QUESTIONS = 14;
+const HELP_QUESTIONS = 17;
 
 function renderHelp(container) {
   if (!container) return;

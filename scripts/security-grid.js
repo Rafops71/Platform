@@ -128,7 +128,7 @@ async function account(label, { role = 'participant', status = 'approved', invit
   // Left as registered when 'pending' (the default), so that no decision -
   // and no decision email - is made for it here.
   const [profile] = await must(`set ${label}`, http(`/rest/v1/profiles?user_id=eq.${user.id}`, {
-    method: 'PATCH', prefer: 'return=representation', body: status === 'pending' ? { role } : { role, status },
+    method: 'PATCH', prefer: 'return=representation', body: { ...(status === 'pending' ? { role } : { role, status }), welcome_seen_at: new Date().toISOString() },
   }));
   const session = await must(`sign in ${label}`, http('/auth/v1/token?grant_type=password', {
     method: 'POST', key: ANON, body: { email, password },

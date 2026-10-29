@@ -132,6 +132,9 @@ the same commit.
 ## How to work with the owner (his words, 2026-10-25)
 
 - **His rule, 2026-10-29 (his exact words).** Never decide on the owner’s behalf. Any wording, translation, label, name, design choice, or anything members will see or sign is the owner’s choice. Present options with a recommendation, then wait for his answer. If a message from him contains a blank or placeholder, ask; never fill it in. If unsure whether something is his choice, it is.
+- **Batching (his rule, 2026-10-29).** Batching: collect the owner’s decisions and changes, and do not push or open a pull request until he writes the trigger words BATCH GO. Exception: an urgent fix (for example the site is down or members are blocked) may be pushed straight away; say plainly that it is urgent and why.
+- **The Operator (his rule, 2026-10-29).** Never name an Operator or say how many there are; always “the Operator”. This holds everywhere: films, repository, HANDOFF, commit messages, notes.
+- **The Operator console and the Operator film stay in English (his final decision, 2026-10-29).** Only the member films are made in English and Spanish.
 - **One block at a time.** He reads on a 13-inch screen and cannot hold a long
   list. Give one block; wait for his answer; then the next. Format each block
   as **asked → you answered → my feedback**. Give no feedback until every

@@ -21,6 +21,8 @@
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font-body); font-size: 17px; line-height: 1.5; }
 main { max-width: 960px; margin: 0 auto; padding: 96px 16px 64px; text-align: center; }
+/* The platform's name, large, above the headline. The same in both languages, so it is not in the text lists below. */
+.title { font-family: var(--font-head); font-weight: 700; color: var(--blue-dark); font-size: clamp(48px, 11vw, 96px); line-height: 1.05; margin: 0 0 20px; letter-spacing: -0.5px; }
 h1 { font-family: var(--font-head); font-weight: 600; color: var(--blue-dark); font-size: clamp(30px, 6vw, 52px); line-height: 1.15; margin: 0; }
 .sub { color: var(--text-muted); font-size: 20px; margin: 12px 0 0; }
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin: 48px 0 40px; text-align: left; }
@@ -40,6 +42,7 @@ h1 { font-family: var(--font-head); font-weight: 600; color: var(--blue-dark); f
 <body>
 <div id="lang-toggle" class="lang-toggle" role="group" aria-label="Language"></div>
 <main>
+  <p class="title">MyPlatform</p>
   <h1 data-i18n="headline">Where opportunity meets discretion.</h1>
   <p class="sub" data-i18n="sub">By invitation only.</p>
 

@@ -9,8 +9,8 @@
 --   1. Register normally through the deployed app (register.html) using the
 --      Operator's real email. This creates a 'pending' participant profile.
 --   2. Run the statement below in the Supabase SQL Editor.
---   3. Repeat for each additional Operator (Rodrigo), or — once one Operator
---      exists — use the Users page in the app, which can promote directly.
+--   3. For anyone else who needs the console, use the Users page in the app
+--      once the first Operator exists: it can promote directly.
 --
 -- KNOWN ISSUE, NOW FIXED (needs 002_updates.sql applied):
 -- Before 002_updates.sql, this UPDATE appeared to succeed but silently

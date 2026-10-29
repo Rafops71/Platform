@@ -53,6 +53,21 @@
   </div>
 </div>
 
+<!-- Shown once, at a member's first sign-in (sql/044 records that it was seen).
+     Same hiding as the Terms gate: the dashboard stays hidden behind it. -->
+<div id="welcome-gate" class="container hidden">
+  <div class="card">
+    <h2 data-i18n="welcome.title">Welcome to MyPlatform</h2>
+    <p><strong data-i18n="welcome.do.h">What we do:</strong> <span data-i18n="welcome.do.p">MyPlatform is a private, invitation-only place where buyers and sellers of physical commodities meet confidentially.</span></p>
+    <p><strong data-i18n="welcome.role.h">Our role:</strong> <span data-i18n="welcome.role.p">we are facilitators. All communication passes through the Operator, and introductions happen only once price, procedure and document order are agreed.</span></p>
+    <p><strong data-i18n="welcome.yours.h">Your role:</strong> <span data-i18n="welcome.yours.p">offers reflect what members state and declare. Confirming the details, documents and counterparty remains with the parties themselves.</span></p>
+    <p><strong data-i18n="welcome.trust.h">Trust:</strong> <span data-i18n="welcome.trust.p">membership is built on honesty and mutual trust. Each member stands behind their own posts and statements.</span></p>
+    <p><strong data-i18n="welcome.conseq.h">Consequences:</strong> <span data-i18n="welcome.conseq.p">misleading offers or conduct can lead to suspension or cancellation of membership.</span></p>
+    <p><strong data-i18n="welcome.account.h">Your account:</strong> <span data-i18n="welcome.account.p">your account is personal and for your sole use.</span></p>
+    <button type="button" id="welcome-continue" data-i18n="welcome.button">I understand – continue</button>
+  </div>
+</div>
+
 <main class="container" data-gate-hides>
 
   <!-- MY LISTINGS -->

@@ -48,4 +48,16 @@ test.describe('the language travels in the link', () => {
     await expect(page.locator('#signin')).toHaveAttribute('href', 'https://app.myplatform.trade/?lang=es');
     await expect(page.locator('#signin')).toHaveText('Acceso de miembros');
   });
+
+  test('the front page shows the name MyPlatform above the headline, the same in both languages', async ({ page }) => {
+    await page.goto(FRONT_PAGE);
+    const title = page.locator('.title');
+    await expect(title).toHaveText('MyPlatform');
+    const above = async () => (await title.boundingBox()).y < (await page.locator('h1').boundingBox()).y;
+    expect(await above(), 'the name is not above the headline').toBe(true);
+    await page.getByRole('button', { name: 'ES' }).click();
+    await expect(page.locator('h1')).toHaveText('Donde la oportunidad se encuentra con la discreción.');
+    await expect(title).toHaveText('MyPlatform');
+    expect(await above()).toBe(true);
+  });
 });

@@ -848,6 +848,39 @@ Decisions behind each are in `docs/AGREED-2026-10-25.md`.
 
 ## Still open
 
+-7. **Owner's batch, 2026-10-29 (BATCH GO) - what it holds and what is queued.**
+    Built in this batch: the Principal label and Producer/Trader (sql/043,
+    live); the welcome page, shown once at a first sign-in (sql/044 adds
+    profiles.welcome_seen_at; Item 77; the fixtures create members as "already
+    seen it"); Help questions 15-17; the large "MyPlatform" title on the front
+    page (www/); the second opinion now gets a map of every changed file in
+    every part and a rule not to call something missing that may sit in
+    another part (scripts/review-pr.js); an empty "N entries." line is as
+    tall as a filled one in the picture check (tests/visual/steady.css), which
+    was the Operator Activity-tab wobble; the films (video/script.json): the
+    Overview film is dropped, the member film is updated in English and
+    Spanish, the Operator film is English only and gained scenes for the six
+    tabs it skipped. No film is recorded yet: recording waits until the front
+    page, FAQ and welcome page are live. Gemini voice "algieba"; the key and
+    the music never go in the repository.
+    QUEUED, not built:
+      * ONE future Terms version (do not draft yet): rename Jericho Platform
+        to MyPlatform; a clear line that members post honestly; the tabled
+        "no account sharing" sentence; replace "Operators" with "the
+        Operator" in the Terms and the app texts, defined once in the Terms
+        as: "the Operator" means the person or persons who run MyPlatform.
+      * The hygiene job that threw out a waiting checklist run (they share
+        one live-database queue that keeps one waiting run; a newer one
+        cancels the older). Options to be put to the owner.
+      * The Help catch-all "Something else is not clear." is the last question
+        (owner's decision, 2026-10-29): MyPlatform's role, who answers for an
+        offer and account sharing are questions 14-16.
+      * The second opinion reads at most six parts; a big change can have
+        files it never reads (it named video/script.json and www/index.html as
+        unread on the welcome-page batch). Decide how to read the rest.
+      * Existing members have not seen the welcome page; they will see it once.
+    Rule added to CLAUDE.md: never name an Operator or say how many there are.
+
 -6. ~~**Protect main on GitHub.**~~ DONE 2026-10-27 by the owner: ruleset
     "Protect main", active on the default branch, empty bypass list - no
     deletion, no force push, pull request required (0 approvals). Read back

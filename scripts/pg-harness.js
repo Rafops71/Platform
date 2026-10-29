@@ -77,6 +77,7 @@ const SETUP = [
   'sql/041_email_unit_as_typed.sql',
   'sql/042_terms_3_4.sql',
   'sql/043_principal_kind.sql',
+  'sql/044_welcome_seen.sql',
   'sql/seed_commodities.sql',
 ];
 

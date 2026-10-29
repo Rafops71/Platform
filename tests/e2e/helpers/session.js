@@ -87,6 +87,17 @@ async function signIn(page, account, expectedPath = 'app.html') {
   // #user-name is filled in the same synchronous block as wireTabs(), so a
   // non-empty name means the handlers are attached. Do not remove this without
   // reading js/app.js and js/operator.js first.
+  //
+  // A member signing in for the first time meets the welcome page (sql/044)
+  // before any of that wiring happens. Pressing its button is part of that
+  // first sign-in, so it is done here; the test that is ABOUT the welcome page
+  // signs in by hand instead (tests/e2e/welcome.spec.js).
+  await page.waitForFunction(() => {
+    const name = document.getElementById('user-name');
+    const gate = document.getElementById('welcome-gate');
+    return (name && name.textContent.trim()) || (gate && !gate.classList.contains('hidden'));
+  }, null, { timeout: NAV_TIMEOUT });
+  if (await page.locator('#welcome-gate:not(.hidden)').count()) await page.click('#welcome-continue');
   await expect(page.locator('#user-name')).not.toBeEmpty({ timeout: NAV_TIMEOUT });
 }
 

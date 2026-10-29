@@ -16,6 +16,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (!CURRENT_PROFILE) return; // requireAuth already redirected
   // A member who has not signed the newest Terms signs before anything else.
   if (!(await checkTermsGate())) return;
+  // Shown once, at a first sign-in (sql/044). Resolves when the member has
+  // pressed "I understand - continue"; the dashboard stays hidden until then.
+  await showWelcomeOnce();
 
   document.getElementById('user-name').textContent = personName(CURRENT_PROFILE);
   document.getElementById('logout-link').addEventListener('click', (e) => { e.preventDefault(); logout(); });
@@ -45,6 +48,34 @@ document.addEventListener('DOMContentLoaded', async () => {
   await refreshNotificationDot();
   await refreshDocRequestDot();
 });
+
+/** The welcome page, once. A member who has never pressed continue sees it
+ *  before anything else; pressing it records the time on their own profile row
+ *  (sql/044), so it is never shown again. If the page cannot be shown or the
+ *  record cannot be written, the member carries on: a welcome is not a gate. */
+async function showWelcomeOnce() {
+  if (CURRENT_PROFILE.welcome_seen_at) return;
+  const gate = document.getElementById('welcome-gate');
+  if (!gate) return;
+  const hidden = document.querySelectorAll('[data-gate-hides]');
+  hidden.forEach(el => el.classList.add('hidden'));
+  adoptProfileLanguage();
+  applyTranslations();
+  renderLanguageToggle('lang-toggle');
+  gate.classList.remove('hidden');
+  await new Promise(release => {
+    document.getElementById('welcome-continue').addEventListener('click', async () => {
+      await withButtonBusy('welcome-continue', t('common.saving'), async () => {
+        const { error } = await jericho.from('profiles')
+          .update({ welcome_seen_at: new Date().toISOString() }).eq('id', CURRENT_PROFILE.id);
+        if (error) console.error('welcome_seen_at not saved (the page will show again):', error);
+      });
+      release();
+    }, { once: true });
+  });
+  gate.classList.add('hidden');
+  hidden.forEach(el => el.classList.remove('hidden'));
+}
 
 /** Reconcile the account's stored language with this browser's.
  *
