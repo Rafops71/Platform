@@ -23,7 +23,7 @@
 
 const { test, expect } = require('@playwright/test');
 const { createAccount, cleanup, assertConfigured } = require('./helpers/fixtures');
-const { signIn, signOut, openScreen, submitListing, pickCommodity } = require('./helpers/session');
+const { signIn, signOut, openScreen, submitListing, pickCommodity, pagePattern } = require('./helpers/session');
 const { query } = require('../../scripts/db');
 
 // Distinctive enough that a "not visible" assertion failing means a real leak
@@ -62,7 +62,7 @@ test.describe.serial('the functions no browser test covered', () => {
     // token survived in localStorage, asking for the dashboard again would land
     // on it instead of being bounced back to the sign-in page.
     await page.goto('/app.html');
-    await page.waitForURL('**/index.html', { timeout: 20_000 });
+    await page.waitForURL(pagePattern('index.html'), { timeout: 20_000 });
     await expect(page.locator('#email')).toBeVisible();
   });
 
