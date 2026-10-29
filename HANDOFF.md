@@ -848,6 +848,17 @@ Decisions behind each are in `docs/AGREED-2026-10-25.md`.
 
 ## Still open
 
+-7. **Welcome screen + first-post reminder - REMIND THE OWNER after the move
+    from GitHub to his own website (his ask, 2026-10-29).** Idea agreed in
+    the paperwork discussion, option C: a short "how this works" screen shown
+    once after sign-in (nobody checks documents, offers show only what the
+    poster says he has seen, check the papers yourself, a false statement can
+    end membership), with a tick "I understand", and a shorter version the
+    first time a member posts an offer. It may share the moment with the
+    Terms re-accept gate (docs/AGREED-2026-10-25.md items 13-15). Not built;
+    no welcome screen exists in app.html, js/app.js or js/i18n.js (searched
+    2026-10-29). Wording not yet written. Needs a checklist item before build.
+
 -6. ~~**Protect main on GitHub.**~~ DONE 2026-10-27 by the owner: ruleset
     "Protect main", active on the default branch, empty bypass list - no
     deletion, no force push, pull request required (0 approvals). Read back
