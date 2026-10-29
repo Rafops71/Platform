@@ -25,6 +25,19 @@ const I18N_STORAGE_KEY = 'jericho.language';
 const I18N_DEFAULT = 'en';
 const I18N_LANGUAGES = ['en', 'es'];
 
+// A link may carry the language the visitor already chose elsewhere - the
+// front page at www.myplatform.trade links to the app as /?lang=es. Adopted
+// into storage once, so it survives the app's own redirects, which drop the
+// query string. Anything that is not a supported language is ignored, and a
+// storage failure is not fatal (private windows can throw on access).
+function adoptLanguageFromLink() {
+  try {
+    const wanted = new URLSearchParams(window.location.search).get('lang');
+    if (wanted && I18N_LANGUAGES.includes(wanted)) localStorage.setItem(I18N_STORAGE_KEY, wanted);
+  } catch { /* no storage, or no window: keep whatever is stored */ }
+}
+adoptLanguageFromLink();
+
 const STRINGS = {
   en: {
     'lang.name.en': 'English',
