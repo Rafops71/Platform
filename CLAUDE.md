@@ -150,6 +150,16 @@ the same commit.
   explained. Start progress replies with a status line: "⏱ Now: … · time
   left · need you: yes/no". Say how long each step takes, so he knows how
   long to stay at the PC.
+- **Standing permission to merge (his words, 2026-10-29: "full allowance
+  to do mergers ... I trust you implicitly").** Claude may merge its own
+  pull requests into main without asking, once EVERY check on the exact head
+  commit is green. Never merge a red, pending or conflicted one, never use
+  an admin bypass, and still say afterwards what was merged and what the
+  checks showed. Does not extend to deleting or changing members' data.
+- **After every pull request, read its second-opinion review and tell him
+  which points Claude acted on (his ask, 2026-10-29)** - and which it did not,
+  with the reason. The review is in the run summary / job log of the
+  "Second opinion" check. Check each claim against the code first.
 - **Phone notifications: none until he says the platform is launched**
   (his words, 2026-10-27). Not for merges, test runs or setup steps. After
   launch, only the morning check (07:47 Brussels, a scheduled task) may

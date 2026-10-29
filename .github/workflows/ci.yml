@@ -315,3 +315,49 @@ jobs:
         run: |
           echo "Published revision ${{ github.sha }} to ${{ steps.deployment.outputs.page_url }}"
           echo "Check it from anywhere: ${{ steps.deployment.outputs.page_url }}REVISION"
+
+  # --------------------------------------------------------------------------
+  # PUBLISH TO CLOUDFLARE PAGES - the same gate, a second destination.
+  #
+  # Migration plan: HANDOFF.md, "Migration to Cloudflare Pages". GitHub Pages
+  # above stays the live site until the checklist has passed on the new
+  # address, so this job ADDS a copy; it replaces nothing.
+  #
+  # Same `needs` and same main-only `if:` as `deploy`, and the same rule: no
+  # always() or other status function here, ever. It is NOT a second way round
+  # the gate, because it cannot start until every check has passed.
+  #
+  # A missing secret FAILS this job; it never skips and goes green (the lesson
+  # of send-emails.yml, and a second-opinion finding on PR 42). The failure
+  # touches only this job: `deploy` above publishes to GitHub Pages on its own.
+  # --------------------------------------------------------------------------
+  deploy-cloudflare:
+    name: Publish to Cloudflare Pages
+    needs: [database, checklist, stress, safari, package]
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    concurrency:
+      group: cloudflare-deploy
+      cancel-in-progress: false
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Are the secrets configured?
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::Cloudflare publish cannot run: CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID must both be set."
+            exit 1
+          fi
+      - name: Assemble exactly what the site serves
+        run: ./scripts/assemble-site.sh dist
+      - name: Publish
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=platform --branch=main --commit-hash=${{ github.sha }}
