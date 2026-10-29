@@ -872,9 +872,12 @@ Decisions behind each are in `docs/AGREED-2026-10-25.md`.
       * The hygiene job that threw out a waiting checklist run (they share
         one live-database queue that keeps one waiting run; a newer one
         cancels the older). Options to be put to the owner.
-      * The Help list now ends 14 "Something else is not clear.", then 15-17
-        (numbered as the owner wrote them): ask whether the catch-all should
-        move to the end.
+      * The Help catch-all "Something else is not clear." is the last question
+        (owner's decision, 2026-10-29): MyPlatform's role, who answers for an
+        offer and account sharing are questions 14-16.
+      * The second opinion reads at most six parts; a big change can have
+        files it never reads (it named video/script.json and www/index.html as
+        unread on the welcome-page batch). Decide how to read the rest.
       * Existing members have not seen the welcome page; they will see it once.
     Rule added to CLAUDE.md: never name an Operator or say how many there are.
 

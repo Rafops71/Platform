@@ -137,7 +137,8 @@ async function main() {
   let changeMap = git(['diff', '--numstat', base, 'HEAD', '--', '.', ...SKIP]).trim().split('\n')
     .map((l) => l.split('\t')).filter((c) => c.length === 3)
     .map(([add, del, file]) => `${file} (+${add} -${del})`).join('\n');
-  if (changeMap.length > MAX_MAP_CHARS) changeMap = `${changeMap.slice(0, MAX_MAP_CHARS)}\n... (more files)`;
+  // Cut at a whole line, never mid-entry.
+  if (changeMap.length > MAX_MAP_CHARS) changeMap = `${changeMap.slice(0, changeMap.lastIndexOf('\n', MAX_MAP_CHARS))}\n... (more files)`;
 
   // Whole files together, up to MAX_DIFF_CHARS a part; a file larger than
   // that is cut at its own hunks.

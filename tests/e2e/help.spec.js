@@ -18,15 +18,18 @@ test('Item76 Help answers the common questions in English and Spanish, before si
   await items.first().locator('summary').click();
   await expect(items.first().locator('p')).toContainText('Nobody contacts anybody directly');
 
-  // The last three: MyPlatform's role, who answers for an offer, account sharing.
-  await expect(items.nth(14).locator('summary')).toHaveText('What is MyPlatform’s role?');
-  await expect(items.nth(15).locator('summary')).toHaveText('Who is responsible for what an offer says?');
-  await expect(items.nth(16).locator('summary')).toHaveText('Can someone else use my account?');
+  // MyPlatform's role, who answers for an offer, account sharing - and the
+  // catch-all stays the last question.
+  await expect(items.nth(13).locator('summary')).toHaveText('What is MyPlatform’s role?');
+  await expect(items.nth(14).locator('summary')).toHaveText('Who is responsible for what an offer says?');
+  await expect(items.nth(15).locator('summary')).toHaveText('Can someone else use my account?');
+  await expect(items.nth(16).locator('summary')).toHaveText('Something else is not clear.');
 
   await page.locator('.lang-btn', { hasText: 'ES' }).click();
   await expect(items).toHaveCount(17);
-  await expect(items.nth(14).locator('summary')).toHaveText('¿Cuál es el papel de MyPlatform?');
-  await expect(items.nth(16).locator('summary')).toHaveText('¿Puede otra persona usar mi cuenta?');
+  await expect(items.nth(13).locator('summary')).toHaveText('¿Cuál es el papel de MyPlatform?');
+  await expect(items.nth(15).locator('summary')).toHaveText('¿Puede otra persona usar mi cuenta?');
+  await expect(items.nth(16).locator('summary')).toHaveText('Hay algo más que no está claro.');
   await expect(items.first().locator('summary')).toHaveText('¿Cómo funciona MyPlatform?');
   for (let i = 0; i < 17; i += 1) {
     await expect(items.nth(i).locator('summary')).not.toHaveText(/^help\./);
