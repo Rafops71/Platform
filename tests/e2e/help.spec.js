@@ -9,7 +9,7 @@ const { pagePattern } = require('./helpers/session');
 test('Item76 Help answers the common questions in English and Spanish, before signing in', async ({ page }) => {
   await page.goto('/index.html');
   await page.click('a[href="help.html"]');
-  await expect(page).toHaveURL(pagePattern('help.html'));
+  await expect(page).toHaveURL(pagePattern('help.html', { after: 'any' }));
 
   const items = page.locator('#help-list details.help-item');
   await expect(items).toHaveCount(14);

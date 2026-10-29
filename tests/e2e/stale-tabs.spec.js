@@ -137,7 +137,7 @@ test.describe('a second tab that has fallen behind', () => {
       await expect
         .poll(async () => {
           const url = page.url();
-          if (pagePattern('index.html').test(url)) return 'sent to sign in';
+          if (pagePattern('index.html', { after: 'any' }).test(url)) return 'sent to sign in';
           const body = (await page.locator('body').innerText()).toLowerCase();
           if (/signed out|sign in again|acced|sesión/.test(body)) return 'told plainly';
           return 'still looks signed in';

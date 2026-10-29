@@ -20,23 +20,46 @@ const { expect } = require('@playwright/test');
 const NAV_TIMEOUT = 20_000;
 
 /**
- * The address of a page, with or without its ".html".
+ * The site's own root path, from the same address the suite is pointed at
+ * (playwright.config.js: E2E_BASE_URL, else http://localhost:8000). '/' on
+ * localhost and on Cloudflare, '/Platform/' on GitHub Pages' project site.
+ */
+const SITE_ROOT = (() => {
+  const p = new URL(process.env.E2E_BASE_URL || 'http://localhost:8000').pathname;
+  return p.endsWith('/') ? p : p + '/';
+})();
+
+/**
+ * The address of one of the site's own pages, with or without its ".html".
  *
  * GitHub Pages serves app.html at /app.html. Cloudflare Pages answers that
  * with a 308 to /app, and index.html to /. A test that waits for the literal
- * ".html" therefore times out on Cloudflare although the member is on the
- * right page. This matches the page either way and nothing else: 'app.html'
- * never matches /operator, and 'index.html' matches the site root, /index.html
- * and either with a query ('?pending=1').
+ * ".html" times out there although the member is on the right page. This
+ * matches the page either way - and is exactly as strict as the check it
+ * replaced, or stricter:
  *
- * @param {string} file   e.g. 'app.html'
- * @param {string} [suffix] e.g. '?pending=1' - must end the address
+ *   pagePattern('app.html')                      exact: nothing after the page
+ *                                                (was the glob `**` + `/app.html`)
+ *   pagePattern('index.html', { query: '?x=1' }) exact, including that query
+ *   pagePattern('index.html', { after: 'any' })  a ?query or #fragment may follow
+ *                                                (was `**` + `/index.html` + `**`,
+ *                                                or a substring test)
+ *
+ * The page must sit directly under the site's own root (SITE_ROOT): 'app.html'
+ * never matches /operator or /x/app, and 'index.html' matches only the root
+ * itself or root + index(.html) - never /operator/ or any other folder.
+ *
+ * @param {string} file e.g. 'app.html'
+ * @param {{query?: string, after?: 'any'}} [opts]
  */
-function pagePattern(file, suffix = '') {
+function pagePattern(file, opts = {}) {
+  const esc = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const base = file.replace(/\.html$/, '');
   const stem = base === 'index' ? '(?:index(?:\\.html)?)?' : `${base}(?:\\.html)?`;
-  const tail = suffix ? suffix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$' : '(?:[?#]|$)';
-  return new RegExp('/' + stem + tail);
+  let tail = '$';
+  if (opts.query) tail = esc(opts.query) + '$';
+  else if (opts.after === 'any') tail = '(?:[?#].*)?$';
+  return new RegExp('^[a-z][a-z0-9+.-]*://[^/]+' + esc(SITE_ROOT) + stem + tail);
 }
 const SCREEN_TIMEOUT = 15_000;
 

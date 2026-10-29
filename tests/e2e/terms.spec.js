@@ -301,7 +301,7 @@ test.describe.serial('Terms & Conditions', () => {
     // never navigates and no account comes into existence. Both are asserted:
     // staying put could be any kind of failure, but no profile is the point.
     await expect(page.locator('#accept-terms')).toBeVisible();
-    expect(page.url()).toMatch(pagePattern('register.html'));
+    expect(page.url()).toMatch(pagePattern('register.html', { after: 'any' }));
     await expect(page.locator('#accept-terms')).toHaveJSProperty('validity.valid', false);
 
     const { rows } = await query('select count(*)::int n from public.profiles where email = $1', [invite.email]);
@@ -322,7 +322,7 @@ test.describe.serial('Terms & Conditions', () => {
     await page.check('#accept-terms');
 
     await page.click('#register-btn');
-    await page.waitForURL(pagePattern('index.html'), { timeout: 20_000 });
+    await page.waitForURL(pagePattern('index.html', { after: 'any' }), { timeout: 20_000 });
 
     const { rows } = await query(
       `select a.version, a.language, a.accepted_at is not null as stamped
@@ -356,7 +356,7 @@ test.describe.serial('Terms & Conditions', () => {
     await page.check('#accept-terms');
 
     await page.click('#register-btn');
-    await page.waitForURL(pagePattern('index.html'), { timeout: 20_000 });
+    await page.waitForURL(pagePattern('index.html', { after: 'any' }), { timeout: 20_000 });
 
     const { rows } = await query(
       `select a.version, a.language
@@ -394,7 +394,7 @@ test.describe.serial('Terms & Conditions', () => {
     await page.click('#register-btn');
 
     await expect(page.getByText('A PO box cannot be used.', { exact: false })).toBeVisible();
-    expect(page.url()).toMatch(pagePattern('register.html'));
+    expect(page.url()).toMatch(pagePattern('register.html', { after: 'any' }));
     const { rows } = await query('select count(*)::int n from public.profiles where email = $1', [invite.email]);
     expect(rows[0].n, 'an account was created with a PO box as its address').toBe(0);
   });

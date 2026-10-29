@@ -84,3 +84,22 @@ nothing touching that screen). Find exactly which rows change between runs,
 show them, and cover them in tests/visual steady.css like the other moving
 parts. Do not retake the reference picture. The failed run's pictures were
 kept as the "pictures" artifact of run 40857388841 until about 2026-11-05.
+
+## Proof 3, second attempt, 2026-10-29 (14:01 Brussels)
+
+Checklist on https://platform-84i.pages.dev (manual run 40873698934, commit
+5fea738, i.e. with the first address pattern from #47): **76 of 76 functions
+proven**. Item 54: 6 passing (ui), so its password checks ran, not only the
+page. Item 01: 1 passing (ui), which also exercises the invitation-link fix.
+
+The owner then asked (before the domain switch) for the address pattern to be
+no looser than the checks it replaced: exact by default; anything after the page
+only where the old check allowed it; `index.html` must match only the site's own
+root or index, never `/operator/`. Done in the following pull request, which
+lists every changed check old against new. The domain switch waits for a
+re-run of the checklist on Cloudflare with the tightened pattern.
+
+Also recorded: the second opinion's parts are reviewed blind to each other
+(#47: the part that held helpers/session.js was reviewed separately from the
+specs that import it, hence "not exported" claims). Fix to be shown after the
+migration.
