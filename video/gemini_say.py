@@ -12,7 +12,7 @@ secret; on a machine it is exported for the one command.
 The free tier is slow and sometimes hangs (one request took 35 minutes on
 2026-10-28), so each try has a time limit and a failed try is repeated.
 """
-import base64, json, os, sys, time, urllib.request
+import base64, json, os, sys, time, urllib.error, urllib.request
 
 model, voice, style, out = sys.argv[1:5]
 text = sys.stdin.read().strip()
@@ -58,7 +58,15 @@ for attempt in range(1, 5):
             open(out, "wb").write(base64.b64decode(audio["data"]))
             sys.exit(0)
         last = "the reply held no audio: " + json.dumps(reply)[:300]
-    except Exception as err:  # a timeout, a 429 or a 5xx: wait and try again
+    except urllib.error.HTTPError as err:
+        detail = err.read()[:400].decode(errors="ignore")
+        last = f"HTTP {err.code}: {detail}"
+        if err.code == 429 and "per day" in detail:
+            # A DAILY limit does not clear by waiting four times: say so at once.
+            sys.exit(f"Gemini's daily limit is used up ({detail[:300]})".replace(key, "<key>"))
+        if err.code == 429:  # a per-minute limit: wait it out
+            time.sleep(65)
+    except Exception as err:  # a timeout or a 5xx: wait and try again
         last = f"{type(err).__name__}: {str(err)[:200]}"
     print(f"  attempt {attempt} failed ({last.replace(key, '<key>')})", file=sys.stderr)
     time.sleep(5 * attempt)

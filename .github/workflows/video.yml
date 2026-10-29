@@ -107,7 +107,7 @@ jobs:
           python3 -m piper.download_voices ${{ inputs.voice || 'en_US-joe-medium es_ES-davefx-medium' }}
 
       - name: Speak every line, and measure it
-        run: node video/make-narration.js --film ${{ inputs.film }} --lang ${{ inputs.lang }}
+        run: node video/make-narration.js --film ${{ inputs.film }} --lang ${{ inputs.lang }} ${{ inputs.stills == 'true' && '--stills' || '' }}
         env:
           # The owner's Gemini key, a repository secret. It is read here and
           # nowhere else, and is in no file of the repository.
