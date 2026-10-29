@@ -289,7 +289,7 @@ test.describe.serial('forgetting a password', () => {
     // It signs out and returns to sign-in on purpose: a recovery link must not
     // double as a way in, and the person may not be on their own machine.
     await expect(page.locator('#notice')).toBeVisible({ timeout: 25_000 });
-    await expect(page).toHaveURL(pagePattern('index.html', '?reset=1'));
+    await expect(page).toHaveURL(pagePattern('index.html', { query: '?reset=1' }));
 
     // The only honest definition of success.
     expect(await canSignIn(member.email, NEW_PASSWORD),
@@ -310,7 +310,7 @@ test.describe.serial('forgetting a password', () => {
     await page.fill('#new-password', NEW_PASSWORD + 'A');
     await page.fill('#confirm-password', NEW_PASSWORD + 'A');
     await page.click('#reset-btn');
-    await expect(page).toHaveURL(pagePattern('index.html', '?reset=1'), { timeout: 25_000 });
+    await expect(page).toHaveURL(pagePattern('index.html', { query: '?reset=1' }), { timeout: 25_000 });
 
     // Same link again, in a clean context so no session is carried over.
     const second = await page.context().browser().newContext();
