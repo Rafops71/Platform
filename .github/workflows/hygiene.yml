@@ -26,18 +26,57 @@ on:
     - cron: '40 6 * * *'
   workflow_dispatch: {}
 
-concurrency:
-  # The same group as CI, so this can never run while the browser suite is
-  # mid-test. Its fixtures exist on purpose for those few minutes and would be
-  # reported as residue, which is how a useful check becomes one everybody
-  # learns to ignore.
-  group: ci-live-database
-  cancel-in-progress: false
+permissions:
+  contents: read
+  actions: read
+
+# WHY THIS WAITS BEFORE IT QUEUES (2026-10-30). GitHub keeps ONE waiting run per
+# concurrency group, and a newer waiting run throws the older one out. The
+# scheduled hygiene run joined the line behind a running checklist and threw
+# out a manual checklist run that was already waiting. So hygiene no longer
+# joins the line until the line is empty: the "wait" job polls (it holds no
+# place in the line, so it can displace nobody), and only then does the real
+# job take the slot. Still the same group as CI, for the same reason as before:
+# its fixtures exist on purpose for those few minutes and would be reported as
+# residue, which is how a useful check becomes one everybody learns to ignore.
+# If the database is busy for 45 minutes the run FAILS and says so, rather than
+# turning green without having looked.
 
 jobs:
+  wait:
+    name: Wait until nothing else is using the database
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - name: Poll until the live-database line is empty
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          # The workflows that share the group "ci-live-database".
+          users='workflows/(ci|checklist-on-address|apply-sql|video|hygiene)[.]yml$'
+          for i in $(seq 1 45); do
+            busy=0
+            for status in in_progress queued waiting; do
+              n=$(gh api "repos/$REPO/actions/runs?status=$status&per_page=100" \
+                  --jq "[.workflow_runs[] | select(.id != ($RUN_ID|tonumber)) | select(.path | test(\"$users\"))] | length")
+              busy=$((busy + n))
+            done
+            if [ "$busy" -eq 0 ]; then echo "The line is empty (try $i)."; exit 0; fi
+            echo "$busy run(s) are using or waiting for the live database (try $i of 45); waiting a minute."
+            sleep 60
+          done
+          echo "::error::The live database was in use for 45 minutes, so hygiene did not run."
+          exit 1
+
   hygiene:
     name: Is the live database clean
+    needs: wait
     runs-on: ubuntu-latest
+    concurrency:
+      group: ci-live-database
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

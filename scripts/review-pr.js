@@ -62,7 +62,10 @@ const {
 // that short. Raise either number only against a measured limit, not a hope.
 const MAX_DIFF_CHARS = 12_000;
 const MAX_ANSWER_TOKENS = 2_200;
-const MAX_PARTS = 6;
+// Raised from 6 on 2026-10-30: a large change had files it never read (PR 51 left
+// video/script.json and www/index.html unread). Parts are a minute apart, so 20
+// parts is about 20 minutes, which a pull request can wait.
+const MAX_PARTS = 20;
 // About 850 tokens of the 8,000: 12,000 characters of diff + this + a 2,200-token answer is ~6,500.
 const MAX_MAP_CHARS = 3_000;
 const PAUSE_MS = 62_000;
