@@ -499,6 +499,13 @@ async function main() {
     // ZOOM IN, if this scene has a subject. The viewer gets to see which
     // control is about to be pressed before anything happens to it.
     if (scene.zoom) {
+      // A control below the fold is brought into view FIRST. The zoom pans to
+      // it with a transform, which hides the problem while zoomed in - and on
+      // the zoom out the page is back at the top, with the control nowhere on
+      // the screen the voice is describing (the form's role, documents and
+      // truth-box scenes, 2026-10-30). Scrolled into view, it stays in the wide
+      // shot as well. A control already on screen is not moved.
+      await page.locator(fill(scene.zoom)).first().scrollIntoViewIfNeeded().catch(() => {});
       await page.evaluate(
         ([sel, scale]) => window.__jericho.zoomTo(sel, scale),
         [fill(scene.zoom), scene.zoomScale || null]).catch(() => {});
@@ -515,6 +522,14 @@ async function main() {
     }
 
     await perform(page, fill(scene.do), world);
+
+    // --stills: a scene that zooms is TWO pictures - the close one, as the
+    // viewer sees it while the control is acted on, and (below) the wide one
+    // at the end. A still of the end alone cannot show what the zoom showed.
+    if (STILLS && scene.zoom) {
+      fs.mkdirSync(STILLS_DIR, { recursive: true });
+      await page.screenshot({ path: path.join(STILLS_DIR, `${film}-${lang}-${scene.id}-close.png`) });
+    }
 
     // ZOOM OUT AFTER THE PRESS, so the shot shows what the press DID. This
     // is the whole point of zooming: close for the control, wide for the
@@ -553,7 +568,7 @@ async function main() {
     // can see every scene before anything is recorded for real.
     if (STILLS) {
       fs.mkdirSync(STILLS_DIR, { recursive: true });
-      await page.screenshot({ path: path.join(STILLS_DIR, `${film}-${lang}-${scene.id}.png`) });
+      await page.screenshot({ path: path.join(STILLS_DIR, `${film}-${lang}-${scene.id}${scene.zoom ? '-wide' : ''}.png`) });
       console.log(`  ${scene.id.padEnd(16)} still taken`);
       continue;
     }
