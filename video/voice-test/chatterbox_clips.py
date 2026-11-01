@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Chatterbox-Multilingual (Resemble AI, MIT weights): the same two test lines, on a CPU.
 
-API as printed in the project README (github.com/resemble-ai/chatterbox):
-ChatterboxMultilingualTTS.from_pretrained(device=..., t3_model="v3") and
+Installed from PyPI (chatterbox-tts 0.1.7, whose source was read): the signature is
+from_pretrained(device) (no t3_model argument; the README is newer than the package) and
 generate(text, language_id=...). The Spain-Spanish pack (ResembleAI/Chatterbox-
 Multilingual-es-es) shows no loading code on its model card, so the general
 model with language_id "es" is used and the summary says so.
@@ -20,7 +20,7 @@ try:
     out.append(f"torch {torch.__version__}, cuda available: {torch.cuda.is_available()}")
     from chatterbox.mtl_tts import ChatterboxMultilingualTTS
     t0 = time.time()
-    model = ChatterboxMultilingualTTS.from_pretrained(device="cpu", t3_model="v3")
+    model = ChatterboxMultilingualTTS.from_pretrained(device="cpu")
     out.append(f"model loaded in {time.time()-t0:.0f}s")
     for lang, text in lines:
         t0 = time.time()
