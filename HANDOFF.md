@@ -848,6 +848,30 @@ Decisions behind each are in `docs/AGREED-2026-10-25.md`.
 
 ## Still open
 
+-8. **Films, report of 1 Nov 2026 (owner's work order: only what was already approved).**
+    MERGED (#54): with `--stills` a scene that zooms gives two pictures (close
+    and wide) and its control is scrolled into view first (the role, documents
+    and truth-box scenes showed only the top of the form); the Spanish half of
+    the Help test checks all 17 questions; the second opinion reads up to 20
+    parts (was 6); the hygiene job waits for an empty live-database line
+    instead of throwing out a waiting run. The hygiene wait and the 20-part
+    reviewer have not yet been seen in a real run.
+    STILLS, all three runs succeeded (GitHub Actions, no voice used). Download
+    from the run page, artifact name in brackets, kept 14 days (the first
+    expires about 13 Nov):
+    Member film, English  https://github.com/Rafops71/Platform/actions/runs/40994751352  (jericho-member-en-stills)
+    Member film, Spanish  https://github.com/Rafops71/Platform/actions/runs/41265275754  (jericho-member-es-stills)
+    Operator film, English https://github.com/Rafops71/Platform/actions/runs/41267308958 (jericho-operator-en-stills)
+    NOT DONE, and why: the owner has not seen or approved the stills (one answer
+    per film); no film is recorded. The real recordings need about 69 spoken
+    lines and Gemini's free tier allows 10 requests a day per project (Google's
+    own message), so they wait for paid billing on that project or another voice
+    decision; the owner has not confirmed billing. The Spanish trailer is
+    rendered and subtitled but kept outside the repository, unsent, waiting for
+    a native-Spanish check. Tabled until the owner's Sunday notes: the Terms
+    version, and welcome-page or film wording about the Operator's broker role.
+    Note: the pull-request merge pin is the parameter `expectedHeadSha`.
+
 -7. **Owner's batch, 2026-10-29 (BATCH GO) - what it holds and what is queued.**
     Built in this batch: the Principal label and Producer/Trader (sql/043,
     live); the welcome page, shown once at a first sign-in (sql/044 adds
