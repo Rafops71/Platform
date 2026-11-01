@@ -273,6 +273,10 @@ async function handleRegisterSubmit(e) {
   // error in a log is not harmless - it is the noise somebody learns to ignore
   // just before a real one appears next to it.
 
+  // A corporate signatory's job title goes to their own profile while the
+  // session still exists (js/signing.js; best effort, never blocks).
+  await saveSignatoryJobTitle(sig, data.user && data.user.id);
+
   await jericho.auth.signOut();
   window.location.href = 'index.html?pending=1';
 }

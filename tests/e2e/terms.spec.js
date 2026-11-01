@@ -379,6 +379,92 @@ test.describe.serial('Terms & Conditions', () => {
     await expect(link).toHaveText('Terms & Conditions');
   });
 
+  // Owner's list, items 8 and 11 (2026-11-01): two boxes with his words; a
+  // company and a job title only for corporate capacity.
+  test('the signing boxes carry the owner\'s words, and only corporate capacity asks for a company and a job title', async ({ page }) => {
+    const invite = await createInvitation('en');
+    await page.goto(invite.link);
+    await expect(page.locator('#register-card')).toBeVisible();
+
+    const individual = page.locator('label:has(#cap-individual)');
+    const corporate = page.locator('label:has(#cap-company)');
+    await expect(individual).toContainText('Individual capacity');
+    await expect(individual).toContainText('I act personally and solely on my own behalf, not for any company or employer');
+    await expect(corporate).toContainText('Corporate capacity');
+    await expect(corporate).toContainText('The signatory warrants that they are duly authorised to sign these Terms on behalf of the Company and to bind it to them.');
+
+    await expect(page.locator('#company-row')).toBeHidden();
+    await page.check('#cap-company');
+    await expect(page.locator('#company-row')).toBeVisible();
+    await expect(page.locator('label[for="company"]')).toContainText('Company name (the \u201cCompany\u201d)');
+    await expect(page.locator('label[for="job_title"]')).toContainText('Job title / position');
+    await expect(page.locator('#job_title')).toHaveJSProperty('required', true);
+
+    await page.check('#cap-individual');
+    await expect(page.locator('#company-row')).toBeHidden();
+    await expect(page.locator('#job_title')).toHaveJSProperty('required', false);
+  });
+
+  test('the signing boxes are in Spanish with the Spanish words', async ({ page }) => {
+    const invite = await createInvitation('es');
+    await page.goto(invite.link);
+    await expect(page.locator('#register-card')).toBeVisible();
+
+    const individual = page.locator('label:has(#cap-individual)');
+    const corporate = page.locator('label:has(#cap-company)');
+    await expect(individual).toContainText('A título personal');
+    await expect(individual).toContainText('Actúo a título personal y exclusivamente en mi propio nombre, no por cuenta de ninguna empresa ni empleador.');
+    await expect(corporate).toContainText('En nombre y representación de la Empresa');
+    await expect(corporate).toContainText('El firmante garantiza que está debidamente autorizado para firmar estos Términos en nombre de la Empresa y para obligarla a ellos.');
+    await page.check('#cap-company');
+    await expect(page.locator('label[for="company"]')).toContainText('Nombre de la empresa (la «Empresa»)');
+    await expect(page.locator('label[for="job_title"]')).toContainText('Cargo o puesto');
+  });
+
+  test('corporate capacity without a job title is refused, and no account is made', async ({ page }) => {
+    const invite = await createInvitation('en');
+    await page.goto(invite.link);
+    await expect(page.locator('#register-card')).toBeVisible();
+
+    await page.fill('#first_name', 'Corporate');
+    await page.fill('#last_name', 'Untitled');
+    await page.fill('#email', invite.email);
+    await page.fill('#password', testPassword());
+    await page.fill('#phone', '+3200000013');
+    await fillSignature(page, { capacity: 'company', company: 'Untitled Ltd', signed_name: 'Corporate Untitled' });
+    await page.fill('#job_title', '');
+    await page.check('#accept-terms');
+    await page.click('#register-btn');
+
+    // The browser refuses a required box that is empty, so the page does not
+    // navigate; the point is that no account exists.
+    await expect(page.locator('#job_title')).toHaveJSProperty('validity.valid', false);
+    expect(page.url()).toMatch(pagePattern('register.html', { after: 'any' }));
+    const { rows } = await query('select count(*)::int n from public.profiles where email = $1', [invite.email]);
+    expect(rows[0].n, 'an account was created for a corporate signatory with no job title').toBe(0);
+  });
+
+  test('a corporate registration keeps the job title on the profile', async ({ page }) => {
+    const invite = await createInvitation('en');
+    await page.goto(invite.link);
+    await expect(page.locator('#register-card')).toBeVisible();
+
+    await page.fill('#first_name', 'Corporate');
+    await page.fill('#last_name', 'Titled');
+    await page.fill('#email', invite.email);
+    await page.fill('#password', testPassword());
+    await page.fill('#phone', '+3200000014');
+    await fillSignature(page, { capacity: 'company', company: 'Titled Ltd', job_title: 'Head of Trading', signed_name: 'Corporate Titled' });
+    await page.check('#accept-terms');
+    await page.click('#register-btn');
+    await page.waitForURL(pagePattern('index.html', { after: 'any' }), { timeout: 20_000 });
+
+    await expect.poll(async () => {
+      const { rows } = await query('select job_title from public.profiles where email = $1', [invite.email]);
+      return rows[0] && rows[0].job_title;
+    }, { timeout: 15_000 }).toBe('Head of Trading');
+  });
+
   test('Item64 a PO box is refused on the sign-up page, and no account is made', async ({ page }) => {
     const invite = await createInvitation('en');
     await page.goto(invite.link);
