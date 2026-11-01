@@ -30,9 +30,10 @@ from faster_whisper import WhisperModel
 BREATH_SECONDS = 0.25
 WER_LIMIT = 0.15
 TRIES = 5
-# A sentence needs about 0.4 s a word; far above that is mumbling or a loop.
+# A sentence needs about 0.4 s a word; far above that is mumbling or a loop. The flat part is generous because
+# Chatterbox pads one-word sentences ("Discreción.") with silence; babble would also show up as extra words in the WER.
 MAX_SECONDS_PER_WORD = 0.9
-MAX_SECONDS_FLAT = 1.5
+MAX_SECONDS_FLAT = 4.0
 
 
 def sentences(text):
