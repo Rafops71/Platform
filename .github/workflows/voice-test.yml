@@ -74,3 +74,40 @@ jobs:
           path: clips/
           retention-days: 14
           if-no-files-found: warn
+
+  gemini:
+    name: Gemini Algieba (the same two lines, for comparison; may fail on the free daily limit)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Make the two lines with the film voice
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          mkdir -p clips
+          python3 - <<'PY'
+          import json, subprocess
+          g = json.load(open('video/script.json'))['voice']['gemini']
+          lines = {
+            'en': 'A private market for physical commodities. By invitation only.',
+            'es': 'Un mercado privado de materias primas físicas. Solo por invitación.',
+          }
+          for lang, text in lines.items():
+              r = subprocess.run(['python3', 'video/gemini_say.py', g['model'], g['voice'], g['style'][lang], f'clips/gemini-{lang}.wav'],
+                                 input=text, text=True, capture_output=True)
+              print(lang, 'ok' if r.returncode == 0 else 'FAILED: ' + (r.stderr or '')[-200:])
+          PY
+      - name: Say what happened
+        if: always()
+        run: |
+          echo "### Gemini (Algieba)" >> "$GITHUB_STEP_SUMMARY"
+          ls -l clips >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "No clips were made." >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: voice-test-gemini
+          path: clips/
+          retention-days: 14
+          if-no-files-found: warn
