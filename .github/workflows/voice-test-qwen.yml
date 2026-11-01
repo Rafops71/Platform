@@ -1,0 +1,41 @@
+name: Voice test (Qwen3-TTS)
+
+# One more free voice for the owner to listen to (item 22): Qwen3-TTS 0.6B,
+# Apache-2.0, on a CPU runner. Manual only, no secrets, nothing committed.
+# The model card's examples use a GPU, so this may fail; it says what happened.
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  qwen:
+    name: Qwen3-TTS 0.6B (English and Spanish, CPU, may fail)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Qwen3-TTS (CPU build of PyTorch)
+        run: |
+          pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+          pip install -U qwen-tts soundfile
+      - name: Try to make the clips
+        run: python video/voice-test/qwen_clips.py
+      - name: Say what happened
+        if: always()
+        run: |
+          echo "### Qwen3-TTS" >> "$GITHUB_STEP_SUMMARY"
+          cat clips/qwen-summary.txt >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "The script did not get as far as writing a summary." >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: voice-test-qwen
+          path: clips/
+          retention-days: 14
+          if-no-files-found: warn
