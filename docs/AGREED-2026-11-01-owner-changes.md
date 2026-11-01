@@ -64,3 +64,10 @@ PLAN (owner): the finished Terms draft gets a rigorous double-check by other AIs
 20. Terms: individual-capacity members also promise: participation breaches no employment contract or duty;
     no employer's confidential information, contacts or resources used. (Owner: B only.)
 Decided NO (Mistral extras): mandate upload, anti-bribery clause, sanctions-removal clause.
+21. Films: Sonnet rewrites trailer + Member walkthrough (EN+ES) + Operator walkthrough (EN) SCRIPTS together with
+    the app changes (new words: commercial intermediary, success fee item 16). Recording waits until new screens
+    are live and the voice is chosen; then trailer + all walkthroughs in ONE recording run.
+22. Voice test: one short EN + ES sample each from VoxCPM2 (openbmb/VoxCPM2, Apache-2.0, page says "free for
+    commercial use", Spanish yes) and Kokoro-82M (hexgrad/Kokoro-82M, Apache-2.0; ES voices ef_dora, em_alex,
+    em_santa). Made on GitHub Actions, free. Owner listens and picks. CosyVoice3 avoided ("academic purposes only").
+    No paid Google billing (owner).
