@@ -10,13 +10,18 @@ name: Voice test (VoxCPM2 and Kokoro)
 # allowed to fail (continue-on-error) and says plainly what happened.
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      only:
+        description: 'Run only one job (kokoro, voxcpm, gemini, chatterbox, qwen) or all'
+        default: 'all'
 
 permissions:
   contents: read
 
 jobs:
   kokoro:
+    if: ${{ inputs.only == 'all' || inputs.only == 'kokoro' || github.event_name != 'workflow_dispatch' }}
     name: Kokoro-82M (English and Spanish voices)
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -47,6 +52,7 @@ jobs:
           if-no-files-found: warn
 
   voxcpm:
+    if: ${{ inputs.only == 'all' || inputs.only == 'voxcpm' || github.event_name != 'workflow_dispatch' }}
     name: VoxCPM2 (English and Spanish clips, CPU, may fail)
     runs-on: ubuntu-latest
     continue-on-error: true
@@ -76,6 +82,7 @@ jobs:
           if-no-files-found: warn
 
   gemini:
+    if: ${{ inputs.only == 'all' || inputs.only == 'gemini' || github.event_name != 'workflow_dispatch' }}
     name: Gemini Algieba (the same two lines, for comparison; may fail on the free daily limit)
     runs-on: ubuntu-latest
     continue-on-error: true
@@ -113,6 +120,7 @@ jobs:
           if-no-files-found: warn
 
   chatterbox:
+    if: ${{ inputs.only == 'all' || inputs.only == 'chatterbox' || github.event_name != 'workflow_dispatch' }}
     name: Chatterbox-Multilingual (English and Spanish, CPU, may fail)
     runs-on: ubuntu-latest
     continue-on-error: true
@@ -137,6 +145,36 @@ jobs:
         if: always()
         with:
           name: voice-test-chatterbox
+          path: clips/
+          retention-days: 14
+          if-no-files-found: warn
+
+  qwen:
+    if: ${{ inputs.only == 'all' || inputs.only == 'qwen' }}
+    name: Qwen3-TTS 0.6B (English and Spanish, CPU, may fail)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Qwen3-TTS (CPU build of PyTorch)
+        run: |
+          pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+          pip install -U qwen-tts soundfile
+      - name: Try to make the clips
+        run: python video/voice-test/qwen_clips.py
+      - name: Say what happened
+        if: always()
+        run: |
+          echo "### Qwen3-TTS" >> "$GITHUB_STEP_SUMMARY"
+          cat clips/qwen-summary.txt >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "The script did not get as far as writing a summary." >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: voice-test-qwen
           path: clips/
           retention-days: 14
           if-no-files-found: warn
