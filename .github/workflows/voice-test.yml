@@ -58,7 +58,7 @@ jobs:
           python-version: '3.11'
       - name: Install VoxCPM2 (CPU build of PyTorch)
         run: |
-          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
           pip install voxcpm soundfile
       - name: Try to make the clips
         run: python video/voice-test/voxcpm_clips.py
