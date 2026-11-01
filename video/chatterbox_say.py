@@ -29,7 +29,7 @@ from faster_whisper import WhisperModel
 
 BREATH_SECONDS = 0.25
 WER_LIMIT = 0.15
-TRIES = 5
+TRIES = 8
 # A sentence needs about 0.4 s a word; far above that is mumbling or a loop. The flat part is generous because
 # Chatterbox pads one-word sentences ("Discreción.") with silence; babble would also show up as extra words in the WER.
 MAX_SECONDS_PER_WORD = 0.9
@@ -40,14 +40,71 @@ def sentences(text):
     return [p for p in re.split(r'(?<=[.!?])\s+', text.strip()) if p]
 
 
-def words(text):
-    t = text.lower().replace('my platform', 'myplatform')
+# Pronunciation hints, English only and for the SPEAKER only (the script text and the comparison keep the real
+# words): the model reads an acronym as a word ("zif") and a country name wrongly.
+SAY_AS = [(r'\bCIF\b', 'C I F'), (r'\bFOB\b', 'F O B'), (r'\bLME\b', 'L M E'), (r'\bCFR\b', 'C F R'),
+          (r'\bChile\b', 'Chilly')]
+LANG_NAMES = {'en': 'en', 'es': 'es'}
+
+
+def to_speak(text, lang):
+    if lang == 'en':
+        for pat, rep_ in SAY_AS:
+            text = re.sub(pat, rep_, text)
+    return text
+
+
+_EN_U = 'zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen'.split()
+_EN_T = 'x x twenty thirty forty fifty sixty seventy eighty ninety'.split()
+_ES_U = ('cero uno dos tres cuatro cinco seis siete ocho nueve diez once doce trece catorce quince dieciséis '
+         'diecisiete dieciocho diecinueve veinte veintiuno veintidós veintitrés veinticuatro veinticinco veintiséis '
+         'veintisiete veintiocho veintinueve').split()
+_ES_T = 'x x x treinta cuarenta cincuenta sesenta setenta ochenta noventa'.split()
+_ES_H = 'x ciento doscientos trescientos cuatrocientos quinientos seiscientos setecientos ochocientos novecientos'.split()
+
+
+def _words_en(n):
+    if n < 20: return _EN_U[n]
+    if n < 100: return _EN_T[n // 10] + ('' if n % 10 == 0 else ' ' + _EN_U[n % 10])
+    if n < 1000: return _EN_U[n // 100] + ' hundred' + ('' if n % 100 == 0 else ' ' + _words_en(n % 100))
+    return _words_en(n // 1000) + ' thousand' + ('' if n % 1000 == 0 else ' ' + _words_en(n % 1000))
+
+
+def _words_es(n):
+    if n < 30: return _ES_U[n]
+    if n < 100: return _ES_T[n // 10] + ('' if n % 10 == 0 else ' y ' + _ES_U[n % 10])
+    if n == 100: return 'cien'
+    if n < 1000: return _ES_H[n // 100] + ('' if n % 100 == 0 else ' ' + _words_es(n % 100))
+    head = 'mil' if n // 1000 == 1 else _words_es(n // 1000) + ' mil'
+    return head + ('' if n % 1000 == 0 else ' ' + _words_es(n % 1000))
+
+
+def spell_numbers(text, lang):
+    # "600" and "six hundred" are the same speech: both sides are compared as words.
+    f = _words_es if lang == 'es' else _words_en
+    return re.sub(r'\d{1,6}', lambda m: ' ' + f(int(m.group())) + ' ', text)
+
+
+def words(text, lang='en'):
+    t = spell_numbers(text, lang).lower().replace('my platform', 'myplatform')
     t = re.sub(r'[^\w\s]', ' ', t)
-    return t.split()
+    toks = t.split()
+    # "c i f" (spoken as letters) is the word "cif"; "chilly" is Chile.
+    out, run = [], []
+    for w_ in toks + ['']:
+        if len(w_) == 1:
+            run.append(w_)
+            continue
+        if run:
+            out.append(''.join(run)) if len(run) > 1 else out.append(run[0])
+            run = []
+        if w_:
+            out.append({'chilly': 'chile'}.get(w_, w_))
+    return out
 
 
-def wer(ref, hyp):
-    r, h = words(ref), words(hyp)
+def wer(ref, hyp, lang='en'):
+    r, h = words(ref, lang), words(hyp, lang)
     if not r:
         return 0.0 if not h else 1.0
     d = list(range(len(h) + 1))
@@ -83,11 +140,13 @@ def main() -> int:
             for attempt in range(TRIES):
                 tries_total += 1
                 torch.manual_seed(1000 + 17 * attempt)
-                wav = model.generate(s, language_id=job['lang']).reshape(1, -1).cpu()
+                # Later tries run cooler (less random) - hallucinated tails are what a high temperature produces.
+                wav = model.generate(to_speak(s, job['lang']), language_id=job['lang'],
+                                     temperature=max(0.3, 0.8 - 0.08 * attempt)).reshape(1, -1).cpu()
                 seconds = wav.shape[-1] / model.sr
                 text = listen(whisper, wav, model.sr, job['lang'])
-                score = wer(s, text)
-                too_long = seconds > MAX_SECONDS_FLAT + MAX_SECONDS_PER_WORD * len(words(s))
+                score = wer(s, text, job['lang'])
+                too_long = seconds > MAX_SECONDS_FLAT + MAX_SECONDS_PER_WORD * len(words(s, job['lang']))
                 if too_long:
                     score = max(score, 1.0)
                 if best is None or score < best[0]:
@@ -99,7 +158,7 @@ def main() -> int:
             heard.append(best[2])
         out = torch.cat(chunks[:-1], dim=1)
         ta.save(job['out'], out, model.sr)
-        line_wer = wer(job['text'], ' '.join(heard))
+        line_wer = wer(job['text'], ' '.join(heard), job['lang'])
         ok = line_wer <= WER_LIMIT and worst_sentence <= WER_LIMIT
         row = dict(id=job.get('id', job['out']), lang=job['lang'], wer=round(line_wer, 3),
                    worst_sentence=round(worst_sentence, 3), tries=tries_total,
