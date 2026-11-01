@@ -111,3 +111,32 @@ jobs:
           path: clips/
           retention-days: 14
           if-no-files-found: warn
+
+  chatterbox:
+    name: Chatterbox-Multilingual (English and Spanish, CPU, may fail)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Chatterbox (CPU build of PyTorch)
+        run: |
+          pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+          pip install chatterbox-tts
+      - name: Try to make the clips
+        run: python video/voice-test/chatterbox_clips.py
+      - name: Say what happened
+        if: always()
+        run: |
+          echo "### Chatterbox" >> "$GITHUB_STEP_SUMMARY"
+          cat clips/chatterbox-summary.txt >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "The script did not get as far as writing a summary." >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: voice-test-chatterbox
+          path: clips/
+          retention-days: 14
+          if-no-files-found: warn
