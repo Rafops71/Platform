@@ -54,9 +54,14 @@
       "gemini: the owner's choice on 2026-10-29 - Gemini text-to-speech, voice Algieba,",
       "for every film (the trailer already uses it). The key is the GEMINI_API_KEY",
       "environment variable or repository secret; it is never in this file or any",
-      "other file in the repository. Kokoro and Piper stay available above."
+      "other file in the repository. Kokoro and Piper stay available above.",
+      "",
+      "chatterbox: the owner's decision on 2026-11-01 - Chatterbox-Multilingual (Resemble AI,",
+      "MIT weights) for EVERY film, the trailer included, the same default voice in both",
+      "languages. It runs on a CPU, loads once per batch (video/chatterbox_say.py), and needs",
+      "no key. Its output carries an imperceptible PerTh watermark. Gemini stays available."
     ],
-    "engine": "gemini",
+    "engine": "chatterbox",
     "kokoro": {
       "en": "am_michael",
       "es": "ef_dora",

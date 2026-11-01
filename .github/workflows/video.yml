@@ -31,6 +31,14 @@ on:
         description: 'Voice, e.g. af_heart (Kokoro) or en_GB-cori-high (Piper). Blank uses script.json (Gemini Algieba).'
         required: false
         default: ''
+      engine:
+        description: 'Voice engine: chatterbox (chosen by the owner on 2026-11-01), gemini, kokoro or piper'
+        required: false
+        default: 'chatterbox'
+      commit:
+        description: 'true = also commit the film to films/ on this branch (default: artifact only)'
+        required: false
+        default: ''
       stills:
         description: 'true = one still picture per scene (uploaded, nothing committed) instead of the film'
         required: false
@@ -51,7 +59,7 @@ jobs:
   record:
     name: Record and assemble
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -106,9 +114,16 @@ jobs:
           test "$(stat -c%s voices-v1.0.bin)" -gt 20000000
           python3 -m piper.download_voices ${{ inputs.voice || 'en_US-joe-medium es_ES-davefx-medium' }}
 
+      - name: Install Chatterbox (CPU build of PyTorch)
+        if: inputs.engine == 'chatterbox' && inputs.stills != 'true'
+        run: |
+          pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+          pip install chatterbox-tts
+
       - name: Speak every line, and measure it
         run: node video/make-narration.js --film ${{ inputs.film }} --lang ${{ inputs.lang }} ${{ inputs.stills == 'true' && '--stills' || '' }}
         env:
+          NARRATION_ENGINE: ${{ inputs.engine }}
           # The owner's Gemini key, a repository secret. It is read here and
           # nowhere else, and is in no file of the repository.
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -176,7 +191,7 @@ jobs:
           node video/check-film.js --film ${{ inputs.film }} --lang ${{ inputs.lang }}
 
       - name: Hand the film over through git
-        if: inputs.stills != 'true'
+        if: inputs.stills != 'true' && inputs.commit == 'true'
         # The artifact is served from a host the authoring session cannot
         # reach, so the film is also committed to films/ on the branch this
         # run was dispatched from. Git is the one channel that works in both

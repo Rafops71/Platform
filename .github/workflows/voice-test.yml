@@ -13,7 +13,7 @@ on:
   workflow_dispatch:
     inputs:
       only:
-        description: 'Run only one job (kokoro, voxcpm, gemini, chatterbox, qwen) or all'
+        description: 'Run only one job (kokoro, voxcpm, gemini, chatterbox, qwen, trailer) or all'
         default: 'all'
 
 permissions:
@@ -175,6 +175,32 @@ jobs:
         if: always()
         with:
           name: voice-test-qwen
+          path: clips/
+          retention-days: 14
+          if-no-files-found: warn
+
+  trailer:
+    if: ${{ inputs.only == 'trailer' }}
+    name: Trailer voice lines with Chatterbox (English and Spanish)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Chatterbox (CPU build of PyTorch)
+        run: |
+          pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+          pip install chatterbox-tts
+      - name: Speak the twelve trailer lines
+        run: |
+          mkdir -p clips
+          python video/chatterbox_say.py video/trailer/voice-lines.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trailer-voice-chatterbox
           path: clips/
           retention-days: 14
           if-no-files-found: warn
