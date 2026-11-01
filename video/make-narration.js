@@ -149,7 +149,8 @@ function speakChatterboxBatch(jobs) {
   if (!jobs.length) return;
   const list = path.join(OUT, 'chatterbox-jobs.json');
   fs.writeFileSync(list, JSON.stringify(jobs, null, 2));
-  const res = spawnSync('python3', [path.join(__dirname, 'chatterbox_say.py'), list],
+  const table = path.join(OUT, 'wer-table.md');
+  const res = spawnSync('python3', [path.join(__dirname, 'chatterbox_say.py'), list, table],
     { encoding: 'utf8', stdio: ['ignore', 'inherit', 'pipe'], maxBuffer: 1 << 26 });
   if (res.status !== 0 || jobs.some((j) => !fs.existsSync(j.out))) {
     throw new Error('Chatterbox failed\n' +
@@ -206,7 +207,7 @@ function main() {
       for (const lang of allLanguages.filter((l) => made.includes(l))) {
         for (const scene of SCRIPT.films[film].scenes) {
           if (!scene.say[lang]) throw new Error(`${film}/${scene.id} has no ${lang} line`);
-          jobs.push({ text: scene.say[lang], lang, out: path.join(OUT, `${film}-${lang}-${scene.id}.wav`) });
+          jobs.push({ id: `${film}-${lang}-${scene.id}`, text: scene.say[lang], lang, out: path.join(OUT, `${film}-${lang}-${scene.id}.wav`) });
         }
       }
     }

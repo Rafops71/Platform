@@ -2,61 +2,73 @@
  {
   "text": "A private market for physical commodities. By invitation only.",
   "lang": "en",
-  "out": "clips/trailer-en-line1.wav"
+  "out": "clips/trailer-en-line1.wav",
+  "id": "trailer-en-line1"
  },
  {
   "text": "Regardless of your role in commodity trading, whether as a buyer, seller, or representative of a principal, establishing the bona fides of your counterparty is not always clear-cut, and revealing your position too soon can expose your commercial interests before trust or reciprocity are established.",
   "lang": "en",
-  "out": "clips/trailer-en-line2.wav"
+  "out": "clips/trailer-en-line2.wav",
+  "id": "trailer-en-line2"
  },
  {
   "text": "On the platform, members view buying and selling opportunities, presented with the key commercial details, while identities remain confidential. All communication passes through the commercial intermediary, and direct introductions take place only after agreement on price, transaction procedures, and the sequence of document exchange.",
   "lang": "en",
-  "out": "clips/trailer-en-line3.wav"
+  "out": "clips/trailer-en-line3.wav",
+  "id": "trailer-en-line3"
  },
  {
   "text": "Discretion, your identity remains confidential until introduction. Clear offers, the submitter's stated role and declared documentation. Facilitated communication, all messages are relayed through the commercial intermediary, who arranges introductions.",
   "lang": "en",
-  "out": "clips/trailer-en-line4.wav"
+  "out": "clips/trailer-en-line4.wav",
+  "id": "trailer-en-line4"
  },
  {
   "text": "Free to join and use. We are remunerated by a success fee, payable only when an introduction leads to a successful conclusion, as defined and agreed in advance in the per-deal agreement.",
   "lang": "en",
-  "out": "clips/trailer-en-card.wav"
+  "out": "clips/trailer-en-card.wav",
+  "id": "trailer-en-card"
  },
  {
   "text": "Where opportunity meets discretion.",
   "lang": "en",
-  "out": "clips/trailer-en-line5.wav"
+  "out": "clips/trailer-en-line5.wav",
+  "id": "trailer-en-line5"
  },
  {
   "text": "Un mercado privado de materias primas físicas. Solo por invitación.",
   "lang": "es",
-  "out": "clips/trailer-es-line1.wav"
+  "out": "clips/trailer-es-line1.wav",
+  "id": "trailer-es-line1"
  },
  {
   "text": "Sea cual sea su papel en el comercio de materias primas, ya sea como comprador, vendedor o representante de un principal, establecer la buena fe de su contraparte no siempre es evidente, y revelar su posición demasiado pronto puede exponer sus intereses comerciales antes de que se hayan establecido la confianza o la reciprocidad.",
   "lang": "es",
-  "out": "clips/trailer-es-line2.wav"
+  "out": "clips/trailer-es-line2.wav",
+  "id": "trailer-es-line2"
  },
  {
   "text": "En la plataforma, los miembros ven oportunidades de compra y venta, presentadas con los datos comerciales clave, mientras las identidades permanecen confidenciales. Toda la comunicación pasa por el intermediario comercial, y las presentaciones directas solo tienen lugar tras acordar el precio, los procedimientos de la transacción y la secuencia de intercambio de documentos.",
   "lang": "es",
-  "out": "clips/trailer-es-line3.wav"
+  "out": "clips/trailer-es-line3.wav",
+  "id": "trailer-es-line3"
  },
  {
   "text": "Discreción. Su identidad permanece confidencial hasta la presentación. Ofertas claras. El papel declarado por quien las envía y la documentación declarada. Comunicación facilitada. Todos los mensajes se transmiten a través del intermediario comercial, que organiza las presentaciones.",
   "lang": "es",
-  "out": "clips/trailer-es-line4.wav"
+  "out": "clips/trailer-es-line4.wav",
+  "id": "trailer-es-line4"
  },
  {
   "text": "Gratis para unirse y utilizar. Percibimos una comisión de éxito, exigible únicamente cuando una presentación conduce a una conclusión satisfactoria, según se defina y acuerde de antemano en el acuerdo de cada operación.",
   "lang": "es",
-  "out": "clips/trailer-es-card.wav"
+  "out": "clips/trailer-es-card.wav",
+  "id": "trailer-es-card"
  },
  {
   "text": "Donde la oportunidad se encuentra con la discreción.",
   "lang": "es",
-  "out": "clips/trailer-es-line5.wav"
+  "out": "clips/trailer-es-line5.wav",
+  "id": "trailer-es-line5"
  }
 ]
