@@ -1,0 +1,76 @@
+name: Voice test (VoxCPM2 and Kokoro)
+
+# Two short test clips from two free, Apache-2.0 voice models, made on GitHub's
+# own free runners, for the owner to listen to and pick (owner's list, item 22,
+# 2026-11-01). Manual only. No secrets, no live database, nothing committed:
+# the clips are uploaded as artifacts and the summary says what ran.
+#
+# Kokoro is small and very likely runs on a CPU. VoxCPM2's model card names
+# CUDA >= 12.0 as a requirement and says nothing about CPU, so that job is
+# allowed to fail (continue-on-error) and says plainly what happened.
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  kokoro:
+    name: Kokoro-82M (English and Spanish voices)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install the system library Kokoro needs
+        run: sudo apt-get update && sudo apt-get install -y espeak-ng
+      - name: Install Kokoro (CPU build of PyTorch)
+        run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install "kokoro>=0.9.2" soundfile
+      - name: Make the clips
+        run: python video/voice-test/kokoro_clips.py
+      - name: Say what happened
+        if: always()
+        run: |
+          echo "### Kokoro-82M" >> "$GITHUB_STEP_SUMMARY"
+          cat clips/kokoro-summary.txt >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "No clips were made." >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: voice-test-kokoro
+          path: clips/
+          retention-days: 14
+          if-no-files-found: warn
+
+  voxcpm:
+    name: VoxCPM2 (English and Spanish clips, CPU, may fail)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install VoxCPM2 (CPU build of PyTorch)
+        run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install voxcpm soundfile
+      - name: Try to make the clips
+        run: python video/voice-test/voxcpm_clips.py
+      - name: Say what happened
+        if: always()
+        run: |
+          echo "### VoxCPM2" >> "$GITHUB_STEP_SUMMARY"
+          cat clips/voxcpm-summary.txt >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "The script did not get as far as writing a summary." >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: voice-test-voxcpm
+          path: clips/
+          retention-days: 14
+          if-no-files-found: warn
