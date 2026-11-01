@@ -142,6 +142,22 @@ function speakGemini(text, lang, outFile) {
   }
 }
 
+/** Chatterbox speaks a whole batch with one model load: every line that is
+ *  still missing is written to a job list and spoken in one go (see
+ *  video/chatterbox_say.py). The per-line loop below then only reads the files. */
+function speakChatterboxBatch(jobs) {
+  if (!jobs.length) return;
+  const list = path.join(OUT, 'chatterbox-jobs.json');
+  fs.writeFileSync(list, JSON.stringify(jobs, null, 2));
+  const res = spawnSync('python3', [path.join(__dirname, 'chatterbox_say.py'), list],
+    { encoding: 'utf8', stdio: ['ignore', 'inherit', 'pipe'], maxBuffer: 1 << 26 });
+  if (res.status !== 0 || jobs.some((j) => !fs.existsSync(j.out))) {
+    throw new Error('Chatterbox failed\n' +
+      (res.error ? `could not be run at all: ${res.error.message}\n` : '') +
+      ((res.stderr || '').trim().slice(-2000) || '(no error output)'));
+  }
+}
+
 function speak(text, model, outFile) {
   // --length-scale above 1.0 slows the delivery; --sentence-silence puts
   // breath between sentences. Both read from script.json's pacing block, so
@@ -177,9 +193,25 @@ function main() {
   console.log(`Speaking with ${ENGINE}: ` +
     (ENGINE === 'gemini'
       ? `Gemini "${VOICE.gemini.voice}"`
+      : ENGINE === 'chatterbox'
+      ? 'Chatterbox-Multilingual (default voice, both languages)'
       : ENGINE === 'kokoro'
       ? `${KOKORO_VOICES.en} / ${KOKORO_VOICES.es} at speed ${VOICE.kokoro.speed}`
       : `${VOICES.en} / ${VOICES.es} at length-scale ${PACING.lengthScale}`));
+
+  if (ENGINE === 'chatterbox' && !stills) {
+    const jobs = [];
+    for (const film of films) {
+      const made = SCRIPT.films[film].languages || ['en', 'es'];
+      for (const lang of allLanguages.filter((l) => made.includes(l))) {
+        for (const scene of SCRIPT.films[film].scenes) {
+          if (!scene.say[lang]) throw new Error(`${film}/${scene.id} has no ${lang} line`);
+          jobs.push({ text: scene.say[lang], lang, out: path.join(OUT, `${film}-${lang}-${scene.id}.wav`) });
+        }
+      }
+    }
+    speakChatterboxBatch(jobs);
+  }
 
   for (const film of films) {
     const scenes = SCRIPT.films[film].scenes;
@@ -187,7 +219,7 @@ function main() {
     // languages it is made in; the default is both.
     const made = SCRIPT.films[film].languages || ['en', 'es'];
     for (const lang of allLanguages.filter((l) => made.includes(l))) {
-      const model = ENGINE === 'kokoro' || ENGINE === 'gemini' ? null : modelFor(lang);
+      const model = ENGINE === 'kokoro' || ENGINE === 'gemini' || ENGINE === 'chatterbox' ? null : modelFor(lang);
       let total = 0;
 
       for (const scene of scenes) {
@@ -201,7 +233,8 @@ function main() {
           console.log(`  ${lang}  ${scene.id.padEnd(14)} ~${seconds.toFixed(2)}s (estimated, no voice)`);
           continue;
         }
-        if (ENGINE === 'gemini') speakGemini(text, lang, file);
+        if (ENGINE === 'chatterbox') { /* already spoken by the batch above */ }
+        else if (ENGINE === 'gemini') speakGemini(text, lang, file);
         else if (ENGINE === 'kokoro') speakKokoro(text, lang, file);
         else speak(text, model, file);
         const seconds = wavSeconds(file);
