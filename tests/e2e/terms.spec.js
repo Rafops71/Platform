@@ -407,7 +407,9 @@ test.describe.serial('Terms & Conditions', () => {
 
   test('the signing boxes are in Spanish with the Spanish words', async ({ page }) => {
     const invite = await createInvitation('es');
-    await page.goto(invite.link);
+    // The page language comes from the visitor's choice (?lang=es, kept in
+    // storage), not from the invitation's language.
+    await page.goto(invite.link + (invite.link.includes('?') ? '&' : '?') + 'lang=es');
     await expect(page.locator('#register-card')).toBeVisible();
 
     const individual = page.locator('label:has(#cap-individual)');
