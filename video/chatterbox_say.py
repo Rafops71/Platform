@@ -28,6 +28,11 @@ from chatterbox.mtl_tts import ChatterboxMultilingualTTS
 from faster_whisper import WhisperModel
 
 BREATH_SECONDS = 0.25
+# Words the listener should expect (it only biases the spelling of what it hears, it cannot invent speech).
+VOCAB = {
+    'en': 'MyPlatform, Incoterm, CIF, FOB, copper cathodes, Operator, Mailbox, Chile, Rotterdam.',
+    'es': 'MyPlatform, Incoterm, CIF, FOB, cátodos de cobre, Operador, Buzón, Chile, Rotterdam.',
+}
 WER_LIMIT = 0.15
 TRIES = 8
 # A sentence needs about 0.4 s a word; far above that is mumbling or a loop. The flat part is generous because
@@ -119,7 +124,7 @@ def wer(ref, hyp, lang='en'):
 def listen(whisper, wav, sr, lang):
     mono = wav.reshape(-1).float().cpu()
     mono = ta.functional.resample(mono, sr, 16000).numpy().astype(np.float32)
-    segs, _ = whisper.transcribe(mono, language=lang, beam_size=5)
+    segs, _ = whisper.transcribe(mono, language=lang, beam_size=5, initial_prompt=VOCAB.get(lang))
     return ' '.join(s.text.strip() for s in segs)
 
 
