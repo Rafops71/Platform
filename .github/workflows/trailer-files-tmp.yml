@@ -1,0 +1,20 @@
+name: Trailer files (temporary, upload only)
+# Throwaway: uploads the two finished trailers as an artifact so the owner can
+# download them. Runs only on the branch trailer-files-tmp, which is deleted
+# afterwards and never merged.
+on:
+  push:
+    branches: [trailer-files-tmp]
+permissions:
+  contents: read
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trailers-chatterbox-en-es
+          path: tmp-trailers/*.mp4
+          retention-days: 14
+          if-no-files-found: error
