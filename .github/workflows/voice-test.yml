@@ -192,11 +192,16 @@ jobs:
       - name: Install Chatterbox (CPU build of PyTorch)
         run: |
           pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
-          pip install chatterbox-tts
+          pip install chatterbox-tts faster-whisper
       - name: Speak the twelve trailer lines
         run: |
           mkdir -p clips
-          python video/chatterbox_say.py video/trailer/voice-lines.json
+          python video/chatterbox_say.py video/trailer/voice-lines.json clips/wer-table.md
+      - name: The voice check, line by line
+        if: always()
+        run: |
+          echo "### Voice check (faster-whisper listens to every line)" >> "$GITHUB_STEP_SUMMARY"
+          cat clips/wer-table.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "No table was written." >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

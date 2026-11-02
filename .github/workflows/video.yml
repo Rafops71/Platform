@@ -31,6 +31,10 @@ on:
         description: 'Voice, e.g. af_heart (Kokoro) or en_GB-cori-high (Piper). Blank uses script.json (Gemini Algieba).'
         required: false
         default: ''
+      voice_run:
+        description: 'Reuse the checked narration of an earlier run (its run id) instead of speaking the lines again'
+        required: false
+        default: ''
       engine:
         description: 'Voice engine: chatterbox (chosen by the owner on 2026-11-01), gemini, kokoro or piper'
         required: false
@@ -44,22 +48,67 @@ on:
         required: false
         default: ''
 
-concurrency:
-  # The same group as CI: this creates and deletes fixtures on the live
-  # project, and must never do that while the browser suites are mid-run.
-  group: ci-live-database
-  cancel-in-progress: false
-
 permissions:
   # The film is committed back to the branch it was dispatched from, which
   # needs more than the default read-only token.
   contents: write
 
 jobs:
-  record:
-    name: Record and assemble
+  voice:
+    # The narration, spoken and checked by ear (faster-whisper) in five parallel jobs, each with every fifth line.
+    # Public repository: standard runners cost nothing, so parallel jobs cost nothing extra. These jobs touch no
+    # database, so they do not take the live-database place that CI and the recording share.
+    name: Voice ${{ matrix.shard }} of 5
+    if: inputs.engine == 'chatterbox' && inputs.stills != 'true' && inputs.voice_run == ''
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Chatterbox (CPU build of PyTorch)
+        run: |
+          pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+          pip install chatterbox-tts faster-whisper
+      - name: Speak my share of the lines, and listen to every one
+        run: node video/make-narration.js --film ${{ inputs.film }} --lang ${{ inputs.lang }} --shard ${{ matrix.shard }}/5
+        env:
+          NARRATION_ENGINE: chatterbox
+      - name: The voice check, line by line
+        if: always()
+        run: |
+          echo "### Voice check, share ${{ matrix.shard }} of 5 (faster-whisper listens to every line)" >> "$GITHUB_STEP_SUMMARY"
+          cat video/audio/wer-table-${{ matrix.shard }}.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "No table was written." >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: voice-${{ inputs.film }}-${{ inputs.lang }}-${{ matrix.shard }}
+          path: |
+            video/audio/*.wav
+            video/audio/wer-table-*
+          retention-days: 3
+          if-no-files-found: warn
+
+  record:
+    name: Record and assemble
+    needs: voice
+    # Runs when the voice jobs all passed, or were not needed (stills, another engine). A failed line stops here.
+    if: ${{ !cancelled() && (needs.voice.result == 'success' || needs.voice.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    concurrency:
+      # The same group as CI: this creates and deletes fixtures on the live
+      # project, and must never do that while the browser suites are mid-run.
+      group: ci-live-database
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -114,11 +163,26 @@ jobs:
           test "$(stat -c%s voices-v1.0.bin)" -gt 20000000
           python3 -m piper.download_voices ${{ inputs.voice || 'en_US-joe-medium es_ES-davefx-medium' }}
 
-      - name: Install Chatterbox (CPU build of PyTorch)
+      - name: Fetch the checked narration from the voice jobs
+        if: inputs.engine == 'chatterbox' && inputs.stills != 'true'
+        uses: actions/download-artifact@v4
+        with:
+          pattern: voice-${{ inputs.film }}-${{ inputs.lang }}-*
+          path: voice-parts
+          run-id: ${{ inputs.voice_run || github.run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Put the narration where the recorder looks
         if: inputs.engine == 'chatterbox' && inputs.stills != 'true'
         run: |
-          pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
-          pip install chatterbox-tts
+          mkdir -p video/audio
+          find voice-parts -name '*.wav' -exec cp {} video/audio/ \;
+          find voice-parts -name 'wer-table-*.md' | sort | xargs cat > video/audio/wer-table.md
+          # The narration files are 32-bit float WAV; the assembler joins them with a 16-bit pause by plain
+          # concatenation, which reads the pause at half its length (the Spanish film came out 19 s short).
+          # Everything is made 16-bit first, so voice and pause have the same format.
+          for f in video/audio/*.wav; do ffmpeg -v error -y -i "$f" -c:a pcm_s16le "$f.tmp.wav" && mv "$f.tmp.wav" "$f"; done
+          ls video/audio | wc -l
 
       - name: Speak every line, and measure it
         run: node video/make-narration.js --film ${{ inputs.film }} --lang ${{ inputs.lang }} ${{ inputs.stills == 'true' && '--stills' || '' }}
@@ -139,6 +203,12 @@ jobs:
           # setting both to the same name is harmless.
           PIPER_VOICE_EN: ${{ inputs.voice }}
           PIPER_VOICE_ES: ${{ inputs.voice }}
+
+      - name: The voice check, line by line
+        if: always() && inputs.engine == 'chatterbox' && inputs.stills != 'true'
+        run: |
+          echo "### Voice check (faster-whisper listens to every line)" >> "$GITHUB_STEP_SUMMARY"
+          cat video/audio/wer-table.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "No table was written." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Film it
         env:
@@ -252,6 +322,15 @@ jobs:
           path: video/out/*.mp4
           retention-days: 30
           if-no-files-found: error
+
+      - name: Here is the voice check
+        if: always() && inputs.engine == 'chatterbox' && inputs.stills != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: jericho-${{ inputs.film }}-${{ inputs.lang }}-voicecheck
+          path: video/audio/wer-table.md
+          retention-days: 30
+          if-no-files-found: ignore
 
       - name: Here are the stills
         if: inputs.stills == 'true'

@@ -149,7 +149,10 @@
         {
           "id": "anonymous",
           "do": "hold",
+          "zoom": ".list-row:has([data-contact=\"{demandId}\"])",
+          "zoomScale": 1.25,
           "highlight": ".list-row:has([data-contact=\"{demandId}\"])",
+          "zoomOutAfter": true,
           "say": {
             "en": "Notice what the row does not tell you. No name, no company, no email address. You can see exactly what they want, and nothing about who they are. The row does show what the poster states about their own role and their documents.",
             "es": "Fíjese en lo que la fila no le dice. Ni nombre, ni empresa, ni correo electrónico. Puede ver exactamente qué quieren, y nada sobre quiénes son. La fila sí muestra lo que el anunciante declara sobre su propio papel y sus documentos."
