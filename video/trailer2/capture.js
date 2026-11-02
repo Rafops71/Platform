@@ -34,6 +34,7 @@ async function postListing(browser, who, spec) {
   await login(page, who);
   await page.click('button[data-screen="new-listing"]');
   await page.check('input[name="type"][value="sell"]');
+  await page.waitForFunction(() => document.querySelectorAll('#commodity-select option').length > 5, null, { timeout: 20000 });
   const commodities = await optionValues(page, '#commodity-select');
   const origins = await optionValues(page, '#location');
   const commodity = (commodities.find((o) => o.t.toLowerCase() === spec.commodity) || commodities[spec.fallbackCommodity] || commodities[0]).v;
@@ -79,7 +80,10 @@ async function postListing(browser, who, spec) {
     console.log(`${rows.length} listing rows on Browse`);
     for (let i = 0; i < Math.min(rows.length, 3); i++) {
       await rows[i].scrollIntoViewIfNeeded();
-      await rows[i].screenshot({ path: path.join(OUT, `listing-${i}.png`) });
+      // Without the bottom two lines ("No documents indicated" is about uploaded files, and would read as the
+      // opposite of the poster's own statement; the Contact button is not the point either).
+      const box = await rows[i].boundingBox();
+      await page.screenshot({ path: path.join(OUT, `listing-${i}.png`), clip: { x: box.x, y: box.y, width: box.width, height: box.height - 66 } });
     }
     await ctx.close();
   } finally {

@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
-"""Builds the new English trailer from: the checked narration (voice.py), the real-app pictures (capture.js) and the
-approved text (parts.json).
+"""Cut list for the new English trailer (Remotion/OpenMontage Explainer with the bespoke scenes of
+MyPlatformScenes.tsx, restyled in the app's own light colours).
 
-  python3 video/trailer2/build.py VOICE_DIR CAPTURE_DIR OUT_DIR
+  python3 video/trailer2/build.py VOICE_DIR OUT_DIR
 
-Every sentence of the approved text is found in the narration by its words (difflib over what the listener heard), so
-each picture changes exactly when its sentence starts. The narration is cut into its seven parts and a calm pause is
-laid between them; the voice is never sped up. Pictures: text cards for parts 1, 2, 5, 6 and 7, the real app for
-part 3, one small diagram for part 4. Light look, whole-sentence captions (the sentence IS the picture's text), slow fades.
+Reads the checked narration (voice.py) and the approved text (parts.json); finds each sentence in the narration by its
+words (difflib over what the listener heard); cuts the narration into its seven parts with a calm pause between them
+(the voice is never sped up); writes OUT_DIR/narration.wav and OUT_DIR/trailer-en.json. Scene per part:
+  1 globe  2 port  3 the real app (pictures from capture.js)  4 the Operator diagram  5 three cards  6, 7 tagline.
+On screen there is only the approved text: whole-sentence captions, and a few single words taken from it.
 """
-import difflib, json, os, re, subprocess, sys
+import difflib, json, os, re, sys
 import numpy as np
 import soundfile as sf
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-LEAD, TAIL, PART_GAP = 0.8, 2.6, 1.1      # seconds of quiet before, after, and between parts
-PRE, POST = 0.30, 0.55                    # a part's audio starts this much before its first word and ends this much after its last
-FADE = 0.8
+LEAD, TAIL, PART_GAP = 0.9, 3.0, 1.2
+PRE, POST = 0.30, 0.55
 
 
 def norm(w):
@@ -24,106 +24,106 @@ def norm(w):
 
 
 def main():
-    voice, cap, out = sys.argv[1:4]
+    voice, out = sys.argv[1:3]
     os.makedirs(out, exist_ok=True)
     spec = json.load(open(os.path.join(HERE, 'parts.json'), encoding='utf8'))
     parts = spec['parts']
-
-    # 1. Where does every sentence sit in the narration?
-    sent_times = {}                                   # (part, sentence) -> (start, end) in its request's file
+    sent, heard_by = {}, {}
     for n, idxs in enumerate(spec['requests']):
         heard = json.load(open(os.path.join(voice, f'voice-{n}.words.json')))
+        heard_by[n] = heard
         hw = [norm(h['word']) for h in heard]
-        refs = []                                     # (part, sentence, word)
-        for p in idxs:
-            for s, sentence in enumerate(parts[p]):
-                refs += [(p, s, norm(w)) for w in sentence.split() if norm(w)]
+        refs = [(p, s, norm(w)) for p in idxs for s, sentence in enumerate(parts[p]) for w in sentence.split() if norm(w)]
         sm = difflib.SequenceMatcher(None, [r[2] for r in refs], hw, autojunk=False)
         match = {}
         for a, b, size in sm.get_matching_blocks():
             for k in range(size):
                 match[a + k] = b + k
         for p in idxs:
-            for s, _ in enumerate(parts[p]):
-                ks = [k for k, r in enumerate(refs) if r[0] == p and r[1] == s]
-                got = [match[k] for k in ks if k in match]
+            for s in range(len(parts[p])):
+                got = [match[k] for k, r in enumerate(refs) if r[0] == p and r[1] == s and k in match]
                 if not got:
-                    raise SystemExit(f'sentence {p}.{s} was not found in the narration')
-                sent_times[(p, s)] = (heard[min(got)]['start'], heard[max(got)]['end'], n)
-    # 2. Cut the narration into parts and lay the timeline.
+                    raise SystemExit(f'sentence {p + 1}.{s + 1} was not found in the narration')
+                sent[(p, s)] = (heard[min(got)]['start'], heard[max(got)]['end'], n)
     audio = {}
     for n in range(len(spec['requests'])):
         a, sr = sf.read(os.path.join(voice, f'voice-{n}.wav'), dtype='float32')
         audio[n] = (a if a.ndim == 1 else a.mean(axis=1), sr)
     sr = audio[0][1]
-    chunks, timeline, t = [np.zeros(int(LEAD * sr), dtype='float32')], {}, LEAD
+    chunks, tl, part_span, t = [np.zeros(int(LEAD * sr), dtype='float32')], {}, {}, LEAD
     for p, sentences in enumerate(parts):
-        n = sent_times[(p, 0)][2]
-        a, _ = audio[n]
-        first = sent_times[(p, 0)][0]
-        last = sent_times[(p, len(sentences) - 1)][1]
-        nxt = min((sent_times[(q, 0)][0] for q in range(p + 1, len(parts)) if sent_times[(q, 0)][2] == n), default=None)
-        prev_end = max((sent_times[(q, len(parts[q]) - 1)][1] for q in range(p) if sent_times[(q, 0)][2] == n), default=0.0)
+        n = sent[(p, 0)][2]
+        a = audio[n][0]
+        first, last = sent[(p, 0)][0], sent[(p, len(sentences) - 1)][1]
+        nxt = min((sent[(q, 0)][0] for q in range(p + 1, len(parts)) if sent[(q, 0)][2] == n), default=None)
+        prev_end = max((sent[(q, len(parts[q]) - 1)][1] for q in range(p) if sent[(q, 0)][2] == n), default=0.0)
         lo = max(first - PRE, (prev_end + first) / 2 if prev_end else 0.0)
         hi = min(last + POST, (last + nxt) / 2 if nxt else len(a) / sr)
         chunk = a[int(lo * sr):int(hi * sr)]
         for s in range(len(sentences)):
-            st, en, _ = sent_times[(p, s)]
-            timeline[(p, s)] = (t + (st - lo), t + (en - lo))
+            tl[(p, s)] = (t + sent[(p, s)][0] - lo, t + sent[(p, s)][1] - lo)
+        part_span[p] = (t, t + len(chunk) / sr)
         chunks.append(chunk)
-        t += len(chunk) / sr
-        chunks.append(np.zeros(int((PART_GAP if p < len(parts) - 1 else TAIL) * sr), dtype='float32'))
-        t += PART_GAP if p < len(parts) - 1 else TAIL
+        gap = PART_GAP if p < len(parts) - 1 else TAIL
+        chunks.append(np.zeros(int(gap * sr), dtype='float32'))
+        t += len(chunk) / sr + gap
     total = t
     sf.write(os.path.join(out, 'narration.wav'), np.concatenate(chunks), sr)
 
-    # 3. One picture per sentence; it appears when its sentence starts.
-    pic = {  # (part, sentence) -> kind, extra
-        (0, 0): ('text',), (0, 1): ('text',), (1, 0): ('text',), (1, 1): ('text',),
-        (2, 0): ('app', 'listing-0.png'), (2, 1): ('app', 'listing-1.png'), (2, 2): ('app', 'browse-top.png'),
-        (3, 0): ('diagram', 1), (3, 1): ('diagram', 2),
-        (4, 0): ('text',), (4, 1): ('text',), (5, 0): ('text',), (5, 1): ('text',), (6, 0): ('text',),
-    }
-    items = []
-    keys = [(p, s) for p, ss in enumerate(parts) for s in range(len(ss))]
-    for i, key in enumerate(keys):
-        kind = pic[key]
-        it = dict(id=f'i{i:02d}', kind=kind[0], sentence=parts[key[0]][key[1]])
-        if kind[0] == 'app':
-            it['image'] = os.path.abspath(os.path.join(cap, kind[1]))
-        if kind[0] == 'diagram':
-            it['step'] = kind[1]
-        items.append(it)
-    json.dump(items, open(os.path.join(out, 'cards.json'), 'w'))
-    subprocess.run(['node', os.path.join(HERE, 'cards.js'), os.path.join(out, 'cards.json'), os.path.join(out, 'cards')], check=True)
+    # single spoken words of part 5 (members, documents, transactions) for the three cards
+    def word_time(p, word):
+        n = sent[(p, 0)][2]
+        for h in heard_by[n]:
+            if norm(h['word']) == word and sent[(p, 0)][0] - 0.2 <= h['start'] <= sent[(p, len(parts[p]) - 1)][1]:
+                return h['start']
+        return None
+    # scene boundaries: the middle of the quiet between parts
+    bounds = [0.0] + [(part_span[p][1] + part_span[p + 1][0]) / 2 for p in range(len(parts) - 1)] + [total]
 
-    # 4. Put it together: each picture from its sentence's start (a little early, fading in) to the next one's.
-    starts = [0.0 if i == 0 else timeline[k][0] - 0.35 for i, k in enumerate(keys)]
-    ends = starts[1:] + [total]
-    cmd = ['ffmpeg', '-v', 'error', '-y']
-    flt = []
-    for i, it in enumerate(items):
-        dur = ends[i] - starts[i] + (FADE if i < len(items) - 1 else 0)
-        cmd += ['-loop', '1', '-framerate', '25', '-t', f'{dur:.3f}', '-i', os.path.join(out, 'cards', it['id'] + '.png')]
-        fin = f'fade=t=in:st=0:d={FADE}' if i > 0 else f'fade=t=in:st=0:d=1.2'
-        fout = f'fade=t=out:st={dur - FADE:.3f}:d={FADE}' if i < len(items) - 1 else f'fade=t=out:st={dur - 1.5:.3f}:d=1.5'
-        flt.append(f'[{i}:v]format=yuv420p,{fin},{fout},setpts=PTS-STARTPTS+{starts[i]:.3f}/TB[v{i}]')
-    # overlay the clips on a white canvas, in order, each at its own start time
-    flt.append(f'color=c=white:s=1920x1080:r=25:d={total:.3f}[base]')
-    prev = 'base'
-    for i in range(len(items)):
-        flt.append(f'[{prev}][v{i}]overlay=eof_action=pass:format=auto[o{i}]')
-        prev = f'o{i}'
-    cmd += ['-i', os.path.join(out, 'narration.wav'),
-            '-filter_complex', ';'.join(flt), '-map', f'[{prev}]', '-map', f'{len(items)}:a',
-            '-c:v', 'libx264', '-crf', '20', '-preset', 'medium', '-pix_fmt', 'yuv420p', '-r', '25',
-            '-c:a', 'aac', '-b:a', '128k', '-t', f'{total:.3f}', '-movflags', '+faststart', os.path.join(out, 'trailer-en.mp4')]
-    subprocess.run(cmd, check=True)
-    print(f'trailer-en.mp4: {total:.1f} s')
+    def sentence_labels(p, skip_first=False):
+        lab = {}
+        k = 1
+        for s in range(len(parts[p])):
+            if skip_first and s == 0:
+                continue
+            lab[f's{k}'] = parts[p][s]
+            lab[f't{k}'] = f'{max(0.0, tl[(p, s)][0] - bounds[p] - 0.35):.2f}'
+            k += 1
+        return lab
+
+    scenes = []
+    scenes.append(dict(kind='globe', labels=dict(title=' ', caption='', **sentence_labels(0))))
+    scenes.append(dict(kind='port', labels=dict(producer='', buyer='', caption='', **sentence_labels(1))))
+    lab = dict(sentence_labels(2))
+    imgs = ['listing-0.png', 'listing-1.png', 'browse-top.png']
+    for i, im in enumerate(imgs, 1):
+        lab[f'img{i}'] = im
+        lab[f'a{i}'] = lab[f't{i}']
+    scenes.append(dict(kind='appshots', labels=lab))
+    scenes.append(dict(kind='broker', labels=dict(memberA='Member', memberB='Member', operator='Operator', caption='', agreed='', **sentence_labels(3))))
+    ts = [word_time(4, w) for w in ('members', 'documents', 'transactions')]
+    base = [tl[(4, 0)][0] - bounds[4] if v is None else v + (tl[(4, 0)][0] - sent[(4, 0)][0]) - bounds[4] for v in ts]
+    scenes.append(dict(kind='benefits', labels=dict(b1='Members', b1line='', b2='Documents', b2line='', b3='Transactions', b3line='', **sentence_labels(4)),
+                       at=[max(0.4, x) for x in base]))
+    scenes.append(dict(kind='tagline', labels=dict(title='Free to join and use', **sentence_labels(5, skip_first=True))))
+    scenes.append(dict(kind='tagline', labels=dict(title='Where opportunity meets discretion')))
+
+    cuts = []
+    for i, sc in enumerate(scenes):
+        c = dict(id=f's{i + 1}', source='', type='mp_scene', mpKind=sc['kind'], mpLabels=sc['labels'],
+                 in_seconds=round(bounds[i], 3), out_seconds=round(bounds[i + 1], 3))
+        if 'at' in sc:
+            c['mpAt'] = [round(x, 2) for x in sc['at']]
+        cuts.append(c)
+    # the Explainer expects at least the three arrival times; the cards scene uses them
+    doc = dict(theme='flat-motion-graphics', cuts=cuts, overlays=[], captions=[],
+               audio=dict(narration=dict(src='mp/narration-en-new.wav', volume=1)))
+    json.dump(doc, open(os.path.join(out, 'trailer-en.json'), 'w'), ensure_ascii=False, indent=1)
     with open(os.path.join(out, 'timeline.md'), 'w') as f:
         f.write('| sentence | start s | end s |\n|---|---|---|\n')
-        for k in keys:
-            f.write(f'| {k[0] + 1}.{k[1] + 1} | {timeline[k][0]:.1f} | {timeline[k][1]:.1f} |\n')
+        for (p, s), (a, b) in sorted(tl.items()):
+            f.write(f'| {p + 1}.{s + 1} | {a:.1f} | {b:.1f} |\n')
+    print(f'{total:.1f} s, {len(cuts)} scenes')
 
 
 if __name__ == '__main__':
