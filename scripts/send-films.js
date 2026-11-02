@@ -1,25 +1,26 @@
 #!/usr/bin/env node
 /**
- * Email the three English films to the owner, as attachments, through Resend.
+ * Email the two English walkthroughs to the owner, as attachments, through Resend.
  *
- * Owner's instruction (2026-11-02, relayed): the 3 ENGLISH films only (no Spanish), to ONE address that is written
+ * Owner's instruction (2026-11-02, relayed): the 2 ENGLISH walkthroughs only (no Spanish, no trailer), to ONE address that is written
  * here and nowhere else (no input, no argument, no environment variable can change it), through Resend with the
  * repository's existing RESEND_API_KEY and sender (LISTING_EMAIL_FROM, as scripts/send-listing-emails.js).
  *
  * Resend's limit, read from resend.com/docs/api-reference/emails/send-email on 2026-11-02: "max 40MB per email,
- * after Base64 encoding of the attachments". So the files are packed into two emails and each email's
+ * after Base64 encoding of the attachments". So the files are packed into one email and its
  * base64 size is checked BEFORE anything is sent; over 38 MB the script fails and sends nothing.
  *
- *   node scripts/send-films.js DIR      DIR holds trailer-en.mp4, member-en.mp4, operator-en.mp4 (already shrunk)
+ *   node scripts/send-films.js DIR      DIR holds member-en.mp4 and operator-en.mp4 (already shrunk)
  */
 const fs = require('fs');
 const path = require('path');
 
 const TO = 'Rafael@intercommodities.net';
 const LIMIT = 38 * 1024 * 1024; // under Resend's 40 MB, leaving room for the message itself
+// The trailer is NOT sent (owner, 2026-11-02: it is being fixed). One email with the two walkthroughs; the size
+// check below fails the job, sending nothing, if the pair is over the limit.
 const EMAILS = [
-  { subject: 'MyPlatform films (1/2): trailer + member walkthrough', files: ['trailer-en.mp4', 'member-en.mp4'] },
-  { subject: 'MyPlatform films (2/2): operator walkthrough', files: ['operator-en.mp4'] },
+  { subject: 'MyPlatform films: member + operator walkthroughs', files: ['member-en.mp4', 'operator-en.mp4'] },
 ];
 
 async function main() {
