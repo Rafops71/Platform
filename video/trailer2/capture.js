@@ -36,13 +36,14 @@ async function postListing(browser, who, spec) {
   await page.check('input[name="type"][value="sell"]');
   const commodities = await optionValues(page, '#commodity-select');
   const origins = await optionValues(page, '#location');
-  const commodity = commodities.find((o) => o.t.toLowerCase() === spec.commodity)?.v || commodities[spec.fallbackCommodity].v;
+  const commodity = (commodities.find((o) => o.t.toLowerCase() === spec.commodity) || commodities[spec.fallbackCommodity] || commodities[0]).v;
   await page.selectOption('#commodity-select', commodity);
   await page.fill('#quantity', String(spec.quantity));
   await page.selectOption('#unit', { label: 'Metric tons' }).catch(() => {});
   await page.fill('#specification', spec.specification);
   await page.selectOption('#incoterm', spec.incoterm);
-  const origin = origins.find((o) => o.t === spec.origin) || origins[spec.fallbackOrigin];
+  const origin = origins.find((o) => o.t === spec.origin) || origins[spec.fallbackOrigin] || origins[0];
+  console.log(`options: ${commodities.length} commodities, ${origins.length} origins`);
   await page.selectOption('#location', origin.v);
   await page.check('#role-principal');
   await page.check(`#kind-${spec.kind}`);
@@ -65,7 +66,7 @@ async function postListing(browser, who, spec) {
   const browser = await chromium.launch();
   try {
     await postListing(browser, poster1, { commodity: 'copper cathodes', fallbackCommodity: 0, quantity: 500, specification: 'LME Grade A, 99.99% Cu', incoterm: 'CIF', origin: 'Chile', fallbackOrigin: 0, kind: 'producer' });
-    await postListing(browser, poster2, { commodity: 'aluminium ingots', fallbackCommodity: 1, quantity: 1200, specification: 'P1020A, 99.7% Al', incoterm: 'FOB', origin: 'Norway', fallbackOrigin: 1, kind: 'trader' });
+    await postListing(browser, poster2, { commodity: 'copper cathodes', fallbackCommodity: 0, quantity: 1200, specification: 'LME Grade A, 99.99% Cu', incoterm: 'FOB', origin: 'Peru', fallbackOrigin: 1, kind: 'trader' });
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 2 });
     const page = await ctx.newPage();
     await login(page, viewer);
@@ -73,6 +74,7 @@ async function postListing(browser, who, spec) {
     await page.waitForSelector('#screen-browse .list-row, .list-row', { timeout: 20000 });
     await page.waitForTimeout(1500);
     await page.screenshot({ path: path.join(OUT, 'browse-full.png') });
+    await page.screenshot({ path: path.join(OUT, 'browse-top.png'), clip: { x: 100, y: 70, width: 1080, height: 330 } });
     const rows = await page.$$('.list-row');
     console.log(`${rows.length} listing rows on Browse`);
     for (let i = 0; i < Math.min(rows.length, 3); i++) {
