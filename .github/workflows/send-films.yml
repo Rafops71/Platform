@@ -1,0 +1,55 @@
+name: Send the films
+
+# Manual only. Emails the three ENGLISH films (trailer, member walkthrough, operator walkthrough) to the owner as
+# attachments through Resend, in two emails (Resend: 40 MB per email after base64). The address is written in
+# scripts/send-films.js and cannot be changed by an input. The films are the finished, voice-checked ones, taken
+# from the runs named below (artifacts are kept 14-30 days) and shrunk to 1280 px wide, ~350 kbit/s.
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@v4
+        with:
+          name: trailers-chatterbox-gated-en-es
+          run-id: 41368693762
+          github-token: ${{ github.token }}
+          path: src/trailer
+      - uses: actions/download-artifact@v4
+        with:
+          name: jericho-member-en
+          run-id: 41377639991
+          github-token: ${{ github.token }}
+          path: src/member
+      - uses: actions/download-artifact@v4
+        with:
+          name: jericho-operator-en
+          run-id: 41376550324
+          github-token: ${{ github.token }}
+          path: src/operator
+      - name: Shrink each film (1280 px wide, about 350 kbit/s video, 64k audio, quick start)
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+          mkdir -p out
+          shrink() { ffmpeg -v error -y -i "$1" -vf scale=1280:-2 -c:v libx264 -b:v 350k -maxrate 450k -bufsize 700k -preset medium -c:a aac -b:a 64k -movflags +faststart "$2"; }
+          shrink src/trailer/trailer-en.mp4 out/trailer-en.mp4
+          shrink src/member/member-en.mp4 out/member-en.mp4
+          shrink src/operator/operator-en.mp4 out/operator-en.mp4
+          ls -l out
+      - name: Send
+        run: node scripts/send-films.js out
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          LISTING_EMAIL_FROM: ${{ secrets.LISTING_EMAIL_FROM }}
