@@ -13,7 +13,7 @@ on:
   workflow_dispatch:
     inputs:
       only:
-        description: 'Run only one job (kokoro, voxcpm, gemini, chatterbox, qwen, trailer) or all'
+        description: 'Run only one job (kokoro, voxcpm, gemini, chatterbox, qwen, trailer, speed) or all'
         default: 'all'
 
 permissions:
@@ -208,4 +208,89 @@ jobs:
           name: trailer-voice-chatterbox
           path: clips/
           retention-days: 14
+          if-no-files-found: warn
+
+  speed_en:
+    # Pace samples (owner's request 2026-11-02): one approved line in Gemini "Algieba" at three paces set by the
+    # style prompt (no time-stretching), 3 requests in all. The real words per minute are measured, not assumed.
+    if: ${{ inputs.only == 'speed' }}
+    name: Pace samples, English (Gemini Algieba, 3 requests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - name: Speak the line three times
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          mkdir -p clips
+          TEXT="All communication passes through the Operator. Introduction follows only once both sides agree on the essential terms and wish to proceed."
+          MODEL=$(python3 -c "import json;print(json.load(open('video/script.json'))['voice']['gemini']['model'])")
+          for wpm in 120 130 140; do
+            STYLE="Confident, warm, polished narrator for a premium private trading platform. Calm, measured delivery at about $wpm words per minute, with natural pauses between sentences. Do not rush."
+            echo "$TEXT" | python3 video/gemini_say.py "$MODEL" Algieba "$STYLE" clips/gemini-target-$wpm.wav || echo "FAILED at target $wpm" >> clips/speed-summary.txt
+          done
+      - name: Measure the real pace
+        if: always()
+        run: |
+          words=21
+          echo "| target wpm | seconds (whole file) | seconds (speech only) | measured wpm (speech only) |" > clips/speed-summary.md
+          echo "|---|---|---|---|" >> clips/speed-summary.md
+          for f in clips/gemini-target-*.wav; do
+            [ -f "$f" ] || continue
+            t=$(basename "$f" .wav | sed 's/gemini-target-//')
+            whole=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$f")
+            ffmpeg -v error -y -i "$f" -af "silenceremove=start_periods=1:start_threshold=-45dB:stop_periods=-1:stop_duration=0.6:stop_threshold=-45dB" /tmp/trim.wav
+            trimmed=$(ffprobe -v error -show_entries format=duration -of csv=p=0 /tmp/trim.wav)
+            python3 -c "w=$whole;t=$trimmed;print(f'| $t | {w:.1f} | {t:.1f} | {$words/t*60:.0f} |')" >> clips/speed-summary.md
+            ffmpeg -v error -y -i "$f" -ac 1 -b:a 48k "clips/gemini-target-$t.mp3"
+          done
+          cat clips/speed-summary.md | tee -a "$GITHUB_STEP_SUMMARY"
+          cat clips/speed-summary.txt 2>/dev/null | tee -a "$GITHUB_STEP_SUMMARY" || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: speed-samples-en
+          path: clips/
+          retention-days: 14
+          if-no-files-found: warn
+
+  speed_es:
+    # One Spanish pace sample with Chatterbox through the Whisper gate. NOT for the owner to listen to; the pace and
+    # the WER are only reported. The Spanish wording is a plain translation of the approved English line, for timing.
+    if: ${{ inputs.only == 'speed' }}
+    name: Pace sample, Spanish (Chatterbox, gated)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - name: Install Chatterbox (CPU build of PyTorch)
+        run: |
+          pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+          pip install chatterbox-tts faster-whisper
+      - name: Speak the line, listen to it, measure it
+        run: |
+          mkdir -p clips
+          python3 - <<'PY'
+          import json
+          t = "Toda la comunicación pasa por el Operador. La presentación se produce solo cuando ambas partes acuerdan los términos esenciales y desean continuar."
+          json.dump([dict(id='speed-es', text=t, lang='es', out='clips/chatterbox-es-speed.wav')], open('clips/jobs.json', 'w'), ensure_ascii=False)
+          PY
+          python video/chatterbox_say.py clips/jobs.json clips/wer-table.md
+          words=$(python3 -c "import json;print(len(json.load(open('clips/jobs.json'))[0]['text'].split()))")
+          ffmpeg -v error -y -i clips/chatterbox-es-speed.wav -af "silenceremove=start_periods=1:start_threshold=-45dB:stop_periods=-1:stop_duration=0.6:stop_threshold=-45dB" /tmp/trim.wav
+          t=$(ffprobe -v error -show_entries format=duration -of csv=p=0 /tmp/trim.wav)
+          python3 -c "print(f'Spanish Chatterbox: $words words, {float($t):.1f} s of speech = {$words/float($t)*60:.0f} wpm')" | tee clips/speed-es-summary.txt
+          cat clips/speed-es-summary.txt clips/wer-table.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: speed-sample-es-chatterbox
+          path: clips/
+          retention-days: 7
           if-no-files-found: warn
