@@ -210,6 +210,51 @@ jobs:
           retention-days: 14
           if-no-files-found: warn
 
+  film_voice:
+    # Walkthrough redo (owner, 2026-11-02): only=film-voice-member-en | film-voice-operator-en | film-voice-member-es.
+    # English = Gemini Algieba at its natural pace in 2 requests; Spanish = Kokoro, voice picked by WER. Every line
+    # listened to (WER <= 0.15). The artifact has the same layout as a Chatterbox shard, so video.yml (engine
+    # chatterbox, voice_run = this run) films it without speaking anything again.
+    if: ${{ startsWith(inputs.only, 'film-voice-') }}
+    name: Film voice (gated)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install faster-whisper soundfile numpy
+      - name: Work out film and language
+        run: |
+          rest="${{ inputs.only }}"; rest="${rest#film-voice-}"
+          echo "FILM=${rest%-*}" >> "$GITHUB_ENV"; echo "LANG_CODE=${rest##*-}" >> "$GITHUB_ENV"
+      - name: Kokoro models (Spanish)
+        if: ${{ endsWith(inputs.only, '-es') }}
+        run: |
+          pip install kokoro-onnx
+          curl -sSL --retry 3 -o kokoro-v1.0.onnx https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.1/kokoro-v1.0.onnx
+          curl -sSL --retry 3 -o voices-v1.0.bin https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.1/voices-v1.0.bin
+          test "$(stat -c%s kokoro-v1.0.onnx)" -gt 300000000
+      - name: Speak and listen
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          ENGINE=gemini; [ "$LANG_CODE" = es ] && ENGINE=kokoro
+          python3 video/film_voice.py --film "$FILM" --lang "$LANG_CODE" --engine "$ENGINE" --out voice-out --kokoro-dir .
+      - name: The voice check
+        if: always()
+        run: cat voice-out/wer-table-0.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "No table was written." >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: voice-${{ env.FILM }}-${{ env.LANG_CODE }}-0
+          path: |
+            voice-out/*.wav
+            voice-out/wer-table-0.md
+          retention-days: 14
+          if-no-files-found: warn
+
   trailer_voice_en:
     # The new English trailer's narration (owner's approved text, 2026-11-02): Gemini Algieba, two requests, slowed
     # (atempo 0.93), listened to by faster-whisper. Run once; the build reuses its artifact.

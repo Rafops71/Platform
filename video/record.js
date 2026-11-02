@@ -48,6 +48,11 @@ const arg = (name, fallback) => {
 };
 
 const wait = ms => new Promise(r => setTimeout(r, ms));
+// Brisk demo (owner, 2026-11-02): the actions' own waits and typing run faster by pacing.actionSpeed; the voice never does,
+// and the zoom keeps the time its transition needs (.85 s).
+const ACTION_SPEED = SCRIPT.pacing.actionSpeed || 1;
+const act = ms => wait(ms / ACTION_SPEED);
+const settle = () => wait(Math.max(900, ZOOM_SETTLE / ACTION_SPEED));
 
 /** Move the drawn pointer onto a control, let it land, then press it.
  *
@@ -56,9 +61,9 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
  *  something invisible rather than by somebody. */
 async function pressWithPointer(page, selector) {
   await page.evaluate(s => window.__jericho.moveTo(s), selector);
-  await wait(650);
+  await act(650);
   await page.evaluate(() => window.__jericho.press());
-  await wait(200);
+  await act(200);
   // .first(): a selector that matches several controls - every Browse row has
   // a Contact button - must press one rather than refuse. Playwright's own
   // ">> nth=0" syntax cannot be used here, because the same selector is
@@ -71,9 +76,9 @@ async function pressWithPointer(page, selector) {
  *  played at the wrong rate. */
 async function typeSlowly(page, selector, text) {
   await page.evaluate(s => window.__jericho.moveTo(s), selector);
-  await wait(400);
+  await act(400);
   await page.click(selector);
-  await page.type(selector, text, { delay: 55 });
+  await page.type(selector, text, { delay: Math.round(55 / ACTION_SPEED) });
 }
 
 async function openScreen(page, name) {
@@ -131,14 +136,14 @@ async function perform(page, action, world) {
       // The pointer is moved first so the viewer sees WHERE the choice is
       // being made; selectOption itself draws nothing.
       await page.evaluate(sel => window.__jericho.moveTo(sel), target);
-      await wait(400);
+      await act(400);
       await page.selectOption(target, value);
       await page.evaluate(() => window.__jericho.press());
       return;
 
     case 'check':
       await page.evaluate(sel => window.__jericho.moveTo(sel), target);
-      await wait(400);
+      await act(400);
       await page.locator(target).check();
       await page.evaluate(() => window.__jericho.press());
       return;
@@ -509,10 +514,10 @@ async function main() {
       await page.evaluate(
         ([sel, scale]) => window.__jericho.zoomTo(sel, scale),
         [fill(scene.zoom), scene.zoomScale || null]).catch(() => {});
-      await wait(ZOOM_SETTLE);
+      await settle();
     } else {
       await page.evaluate(() => window.__jericho.zoomOut()).catch(() => {});
-      await wait(ZOOM_SETTLE);
+      await settle();
     }
 
     if (scene.highlight) {
@@ -535,9 +540,9 @@ async function main() {
     // is the whole point of zooming: close for the control, wide for the
     // consequence.
     if (scene.zoom && scene.zoomOutAfter) {
-      await wait(500);
+      await act(500);
       await page.evaluate(() => window.__jericho.zoomOut()).catch(() => {});
-      await wait(ZOOM_SETTLE);
+      await settle();
       if (scene.highlightAfter) {
         await page.evaluate(s => window.__jericho.ringAround(s), fill(scene.highlightAfter)).catch(() => {});
       }
