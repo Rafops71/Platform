@@ -7,7 +7,9 @@ Voice: Gemini TTS "algieba", brisk. No product name: "The Platform".
 Owner's rules for the wording (2026-10-28):
 - not "traders": buyers, sellers, representatives of a principal; the two
   sides are labelled "Supply side" and "Demand side";
-- "facilitated communication" and "operator", not "broker";
+- "facilitated communication" and "operator", not "broker" (2026-11-01: in
+  scenes 3 and 4 the spoken and written words are "commercial intermediary";
+  the picture box in scene 3 stays "Operator");
 - the platform never checks, verifies or authenticates anything: offers
   carry the submitter's stated role and declared documentation, nothing
   more - never "confirmed true", never "checks";
@@ -40,12 +42,12 @@ established.
 Picture: the two sides blurred, the operator in the middle glowing,
 messages flying only through him; the blur lifts, a green line draws, a
 handshake forms.
-Caption at the start: All communications are channelled through the operator
+Caption at the start: All communications are channelled through the commercial intermediary
 Caption at the end: Introductions follow agreement on terms, procedures, and document protocol
 Labels: Supply side / Demand side
 Spoken: On the platform, members view buying and selling opportunities,
 presented with the key commercial details, while identities remain
-confidential. All communication passes through the operator, and direct
+confidential. All communication passes through the commercial intermediary, and direct
 introductions take place only after agreement on price, transaction
 procedures, and the sequence of document exchange.
 
@@ -57,13 +59,20 @@ Cards:
 - Discretion - Your identity remains confidential until introduction
 - Clear offers - The submitter's stated role and declared documentation.
 - Facilitated Communication - All messages are relayed through the
-  operator, who arranges introductions.
+  commercial intermediary, who arranges introductions.
 Spoken: Discretion, your identity remains confidential until introduction.
 Clear offers, the submitter's stated role and declared documentation.
-Facilitated communication, all messages are relayed through the operator,
+Facilitated communication, all messages are relayed through the commercial intermediary,
 who arranges introductions.
 
-## 5. Ending
+## 5. Cost (added 2026-11-01, owner's list item 16)
+Picture: the tagline treatment (letters in, gold sweep).
+On screen: Free to join and use
+Spoken: Free to join and use. We are remunerated by a success fee, payable
+only when an introduction leads to a successful conclusion, as defined and
+agreed in advance in the per-deal agreement.
+
+## 6. Ending
 Picture: the tagline letter by letter, a gold light sweep, particles
 gathering.
 On screen and spoken: Where opportunity meets discretion.
@@ -86,17 +95,21 @@ Labels: Lado de la oferta / Lado de la demanda
 Spoken: Sea cual sea su papel en el comercio de materias primas, ya sea como comprador, vendedor o representante de un principal, establecer la buena fe de su contraparte no siempre es evidente, y revelar su posición demasiado pronto puede exponer sus intereses comerciales antes de que se hayan establecido la confianza o la reciprocidad.
 
 ## 3. Cómo funciona
-Caption at the start: Todas las comunicaciones se canalizan a través del operador
+Caption at the start: Todas las comunicaciones se canalizan a través del intermediario comercial
 Caption at the end: Las presentaciones se producen tras acordar condiciones, procedimientos y protocolo de documentos
 Labels: Lado de la oferta / Lado de la demanda
-Spoken: En la plataforma, los miembros ven oportunidades de compra y venta, presentadas con los datos comerciales clave, mientras las identidades permanecen confidenciales. Toda la comunicación pasa por el operador, y las presentaciones directas solo tienen lugar tras acordar el precio, los procedimientos de la transacción y la secuencia de intercambio de documentos.
+Spoken: En la plataforma, los miembros ven oportunidades de compra y venta, presentadas con los datos comerciales clave, mientras las identidades permanecen confidenciales. Toda la comunicación pasa por el intermediario comercial, y las presentaciones directas solo tienen lugar tras acordar el precio, los procedimientos de la transacción y la secuencia de intercambio de documentos.
 
 ## 4. Tres beneficios
 Cards:
 - Discreción - Su identidad permanece confidencial hasta la presentación
 - Ofertas claras - El papel declarado por quien las envía y la documentación declarada.
-- Comunicación facilitada - Todos los mensajes se transmiten a través del operador, que organiza las presentaciones.
-Spoken: Discreción, su identidad permanece confidencial hasta la presentación. Ofertas claras, el papel declarado por quien las envía y la documentación declarada. Comunicación facilitada, todos los mensajes se transmiten a través del operador, que organiza las presentaciones.
+- Comunicación facilitada - Todos los mensajes se transmiten a través del intermediario comercial, que organiza las presentaciones.
+Spoken: Discreción, su identidad permanece confidencial hasta la presentación. Ofertas claras, el papel declarado por quien las envía y la documentación declarada. Comunicación facilitada, todos los mensajes se transmiten a través del intermediario comercial, que organiza las presentaciones.
 
-## 5. Cierre
+## 5. Coste (añadido el 2026-11-01, punto 16 de la lista del propietario)
+On screen: Gratis para unirse y utilizar
+Spoken: Gratis para unirse y utilizar. Percibimos una comisión de éxito, exigible únicamente cuando una presentación conduce a una conclusión satisfactoria, según se defina y acuerde de antemano en el acuerdo de cada operación.
+
+## 6. Cierre
 On screen and spoken: Donde la oportunidad se encuentra con la discreción.
