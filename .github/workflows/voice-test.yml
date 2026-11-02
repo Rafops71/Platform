@@ -209,3 +209,35 @@ jobs:
           path: clips/
           retention-days: 14
           if-no-files-found: warn
+
+  trailer_voice_en:
+    # The new English trailer's narration (owner's approved text, 2026-11-02): Gemini Algieba, two requests, slowed
+    # (atempo 0.93), listened to by faster-whisper. Run once; the build reuses its artifact.
+    if: ${{ inputs.only == 'trailer-voice-en' }}
+    name: New English trailer voice (Gemini, 2 requests, gated)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - run: pip install faster-whisper soundfile numpy
+      - name: Speak, slow, listen
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python3 video/trailer2/voice.py voice-out
+      - name: The voice check
+        if: always()
+        run: cat voice-out/voice-table.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "No table was written." >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trailer-voice-en
+          path: |
+            voice-out/voice-*.wav
+            voice-out/voice-*.json
+            voice-out/voice-table.md
+          retention-days: 14
+          if-no-files-found: warn

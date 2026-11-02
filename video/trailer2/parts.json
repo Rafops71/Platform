@@ -1,0 +1,13 @@
+{
+  "note": "The owner approved every word of this text on 2026-11-02. Do not reword. One entry per part; each part is a list of sentences (the captions show one sentence at a time).",
+  "parts": [
+    ["A private marketplace for physical commodities.", "By invitation only."],
+    ["In commodity trading, it is often hard to know who is on the other side.", "Showing your position too early can weaken your commercial standing."],
+    ["Members post buying and selling opportunities with the key details: commodity, quantity, origin and Incoterm.", "Each member states their role and declares the documentation available.", "Other members see the opportunity, not the member's identity."],
+    ["All communication passes through the Operator.", "Introduction follows only once both sides agree on the essential terms and wish to proceed."],
+    ["The platform does not verify members, documents or transactions.", "Each member stands behind their own statements."],
+    ["Free to join and use.", "We are remunerated by a success fee, payable only when an introduction leads to a successful conclusion, as defined and agreed in advance in the per-deal agreement."],
+    ["Where opportunity meets discretion."]
+  ],
+  "requests": [[0, 1, 2], [3, 4, 5, 6]]
+}
