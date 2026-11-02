@@ -9,7 +9,7 @@
 const fs = require('fs');
 
 const TO = 'rafael.e@intercommodities.net';
-const SUBJECT = 'MyPlatform trailer (new version)';
+const SUBJECT = 'MyPlatform trailer (v8)';
 const LIMIT = 38 * 1024 * 1024;
 
 async function main() {

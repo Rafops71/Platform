@@ -331,6 +331,8 @@ jobs:
           ffmpeg -i trailer-en.mp4 -af volumedetect -vn -f null - 2>&1 | grep -E "mean_volume|max_volume"
           ls -l trailer-en.mp4
           for t in 3 12 28 36 44 55 66 76; do ffmpeg -v error -y -ss $t -i trailer-en.mp4 -frames:v 1 -vf scale=960:-1 "frame-$t.png"; done
+          D=$(ffprobe -v error -show_entries format=duration -of csv=p=0 trailer-en.mp4)
+          for b in 7 4 1; do ffmpeg -v error -y -ss $(python3 -c "print(max(0,$D-$b))") -i trailer-en.mp4 -frames:v 1 -vf scale=960:-1 "frame-end$b.png"; done
       - uses: actions/upload-artifact@v4
         with:
           name: trailer-en-render
