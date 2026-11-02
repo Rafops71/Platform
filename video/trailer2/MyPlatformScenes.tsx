@@ -579,9 +579,9 @@ const AppShotsScene: React.FC<{ labels: Labels; seconds: number }> = ({ labels, 
           const o = Math.min(interpolate(t, [c.from, c.from + 0.9], [0, 1], clamp), interpolate(t, [c.to - 0.8, c.to], [1, 0], clamp));
           const zoom = 1 + 0.025 * interpolate(t, [c.from, c.to], [0, 1], clamp);
           return (
-            <div key={i} style={{ position: "absolute", top: 70, opacity: o, transform: `scale(${zoom})`, transformOrigin: "50% 40%" }}>
+            <div key={i} style={{ position: "absolute", left: "50%", top: "44%", opacity: o, transform: `translate(-50%, -50%) scale(${zoom})` }}>
               <Img src={staticFile(`mp/${c.src}`)} style={{
-                maxWidth: 1560, maxHeight: 700, borderRadius: 16, border: "1px solid #e2ebf3", background: "#fff",
+                width: 1560, borderRadius: 16, border: "1px solid #e2ebf3", background: "#fff",
                 boxShadow: "0 24px 60px rgba(21,32,43,0.14)",
               }} />
             </div>
