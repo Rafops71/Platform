@@ -15,7 +15,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const TO = 'Rafael@intercommodities.net';
+const TO = 'rafael.e@intercommodities.net'; // corrected 2026-11-02: the first address was a typo
 const LIMIT = 38 * 1024 * 1024; // under Resend's 40 MB, leaving room for the message itself
 // The trailer is NOT sent (owner, 2026-11-02: it is being fixed). One email with the two walkthroughs; the size
 // check below fails the job, sending nothing, if the pair is over the limit.
