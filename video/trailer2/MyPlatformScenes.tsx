@@ -592,6 +592,23 @@ const AppShotsScene: React.FC<{ labels: Labels; seconds: number }> = ({ labels, 
   );
 };
 
+// Closing title and the written (not spoken) success-fee statement: still white page, dark text, nothing moving behind it.
+const EndCardScene: React.FC<{ labels: Labels; seconds: number }> = ({ labels, seconds }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const t = frame / fps;
+  const at = Number(labels.cardAt || 0);
+  const fadeIn = (from: number) => interpolate(t, [from, from + 0.8], [0, 1], clamp);
+  const out = interpolate(t, [seconds - 0.6, seconds], [1, 0], clamp);
+  return (
+    <AbsoluteFill style={{ background: "#ffffff", justifyContent: "center", alignItems: "center", opacity: out }}>
+      <div style={{ fontFamily: SERIF, fontWeight: 600, fontSize: 96, color: "#15202b", textAlign: "center", opacity: fadeIn(0.2) }}>{labels.title}</div>
+      <div style={{ width: 700, height: 5, background: "#52677a", borderRadius: 3, margin: "34px 0 54px", opacity: fadeIn(0.6) }} />
+      <div style={{ maxWidth: 1400, fontFamily: SERIF, fontWeight: 600, fontSize: 60, lineHeight: 1.3, color: "#15202b", textAlign: "center", opacity: fadeIn(at) }}>{labels.card}</div>
+    </AbsoluteFill>
+  );
+};
+
 const MyPlatformSceneInner: React.FC<{ kind: string; labels: Labels; seconds: number; at?: number[] }> = ({ kind, labels, seconds, at = [0, 5, 10] }) => {
   if (kind === "globe") return <GlobeScene labels={labels} seconds={seconds} />;
   if (kind === "port") return <PortScene labels={labels} seconds={seconds} />;
@@ -599,6 +616,7 @@ const MyPlatformSceneInner: React.FC<{ kind: string; labels: Labels; seconds: nu
   if (kind === "broker") return <BrokerScene labels={labels} seconds={seconds} />;
   if (kind === "benefits") return <BenefitsScene labels={labels} at={at} seconds={seconds} />;
   if (kind === "tagline") return <TaglineScene labels={labels} seconds={seconds} />;
+  if (kind === "endcard") return <EndCardScene labels={labels} seconds={seconds} />;
   return <WorldScene labels={labels} seconds={seconds} />;
 };
 

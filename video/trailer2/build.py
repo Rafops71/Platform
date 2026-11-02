@@ -15,7 +15,9 @@ import numpy as np
 import soundfile as sf
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-LEAD, TAIL, PART_GAP = 0.9, 3.0, 1.2
+LEAD, TAIL, PART_GAP = 0.9, 6.5, 1.2
+USED = [0, 1, 2, 3, 4, 6]  # part 6 (the success-fee sentence) is not spoken; it is a text card at the end (owner, v8)
+CARD = 'Free to join. We are paid a success fee only when an introduction leads to a concluded deal.'
 PRE, POST = 0.30, 0.55
 
 
@@ -52,7 +54,8 @@ def main():
         audio[n] = (a if a.ndim == 1 else a.mean(axis=1), sr)
     sr = audio[0][1]
     chunks, tl, part_span, t = [np.zeros(int(LEAD * sr), dtype='float32')], {}, {}, LEAD
-    for p, sentences in enumerate(parts):
+    for p in USED:
+        sentences = parts[p]
         n = sent[(p, 0)][2]
         a = audio[n][0]
         first, last = sent[(p, 0)][0], sent[(p, len(sentences) - 1)][1]
@@ -65,7 +68,7 @@ def main():
             tl[(p, s)] = (t + sent[(p, s)][0] - lo, t + sent[(p, s)][1] - lo)
         part_span[p] = (t, t + len(chunk) / sr)
         chunks.append(chunk)
-        gap = PART_GAP if p < len(parts) - 1 else TAIL
+        gap = PART_GAP if p != USED[-1] else TAIL
         chunks.append(np.zeros(int(gap * sr), dtype='float32'))
         t += len(chunk) / sr + gap
     total = t
@@ -79,7 +82,8 @@ def main():
                 return h['start']
         return None
     # scene boundaries: the middle of the quiet between parts
-    bounds = [0.0] + [(part_span[p][1] + part_span[p + 1][0]) / 2 for p in range(len(parts) - 1)] + [total]
+    bounds = [0.0] + [(part_span[USED[i]][1] + part_span[USED[i + 1]][0]) / 2 for i in range(len(USED) - 1)] + [total]
+    bi = {p: i for i, p in enumerate(USED)}
 
     def sentence_labels(p, skip_first=False):
         lab = {}
@@ -88,7 +92,7 @@ def main():
             if skip_first and s == 0:
                 continue
             lab[f's{k}'] = parts[p][s]
-            lab[f't{k}'] = f'{max(0.0, tl[(p, s)][0] - bounds[p] - 0.35):.2f}'
+            lab[f't{k}'] = f'{max(0.0, tl[(p, s)][0] - bounds[bi[p]] - 0.35):.2f}'
             k += 1
         return lab
 
@@ -112,11 +116,10 @@ def main():
     scenes.append(dict(kind='appshots', labels=lab))
     scenes.append(dict(kind='broker', labels=dict(memberA='Member', memberB='Member', operator='Operator', caption='', agreed='', **sentence_labels(3))))
     ts = [word_time(4, w) for w in ('members', 'documents', 'transactions')]
-    base = [tl[(4, 0)][0] - bounds[4] if v is None else v + (tl[(4, 0)][0] - sent[(4, 0)][0]) - bounds[4] for v in ts]
+    base = [tl[(4, 0)][0] - bounds[bi[4]] if v is None else v + (tl[(4, 0)][0] - sent[(4, 0)][0]) - bounds[bi[4]] for v in ts]
     scenes.append(dict(kind='benefits', labels=dict(b1='Members', b1line='', b2='Documents', b2line='', b3='Transactions', b3line='', **sentence_labels(4)),
                        at=[max(0.4, x) for x in base]))
-    scenes.append(dict(kind='tagline', labels=dict(title='Free to join and use.', **sentence_labels(5, skip_first=True))))
-    scenes.append(dict(kind='tagline', labels=dict(title='Where opportunity meets discretion.')))
+    scenes.append(dict(kind='endcard', labels=dict(title='Where opportunity meets discretion.', card=CARD, cardAt=f'{max(0.0, tl[(6, 0)][0] - bounds[bi[6]] - 0.35):.2f}')))
 
     cuts = []
     for i, sc in enumerate(scenes):
@@ -133,6 +136,7 @@ def main():
         f.write('| sentence | start s | end s |\n|---|---|---|\n')
         for (p, s), (a, b) in sorted(tl.items()):
             f.write(f'| {p + 1}.{s + 1} | {a:.1f} | {b:.1f} |\n')
+    print(f'end card shown from {bounds[-2] + float(scenes[-1]["labels"]["cardAt"]):.1f} s to {total:.1f} s = {total - bounds[-2] - float(scenes[-1]["labels"]["cardAt"]):.1f} s')
     print(f'{total:.1f} s, {len(cuts)} scenes')
 
 
