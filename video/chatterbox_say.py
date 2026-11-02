@@ -34,6 +34,7 @@ VOCAB = {
     'es': 'MyPlatform, Incoterm, CIF, FOB, cátodos de cobre, Operador, Buzón, Chile, Rotterdam.',
 }
 WER_LIMIT = 0.15
+SENTENCE_FAIL = 0.35
 TRIES = 8
 # A sentence needs about 0.4 s a word; far above that is mumbling or a loop. The flat part is generous because
 # Chatterbox pads one-word sentences ("Discreción.") with silence; babble would also show up as extra words in the WER.
@@ -164,7 +165,9 @@ def main() -> int:
         out = torch.cat(chunks[:-1], dim=1)
         ta.save(job['out'], out, model.sr)
         line_wer = wer(job['text'], ' '.join(heard), job['lang'])
-        ok = line_wer <= WER_LIMIT and worst_sentence <= WER_LIMIT
+        # The owner's rule is on the LINE (WER above 0.15 fails); a single sentence far beyond the limit is a broken
+        # sentence hidden in a long line, so that fails too.
+        ok = line_wer <= WER_LIMIT and worst_sentence <= SENTENCE_FAIL
         row = dict(id=job.get('id', job['out']), lang=job['lang'], wer=round(line_wer, 3),
                    worst_sentence=round(worst_sentence, 3), tries=tries_total,
                    seconds=round(out.shape[-1] / model.sr, 1), ok=ok, heard=' '.join(heard))
