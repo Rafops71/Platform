@@ -83,7 +83,7 @@ async function postListing(browser, who, spec) {
       // Without the bottom two lines ("No documents indicated" is about uploaded files, and would read as the
       // opposite of the poster's own statement; the Contact button is not the point either).
       const box = await rows[i].boundingBox();
-      await page.screenshot({ path: path.join(OUT, `listing-${i}.png`), clip: { x: box.x, y: box.y, width: box.width, height: box.height - 66 } });
+      await page.screenshot({ path: path.join(OUT, `listing-${i}.png`), clip: { x: box.x, y: box.y, width: box.width, height: box.height - 86 } });
     }
     await ctx.close();
   } finally {
