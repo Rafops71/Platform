@@ -25,6 +25,7 @@ def norm(w):
 
 def main():
     voice, out = sys.argv[1:3]
+    cap = sys.argv[3] if len(sys.argv) > 3 else None
     os.makedirs(out, exist_ok=True)
     spec = json.load(open(os.path.join(HERE, 'parts.json'), encoding='utf8'))
     parts = spec['parts']
@@ -90,6 +91,15 @@ def main():
             lab[f't{k}'] = f'{max(0.0, tl[(p, s)][0] - bounds[p] - 0.35):.2f}'
             k += 1
         return lab
+
+    if cap:
+        # The two listing pictures are cut a little above the app's "No documents indicated" line (that line is about
+        # uploaded files and would read as the opposite of the poster's own statement).
+        from PIL import Image
+        for name in ('listing-0.png', 'listing-1.png'):
+            im = Image.open(os.path.join(cap, name))
+            im.crop((0, 0, im.width, im.height - 32)).save(os.path.join(out, name))
+        Image.open(os.path.join(cap, 'browse-top.png')).save(os.path.join(out, 'browse-top.png'))
 
     scenes = []
     scenes.append(dict(kind='globe', labels=dict(title=' ', caption='', **sentence_labels(0))))
