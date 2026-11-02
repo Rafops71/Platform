@@ -145,11 +145,11 @@ function speakGemini(text, lang, outFile) {
 /** Chatterbox speaks a whole batch with one model load: every line that is
  *  still missing is written to a job list and spoken in one go (see
  *  video/chatterbox_say.py). The per-line loop below then only reads the files. */
-function speakChatterboxBatch(jobs) {
+function speakChatterboxBatch(jobs, tableName = 'wer-table.md') {
   if (!jobs.length) return;
-  const list = path.join(OUT, 'chatterbox-jobs.json');
+  const list = path.join(OUT, tableName.replace('wer-table', 'chatterbox-jobs').replace(/\.md$/, '.json'));
   fs.writeFileSync(list, JSON.stringify(jobs, null, 2));
-  const table = path.join(OUT, 'wer-table.md');
+  const table = path.join(OUT, tableName);
   const res = spawnSync('python3', [path.join(__dirname, 'chatterbox_say.py'), list, table],
     { encoding: 'utf8', stdio: ['ignore', 'inherit', 'pipe'], maxBuffer: 1 << 26 });
   if (res.status !== 0 || jobs.some((j) => !fs.existsSync(j.out))) {
@@ -184,6 +184,10 @@ function main() {
   // from its text - about fifteen characters a second, never under three
   // seconds - which is all the recorder needs to walk the scenes.
   const stills = args.includes('--stills');
+  // --shard I/N: speak only every N-th line (starting at I) and stop; the workflow runs the N shards in parallel
+  // jobs and joins their files before recording (same voice, same gate, same table format).
+  const shardArg = args.includes('--shard') ? args[args.indexOf('--shard') + 1] : null;
+  const shard = shardArg ? shardArg.split('/').map(Number) : null;
 
   const allLanguages = langArg ? [langArg] : ['en', 'es'];
   const films = filmArg ? [filmArg] : Object.keys(SCRIPT.films);
@@ -211,7 +215,13 @@ function main() {
         }
       }
     }
-    speakChatterboxBatch(jobs);
+    if (shard) {
+      speakChatterboxBatch(jobs.filter((_, i) => i % shard[1] === shard[0]), `wer-table-${shard[0]}.md`);
+      console.log(`Shard ${shard[0]}/${shard[1]} done.`);
+      return;
+    }
+    // Lines already there (spoken by the parallel shards) are kept, not spoken again.
+    speakChatterboxBatch(jobs.filter((j) => !fs.existsSync(j.out)));
   }
 
   for (const film of films) {
