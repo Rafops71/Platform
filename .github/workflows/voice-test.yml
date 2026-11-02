@@ -209,3 +209,143 @@ jobs:
           path: clips/
           retention-days: 14
           if-no-files-found: warn
+
+  trailer_voice_en:
+    # The new English trailer's narration (owner's approved text, 2026-11-02): Gemini Algieba, two requests, slowed
+    # (atempo 0.93), listened to by faster-whisper. Run once; the build reuses its artifact.
+    if: ${{ inputs.only == 'trailer-voice-en' }}
+    name: New English trailer voice (Gemini, 2 requests, gated)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - run: pip install faster-whisper soundfile numpy
+      - name: Speak, slow, listen
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python3 video/trailer2/voice.py voice-out
+      - name: The voice check
+        if: always()
+        run: cat voice-out/voice-table.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "No table was written." >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trailer-voice-en
+          path: |
+            voice-out/voice-*.wav
+            voice-out/voice-*.json
+            voice-out/voice-table.md
+          retention-days: 14
+          if-no-files-found: warn
+
+  trailer_capture:
+    # Sharp pictures of the real app (Browse with real listings posted through the app's own form) for the new
+    # English trailer. Uses the live project like the films do, so it holds the same place in the queue as CI.
+    if: ${{ inputs.only == 'trailer-capture' }}
+    name: New English trailer pictures (the real app)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: ci-live-database
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Capture
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          node scripts/serve.js &
+          for i in $(seq 1 30); do curl -sf http://localhost:8000/index.html >/dev/null && break; sleep 1; done
+          node video/trailer2/capture.js capture-out
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trailer-capture-en
+          path: capture-out/
+          retention-days: 14
+          if-no-files-found: warn
+
+  trailer_render_en:
+    # Renders the new English trailer on the runner (OpenMontage's Remotion composer + the app-coloured scenes of
+    # video/trailer2/MyPlatformScenes.tsx), checks it, uploads it; with only=trailer-send-en it also emails it once.
+    if: ${{ inputs.only == 'trailer-render-en' || inputs.only == 'trailer-send-en' }}
+    name: New English trailer, render (and send)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      VOICE_RUN: '41441771944'
+      CAPTURE_RUN: '41442771453'
+      OM_SHA: '195eab24478dc9363326aec437aefc3701635ddf'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg && pip install numpy soundfile pillow
+      - uses: actions/download-artifact@v4
+        with:
+          name: trailer-voice-en
+          run-id: ${{ env.VOICE_RUN }}
+          github-token: ${{ github.token }}
+          path: voice
+      - uses: actions/download-artifact@v4
+        with:
+          name: trailer-capture-en
+          run-id: ${{ env.CAPTURE_RUN }}
+          github-token: ${{ github.token }}
+          path: capture
+      - name: Cut list and narration
+        run: python3 video/trailer2/build.py voice build capture
+      - name: OpenMontage (the composer the first trailer was made with)
+        run: |
+          mkdir om && cd om && git init -q && git remote add origin https://github.com/calesthio/OpenMontage
+          git fetch -q --depth 1 origin "$OM_SHA" && git checkout -q FETCH_HEAD
+          cd remotion-composer && npm ci --no-audit --no-fund
+          cp ../../video/trailer2/MyPlatformScenes.tsx src/components/MyPlatformScenes.tsx
+          git apply ../../video/trailer/explainer.patch
+          mkdir -p public/mp
+          cp ../../build/narration.wav public/mp/narration-en-new.wav
+          cp ../../build/trailer-en.json public/mp/trailer-en-new.json
+          cp ../../build/listing-0.png ../../build/listing-1.png ../../build/browse-top.png public/mp/
+      - name: Render
+        run: cd om/remotion-composer && npx remotion render src/index.tsx Explainer ../../trailer-en.mp4 --props=public/mp/trailer-en-new.json --codec h264 --crf 22 --concurrency 4
+      - name: Check it (length, picture, sound)
+        run: |
+          ffprobe -v error -show_entries format=duration:stream=codec_name,width,height,nb_frames -of default=nw=1 trailer-en.mp4
+          ffmpeg -i trailer-en.mp4 -af volumedetect -vn -f null - 2>&1 | grep -E "mean_volume|max_volume"
+          ls -l trailer-en.mp4
+          for t in 3 12 28 36 44 55 66 76; do ffmpeg -v error -y -ss $t -i trailer-en.mp4 -frames:v 1 -vf scale=960:-1 "frame-$t.png"; done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trailer-en-render
+          path: |
+            trailer-en.mp4
+            frame-*.png
+            build/timeline.md
+            voice/voice-table.md
+          retention-days: 14
+      - name: Send (only with only=trailer-send-en)
+        if: ${{ inputs.only == 'trailer-send-en' }}
+        run: |
+          ffmpeg -v error -y -i trailer-en.mp4 -vf scale=1280:-2 -c:v libx264 -crf 24 -preset medium -c:a aac -b:a 96k -movflags +faststart small.mp4
+          ls -l small.mp4
+          node scripts/send-trailer.js small.mp4
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          LISTING_EMAIL_FROM: ${{ secrets.LISTING_EMAIL_FROM }}
