@@ -316,7 +316,7 @@ const BenefitsScene: React.FC<{ labels: Labels; at: number[]; seconds: number }>
           const float = 8 * Math.sin((frame + i * 25) / 14);
           return (
             <div key={i} style={{
-              width: 500, height: 560, borderRadius: 32, background: "#FFFFFF", padding: 44, boxSizing: "border-box", textAlign: "center",
+              width: 500, height: it.line ? 560 : 400, borderRadius: 32, background: "#FFFFFF", padding: 44, boxSizing: "border-box", textAlign: "center",
               boxShadow: active ? "0 30px 70px rgba(39,97,143,0.28)" : "0 14px 36px rgba(39,97,143,0.14)",
               border: active ? `3px solid ${GOLD}` : "3px solid transparent",
               opacity: s, transform: `translateY(${120 * (1 - s) + float}px) rotateY(${(1 - s) * (i - 1) * 35}deg) scale(${active ? 1.05 : 1})`,

@@ -115,8 +115,8 @@ def main():
     base = [tl[(4, 0)][0] - bounds[4] if v is None else v + (tl[(4, 0)][0] - sent[(4, 0)][0]) - bounds[4] for v in ts]
     scenes.append(dict(kind='benefits', labels=dict(b1='Members', b1line='', b2='Documents', b2line='', b3='Transactions', b3line='', **sentence_labels(4)),
                        at=[max(0.4, x) for x in base]))
-    scenes.append(dict(kind='tagline', labels=dict(title='Free to join and use', **sentence_labels(5, skip_first=True))))
-    scenes.append(dict(kind='tagline', labels=dict(title='Where opportunity meets discretion')))
+    scenes.append(dict(kind='tagline', labels=dict(title='Free to join and use.', **sentence_labels(5, skip_first=True))))
+    scenes.append(dict(kind='tagline', labels=dict(title='Where opportunity meets discretion.')))
 
     cuts = []
     for i, sc in enumerate(scenes):
