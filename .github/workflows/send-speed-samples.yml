@@ -1,0 +1,42 @@
+name: Send the voice speed samples
+
+# Manual only. Emails the three English voice-speed samples (A about 140, B about 130, C about 120 words per minute)
+# to the owner. The address is written in scripts/send-speed-samples.js. The source is the pace-sample run named
+# below (artifact speed-samples-en, file gemini-target-130.wav); B and C are made from it with ffmpeg atempo
+# (0.93 and 0.86), A is it as it is.
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@v4
+        with:
+          name: speed-samples-en
+          run-id: 41432786332
+          github-token: ${{ github.token }}
+          path: src
+      - name: Make the three MP3s (96 kbit/s)
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+          mkdir -p out
+          ffmpeg -v error -y -i src/gemini-target-130.wav -ac 1 -b:a 96k out/A-140wpm.mp3
+          ffmpeg -v error -y -i src/gemini-target-130.wav -af atempo=0.93 -ac 1 -b:a 96k out/B-130wpm.mp3
+          ffmpeg -v error -y -i src/gemini-target-130.wav -af atempo=0.86 -ac 1 -b:a 96k out/C-120wpm.mp3
+          for f in out/*.mp3; do echo "$f $(ffprobe -v error -show_entries format=duration -of csv=p=0 "$f") s"; done
+      - name: Send
+        run: node scripts/send-speed-samples.js out
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          LISTING_EMAIL_FROM: ${{ secrets.LISTING_EMAIL_FROM }}
