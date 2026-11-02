@@ -241,3 +241,39 @@ jobs:
             voice-out/voice-table.md
           retention-days: 14
           if-no-files-found: warn
+
+  trailer_capture:
+    # Sharp pictures of the real app (Browse with real listings posted through the app's own form) for the new
+    # English trailer. Uses the live project like the films do, so it holds the same place in the queue as CI.
+    if: ${{ inputs.only == 'trailer-capture' }}
+    name: New English trailer pictures (the real app)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: ci-live-database
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Capture
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          node scripts/serve.js &
+          for i in $(seq 1 30); do curl -sf http://localhost:8000/index.html >/dev/null && break; sleep 1; done
+          node video/trailer2/capture.js capture-out
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trailer-capture-en
+          path: capture-out/
+          retention-days: 14
+          if-no-files-found: warn
