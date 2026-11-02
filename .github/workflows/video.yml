@@ -31,6 +31,10 @@ on:
         description: 'Voice, e.g. af_heart (Kokoro) or en_GB-cori-high (Piper). Blank uses script.json (Gemini Algieba).'
         required: false
         default: ''
+      voice_run:
+        description: 'Reuse the checked narration of an earlier run (its run id) instead of speaking the lines again'
+        required: false
+        default: ''
       engine:
         description: 'Voice engine: chatterbox (chosen by the owner on 2026-11-01), gemini, kokoro or piper'
         required: false
@@ -55,7 +59,7 @@ jobs:
     # Public repository: standard runners cost nothing, so parallel jobs cost nothing extra. These jobs touch no
     # database, so they do not take the live-database place that CI and the recording share.
     name: Voice ${{ matrix.shard }} of 5
-    if: inputs.engine == 'chatterbox' && inputs.stills != 'true'
+    if: inputs.engine == 'chatterbox' && inputs.stills != 'true' && inputs.voice_run == ''
     runs-on: ubuntu-latest
     timeout-minutes: 120
     strategy:
@@ -165,6 +169,8 @@ jobs:
         with:
           pattern: voice-${{ inputs.film }}-${{ inputs.lang }}-*
           path: voice-parts
+          run-id: ${{ inputs.voice_run || github.run_id }}
+          github-token: ${{ github.token }}
 
       - name: Put the narration where the recorder looks
         if: inputs.engine == 'chatterbox' && inputs.stills != 'true'
@@ -172,6 +178,10 @@ jobs:
           mkdir -p video/audio
           find voice-parts -name '*.wav' -exec cp {} video/audio/ \;
           find voice-parts -name 'wer-table-*.md' | sort | xargs cat > video/audio/wer-table.md
+          # The narration files are 32-bit float WAV; the assembler joins them with a 16-bit pause by plain
+          # concatenation, which reads the pause at half its length (the Spanish film came out 19 s short).
+          # Everything is made 16-bit first, so voice and pause have the same format.
+          for f in video/audio/*.wav; do ffmpeg -v error -y -i "$f" -c:a pcm_s16le "$f.tmp.wav" && mv "$f.tmp.wav" "$f"; done
           ls video/audio | wc -l
 
       - name: Speak every line, and measure it

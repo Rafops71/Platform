@@ -164,7 +164,7 @@ def main() -> int:
             chunks.extend([best[1], gap])
             heard.append(best[2])
         out = torch.cat(chunks[:-1], dim=1)
-        ta.save(job['out'], out, model.sr)
+        ta.save(job['out'], out, model.sr, encoding='PCM_S', bits_per_sample=16)
         line_wer = wer(job['text'], ' '.join(heard), job['lang'])
         # The owner's rule is on the LINE (WER above 0.15 fails); a single sentence far beyond the limit is a broken
         # sentence hidden in a long line, so that fails too.
