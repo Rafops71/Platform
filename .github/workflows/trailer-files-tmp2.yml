@@ -1,0 +1,19 @@
+name: Trailer files 2 (temporary, upload only)
+# Throwaway: uploads the finished trailers and their voice-check table as an artifact. Runs only on the branch
+# trailer-files-tmp2, which is deleted afterwards and never merged.
+on:
+  push:
+    branches: [trailer-files-tmp2]
+permissions:
+  contents: read
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trailers-chatterbox-gated-en-es
+          path: tmp-trailers/*
+          retention-days: 14
+          if-no-files-found: error
