@@ -94,6 +94,7 @@ def spell_numbers(text, lang):
 def words(text, lang='en'):
     t = spell_numbers(text, lang).lower().replace('my platform', 'myplatform')
     t = re.sub(r'[^\w\s]', ' ', t)
+    t = re.sub(r'cientas\b', 'cientos', t)  # quinientas (feminine, as in 'una partida') = quinientos
     toks = t.split()
     # "c i f" (spoken as letters) is the word "cif"; "chilly" is Chile.
     out, run = [], []
