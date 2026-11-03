@@ -77,7 +77,12 @@ const jericho = (function () {
         return rows.filter((r) => own.has(r.listing_id));
       }
       case 'document_requests': return rows.filter((r) => r.participant_id === p.id);
-      case 'messages': return rows.filter((r) => r.sender_id === p.id);
+      case 'messages': {
+        // Mirrors messages_select: own sent messages, plus messages forwarded to you.
+        const forwarded = new Set(db.message_forward_log.filter((f) => f.to_user_id === p.id).map((f) => f.message_id));
+        return rows.filter((r) => r.sender_id === p.id || forwarded.has(r.id));
+      }
+      case 'message_forward_log': return rows.filter((r) => r.to_user_id === p.id);
       case 'notifications':
       case 'saved_searches': return rows.filter((r) => r.user_id === p.id);
       default: return []; // Operator-only tables: invitations, activity_log, matches, deals, ...
@@ -173,13 +178,13 @@ const jericho = (function () {
   function predicateFor(col, op, value) {
     switch (op) {
       case 'eq': return (r) => eqv(r[col], value);
-      case 'neq': return (r) => !eqv(r[col], value);
-      case 'ilike': { const re = likeToRegex(value); return (r) => re.test(String(norm(r[col]) ?? '')); }
+      case 'neq': return (r) => r[col] != null && !eqv(r[col], value);
+      case 'ilike': { const re = likeToRegex(value); return (r) => r[col] != null && re.test(String(r[col])); }
       case 'is': return (r) => ((value === null || value === 'null') ? r[col] == null : r[col] === value);
-      case 'gt': return (r) => cmpVals(r[col], value) > 0;
-      case 'gte': return (r) => cmpVals(r[col], value) >= 0;
-      case 'lt': return (r) => cmpVals(r[col], value) < 0;
-      case 'lte': return (r) => cmpVals(r[col], value) <= 0;
+      case 'gt': return (r) => r[col] != null && cmpVals(r[col], value) > 0;
+      case 'gte': return (r) => r[col] != null && cmpVals(r[col], value) >= 0;
+      case 'lt': return (r) => r[col] != null && cmpVals(r[col], value) < 0;
+      case 'lte': return (r) => r[col] != null && cmpVals(r[col], value) <= 0;
       default: throw new Error(`demo: unsupported filter operator "${op}"`);
     }
   }
@@ -271,6 +276,9 @@ const jericho = (function () {
       if (this._orders.length) {
         rows = rows.slice().sort((a, b) => {
           for (const o of this._orders) {
+            const an = a[o.c] == null; const bn = b[o.c] == null;
+            // Postgres treats NULL as larger than any value: last when ascending, first when descending.
+            if (an || bn) { if (an && bn) continue; const r = an ? 1 : -1; return o.asc ? r : -r; }
             const c = cmpVals(a[o.c], b[o.c]);
             if (c) return o.asc ? c : -c;
           }
@@ -425,7 +433,10 @@ const jericho = (function () {
     accept_terms() { return null; },
     has_accepted_current_terms() { return !!me(); },
     get_public_listings() {
-      if (!me()) throw err('permission denied for function get_public_listings', '42501');
+      const viewer = me();
+      if (!viewer || (!isOperator(viewer) && viewer.status !== 'approved')) {
+        throw err('permission denied for function get_public_listings', '42501');
+      }
       return db.listings.filter((l) => l.status !== 'archived').map((l) => ({
         id: l.id, reference_number: l.reference_number, type: l.type, commodity: l.commodity,
         quantity: l.quantity, unit: l.unit, incoterm: l.incoterm,

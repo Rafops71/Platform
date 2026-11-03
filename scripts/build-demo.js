@@ -111,8 +111,8 @@ function check(pages) {
   const files = listFiles(OUT);
 
   for (const file of files) {
-    if (!/\.(html|js|css|json|txt|md|svg)$/i.test(file)) continue;
-    const text = fs.readFileSync(file, 'utf8');
+    // Every file, whatever its extension: a key in a video or a map file would still ship.
+    const text = fs.readFileSync(file).toString('latin1');
     for (const bad of forbidden) {
       if (text.includes(bad)) problems.push(`${path.relative(OUT, file)} contains "${bad}"`);
     }
