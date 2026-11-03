@@ -8,7 +8,7 @@
 
 # Local tooling noise
 .DS_Store
-node_modules/
+node_modules
 *.log
 
 # Playwright output. Traces and screenshots from a failed E2E run can contain
@@ -27,3 +27,6 @@ checklist-sql.txt
 
 # Local helper, not part of the project
 permissions-to-paste.txt
+
+# Demo site build (scripts/build-demo.js) - generated, never committed.
+dist-demo/

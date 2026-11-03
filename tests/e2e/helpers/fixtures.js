@@ -147,7 +147,10 @@ async function fillSignature(page, over = {}, prefix = '') {
   const v = { capacity: 'individual', address_line1: '1 Test Street', city: 'Testville',
               country: 'Belgium', signed_name: 'Test Signer', ...over };
   await page.check(`#${prefix}cap-${v.capacity}`);
-  if (v.capacity === 'company') await page.fill(`#${prefix}company`, v.company || 'Test Company Ltd');
+  if (v.capacity === 'company') {
+    await page.fill(`#${prefix}company`, v.company || 'Test Company Ltd');
+    await page.fill(`#${prefix}job_title`, v.job_title || 'Test Director');
+  }
   await page.fill(`#${prefix}address_line1`, v.address_line1);
   await page.fill(`#${prefix}city`, v.city);
   await page.selectOption(`#${prefix}country`, v.country);

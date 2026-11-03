@@ -27,13 +27,17 @@ function signingFieldsHtml(prefix) {
     <fieldset class="signing-capacity">
       <legend><span data-i18n="sign.capacity">I sign</span> *</legend>
       <label class="checkbox-row"><input type="radio" name="${p}capacity" id="${p}cap-individual" value="individual" required>
-        <span data-i18n="sign.capacity.individual">as an individual</span></label>
+        <span><strong data-i18n="sign.capacity.individual">Individual capacity</strong><br>
+          <span class="field-hint" data-i18n="sign.capacity.individual.text">I act personally and solely on my own behalf, not for any company or employer</span></span></label>
       <label class="checkbox-row"><input type="radio" name="${p}capacity" id="${p}cap-company" value="company">
-        <span data-i18n="sign.capacity.company">on behalf of a company</span></label>
+        <span><strong data-i18n="sign.capacity.company">Corporate capacity</strong><br>
+          <span class="field-hint" data-i18n="sign.capacity.company.text">The signatory warrants that they are duly authorised to sign these Terms on behalf of the Company and to bind it to them.</span></span></label>
     </fieldset>
     <div id="${p}company-row" class="hidden">
-      <label for="${p}company"><span data-i18n="sign.company">Company name</span> *</label>
+      <label for="${p}company"><span data-i18n="sign.company">Company name (the “Company”)</span> *</label>
       <input type="text" id="${p}company" autocomplete="organization">
+      <label for="${p}job_title"><span data-i18n="sign.jobTitle">Job title / position</span> *</label>
+      <input type="text" id="${p}job_title" autocomplete="organization-title">
     </div>
 
     <p class="field-hint" data-i18n="sign.poBoxNotice">Your street address, where you live or work. PO boxes cannot be used: legal papers must reach a real address.</p>
@@ -70,11 +74,15 @@ function renderSigningFields(host, prefix) {
   populateSelect(prefix + 'country', COUNTRIES, false, countryLabel);
   const row = document.getElementById(prefix + 'company-row');
   const box = document.getElementById(prefix + 'company');
+  const title = document.getElementById(prefix + 'job_title');
   host.querySelectorAll(`input[name="${prefix}capacity"]`).forEach(r => {
     r.addEventListener('change', () => {
       const isCompany = r.value === 'company' && r.checked;
       row.classList.toggle('hidden', !isCompany);
+      // Corporate capacity needs the Company and the signatory's job title;
+      // an individual gives neither (owner's list, items 8 and 11).
       box.required = isCompany;
+      title.required = isCompany;
     });
   });
 }
@@ -87,6 +95,7 @@ function readSignature(prefix) {
     signed_name: val('signed_name'),
     signing_capacity: picked ? picked.value : '',
     company: val('company'),
+    job_title: val('job_title'),
     address_line1: val('address_line1'),
     address_line2: val('address_line2'),
     city: val('city'),
@@ -96,9 +105,23 @@ function readSignature(prefix) {
   if (values.signed_name.length < 3 || !values.signed_name.includes(' ')) return { errorKey: 'sign.err.name' };
   if (!values.signing_capacity) return { errorKey: 'sign.err.capacity' };
   if (values.signing_capacity === 'company' && !values.company) return { errorKey: 'sign.err.company' };
+  if (values.signing_capacity === 'company' && !values.job_title) return { errorKey: 'sign.err.jobTitle' };
+  if (values.signing_capacity !== 'company') values.job_title = '';
   if (!values.address_line1 || !values.city || !values.country) return { errorKey: 'sign.err.address' };
   if (looksLikePoBox(values.address_line1) || looksLikePoBox(values.address_line2)) return { errorKey: 'sign.err.poBox' };
   return { values };
+}
+
+/** Corporate capacity gives the signatory's job title (owner's list, item 11).
+ *  It is kept on their own profile, which they can edit later. This is the
+ *  page's own check and write: nothing in the database requires it yet, and a
+ *  failed write is logged and never blocks the signing. */
+async function saveSignatoryJobTitle(values, userId) {
+  if (!userId || values.signing_capacity !== 'company' || !values.job_title) return;
+  try {
+    const { error } = await jericho.from('profiles').update({ job_title: values.job_title }).eq('user_id', userId);
+    if (error) console.error('job title was not saved to the profile:', error);
+  } catch (e) { console.error('job title was not saved to the profile:', e); }
 }
 
 /** The newest published Terms version, in the member's language if it
@@ -157,6 +180,8 @@ async function submitTermsGate(terms) {
       p_city: v.city, p_postal_code: v.postal_code || null, p_country: v.country,
     });
     if (error) { showError(errorMessage(error)); return; }
+    const { data: me } = await jericho.auth.getUser();
+    await saveSignatoryJobTitle(v, me && me.user && me.user.id);
     window.location.reload();
   });
 }

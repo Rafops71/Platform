@@ -54,9 +54,14 @@
       "gemini: the owner's choice on 2026-10-29 - Gemini text-to-speech, voice Algieba,",
       "for every film (the trailer already uses it). The key is the GEMINI_API_KEY",
       "environment variable or repository secret; it is never in this file or any",
-      "other file in the repository. Kokoro and Piper stay available above."
+      "other file in the repository. Kokoro and Piper stay available above.",
+      "",
+      "chatterbox: the owner's decision on 2026-11-01 - Chatterbox-Multilingual (Resemble AI,",
+      "MIT weights) for EVERY film, the trailer included, the same default voice in both",
+      "languages. It runs on a CPU, loads once per batch (video/chatterbox_say.py), and needs",
+      "no key. Its output carries an imperceptible PerTh watermark. Gemini stays available."
     ],
-    "engine": "gemini",
+    "engine": "chatterbox",
     "kokoro": {
       "en": "am_michael",
       "es": "ef_dora",
@@ -144,7 +149,10 @@
         {
           "id": "anonymous",
           "do": "hold",
+          "zoom": ".list-row:has([data-contact=\"{demandId}\"])",
+          "zoomScale": 1.25,
           "highlight": ".list-row:has([data-contact=\"{demandId}\"])",
+          "zoomOutAfter": true,
           "say": {
             "en": "Notice what the row does not tell you. No name, no company, no email address. You can see exactly what they want, and nothing about who they are. The row does show what the poster states about their own role and their documents.",
             "es": "Fíjese en lo que la fila no le dice. Ni nombre, ni empresa, ni correo electrónico. Puede ver exactamente qué quieren, y nada sobre quiénes son. La fila sí muestra lo que el anunciante declara sobre su propio papel y sus documentos."
