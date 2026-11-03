@@ -1,0 +1,335 @@
+// Storyboard v11 - key frames (1920x1080) per act plus the table. Pictures only: no voice requests, no video.
+//   node video/storyboard11/make.js CAPTURE_DIR OUT_DIR
+// CAPTURE_DIR holds browse.png, row.png, contact.png, mailbox.png (real app, 2x) and meta.json (from storyboard10/capture.js).
+// Everything app-shaped is a real screenshot (pieces of it are lit or covered); globe, night sea, hands, pen, diagram are drawn in code.
+const fs = require('fs'), path = require('path');
+const { chromium } = require('playwright');
+const [cap, out] = process.argv.slice(2);
+fs.mkdirSync(out, { recursive: true });
+const INK = '#15202b', BLUE = '#27618f', SLATE = '#52677a', SKY = '#f0f6fb', MIST = '#e2ebf3', LINE = '#c9d7e4', GLOWB = '#5fa3d6';
+const b64 = (f) => 'data:image/png;base64,' + fs.readFileSync(path.join(cap, f)).toString('base64');
+const meta = fs.existsSync(path.join(cap, 'meta.json')) ? JSON.parse(fs.readFileSync(path.join(cap, 'meta.json'))) : {};
+const SC = 1.5; // 1280 css px -> 1920
+let seed = 7; const rnd = () => { seed |= 0; seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+
+const css = `
+@import url('https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Source+Sans+3:wght@300;400;600&display=swap');
+*{box-sizing:border-box;margin:0}
+html,body{width:1920px;height:1080px;overflow:hidden;background:#fff;font-family:'Source Sans 3',sans-serif;color:${INK}}
+.stage{position:relative;width:1920px;height:1080px;overflow:hidden;background:radial-gradient(ellipse at 50% 42%,#ffffff 0%,${SKY} 62%,${MIST} 100%)}
+.stage.dark{background:#04080d}
+svg.l{position:absolute;left:0;top:0}
+.k{position:absolute;font-family:Spectral,serif;font-weight:300;color:${INK};letter-spacing:.01em;text-shadow:0 0 50px rgba(95,163,214,.28)}
+.k.big{font-size:104px;line-height:1.05}.k.mid{font-size:64px;line-height:1.1}
+.k.small{font-size:30px;font-family:'Source Sans 3';font-weight:400;letter-spacing:.26em;text-transform:uppercase;color:${SLATE};text-shadow:none}
+.k.word{font-weight:500;letter-spacing:.02em}
+.dark .k{color:#eaf3fa;text-shadow:0 0 60px rgba(143,193,234,.55),0 2px 24px rgba(0,0,0,.6)}
+em{font-style:italic;color:${BLUE}}
+.dark em{color:#9fcdf0}
+.lit{color:${BLUE};text-shadow:0 0 28px rgba(95,163,214,.75)}
+.shot{position:absolute;background:#fff;border-radius:10px;box-shadow:0 60px 120px rgba(21,32,43,.24),0 8px 18px rgba(21,32,43,.10);overflow:hidden}
+.abs{position:absolute}
+.vig{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 50%,rgba(255,255,255,0) 55%,rgba(21,32,43,.14) 100%)}
+.dark .vig{background:radial-gradient(ellipse at 50% 55%,rgba(0,0,0,0) 45%,rgba(0,0,0,.65) 100%)}
+.sweep{position:absolute;inset:-10%;pointer-events:none;mix-blend-mode:soft-light;background:linear-gradient(104deg,rgba(255,255,255,0) 34%,rgba(255,255,255,.95) 47%,rgba(255,255,255,0) 60%)}
+.grain{position:absolute;inset:0;opacity:.07;mix-blend-mode:multiply;pointer-events:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .1  0 0 0 0 .15  0 0 0 0 .2  0 0 0 .9 0'/></filter><rect width='240' height='240' filter='url(%23n)'/></svg>")}
+.dark .grain{mix-blend-mode:screen;opacity:.05}
+`;
+const DEFS = `<svg width="0" height="0" style="position:absolute"><defs>
+<filter id="g4" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"/></filter>
+<filter id="g8" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="8"/></filter>
+<filter id="g16" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="16"/></filter>
+<filter id="g40" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="40"/></filter>
+<filter id="g70" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="70"/></filter>
+<filter id="glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<filter id="softglow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="12" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<radialGradient id="rgBlue"><stop offset="0" stop-color="${GLOWB}" stop-opacity=".9"/><stop offset="1" stop-color="${GLOWB}" stop-opacity="0"/></radialGradient>
+<radialGradient id="rgWhite"><stop offset="0" stop-color="#fff" stop-opacity="1"/><stop offset=".4" stop-color="#fff" stop-opacity=".5"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+<radialGradient id="rgWarm"><stop offset="0" stop-color="#fff4cf" stop-opacity=".95"/><stop offset="1" stop-color="#ffd98a" stop-opacity="0"/></radialGradient>
+</defs></svg>`;
+const SV = (inner, extra = '') => `<svg class="l" width="1920" height="1080" viewBox="0 0 1920 1080" fill="none" stroke-linecap="round" stroke-linejoin="round" ${extra}>${inner}</svg>`;
+const kw = (cls, x, y, w, html, align = 'left', style = '') => `<div class="k ${cls}" style="left:${x}px;top:${y}px;width:${w}px;text-align:${align};${style}">${html}</div>`;
+const cursor = (x, y) => `<svg class="l" width="1920" height="1080" style="filter:drop-shadow(0 6px 8px rgba(21,32,43,.4))"><path d="M${x} ${y} L${x} ${y + 34} L${x + 9} ${y + 26} L${x + 16} ${y + 42} L${x + 23} ${y + 39} L${x + 16} ${y + 24} L${x + 28} ${y + 24} Z" fill="#fff" stroke="${INK}" stroke-width="2" stroke-linejoin="round"/></svg>`;
+const finish = (dark, plain) => plain ? '' : `<div class="vig"></div><div class="sweep" style="${dark ? 'display:none' : ''}"></div><div class="grain"></div>`;
+// drifting light motes (parallax layers: far = small and sharp, near = big and blurred)
+function motes(n, color, depth = 1) { let g = ''; for (let i = 0; i < n; i++) { const near = rnd() < 0.3, r = near ? 14 + rnd() * 30 : 2 + rnd() * 5; g += `<circle cx="${(rnd() * 1920).toFixed(0)}" cy="${(rnd() * 1080).toFixed(0)}" r="${r.toFixed(1)}" fill="${color}" opacity="${(near ? 0.1 : 0.45) * depth}" ${near ? 'filter="url(#g8)"' : ''} stroke="none"/>`; } return SV(g); }
+
+// ---------------------------------------------------------------- globe (acts 1 and 8)
+const LAND = [[-120, 55, 25, 12], [-100, 42, 30, 18], [-80, 30, 12, 10], [-100, 20, 12, 8], [-60, -12, 16, 24], [-70, -40, 6, 14], [-5, 40, 10, 7], [15, 52, 20, 10], [18, 66, 10, 7], [20, 5, 21, 28], [30, -20, 10, 14], [47, -19, 3, 8], [90, 55, 55, 12], [70, 40, 30, 12], [45, 25, 12, 10], [78, 20, 9, 11], [105, 30, 18, 14], [110, 5, 8, 5], [118, -2, 14, 5], [140, 37, 4, 8], [135, -25, 17, 11]];
+const isLand = (lon, lat) => LAND.some(([cx, cy, rx, ry]) => ((lon - cx) / rx) ** 2 + ((lat - cy) / ry) ** 2 < 1);
+const PORT = { val: [-72, -33], rdam: [4, 52], dbn: [31, -30], sha: [121, 31], hou: [-95, 29], sin: [104, 1], santos: [-46, -24], lagos: [3, 6], mba: [40, -4], bom: [73, 19], dxb: [55, 25], per: [116, -32], la: [-118, 34], psd: [32, 31], tyo: [140, 36], van: [-123, 49], cal: [-77, -12], tema: [0, 5], gla: [151, -23], ny: [-74, 41], cpt: [18, -34], hou2: [-90, 30] };
+const ROUTES = [['val', 'rdam', 1], ['dbn', 'rdam', 0], ['dbn', 'sha', 0], ['sin', 'rdam', 0], ['hou', 'rdam', 0], ['val', 'sha', 0], ['santos', 'rdam', 0], ['santos', 'cpt', 0], ['lagos', 'rdam', 0], ['mba', 'bom', 0], ['dxb', 'sha', 0], ['per', 'sin', 0], ['la', 'tyo', 0], ['psd', 'rdam', 0], ['tema', 'santos', 0], ['cpt', 'per', 0], ['dxb', 'rdam', 0], ['ny', 'rdam', 1], ['cal', 'la', 0], ['gla', 'sha', 0], ['bom', 'sin', 0], ['mba', 'dbn', 0]];
+function globe(cx, cy, R, lon0, o = {}) {
+  const tilt = 20 * Math.PI / 180, id = o.id || 'gl';
+  const vec = (lon, lat) => { const a = (lon - lon0) * Math.PI / 180, b = lat * Math.PI / 180; return [Math.cos(b) * Math.sin(a), Math.sin(b), Math.cos(b) * Math.cos(a)]; };
+  const proj = (v) => { const y = v[1] * Math.cos(tilt) - v[2] * Math.sin(tilt), z = v[1] * Math.sin(tilt) + v[2] * Math.cos(tilt); return [cx + v[0] * R, cy - y * R, z]; };
+  let g = `<defs><radialGradient id="${id}s" cx=".36" cy=".3" r=".9"><stop offset="0" stop-color="#fff"/><stop offset=".55" stop-color="#eef4fa"/><stop offset="1" stop-color="#c3d6e8"/></radialGradient>
+  <radialGradient id="${id}a" cx=".5" cy=".5" r=".5"><stop offset=".78" stop-color="${GLOWB}" stop-opacity="0"/><stop offset=".9" stop-color="${GLOWB}" stop-opacity=".28"/><stop offset="1" stop-color="${GLOWB}" stop-opacity="0"/></radialGradient>
+  <radialGradient id="${id}d" cx=".35" cy=".3" r=".85"><stop offset=".55" stop-color="#15202b" stop-opacity="0"/><stop offset="1" stop-color="#15202b" stop-opacity=".22"/></radialGradient>
+  <linearGradient id="${id}w" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".85"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+  <clipPath id="${id}c"><circle cx="${cx}" cy="${cy}" r="${R}"/></clipPath></defs>`;
+  g += `<ellipse cx="${cx}" cy="${cy + R * 1.14}" rx="${R * 0.86}" ry="${R * 0.07}" fill="${INK}" opacity=".16" filter="url(#g40)" stroke="none"/>`;
+  g += `<circle cx="${cx}" cy="${cy}" r="${R * 1.28}" fill="url(#${id}a)" stroke="none"/>`;
+  g += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="url(#${id}s)" stroke="none"/>`;
+  for (let lon = -180; lon < 180; lon += 20) { let d = '', on = false; for (let lat = -90; lat <= 90; lat += 4) { const p = proj(vec(lon, lat)); if (p[2] > 0) { d += (on ? 'L' : 'M') + `${p[0].toFixed(1)} ${p[1].toFixed(1)}`; on = true; } else on = false; } g += `<path d="${d}" stroke="#b9cde0" stroke-width="1" opacity=".7"/>`; }
+  for (let lat = -70; lat <= 70; lat += 20) { let d = '', on = false; for (let lon = -180; lon <= 180; lon += 4) { const p = proj(vec(lon, lat)); if (p[2] > 0) { d += (on ? 'L' : 'M') + `${p[0].toFixed(1)} ${p[1].toFixed(1)}`; on = true; } else on = false; } g += `<path d="${d}" stroke="#b9cde0" stroke-width="1" opacity=".7"/>`; }
+  for (let lat = -82; lat <= 82; lat += 2.4) for (let lon = -180; lon < 180; lon += 2.4 / Math.max(0.25, Math.cos(lat * Math.PI / 180))) {
+    if (!isLand(lon, lat)) continue; const p = proj(vec(lon, lat)); if (p[2] <= 0.03) continue;
+    g += `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${(0.9 + p[2] * 1.9).toFixed(1)}" fill="${p[2] > .7 ? '#3d5a75' : SLATE}" stroke="none" opacity="${(0.3 + p[2] * 0.62).toFixed(2)}"/>`;
+  }
+  g += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="url(#${id}d)" stroke="none"/>`;
+  const slerp = (a, b, t) => { const d = Math.acos(Math.min(1, a[0] * b[0] + a[1] * b[1] + a[2] * b[2])), s = Math.sin(d); if (!s) return a; const k1 = Math.sin((1 - t) * d) / s, k2 = Math.sin(t * d) / s; return [0, 1, 2].map((i) => a[i] * k1 + b[i] * k2); };
+  let comets = '', routesBase = '', routesHot = '';
+  ROUTES.forEach(([a, b, hot], i) => {
+    const A = vec(...PORT[a]), B = vec(...PORT[b]); const pts = [];
+    for (let t = 0; t <= 1.001; t += 0.02) { const v = slerp(A, B, t), lift = 1 + 0.07 * Math.sin(Math.PI * t), p = proj([v[0] * lift, v[1] * lift, v[2] * lift]); pts.push({ t, x: p[0], y: p[1], front: proj(v)[2] > 0.02 }); }
+    const path = (lo, hi) => { let d = '', on = false; for (const p of pts) { if (p.t < lo || p.t > hi || !p.front) { on = false; continue; } d += (on ? 'L' : 'M') + `${p.x.toFixed(1)} ${p.y.toFixed(1)}`; on = true; } return d; };
+    routesBase += `<path d="${path(0, 1)}" stroke="${hot ? BLUE : SLATE}" stroke-width="${hot ? 1.8 : 1.1}" opacity="${hot ? .6 : .38}"/>`;
+    const h0 = (i * 0.137) % 0.62, h1 = h0 + 0.3 + (hot ? .25 : 0);
+    routesHot += `<path d="${path(h0, Math.min(1, h1))}" stroke="${GLOWB}" stroke-width="${hot ? 4.2 : 2.6}" filter="url(#glow)"/><path d="${path(h0, Math.min(1, h1))}" stroke="#fff" stroke-width="${hot ? 1.6 : 1}" opacity=".95"/>`;
+    const hp = pts.find((p) => p.t >= Math.min(1, h1) - 0.02 && p.front); if (hp) comets += `<circle cx="${hp.x.toFixed(1)}" cy="${hp.y.toFixed(1)}" r="16" fill="url(#rgWhite)" stroke="none"/><circle cx="${hp.x.toFixed(1)}" cy="${hp.y.toFixed(1)}" r="4.2" fill="#fff" stroke="${BLUE}" stroke-width="1.6"/>`;
+  });
+  g += routesBase + routesHot + comets;
+  let k = 0;
+  for (const key of Object.keys(PORT)) {
+    const p = proj(vec(...PORT[key])); if (p[2] <= 0.05) continue; const s = 0.7 + p[2] * 0.5;
+    g += `<circle cx="${p[0]}" cy="${p[1]}" r="${36 * s}" fill="url(#rgBlue)" stroke="none" opacity=".75"/>`;
+    if (k++ % 2 === 0) g += `<circle cx="${p[0]}" cy="${p[1]}" r="${22 * s}" stroke="${GLOWB}" stroke-width="1.4" opacity=".7"/><circle cx="${p[0]}" cy="${p[1]}" r="${32 * s}" stroke="${GLOWB}" stroke-width="1" opacity=".35"/>`;
+    g += `<circle cx="${p[0]}" cy="${p[1]}" r="${8.5 * s}" fill="#fff" stroke="${BLUE}" stroke-width="2.4"/><circle cx="${p[0]}" cy="${p[1]}" r="${3.2 * s}" fill="${BLUE}" stroke="none"/>`;
+  }
+  g += `<g clip-path="url(#${id}c)"><rect x="${cx - R * 0.95}" y="${cy - R * 1.2}" width="${R * 0.5}" height="${R * 2.4}" fill="url(#${id}w)" transform="rotate(24 ${cx} ${cy})" opacity=".45" stroke="none"/></g>`;
+  g += `<circle cx="${cx}" cy="${cy}" r="${R}" stroke="#fff" stroke-width="3" opacity=".9"/><circle cx="${cx}" cy="${cy}" r="${R + 2}" stroke="${GLOWB}" stroke-width="1.5" opacity=".5"/>`;
+  return SV(g, `style="opacity:${o.op == null ? 1 : o.op}${o.blur ? ';filter:blur(' + o.blur + 'px)' : ''}"`);
+}
+
+// ---------------------------------------------------------------- act 2: ships in fog at night
+function ship(x, y, sc, flip, lit, tone = 1) {
+  const cs = []; const cols = ['#27618f', '#b3423a', '#22744a', '#c18a2e', '#52677a', '#8a5a9a'];
+  let g = `<g transform="translate(${x} ${y}) scale(${flip ? -sc : sc} ${sc})">`;
+  g += `<path d="M-20 -78 H660 L725 -78 Q700 -10 640 0 H40 Q-8 0 -20 -78 Z" fill="${lit ? '#16222e' : '#0b141d'}" stroke="${lit ? '#6f8ea8' : '#25384a'}" stroke-width="2"/>`;
+  g += `<path d="M-14 -62 H690" stroke="${lit ? '#b3423a' : '#3a2a2e'}" stroke-width="7"/>`;
+  g += `<rect x="30" y="-190" width="150" height="112" fill="${lit ? '#1d2c3a' : '#0d1823'}" stroke="${lit ? '#7fa2bf' : '#25384a'}" stroke-width="2"/><rect x="20" y="-218" width="170" height="30" fill="${lit ? '#223445' : '#0e1a26'}" stroke="${lit ? '#7fa2bf' : '#25384a'}" stroke-width="2"/><rect x="95" y="-262" width="38" height="46" fill="${lit ? '#2a3f52' : '#0e1a26'}" stroke="${lit ? '#7fa2bf' : '#25384a'}" stroke-width="2"/><path d="M114 -262 V-310 M80 -290 H150" stroke="${lit ? '#9ab6cd' : '#2c4155'}" stroke-width="2"/>`;
+  for (let r = 0; r < 3; r++) for (let c = 0; c < 6; c++) g += `<rect x="${42 + c * 22}" y="${-176 + r * 28}" width="14" height="10" fill="${lit ? '#fff1c4' : '#10202e'}" stroke="none"/>`;
+  for (let c = 0; c < 7; c++) g += `<rect x="${28 + c * 24}" y="-210" width="16" height="9" fill="${lit ? '#fff1c4' : '#10202e'}" stroke="none"/>`;
+  let n = 0;
+  for (let row = 0; row < 4; row++) for (let c = 0; c < 9; c++) {
+    if (row === 3 && (c < 1 || c > 7)) continue; const cx = 215 + c * 50, cy = -78 - 34 * (row + 1);
+    const col = cols[(c * 3 + row * 2) % cols.length]; n++;
+    g += lit ? `<rect x="${cx}" y="${cy}" width="46" height="31" fill="${col}" fill-opacity=".92" stroke="#fff" stroke-opacity=".55" stroke-width="1.2"/><path d="M${cx + 12} ${cy} V${cy + 31} M${cx + 24} ${cy} V${cy + 31} M${cx + 35} ${cy} V${cy + 31}" stroke="#fff" stroke-opacity=".35"/>` : `<rect x="${cx}" y="${cy}" width="46" height="31" fill="#0c1721" stroke="#1d2f40" stroke-width="1.2"/>`;
+  }
+  if (lit) {
+    g += `<rect x="205" y="-300" width="460" height="226" fill="url(#rgWarm)" opacity=".3" filter="url(#g40)" stroke="none"/>`;
+    for (let i = 0; i < 6; i++) g += `<circle cx="${230 + i * 85}" cy="-76" r="46" fill="url(#rgWarm)" stroke="none"/><circle cx="${230 + i * 85}" cy="-76" r="4" fill="#fff" stroke="none"/>`;
+    g += `<path d="M100 -330 L-140 -60 L360 -60 Z" fill="url(#rgWarm)" opacity=".22" stroke="none"/><circle cx="114" cy="-312" r="30" fill="url(#rgWarm)" stroke="none"/><circle cx="690" cy="-92" r="28" fill="url(#rgWarm)" stroke="none"/><circle cx="-4" cy="-92" r="22" fill="#ff7b6b" opacity=".6" filter="url(#g8)" stroke="none"/>`;
+  } else g += `<circle cx="114" cy="-312" r="3" fill="#2a3d50" stroke="none"/>`;
+  return g + '</g>';
+}
+function radar(cx, cy, r, mode) { // mode: 'blip' (blurred, "?") or 'crisp'
+  let g = `<circle cx="${cx}" cy="${cy}" r="${r + 10}" fill="#0b141d" stroke="#2c4155" stroke-width="3"/><circle cx="${cx}" cy="${cy}" r="${r}" fill="#06101a" stroke="#6f9bc0" stroke-width="1.6" opacity=".95"/>`;
+  for (const f of [.33, .66]) g += `<circle cx="${cx}" cy="${cy}" r="${r * f}" stroke="#6f9bc0" stroke-width="1" opacity=".4"/>`;
+  g += `<path d="M${cx - r} ${cy} H${cx + r} M${cx} ${cy - r} V${cy + r}" stroke="#6f9bc0" stroke-width="1" opacity=".35"/>`;
+  const a = -50 * Math.PI / 180, a2 = a - 0.9;
+  g += `<defs><linearGradient id="sw${cx}" gradientUnits="userSpaceOnUse" x1="${cx + r * Math.cos(a)}" y1="${cy + r * Math.sin(a)}" x2="${cx + r * Math.cos(a2)}" y2="${cy + r * Math.sin(a2)}"><stop offset="0" stop-color="#9fd4ff" stop-opacity=".7"/><stop offset="1" stop-color="#9fd4ff" stop-opacity="0"/></linearGradient></defs><path d="M${cx} ${cy} L${cx + r * Math.cos(a)} ${cy + r * Math.sin(a)} A${r} ${r} 0 0 0 ${cx + r * Math.cos(a2)} ${cy + r * Math.sin(a2)} Z" fill="url(#sw${cx})" stroke="none"/><path d="M${cx} ${cy} L${cx + r * Math.cos(a)} ${cy + r * Math.sin(a)}" stroke="#bfe3ff" stroke-width="2" filter="url(#glow)"/>`;
+  if (mode === 'blip') g += `<circle cx="${cx + r * .42}" cy="${cy - r * .28}" r="${r * .22}" fill="#9fd4ff" opacity=".55" filter="url(#g8)" stroke="none"/><circle cx="${cx + r * .42}" cy="${cy - r * .28}" r="${r * .09}" fill="#dff0ff" filter="url(#g4)" stroke="none"/><text x="${cx + r * .42}" y="${cy - r * .28 + 10}" text-anchor="middle" font-family="Spectral,serif" font-size="30" fill="#dff0ff" opacity=".9" stroke="none" filter="url(#g4)">?</text>`;
+  else g += `<g transform="translate(${cx + r * .42} ${cy - r * .28}) scale(.1)" stroke="none"><path d="M-300 20 H300 L330 20 L280 80 H-250 Z" fill="#dff0ff"/><rect x="-260" y="-90" width="440" height="110" fill="#dff0ff" opacity=".85"/><rect x="-250" y="-190" width="140" height="100" fill="#dff0ff"/></g><circle cx="${cx + r * .42}" cy="${cy - r * .28}" r="${r * .28}" stroke="#9fd4ff" stroke-width="1.6" opacity=".9" filter="url(#glow)"/>`;
+  return g;
+}
+function sea(stage) { // stage 0: both dark; 1: first ship's lights on
+  let g = `<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#03070b"/><stop offset=".55" stop-color="#0d1c2a"/><stop offset="1" stop-color="#122a3d"/></linearGradient><linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0f2536"/><stop offset=".25" stop-color="#07131d"/><stop offset="1" stop-color="#03070b"/></linearGradient></defs>`;
+  g += `<rect width="1920" height="620" fill="url(#sky)" stroke="none"/><rect y="620" width="1920" height="460" fill="url(#sea)" stroke="none"/>`;
+  g += `<ellipse cx="960" cy="610" rx="900" ry="70" fill="${BLUE}" opacity=".34" filter="url(#g70)" stroke="none"/>`;
+  for (let i = 0; i < 80; i++) g += `<circle cx="${(rnd() * 1920).toFixed(0)}" cy="${(rnd() * 420).toFixed(0)}" r="${(0.6 + rnd() * 1.1).toFixed(1)}" fill="#dff0ff" opacity="${(0.1 + rnd() * 0.35).toFixed(2)}" stroke="none"/>`;
+  // far ship B (hidden): faint silhouette in fog, facing left
+  g += `<g opacity="${stage ? .5 : .75}" filter="url(#g4)">${ship(1760, 640, 0.52, true, false)}</g>`;
+  // far fog bank (behind the near ship)
+  for (let i = 0; i < 7; i++) g += `<ellipse cx="${(-100 + i * 330).toFixed(0)}" cy="${(600 + (i % 3) * 22)}" rx="${330 + (i % 2) * 60}" ry="${52 + (i % 3) * 14}" fill="#8fb6d6" opacity=".2" filter="url(#g40)" stroke="none"/>`;
+  // sea reflection lines
+  for (let i = 0; i < 46; i++) { const y = 636 + i * i * .17 + i * 3, w = 40 + rnd() * 260 * (1 + i / 30), x = rnd() * 1920; g += `<path d="M${x.toFixed(0)} ${y.toFixed(0)} h${w.toFixed(0)}" stroke="#6f9bc0" stroke-width="${(0.8 + i / 30).toFixed(1)}" opacity="${(0.07 + rnd() * 0.1).toFixed(2)}"/>`; }
+  // near ship A: left, bow to the right
+  g += `<g opacity=".2" transform="translate(0 1260) scale(1 -1)" filter="url(#g8)">${ship(110, 700, 1.06, false, !!stage)}</g>`;
+  g += ship(110, 700, 1.06, false, !!stage);
+  // near fog drifting across (parallax layer 2)
+  for (let i = 0; i < 6; i++) g += `<ellipse cx="${(80 + i * 360)}" cy="${(700 + (i % 2) * 60)}" rx="420" ry="${64 + (i % 3) * 16}" fill="#9fc3df" opacity="${stage ? .11 : .15}" filter="url(#g40)" stroke="none"/>`;
+  g += `<rect x="0" y="560" width="1920" height="130" fill="#a9c9e2" opacity=".07" filter="url(#g70)" stroke="none"/>`;
+  g += `<ellipse cx="960" cy="1010" rx="1100" ry="110" fill="#9fc3df" opacity=".1" filter="url(#g70)" stroke="none"/>`;
+  // radars: each captain's own screen. A's radar (left) always shows only a blurred blip of B; B's radar (right) is crisp once A shows its lights.
+  g += radar(300, 905, 92, 'blip') + radar(1620, 905, 92, stage ? 'crisp' : 'blip');
+  return SV(g);
+}
+
+// ---------------------------------------------------------------- app pieces (real screenshots)
+const veil = (a) => `<div class="abs" style="inset:0;background:rgba(240,246,251,${a})"></div>`;
+const appBlur = (file, blur, a) => `<div class="abs" style="left:-40px;top:-40px;width:2000px;height:1160px;overflow:hidden;filter:blur(${blur}px)"><img src="${b64(file)}" style="width:2000px;height:1250px;display:block"></div>${veil(a)}`;
+// the row card: real row.png at scale RS, position (RX,RY); lit(box) places the same pixels again on top, glowing
+const RS = 0.86, RX = 209, RY = 310;
+const rowCard = () => `<div class="shot" style="left:${RX}px;top:${RY}px;width:${1788 * RS}px;height:${390 * RS}px"><img src="${b64('row.png')}" style="width:100%;display:block"><div class="abs" style="inset:0;background:rgba(240,246,251,.58)"></div></div>`;
+function lit(x, y, w, h, pad = 5) { // x,y,w,h in row.png pixels
+  const L = RX + (x - pad) * RS, T = RY + (y - pad) * RS, W = (w + 2 * pad) * RS, H = (h + 2 * pad) * RS;
+  return `<div class="abs" style="left:${L}px;top:${T}px;width:${W}px;height:${H}px;border-radius:12px;overflow:hidden;background:#f6fbff;box-shadow:0 0 0 2px ${BLUE},0 0 26px 6px rgba(95,163,214,.75),0 0 90px 18px rgba(95,163,214,.4)"><img src="${b64('row.png')}" style="position:absolute;width:${1788 * RS}px;left:${-(x - pad) * RS}px;top:${-(y - pad) * RS}px;filter:contrast(1.25) saturate(1.2)"></div>`;
+}
+const covered = () => { // the two spots in the Mailbox that show the plural: covered, nothing readable under them
+  return `<div class="abs" style="left:780px;top:10px;width:360px;height:74px;background:rgb(29,74,109)"></div>` +
+    `<div class="abs" style="left:296px;top:314px;width:300px;height:44px;background:rgb(240,246,251)"></div>`;
+};
+
+// ---------------------------------------------------------------- act 5: the diagram
+function operator() {
+  const cx = 960, cy = 470, L = [320, 470], R = [1600, 470];
+  let g = `<defs><radialGradient id="core" cx=".4" cy=".3" r=".9"><stop offset="0" stop-color="#fff"/><stop offset=".6" stop-color="#eaf2f9"/><stop offset="1" stop-color="#c9dcec"/></radialGradient>
+  <linearGradient id="trailR" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${GLOWB}" stop-opacity="0"/><stop offset="1" stop-color="${GLOWB}" stop-opacity=".9"/></linearGradient>
+  <linearGradient id="trailL" x1="1" y1="0" x2="0" y2="0"><stop offset="0" stop-color="${GLOWB}" stop-opacity="0"/><stop offset="1" stop-color="${GLOWB}" stop-opacity=".9"/></linearGradient></defs>`;
+  g += `<ellipse cx="${cx}" cy="${cy}" rx="760" ry="230" fill="${GLOWB}" opacity=".16" filter="url(#g70)" stroke="none"/>`;
+  // lanes: upper left to right, lower right to left
+  for (const y of [446, 494]) g += `<path d="M${L[0] + 66} ${y} H${cx - 150}" stroke="${LINE}" stroke-width="2"/><path d="M${cx + 150} ${y} H${R[0] - 66}" stroke="${LINE}" stroke-width="2"/>`;
+  g += `<path d="M386 446 H760" stroke="${GLOWB}" stroke-width="10" opacity=".5" filter="url(#g8)"/><path d="M386 446 H760" stroke="${BLUE}" stroke-width="3"/>`;
+  g += `<path d="M1110 446 H1470" stroke="${GLOWB}" stroke-width="10" opacity=".5" filter="url(#g8)"/><path d="M1110 446 H1470" stroke="${BLUE}" stroke-width="3"/>`;
+  g += `<path d="M1534 494 H1230" stroke="${GLOWB}" stroke-width="8" opacity=".4" filter="url(#g8)"/><path d="M1534 494 H1230" stroke="${BLUE}" stroke-width="2.4" stroke-dasharray="2 8"/>`;
+  g += `<path d="M810 494 H386" stroke="${LINE}" stroke-width="2.4" stroke-dasharray="2 8"/>`;
+  // trails behind the envelopes
+  g += `<rect x="470" y="438" width="260" height="16" fill="url(#trailR)" filter="url(#g4)" stroke="none"/><rect x="1260" y="438" width="170" height="16" fill="url(#trailR)" filter="url(#g4)" stroke="none"/><rect x="1260" y="486" width="190" height="16" fill="url(#trailL)" opacity=".0" stroke="none"/>`;
+  // centre: pulses on receive and forward
+  for (const [r, o] of [[260, .1], [215, .2], [178, .38]]) g += `<circle cx="${cx}" cy="${cy}" r="${r}" stroke="${GLOWB}" stroke-width="2" opacity="${o}"/>`;
+  g += `<circle cx="${cx}" cy="${cy}" r="170" fill="${GLOWB}" opacity=".28" filter="url(#g40)" stroke="none"/><circle cx="${cx}" cy="${cy}" r="150" fill="url(#core)" stroke="#fff" stroke-width="3"/><circle cx="${cx}" cy="${cy}" r="150" stroke="${BLUE}" stroke-width="2.6" filter="url(#softglow)"/><circle cx="${cx}" cy="${cy}" r="134" stroke="${LINE}" stroke-width="1.2"/>`;
+  // member rings: anonymous glyphs, soft
+  for (const [x, y] of [L, R]) g += `<circle cx="${x}" cy="${y}" r="92" fill="${GLOWB}" opacity=".24" filter="url(#g16)" stroke="none"/><circle cx="${x}" cy="${y}" r="66" fill="url(#core)" stroke="${INK}" stroke-width="1.8"/><circle cx="${x}" cy="${y - 14}" r="16" fill="${LINE}" stroke="none" filter="url(#g4)"/><path d="M${x - 30} ${y + 34} Q${x} ${y - 10} ${x + 30} ${y + 34} Z" fill="${LINE}" stroke="none" filter="url(#g4)"/>`;
+  // envelopes: glowing
+  const env = (x, y, c, s = 1) => `<g transform="translate(${x - 34 * s} ${y - 23 * s}) scale(${s})"><rect x="-8" y="-8" width="84" height="62" rx="12" fill="${GLOWB}" opacity=".6" filter="url(#g8)" stroke="none"/><rect width="68" height="46" rx="5" fill="#fff" stroke="${c}" stroke-width="2.4"/><path d="M0 5 L34 28 L68 5" stroke="${c}" stroke-width="2.2"/></g>`;
+  g += env(740, 446, BLUE) + env(1440, 446, BLUE) + env(1250, 494, SLATE, 0.8);
+  return SV(g);
+}
+
+// ---------------------------------------------------------------- act 6: hands
+// tapered limb along a quadratic curve (fingers, thumb): polygon with a round tip
+function limb(p0, p1, p2, w0, w1, fill, edge = '#7e97ae') {
+  const N = 28, L = [], R = [], q = (t) => [(1 - t) * (1 - t) * p0[0] + 2 * (1 - t) * t * p1[0] + t * t * p2[0], (1 - t) * (1 - t) * p0[1] + 2 * (1 - t) * t * p1[1] + t * t * p2[1]];
+  for (let i = 0; i <= N; i++) { const t = i / N, [x, y] = q(t), [x2, y2] = q(Math.min(1, t + .01)), [x1, y1] = q(Math.max(0, t - .01)); let dx = x2 - x1, dy = y2 - y1; const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l; const w = (w0 + (w1 - w0) * t) / 2; L.push([x - dy * w, y + dx * w]); R.push([x + dy * w, y - dx * w]); }
+  const d = 'M' + L.map((p) => p.map((v) => v.toFixed(1)).join(' ')).join('L') + 'A' + (w1 / 2) + ' ' + (w1 / 2) + ' 0 0 0 ' + R[N].map((v) => v.toFixed(1)).join(' ') + 'L' + R.reverse().slice(1).map((p) => p.map((v) => v.toFixed(1)).join(' ')).join('L') + 'Z';
+  return `<path d="${d}" fill="${fill}" stroke="${edge}" stroke-width="1.8"/>`;
+}
+function hands(dy = 0) {
+  let g = `<defs>
+  <linearGradient id="hl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fbfdff"/><stop offset=".45" stop-color="#dde8f3"/><stop offset="1" stop-color="#a3bacf"/></linearGradient>
+  <linearGradient id="hr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f3f7fb"/><stop offset=".5" stop-color="#cfdeec"/><stop offset="1" stop-color="#94adc5"/></linearGradient>
+  <linearGradient id="hf" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#b9cde0"/><stop offset=".55" stop-color="#eef4fa"/><stop offset="1" stop-color="#dbe7f2"/></linearGradient>
+  <linearGradient id="slL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b7db5"/><stop offset="1" stop-color="#1b4a70"/></linearGradient>
+  <linearGradient id="slR" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2d3b49"/><stop offset="1" stop-color="#0f1822"/></linearGradient>
+  <linearGradient id="cuff" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#e8eff6"/><stop offset=".5" stop-color="#fff"/><stop offset="1" stop-color="#d4e0ec"/></linearGradient></defs>`;
+  g += `<g transform="translate(0 ${dy})">`;
+  g += `<ellipse cx="960" cy="700" rx="640" ry="34" fill="${INK}" opacity=".16" filter="url(#g40)" stroke="none"/>`;
+  const sleeve = (x, sgn, grad, rim) => `<g transform="translate(${x} 480) scale(${sgn} 1) rotate(${-5})"><path d="M-1000 -112 L-50 -88 L-50 88 L-1000 120 Z" fill="url(#${grad})" stroke="${rim}" stroke-width="1.5"/><path d="M-900 -104 C-500 -84 -200 -66 -50 -64" stroke="#fff" stroke-opacity=".22" stroke-width="3"/><rect x="-58" y="-94" width="66" height="188" rx="14" fill="url(#cuff)" stroke="#aebfd0" stroke-width="1.5"/><circle cx="-22" cy="60" r="8" fill="#c9a45c" stroke="#8a6f35" stroke-width="1.5"/></g>`;
+  g += sleeve(590, 1, 'slL', '#0f2f4a') + sleeve(1330, -1, 'slR', '#05090e');
+  // left hand: back of the hand with knuckle ridge; wrist narrow, palm broad
+  g += `<path d="M600 430 C680 408 750 396 820 388 C930 384 1010 400 1030 450 C1044 500 1020 548 960 574 C880 600 740 584 600 556 Z" fill="url(#hl)" stroke="#8da5bb" stroke-width="1.8"/>`;
+  g += `<path d="M640 432 C700 418 780 410 860 408" stroke="#fff" stroke-width="7" opacity=".6" filter="url(#g4)"/><path d="M880 392 Q900 430 886 470 M936 392 Q956 432 942 472" stroke="#9db5cb" stroke-width="1.6" opacity=".7"/>`;
+  // right hand: back of the hand toward the clasp; its fingers wrap over the left hand
+  g += `<path d="M1320 436 C1260 416 1190 398 1140 392 C1060 390 1010 404 996 440 C986 490 1000 540 1050 566 C1130 598 1240 590 1320 560 Z" fill="url(#hr)" stroke="#8da5bb" stroke-width="1.8"/>`;
+  g += `<path d="M1300 440 C1250 424 1200 414 1150 410" stroke="#fff" stroke-width="6" opacity=".45" filter="url(#g4)"/>`;
+  // fingers (tapered, curling down and back), knuckles at about x=1010
+  const F = [[404, 0, 176], [454, 6, 190], [504, 10, 182], [552, 14, 150]];
+  for (const [y, dx, len] of F.slice().reverse()) {
+    g += `<g filter="url(#softglow)" opacity=".0"></g><path d="M1020 ${y + 6} C ${960 - dx} ${y - 8} ${900 - dx} ${y - 2} ${1020 - len} ${y + 40}" stroke="#15202b" stroke-width="2" opacity=".14" transform="translate(-4 6)"/>`;
+    g += limb([1030, y], [960 - dx, y - 12], [1030 - len, y + 38], 50, 36, 'url(#hf)');
+    g += `<path d="M${1030 - len * .6} ${y - 14} C${1030 - len * .8} ${y - 12} ${1030 - len * .92} ${y + 6} ${1030 - len * .94} ${y + 22}" stroke="#fff" stroke-width="3" opacity=".7"/><path d="M${1030 - len * .3} ${y - 22} V${y + 8}" stroke="#8da5bb" stroke-width="1.4" opacity=".7"/>`;
+  }
+  // left thumb across the back of the right hand, with its nail
+  g += limb([700, 410], [840, 330], [1060, 380], 58, 44, 'url(#hl)') + `<path d="M720 392 C810 336 930 332 1030 372" stroke="#fff" stroke-width="6" opacity=".75"/><ellipse cx="1034" cy="384" rx="20" ry="13" transform="rotate(30 1034 384)" fill="#fff" stroke="#9db5cb" stroke-width="1.4" opacity=".9"/>`;
+  g += '</g>';
+  g += `<circle cx="1000" cy="${480 + dy}" r="300" fill="url(#rgBlue)" opacity=".5" stroke="none"/><circle cx="1000" cy="${470 + dy}" r="110" fill="url(#rgWhite)" stroke="none" opacity=".75"/>`;
+  g += `<path d="M1000 ${330 + dy} V${610 + dy} M860 ${470 + dy} H1140" stroke="#fff" stroke-width="2" opacity=".6" filter="url(#glow)"/>`;
+  for (let i = 0; i < 26; i++) { const a = rnd() * 6.283, d = 140 + rnd() * 330; g += `<circle cx="${(1000 + Math.cos(a) * d * 1.5).toFixed(0)}" cy="${(470 + dy + Math.sin(a) * d * .5).toFixed(0)}" r="${(1.5 + rnd() * 3.5).toFixed(1)}" fill="#fff" opacity="${(0.4 + rnd() * .5).toFixed(2)}" filter="url(#g4)" stroke="none"/>`; }
+  return SV(g);
+}
+
+// ---------------------------------------------------------------- act 7: fountain pen and signature
+function signing() {
+  let g = `<defs>
+  <linearGradient id="barrel" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#0c1824"/><stop offset=".3" stop-color="#2b5f8c"/><stop offset=".45" stop-color="#3f7fb2"/><stop offset=".7" stop-color="#17364f"/><stop offset="1" stop-color="#08111a"/></linearGradient>
+  <linearGradient id="gold" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8a6f35"/><stop offset=".35" stop-color="#f3dc9b"/><stop offset=".6" stop-color="#c9a45c"/><stop offset="1" stop-color="#6e5726"/></linearGradient>
+  <linearGradient id="ink" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#1b3f6b"/><stop offset="1" stop-color="#27618f"/></linearGradient>
+  <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#eef4fa"/></linearGradient></defs>`;
+  g += `<ellipse cx="960" cy="470" rx="640" ry="330" fill="${GLOWB}" opacity=".3" filter="url(#g70)" stroke="none"/>`;
+  g += `<rect x="540" y="150" width="840" height="680" rx="8" fill="#15202b" opacity=".2" filter="url(#g40)" stroke="none" transform="translate(14 36)"/>`;
+  g += `<rect x="540" y="130" width="840" height="680" rx="8" fill="url(#paper)" stroke="${LINE}" stroke-width="1.5"/>`;
+  g += `<circle cx="1230" cy="250" r="54" stroke="${LINE}" stroke-width="2"/><circle cx="1230" cy="250" r="42" stroke="${LINE}" stroke-width="1"/>`;
+  for (let i = 0; i < 6; i++) g += `<path d="M620 ${210 + i * 52} H${[1100, 1140, 960, 1120, 1060, 700][i]}" stroke="${LINE}" stroke-width="2.4" opacity=".9"/>`;
+  g += `<path d="M620 700 H1120" stroke="${SLATE}" stroke-width="1.4"/><path d="M620 700 V680 M1120 700 V680" stroke="${SLATE}" stroke-width="1"/>`;
+  const sig = 'M650 690 C690 590 720 570 742 640 C758 700 778 600 826 596 C868 594 846 690 896 664 C930 646 934 604 972 628 C1002 648 1036 690 1098 646';
+  g += `<path d="${sig}" stroke="${BLUE}" stroke-width="9" opacity=".25" filter="url(#g4)"/><path d="${sig}" stroke="url(#ink)" stroke-width="4.6"/><path d="${sig}" stroke="#7fb4e0" stroke-width="1.4" opacity=".8" transform="translate(-1 -1.5)"/>`;
+  g += `<path d="M640 742 C780 718 960 724 1120 706" stroke="url(#ink)" stroke-width="2.6" opacity=".85"/>`;
+  g += `<circle cx="1098" cy="646" r="14" fill="url(#rgBlue)" stroke="none"/><circle cx="1099" cy="646" r="4" fill="#cfe8fb" stroke="none"/>`;
+  // pen: tip at (1098,646), leaning 38 degrees to the right
+  const pen = `<g transform="translate(1098 646) rotate(38)">
+  <path d="M-16 -86 L0 0 L16 -86 Q0 -100 -16 -86 Z" fill="url(#gold)" stroke="#6e5726" stroke-width="1.4"/><path d="M0 -4 V-70" stroke="#4a3a15" stroke-width="1.6"/><circle cx="0" cy="-62" r="4.4" fill="#4a3a15" stroke="none"/>
+  <path d="M-22 -90 L-17 -96 L17 -96 L22 -90 L24 -178 Q0 -190 -24 -178 Z" fill="#101b27" stroke="#2c4155" stroke-width="1.4"/><path d="M-9 -96 L-9 -176" stroke="#fff" stroke-width="2.4" opacity=".4"/>
+  <rect x="-26" y="-192" width="52" height="14" rx="3" fill="url(#gold)" stroke="#6e5726"/><rect x="-26" y="-212" width="52" height="8" rx="3" fill="url(#gold)" stroke="#6e5726"/>
+  <path d="M-27 -214 H27 L29 -560 Q0 -580 -29 -560 Z" fill="url(#barrel)" stroke="#06101a" stroke-width="1.6"/>
+  <path d="M-17 -240 V-540" stroke="#fff" stroke-width="5" opacity=".5" filter="url(#g4)"/><path d="M-17 -240 V-540" stroke="#fff" stroke-width="1.6" opacity=".7"/>
+  <path d="M29 -330 H40 Q47 -330 47 -322 V-470 Q47 -478 40 -478 H29" fill="url(#gold)" stroke="#6e5726" stroke-width="1.4"/>
+  <rect x="-29" y="-560" width="58" height="16" rx="3" fill="url(#gold)" stroke="#6e5726"/></g>`;
+  g += `<g transform="translate(26 40)" opacity=".24" filter="url(#g8)">${pen.replace(/url\(#[a-z]+\)/g, INK)}</g>`;
+  g += pen;
+  for (let i = 0; i < 18; i++) g += `<circle cx="${(rnd() * 1920).toFixed(0)}" cy="${(rnd() * 1080).toFixed(0)}" r="${(10 + rnd() * 30).toFixed(0)}" fill="#fff" opacity="${(0.15 + rnd() * .2).toFixed(2)}" filter="url(#g8)" stroke="none"/>`;
+  return SV(g);
+}
+
+const hair = (x1, x2, y) => SV(`<path d="M${x1} ${y} H${x2}" stroke="${BLUE}" stroke-width="2.4" filter="url(#glow)"/>`);
+const cb = meta.contactBtn || { x: 205, y: 451, w: 82, h: 34 };
+const appImg = (f) => `<div class="abs" style="left:0;top:0;width:1920px;height:1080px;overflow:hidden"><img src="${b64(f)}" style="width:1920px;height:1200px;display:block"></div>`;
+const WORDS3 = (n) => ['Commodity', 'Quantity', 'Origin', 'Incoterms'].map((w, i) => i < n ? `<span class="lit">${w}</span>` : w).join(' · ');
+
+const acts = [
+  { id: '1', sec: 8, voice: 'MyPlatform is a private marketplace to trade physical commodities. By invitation only.', screen: '"MyPlatform" next to the globe / "Physical commodities. By invitation only."',
+    moves: 'Camera drifts in slowly (3 %) while the dotted globe rotates; 22 trade routes draw themselves in turn as glowing light-trails with a bright comet at the head; ~20 port dots bloom with a soft pulse ring; a light sweep crosses the sphere once; far motes drift slower than near motes (parallax).',
+    next: 'The bright Chile-Rotterdam route keeps drawing out past the globe edge and becomes the horizon of the night sea in act 2 (the light dims to black behind it).',
+    frames: [['', globe(1300, 540, 400, 28) + motes(26, GLOWB) + kw('big word', 110, 300, 760, 'MyPlatform') + kw('mid', 114, 480, 760, 'Physical commodities.<br>By invitation only.') + finish(false)]] },
+  { id: '2', sec: 14, voice: 'In commodity trading, counterparties are often difficult to identify. Disclosing your position too early can weaken your commercial leverage.', screen: '"The counterparty." then "Too early." (in the empty sky above the ships)',
+    moves: 'DARK ACT. Fog drifts in three layers at different speeds; two cargo ships approach on a black sea, each seeing only a blurred radar blip (?) of the other. Then one ship switches its lights on too early: deck lamps and windows bloom, containers show their colours, light cones cut the fog, the other ship stays a silhouette. Its radar now shows the first ship crisp.',
+    next: 'The light of the exposed ship swells into a white wash that becomes the white page of the app in act 3 (fade through white).',
+    frames: [['a', sea(0) + kw('big', 100, 110, 1720, 'The <em>counterparty.</em>', 'center') + finish(true)], ['b', sea(1) + kw('big', 100, 110, 1720, '<em>Too</em> early.', 'center') + finish(true)]], dark: true },
+  { id: '3', sec: 12, voice: 'Members post buying and selling opportunities with the key details: commodity, quantity, origin and Incoterms.', screen: '"Commodity · Quantity · Origin · Incoterms" (each word lights up as it is spoken)',
+    moves: 'Smooth push-in from the real Browse screen onto the offer row; the app behind softens (depth blur). As the voice says each detail it lights up on the row in turn: commodity, quantity, origin, Incoterms (soft blue glow, the rest dimmed); a light sweep passes over the card; the pointer glides to Contact and clicks; the real Contact window opens.',
+    next: 'The Contact window\'s edge becomes the frame of the row in act 4 (the camera pushes into it).',
+    frames: [['a', appBlur('browse.png', 9, .55) + rowCard() + lit(285, 28, 238, 42) + lit(158, 84, 190, 38) + lit(364, 84, 40, 38, 4) + lit(424, 84, 246, 38) + cursor(RX + (25 + 85) * RS, RY + (330 + 6) * RS) + kw('mid', 110, 760, 1700, WORDS3(4), 'center') + motes(14, '#fff', .8) + finish(false)],
+      ['b', appImg('contact.png') + cursor(((meta.contactSend || { x: 447, y: 303 }).x + 40) * SC, ((meta.contactSend || { x: 447, y: 303 }).y + 16) * SC) + finish(false, true)]] },
+  { id: '4', sec: 12, voice: "Each member states their role and declares the documentation available. Other members see the opportunity, not the member's identity.", screen: '"The opportunity." / "Not the member."',
+    moves: 'The offer row fills the frame; "Poster: Principal (Trader)" lights up when the role is spoken, then "Documents" lights up when the documentation is spoken; the member badge to the right stays out of focus, greyed and unchanged. The words fade in one after the other; a slow light sweep.',
+    next: 'The row slides left and its right edge becomes the left member ring of act 5.',
+    frames: [['', appBlur('browse.png', 14, .72) + kw('big', 100, 70, 1720, 'The <em>opportunity.</em>', 'center') + rowCard() + lit(20, 188, 318, 38) + lit(350, 188, 390, 38) +
+      `<div class="abs" style="left:1590px;top:410px;width:130px;height:130px;border-radius:75px;border:2px solid ${LINE};background:radial-gradient(circle at 40% 35%,#f3f6f9,#cfd8e1);filter:blur(9px);box-shadow:0 0 60px rgba(95,163,214,.35)"></div>` + kw('small', 1545, 560, 220, 'Member', 'center', 'filter:blur(5px)') + kw('big', 100, 740, 1720, '<em>Not</em> the member.', 'center') + finish(false)]] },
+  { id: '5', sec: 13, voice: "All communication passes through MyPlatform's Operator, who relays every message between the two sides.", screen: '"Through the Operator." (centre circle: "MyPlatform" with "Operator" under it)',
+    moves: 'The real Mailbox (the two spots that show the plural are covered) dissolves into the diagram: glowing envelopes travel along the lanes in both directions; the centre circle pulses outward when a message arrives and again when it is forwarded; light trails follow each envelope; the camera drifts back slightly.',
+    next: 'Both member lines pull together to the centre and the two rings become the two hands of act 6.',
+    frames: [['a', appImg('mailbox.png') + covered() + finish(false, true)], ['b', operator() + kw('small', 150, 560, 340, 'Member', 'center') + kw('small', 1430, 560, 340, 'Member', 'center') + kw('word', 760, 418, 400, 'MyPlatform', 'center', 'font-size:42px') + kw('small', 760, 480, 400, 'Operator', 'center', 'font-size:24px') + kw('big', 160, 760, 1600, 'Through the <em>Operator.</em>', 'center') + motes(18, GLOWB) + finish(false)]] },
+  { id: '6', sec: 16, voice: 'Introduction follows only once both sides agree on the essential terms and conditions and wish to proceed.', screen: '"Mutual agreement. Then the introduction." / then, ~10 s, the written card (not spoken) UNDER the dimmed handshake',
+    moves: 'The two hands glide in from the sides and meet; a bloom of light opens at the clasp and sparks drift outward; the hands softly breathe (1 %). Then the picture dims to ~16 % and the written card, static, shows through the dimmed handshake: dark text on white, about 10 s.',
+    next: 'The dimmed handshake fades out; the card\'s top edge becomes the paper edge of act 7.',
+    frames: [['a', hands(-40) + kw('big', 100, 790, 1720, '<em>Mutual agreement.</em><br><span style="font-size:64px">Then the introduction.</span>', 'center') + finish(false)],
+      ['b', `<div class="abs" style="left:210px;top:260px;width:1500px;padding:56px 70px;background:#fff;border:1px solid ${LINE};border-radius:12px;font-family:Spectral,serif;font-weight:400;font-size:46px;line-height:1.35;color:${INK};text-align:center;box-shadow:0 30px 80px rgba(21,32,43,.12)">Membership is provided without any membership or access fees. The Operator of MyPlatform is remunerated by commission on successfully concluded transactions resulting from introductions made through MyPlatform.</div><div class="abs" style="inset:0;opacity:.26;mix-blend-mode:multiply">${hands(60)}</div>` + finish(false)]] },
+  { id: '7', sec: 9, voice: 'MyPlatform, the commercial intermediary, introduces; members transact on the strength of their own judgement and due diligence.', screen: '"Each member warrants their own representations."',
+    moves: 'A fountain pen glides across the paper and writes the signature: the ink line draws itself, wet and glossy at the tip, a soft glint travels with the nib; light blooms behind the paper; bokeh drifts in the foreground and the pen\'s shadow follows on the page.',
+    next: 'The signature\'s underline lengthens into the hairline under the closing phrase in act 8.',
+    frames: [['', signing() + kw('mid', 100, 880, 1720, 'Each member warrants <em>their own</em> representations.', 'center') + finish(false)]] },
+  { id: '8', sec: 6, voice: 'Where opportunity meets discretion.', screen: '"MyPlatform" above "Where opportunity meets discretion." (no fee card, no web address)',
+    moves: 'The act-1 globe returns, faint and softly blurred, rotating slowly behind; the name fades in, the phrase fades in, the hairline draws itself with a travelling glint; music resolves, low tone, fade to white.',
+    next: 'End.',
+    frames: [['', globe(960, 560, 560, 28, { op: .2, blur: 1.5, id: 'g8' }) + motes(14, GLOWB, .7) + hair(560, 1360, 630) + kw('mid word', 110, 250, 1700, 'MyPlatform', 'center') + kw('big', 110, 370, 1700, 'Where opportunity<br>meets <em>discretion.</em>', 'center') + finish(false)]] },
+];
+
+let SFX = {}, SFXSRC = '';
+try { const s = JSON.parse(fs.readFileSync(path.join(__dirname, 'sfx.json'), 'utf8')); SFX = s.perAct; SFXSRC = s.sources; } catch (e) { SFXSRC = '(sfx.json missing)'; }
+const LEVELS = 'All effects well under the music (about 20 dB below it); no effect longer than 1 s except the two low tones (about 2 s, fading). CC0 only; URL and licence of every file recorded above.';
+
+(async () => {
+  const browser = await chromium.launch(); const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
+  for (const a of acts) for (const [suffix, html] of a.frames) {
+    await page.setContent(`<style>${css}</style>${DEFS}<div class="stage${a.dark ? ' dark' : ''}">${html}</div>`, { waitUntil: 'load' });
+    await page.evaluate(() => document.fonts.ready); await page.waitForTimeout(600);
+    await page.screenshot({ path: path.join(out, `act-${a.id}${suffix}.png`) });
+  }
+  await browser.close();
+  let t = '| act | seconds | voice (exact) | on screen | what moves | match move into the next act | stills | sound effects (planned) |\n|---|---|---|---|---|---|---|---|\n';
+  for (const a of acts) t += `| ${a.id} | ${a.sec} | ${a.voice} | ${a.screen} | ${a.moves} | ${a.next} | ${a.frames.map((f) => `act-${a.id}${f[0]}.png`).join(', ')} | ${SFX[a.id] || '(sfx.json missing)'} |\n`;
+  t += `| | **${acts.reduce((s, a) => s + a.sec, 0)}** | | | | | | |\n`;
+  t += `\n${LEVELS}\n\n${SFXSRC}\n`;
+  fs.writeFileSync(path.join(out, 'storyboard.md'), '# Storyboard v11 - stills only\n\nLight app colours (#ffffff, #15202b, #52677a, #27618f, #f0f6fb, #e2ebf3), key words only, match moves. Act 2 is deliberately dark (night, fog) before the light acts. Music: "Corporate advertising" (Nastelbom, Pixabay), kept out of the repository. Seconds are planned, not measured. App pictures are real screenshots (pieces lit or covered); globe, ships, handshake, pen and the diagram are code-drawn.\n\n' + t);
+})();
