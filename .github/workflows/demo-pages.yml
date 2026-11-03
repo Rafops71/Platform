@@ -1,0 +1,63 @@
+name: Demo site
+
+# Publishes the DEMO build (dist-demo/): the real screens on fake data, with no
+# connection to Supabase. It is separate from ci.yml on purpose: ci.yml's deploy
+# job publishes the real site behind the gate, and this workflow never touches it.
+#
+# The build refuses to finish if any real Supabase address or key is in the
+# output (scripts/build-demo.js), and the browser tests check that the demo
+# makes no request to Supabase (tests/demo). Both must pass before anything is
+# published.
+#
+# Requires GitHub Pages set to "GitHub Actions" as its source. configure-pages
+# below turns that on when the token is allowed to.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-demo
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and test the demo
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Build the demo
+        run: npm run build:demo
+      - name: Install the browser for the demo tests
+        run: npx playwright install --with-deps chromium
+      - name: Demo tests (no Supabase requests, no real keys, every tab renders)
+        run: npm run test:demo
+      - uses: actions/configure-pages@v6
+        with:
+          enablement: true
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist-demo
+
+  deploy:
+    name: Publish the demo
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

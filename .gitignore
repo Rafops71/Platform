@@ -27,3 +27,6 @@ checklist-sql.txt
 
 # Local helper, not part of the project
 permissions-to-paste.txt
+
+# Demo site build (scripts/build-demo.js) - generated, never committed.
+dist-demo/
