@@ -2,17 +2,19 @@
 //
 //   npm run test:demo
 //
+// The demo is for members only (owner's correction, 3 Nov): there is no
+// Operator entry and no Operator console in it.
+//
 // What these prove:
 //   1. Every demo page carries the "example data, nothing is saved" ribbon.
 //   2. Every request the demo makes goes to its own host or to Google Fonts,
-//      which the live site also uses. Anything else fails the test, so a
-//      request to a Supabase address on any domain fails it.
+//      which the live site also uses. Anything else fails the test.
 //   3. The demo files contain no real Supabase address or key.
-//   4. Every tab on each side renders without an uncaught script error and
-//      without an error message on screen.
+//   4. Every member tab renders without an uncaught script error and without
+//      an error message on screen.
 //   5. A member cannot see another member's listings or messages.
-//   6. A member's sent message appears in that member's mailbox. (Not the
-//      Operator's mailbox: writes are memory-only and reset on each page visit.)
+//   6. The Operator console is absent: no files, no page, no sign-in entry,
+//      and the Operator's e-mail address does not sign in on the form.
 
 'use strict';
 
@@ -23,6 +25,7 @@ const { test, expect } = require('@playwright/test');
 const RIBBON = 'DEMO — example data, nothing is saved';
 const DIST = path.resolve(__dirname, '..', '..', 'dist-demo');
 const REAL_CONFIG = path.resolve(__dirname, '..', '..', 'js', 'supabase-config.js');
+const OPERATOR_EMAIL = 'operator@example.com';
 
 // The only hosts the demo may contact: its own, and Google Fonts (the live site
 // loads the same fonts). Matched against the host part of each request.
@@ -106,28 +109,46 @@ test.describe('demo build', () => {
     expect(offenders).toEqual([]);
   });
 
-  test('every page shows the example-data ribbon, signed in or not', async ({ page }) => {
+  test('the demo has no Operator console in its files', () => {
+    expect(fs.existsSync(DIST), 'dist-demo/ must exist (npm run build:demo)').toBe(true);
+    expect(fs.existsSync(path.join(DIST, 'operator.html')), 'operator.html must not be in the demo').toBe(false);
+    expect(fs.existsSync(path.join(DIST, 'js', 'operator.js')), 'js/operator.js must not be in the demo').toBe(false);
+  });
+
+  test('every member page shows the example-data ribbon, signed in or not', async ({ page }) => {
     for (const p of ['index.html', 'register.html', 'reset.html', 'terms.html', 'help.html']) {
       await page.goto('/' + p);
       await expect(page.locator('#demo-ribbon'), p).toHaveText(RIBBON);
       await expect(page.locator('#demo-ribbon'), p).toBeVisible();
     }
-    // The two signed-in pages need a signed-in tab.
+    // The signed-in member page needs a signed-in tab.
     await signInAs(page, 'Enter as Member A');
     await page.waitForURL('**/app.html');
     await expect(page.locator('#demo-ribbon')).toHaveText(RIBBON);
-    await page.getByText('Sign out', { exact: true }).first().click();
-    await page.waitForURL('**/index.html');
-    await signInAs(page, 'Enter as Operator');
-    await page.waitForURL('**/operator.html');
-    await expect(page.locator('#demo-ribbon')).toHaveText(RIBBON);
   });
 
-  test('the sign-in page offers three buttons and no password is needed', async ({ page }) => {
+  test('the sign-in page offers the two member buttons and no Operator entry', async ({ page }) => {
     await page.goto('/index.html');
-    for (const label of ['Enter as Member A', 'Enter as Member B', 'Enter as Operator']) {
+    for (const label of ['Enter as Member A', 'Enter as Member B']) {
       await expect(page.getByRole('button', { name: label, exact: true })).toBeVisible();
     }
+    await expect(page.getByRole('button', { name: /Operator/ }), 'no Operator button').toHaveCount(0);
+  });
+
+  test('the Operator console is absent: its page is missing and its e-mail does not sign in', async ({ page, baseURL }) => {
+    // The page itself: a direct visit must not show the console.
+    const response = await page.goto('/operator.html');
+    expect(response.status(), 'a direct visit to /operator.html').toBe(404);
+
+    // The normal sign-in form, typed with the Operator's address: it must not
+    // sign in or move the tab to any Operator page.
+    await page.goto('/index.html');
+    await page.locator('#email').fill(OPERATOR_EMAIL);
+    await page.locator('#password').fill('anything-at-all');
+    await page.locator('#login-btn').click();
+    await page.waitForTimeout(1500);
+    expect(page.url(), 'the Operator address must not reach an Operator page').not.toMatch(/operator\.html|app\.html/);
+    await expect(page.locator('#login-form'), 'the sign-in form stays up').toBeVisible();
   });
 
   test('the whole walk through the demo contacts no host but its own and the fonts', async ({ page, baseURL }) => {
@@ -150,22 +171,11 @@ test.describe('demo build', () => {
     await page.waitForTimeout(800);
     await clickNav(page, 'Browse');
     await expect(page.getByText('SELL-26-001').first(), 'Browse shows the copper offer').toBeVisible();
-    await page.getByText('Sign out', { exact: true }).first().click();
-    await page.waitForURL('**/index.html');
-
-    // The Operator: every tab.
-    await signInAs(page, 'Enter as Operator');
-    await page.waitForURL('**/operator.html');
-    await page.waitForTimeout(800);
-    for (const label of await navLabels(page)) {
-      if (label === 'Sign out') continue;
-      await clickNav(page, label);
-    }
 
     expect(unexpectedHosts(w.hosts, baseURL), 'hosts the demo contacted').toEqual([]);
   });
 
-  test('click-through: a member sends a message, every Operator tab opens, no console errors', async ({ page, baseURL }) => {
+  test('click-through: a member sends a message, the message is in the sender\'s mailbox, no console errors', async ({ page, baseURL }) => {
     const w = watch(page);
     const consoleErrors = [];
     page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text()); });
@@ -186,23 +196,11 @@ test.describe('demo build', () => {
     await expect(page.locator('#contact-body'), 'the contact dialog closes after sending').toBeHidden();
     await clickNav(page, 'Mailbox');
     await expect(page.getByText(body), 'the message is in the sender\'s mailbox').toBeVisible();
-    await page.getByText('Sign out', { exact: true }).first().click();
-    await page.waitForURL('**/index.html');
 
-    // The Operator: every console tab. The Operator does NOT see the member's
-    // message here: demo writes live in memory and each page visit reloads the
-    // seed ("lost on reload"), so a message sent on one page visit is not there
-    // on the next. Checking the Operator's side needs writes kept across pages,
-    // which is the owner's choice, not something this test can assume.
-    await signInAs(page, 'Enter as Operator');
-    await page.waitForURL('**/operator.html');
-    await page.waitForTimeout(800);
-    const tabs = await navLabels(page);
-    expect(tabs.length, 'the Operator console has its tabs').toBeGreaterThan(5);
-    for (const label of tabs) {
+    for (const label of await navLabels(page)) {
       if (label === 'Sign out') continue;
       await clickNav(page, label);
-      expect(await errorTextOn(page), `error text on the Operator's ${label} tab`).toEqual([]);
+      expect(await errorTextOn(page), `error text on the ${label} tab`).toEqual([]);
     }
 
     expect(consoleErrors, 'console errors').toEqual([]);
@@ -210,34 +208,24 @@ test.describe('demo build', () => {
     expect(unexpectedHosts(w.hosts, baseURL), 'hosts the demo contacted').toEqual([]);
   });
 
-  test('every tab on each side renders without a script error or an error message', async ({ page }) => {
+  test('every member tab renders without a script error or an error message', async ({ page }) => {
     const w = watch(page);
     const failures = [];
 
-    await signInAs(page, 'Enter as Member A');
-    await page.waitForURL('**/app.html');
-    await page.waitForTimeout(800);
-    for (const label of await navLabels(page)) {
-      if (label === 'Sign out') continue;
-      const before = w.errors.length;
-      await clickNav(page, label);
-      if (w.errors.length > before) failures.push(`member A, ${label}: ${w.errors.slice(before).join(' | ')}`);
-      const shown = await errorTextOn(page);
-      if (shown.length) failures.push(`member A, ${label}: shows "${shown.join('", "')}"`);
-    }
-    await page.getByText('Sign out', { exact: true }).first().click();
-    await page.waitForURL('**/index.html');
-
-    await signInAs(page, 'Enter as Operator');
-    await page.waitForURL('**/operator.html');
-    await page.waitForTimeout(800);
-    for (const label of await navLabels(page)) {
-      if (label === 'Sign out') continue;
-      const before = w.errors.length;
-      await clickNav(page, label);
-      if (w.errors.length > before) failures.push(`operator, ${label}: ${w.errors.slice(before).join(' | ')}`);
-      const shown = await errorTextOn(page);
-      if (shown.length) failures.push(`operator, ${label}: shows "${shown.join('", "')}"`);
+    for (const who of ['Enter as Member A', 'Enter as Member B']) {
+      await signInAs(page, who);
+      await page.waitForURL('**/app.html');
+      await page.waitForTimeout(800);
+      for (const label of await navLabels(page)) {
+        if (label === 'Sign out') continue;
+        const before = w.errors.length;
+        await clickNav(page, label);
+        if (w.errors.length > before) failures.push(`${who}, ${label}: ${w.errors.slice(before).join(' | ')}`);
+        const shown = await errorTextOn(page);
+        if (shown.length) failures.push(`${who}, ${label}: shows "${shown.join('", "')}"`);
+      }
+      await page.getByText('Sign out', { exact: true }).first().click();
+      await page.waitForURL('**/index.html');
     }
 
     expect(failures).toEqual([]);

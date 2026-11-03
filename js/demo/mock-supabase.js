@@ -546,7 +546,8 @@ const jericho = (function () {
     async signInWithPassword(credentials) {
       const email = String((credentials && credentials.email) || '').toLowerCase();
       const p = db.profiles.find((x) => x.email.toLowerCase() === email);
-      if (!p) return { data: { user: null, session: null }, error: err('Invalid login credentials', 'invalid_credentials') };
+      // The demo has members only. The Operator account is data, not a way in.
+      if (!p || p.role === 'operator') return { data: { user: null, session: null }, error: err('Invalid login credentials', 'invalid_credentials') };
       setSession(p.user_id);
       const user = authUserFor(p.user_id);
       return { data: { user, session: { access_token: 'demo', token_type: 'bearer', user } }, error: null };

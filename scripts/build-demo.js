@@ -37,6 +37,12 @@ const REAL_CONFIG_TAG = /<script src="js\/supabase-config\.js"><\/script>/g;
 const DEMO_CLIENT_TAGS = '<script src="js/demo/seed.js"></script>\n<script src="js/demo/mock-supabase.js"></script>';
 const DEMO_UI_TAG = '<script src="js/demo/demo-ui.js"></script>';
 
+// The demo is for members only. The Operator console is not part of it at all:
+// not its page, not its script, and no way into it from the demo's sign-in.
+// (Owner's correction, 3 Nov: no Operator entry in the demo.)
+const EXCLUDED_PAGES = ['operator.html'];
+const EXCLUDED_FILES = ['js/operator.js'];
+
 // ------------------------------------------------ the values that must not ship
 function forbiddenValues() {
   const real = fs.readFileSync(path.join(ROOT, 'js', 'supabase-config.js'), 'utf8');
@@ -80,9 +86,10 @@ function build() {
   copyDir(path.join(ROOT, 'css'), path.join(OUT, 'css'));
   copyDir(path.join(ROOT, 'films'), path.join(OUT, 'films'));
   copyDir(path.join(ROOT, 'js'), path.join(OUT, 'js'),
-    (src) => path.basename(src) === 'supabase-config.js');
+    (src) => path.basename(src) === 'supabase-config.js'
+      || EXCLUDED_FILES.some((f) => src === path.join(ROOT, f)));
 
-  const pages = fs.readdirSync(ROOT).filter((f) => f.endsWith('.html')).sort();
+  const pages = fs.readdirSync(ROOT).filter((f) => f.endsWith('.html') && !EXCLUDED_PAGES.includes(f)).sort();
   for (const page of pages) {
     const html = fs.readFileSync(path.join(ROOT, page), 'utf8');
     fs.writeFileSync(path.join(OUT, page), rewritePage(html, page));
@@ -116,6 +123,13 @@ function check(pages) {
     for (const bad of forbidden) {
       if (text.includes(bad)) problems.push(`${path.relative(OUT, file)} contains "${bad}"`);
     }
+  }
+  for (const f of [...EXCLUDED_PAGES, ...EXCLUDED_FILES]) {
+    if (fs.existsSync(path.join(OUT, f))) problems.push(`${f} was copied into dist-demo (the demo has no Operator console)`);
+  }
+  for (const page of pages) {
+    const html = fs.readFileSync(path.join(OUT, page), 'utf8');
+    if (/js\/operator\.js/.test(html)) problems.push(`${page} loads the Operator console script`);
   }
   if (fs.existsSync(path.join(OUT, 'js', 'supabase-config.js'))) {
     problems.push('js/supabase-config.js was copied into dist-demo (it holds the real project address)');
