@@ -1,0 +1,41 @@
+{
+ "lang": "en",
+ "title": "MyPlatform",
+ "tag": "Physical commodities.\nBy invitation only.",
+ "a2a": "The *counterparty.*",
+ "a2b": "*Too* early.",
+ "words3": [
+  "Commodity",
+  "Quantity",
+  "Origin",
+  "Incoterms"
+ ],
+ "a4a": "The *opportunity.*",
+ "a4b": "*Not* the member.",
+ "member": "Member",
+ "a5": "Through the *Operator.*",
+ "operator": "Operator",
+ "a6a": "*Mutual agreement.*",
+ "a6b": "Then the introduction.",
+ "card": "Membership is provided without any membership or access fees. The Operator of MyPlatform is remunerated by commission on successfully concluded transactions resulting from introductions made through MyPlatform.",
+ "a7": "Each member warrants *their own* representations.",
+ "a8a": "MyPlatform",
+ "a8b": "Where opportunity\nmeets *discretion.*",
+ "re": {
+  "tag": "^physical",
+  "early": "^early",
+  "w3": [
+   "^commodity",
+   "^quantity",
+   "^origin",
+   "^incoterms"
+  ],
+  "role": "^role",
+  "doc": "^documentation",
+  "opp": "^opportunity",
+  "not": "^not$",
+  "op": "^operator",
+  "agree": "^agree",
+  "own": "^own"
+ }
+}

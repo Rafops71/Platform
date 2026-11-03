@@ -820,6 +820,73 @@ jobs:
           retention-days: 14
           if-no-files-found: warn
 
+  trailer_final_es:
+    # FINAL Spanish trailer, 1920x1080: the same picture as trailer-final with every on-screen text in Spanish (texts-es.json), the Spanish
+    # app captures (trailer-capture-es run), the Kokoro Spanish voice (trailer-voice-es run), the picture timed to the spoken words. NO music.
+    if: ${{ inputs.only == 'trailer-final-es' }}
+    name: Final trailer, Spanish (voice, 1080p)
+    runs-on: ubuntu-latest
+    timeout-minutes: 200
+    env:
+      OM_SHA: '195eab24478dc9363326aec437aefc3701635ddf'
+      CAPTURE_RUN: 'CAPTURE_RUN_ID'
+      VOICE_RUN: 'VOICE_RUN_ID'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - uses: actions/download-artifact@v4
+        with:
+          name: trailer-capture-es
+          path: capture-es
+          run-id: ${{ env.CAPTURE_RUN }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: trailer-voice-es
+          path: voice-out
+          run-id: ${{ env.VOICE_RUN }}
+          github-token: ${{ github.token }}
+      - name: OpenMontage composer
+        run: |
+          ls capture-es voice-out
+          mkdir om && cd om && git init -q && git remote add origin https://github.com/calesthio/OpenMontage
+          git fetch -q --depth 1 origin "$OM_SHA" && git checkout -q FETCH_HEAD
+          cd remotion-composer && npm ci --no-audit --no-fund
+          cp ../../video/trailer3/scenes.ts ../../video/trailer3/scenesFull.ts ../../video/trailer3/handshakeData.ts ../../video/trailer3/TrailerFull.tsx src/components/
+          cp ../../video/trailer3/texts-es.json src/components/texts.json
+          cp ../../voice-out/timings.json src/components/timings.json
+          cp ../../capture-es/meta.json src/components/meta.json
+          mkdir -p public/mp && cp ../../video/trailer3/ship.svg public/mp/ship.svg
+          cp ../../capture-es/browse.png ../../capture-es/row.png ../../capture-es/contact.png ../../capture-es/mailbox.png public/mp/
+          sed -i '1i import { TrailerFull } from "./components/TrailerFull";' src/Root.tsx
+          sed -i '0,/^    <\/>$/s//      <Composition id="TrailerFull" component={TrailerFull} durationInFrames={2700} fps={30} width={1920} height={1080} \/>\n    <\/>/' src/Root.tsx
+          grep -n "TrailerFull" src/Root.tsx
+      - name: Render (silent picture)
+        run: cd om/remotion-composer && npx remotion render src/index.tsx TrailerFull ../../trailer-final-es-silent.mp4 --codec h264 --crf 20 --concurrency 4
+      - name: Put the voice under the picture
+        run: |
+          ffmpeg -v error -y -i trailer-final-es-silent.mp4 -i voice-out/voice-track.wav -map 0:v -map 1:a -c:v copy -c:a aac -b:a 192k -t 90 trailer-final-es-voice.mp4
+          cp voice-out/voice-track.wav voice-out/voice-track.mp3 voice-out/timings.json voice-out/voice-table.md .
+      - name: Check it
+        run: |
+          for f in trailer-final-es-voice.mp4 trailer-final-es-silent.mp4; do echo "== $f"; ffprobe -v error -show_entries format=duration,size:stream=codec_name,width,height,nb_frames -of default=nw=1 $f; ffmpeg -i $f -af volumedetect -vn -f null - 2>&1 | grep -E "mean_volume|max_volume" || true; done
+          for t in 3 12 20 30 40 52 64 72 80 87; do ffmpeg -v error -y -ss $t -i trailer-final-es-voice.mp4 -frames:v 1 -vf scale=960:-1 "frame-$t.png"; done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trailer-final-es
+          path: |
+            trailer-final-es-voice.mp4
+            trailer-final-es-silent.mp4
+            voice-track.wav
+            voice-track.mp3
+            timings.json
+            voice-table.md
+            frame-*.png
+          retention-days: 14
+
   trailer_voice_en:
     # The new English trailer's narration (owner's approved text, 2026-11-02): Gemini Algieba, two requests, slowed
     # (atempo 0.93), listened to by faster-whisper. Run once; the build reuses its artifact.

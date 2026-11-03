@@ -1,0 +1,41 @@
+{
+ "lang": "es",
+ "title": "MyPlatform",
+ "tag": "Materias primas físicas.\nSolo por invitación.",
+ "a2a": "La *contraparte.*",
+ "a2b": "*Demasiado* pronto.",
+ "words3": [
+  "Materia prima",
+  "Cantidad",
+  "Origen",
+  "Incoterms"
+ ],
+ "a4a": "La *oportunidad.*",
+ "a4b": "*No* el miembro.",
+ "member": "Miembro",
+ "a5": "A través del *Operador.*",
+ "operator": "Operador",
+ "a6a": "*Acuerdo mutuo.*",
+ "a6b": "Después, la presentación.",
+ "card": "La membresía se ofrece sin cuotas de membresía ni de acceso. El Operador de MyPlatform es remunerado mediante una comisión sobre las transacciones concluidas con éxito que resulten de presentaciones realizadas a través de MyPlatform.",
+ "a7": "Cada miembro garantiza *sus propias* declaraciones.",
+ "a8a": "MyPlatform",
+ "a8b": "Donde la oportunidad\nse encuentra con la *discreción.*",
+ "re": {
+  "tag": "^materias",
+  "early": "^pronto",
+  "w3": [
+   "^materia",
+   "^cantidad",
+   "^origen",
+   "^incoterms"
+  ],
+  "role": "^funci",
+  "doc": "^documentaci",
+  "opp": "^oportunidad",
+  "not": "^no$",
+  "op": "^operador",
+  "agree": "^acuerd",
+  "own": "^propio"
+ }
+}
