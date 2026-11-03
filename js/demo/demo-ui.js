@@ -41,6 +41,21 @@
   panel.className = 'card';
   panel.style.cssText = 'display:flex;flex-direction:column;gap:10px;';
 
+  // The trailer, at the top of the sign-in panel. Same file as the front page;
+  // no autoplay, so nothing plays until someone presses play.
+  const trailer = document.createElement('video');
+  trailer.controls = true;
+  trailer.setAttribute('playsinline', '');
+  trailer.preload = 'metadata';
+  trailer.poster = 'films/trailer-en-poster.jpg';
+  trailer.setAttribute('aria-label', 'MyPlatform trailer');
+  trailer.style.cssText = 'display:block;width:100%;border-radius:8px;';
+  const source = document.createElement('source');
+  source.src = 'films/trailer-en.mp4';
+  source.type = 'video/mp4';
+  trailer.appendChild(source);
+  panel.appendChild(trailer);
+
   [
     ['member-a', 'Enter as Member A', 'btn-primary'],
     ['member-b', 'Enter as Member B', 'btn-primary'],

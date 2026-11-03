@@ -44,6 +44,8 @@ jobs:
       - run: npm ci
       - name: The deploy gate still catches the breaks it exists to catch
         run: node scripts/test-deploy-gate.js
+      - name: The front page's trailer is under the title, does not autoplay, and fits the host's file limit
+        run: npm run check:front-page
       - name: Build the demo
         run: npm run build:demo
       - name: Install the browser for the demo tests
