@@ -61,7 +61,6 @@
   const enterAs = {
     'member-a': { profileId: IDS.memberA, page: 'app.html' },
     'member-b': { profileId: IDS.memberB, page: 'app.html' },
-    'operator': { profileId: IDS.operator, page: 'operator.html' },
   };
 
   // -------------------------------------------------------------- listings --

@@ -34,6 +34,11 @@ module.exports = defineConfig({
   timeout: 60_000,
   expect: { timeout: 10_000 },
   reporter: [['list']],
+  // Playwright, on CI, runs `git fetch` for commit info with a 3 s limit. When
+  // GitHub is slow that times out and the error is printed into the JSON
+  // report on stdout, so the checklist cannot read it (PR 78 and PR 60,
+  // 2026-11-03). The report does not use git info, so do not capture it.
+  captureGitInfo: { commit: false, diff: false },
   use: {
     baseURL: BASE_URL,
     trace: 'retain-on-failure',

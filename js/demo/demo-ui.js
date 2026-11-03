@@ -3,9 +3,9 @@
 // Two things, both for the demo only:
 //   1. The fixed ribbon at the foot of every page, saying the data is example
 //      data and is not saved.
-//   2. On the sign-in page, three buttons that enter the demo as a seeded
-//      account, with no password. They sit above the normal form, which still
-//      works with the demo e-mail addresses.
+//   2. On the sign-in page, two buttons that enter the demo as a seeded
+//      member, with no password. They sit above the normal form. The demo is
+//      for members only: there is no Operator entry.
 
 (function () {
   'use strict';
@@ -44,7 +44,6 @@
   [
     ['member-a', 'Enter as Member A', 'btn-primary'],
     ['member-b', 'Enter as Member B', 'btn-primary'],
-    ['operator', 'Enter as Operator', 'btn-secondary'],
   ].forEach(([key, label, cls]) => {
     const btn = document.createElement('button');
     btn.type = 'button';
