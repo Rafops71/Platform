@@ -829,8 +829,8 @@ jobs:
     timeout-minutes: 200
     env:
       OM_SHA: '195eab24478dc9363326aec437aefc3701635ddf'
-      CAPTURE_RUN: 'CAPTURE_RUN_ID'
-      VOICE_RUN: 'VOICE_RUN_ID'
+      CAPTURE_RUN: '41699484599'
+      VOICE_RUN: '41700764625'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
