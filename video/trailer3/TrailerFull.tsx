@@ -7,6 +7,7 @@ import { loadFont as loadSpectral } from "@remotion/google-fonts/Spectral";
 import { loadFont as loadSans } from "@remotion/google-fonts/SourceSans3";
 import { DEFS, globe, seaDock, motes, smooth, INK, BLUE, SLATE, LINE } from "./scenes";
 import { EXTRA_DEFS, hands14, signing12, diagram5 } from "./scenesFull";
+import TIM from "./timings.json";
 
 const roman = loadSpectral("normal", { weights: ["300", "400", "500"] });
 const italic = loadSpectral("italic", { weights: ["300"] });
@@ -38,7 +39,9 @@ const Lit = ({ x, y, w, h, pad = 5, op }) => op > 0.01 ? (<div style={{ position
 const Cursor = ({ x, y, s = 1 }) => (<svg width="1920" height="1080" style={{ position: "absolute", left: 0, top: 0, filter: "drop-shadow(0 6px 8px rgba(21,32,43,.4))" }}><g transform={`translate(${x} ${y}) scale(${s})`}><path d="M0 0 L0 34 L9 26 L16 42 L23 39 L16 24 L28 24 Z" fill="#fff" stroke={INK} strokeWidth="2" strokeLinejoin="round" /></g></svg>);
 const Covered = () => (<><div style={{ position: "absolute", left: 780, top: 10, width: 360, height: 74, background: "rgb(29,74,109)" }} /><div style={{ position: "absolute", left: 296, top: 314, width: 300, height: 44, background: "rgb(240,246,251)" }} /></>);
 
-const S = [0, 7.6, 25.6, 37.0, 48.4, 60.4, 73.8, 82.2], END = 90;
+const S = [0, 7.6, 25.6, 37.0, 48.4, 60.4, 74.4, 84.0], END = 90;
+// the voice: when each word of an act's line is spoken (seconds into that act); falls back to the planned time without timings
+const tw = (act, re, fb, lead = 0) => { const l = (TIM.lines || []).find((x) => x.act === act); if (!l) return fb; const w = l.words.find((x) => re.test(x.w.toLowerCase().replace(/[^a-z']/g, ""))); return w ? w.start - S[act - 1] - lead : fb; };
 const eio = (x) => smooth(x);
 const Layer: React.FC<any> = ({ k, t, children, origin = "50% 50%", push = 0.03, outT }) => {
   const a0 = S[k], a1 = k + 1 < S.length ? S[k + 1] : END + 1, dur = a1 - a0 + 0.6;
@@ -55,7 +58,8 @@ export const TrailerFull: React.FC = () => {
   const { fps } = useVideoConfig();
   const t = frame / fps;
   const shipHref = staticFile("mp/ship.svg");
-  const WORDS3 = (lt) => ["Commodity", "Quantity", "Origin", "Incoterms"].map((w, i) => <React.Fragment key={w}>{i ? " · " : ""}<Lite on={lt > [2.0, 3.5, 5.0, 6.5][i]}>{w}</Lite></React.Fragment>);
+  const L3 = [tw(3, /^commodity/, 2.0, 0.15), tw(3, /^quantity/, 3.5, 0.15), tw(3, /^origin/, 5.0, 0.15), tw(3, /^incoterms/, 6.5, 0.15)];
+  const WORDS3 = (lt) => ["Commodity", "Quantity", "Origin", "Incoterms"].map((w, i) => <React.Fragment key={w}>{i ? " · " : ""}<Lite on={lt > L3[i]}>{w}</Lite></React.Fragment>);
   return (
     <AbsoluteFill style={{ background: `radial-gradient(ellipse at 50% 42%,#ffffff 0%,#f0f6fb 62%,#e2ebf3 100%)`, overflow: "hidden" }}>
       <div dangerouslySetInnerHTML={html(DEFS + EXTRA_DEFS)} />
@@ -64,15 +68,15 @@ export const TrailerFull: React.FC = () => {
       <Layer k={0} t={t} origin="65% 50%">{(lt) => (<>
         <div dangerouslySetInnerHTML={html(globe(1300, 540, 400, 28 + 3.2 * t, t) + motes(t, "#5fa3d6"))} />
         <Word x={110} y={300} w={760} size={104} weight={500} op={ramp(lt, 0.5, 1.4)}>MyPlatform</Word>
-        <Word x={114} y={480} w={760} size={64} op={ramp(lt, 1.6, 2.6)}>Physical commodities.<br />By invitation only.</Word>
+        <Word x={114} y={480} w={760} size={64} op={ramp(lt, tw(1, /^physical/, 3.2, 0.5), tw(1, /^physical/, 3.2, 0.5) + 0.9)}>Physical commodities.<br />By invitation only.</Word>
       </>)}</Layer>
 
-      {/* 2 - the ship sails in through the haze, docks, the crane unloads, trucks drive away */}
-      <Layer k={1} t={t} push={0}>{(lt) => (<AbsoluteFill>
-        <AbsoluteFill style={{ transform: `scale(${lerp(1, 1.28, eio((lt - 6) / 5))})`, transformOrigin: "57% 50%" }}><div dangerouslySetInnerHTML={html(seaDock(Math.max(0, lt), ramp(lt, 8.2, 9.6), shipHref))} /></AbsoluteFill>
-        <Word x={100} y={110} w={1720} size={104} align="center" op={ramp(lt, 0.5, 1.2) * (1 - ramp(lt, 7.4, 8.0))}>The <Em>counterparty.</Em></Word>
-        <Word x={100} y={110} w={1720} size={104} align="center" op={ramp(lt, 8.6, 9.4)}><Em>Too</Em> early.</Word>
-      </AbsoluteFill>)}</Layer>
+      {/* 2 - clear sunny daylight: the ship sails in, docks, the crane unloads onto trucks, the trucks drive away; "Too early." lands on the spoken words */}
+      <Layer k={1} t={t} push={0}>{(lt) => { const e0 = tw(2, /^early/, 9.4), r0 = e0 - 1.2; return (<AbsoluteFill>
+        <AbsoluteFill style={{ transform: `scale(${lerp(1, 1.15, eio((lt - 6) / 5))})`, transformOrigin: "50% 52%" }}><div dangerouslySetInnerHTML={html(seaDock(Math.max(0, lt), ramp(lt, r0, r0 + 1.4), shipHref, 0))} /></AbsoluteFill>
+        <Word x={100} y={110} w={1720} size={104} align="center" op={ramp(lt, 0.5, 1.2) * (1 - ramp(lt, e0 - 0.9, e0 - 0.4))}>The <Em>counterparty.</Em></Word>
+        <Word x={100} y={110} w={1720} size={104} align="center" op={ramp(lt, e0 - 0.15, e0 + 0.5)}><Em>Too</Em> early.</Word>
+      </AbsoluteFill>); }}</Layer>
 
       {/* 3 - zoom onto the offer; each detail lights up; the pointer clicks Contact; the Contact window opens */}
       <Layer k={2} t={t} push={0}>{(lt) => {
@@ -85,7 +89,7 @@ export const TrailerFull: React.FC = () => {
           <div style={{ opacity: 1 - c }}>
             <div style={{ position: "absolute", left: 0, top: 0, width: 1920, height: 1080, transformOrigin: "0 0", transform: `translate(${Z.tx}px,${Z.ty}px) scale(${Z.z})` }}>
               <AppBlur file="browse.png" blur={9} a={0.55} /><RowCard />
-              <Lit x={285} y={28} w={238} h={42} op={ramp(lt, 2.0, 2.5)} /><Lit x={158} y={84} w={190} h={38} op={ramp(lt, 3.5, 4.0)} /><Lit x={424} y={84} w={246} h={38} op={ramp(lt, 5.0, 5.5)} /><Lit x={364} y={84} w={40} h={38} pad={4} op={ramp(lt, 6.5, 7.0)} />
+              <Lit x={285} y={28} w={238} h={42} op={ramp(lt, L3[0], L3[0] + 0.4)} /><Lit x={158} y={84} w={190} h={38} op={ramp(lt, L3[1], L3[1] + 0.4)} /><Lit x={424} y={84} w={246} h={38} op={ramp(lt, L3[2], L3[2] + 0.4)} /><Lit x={364} y={84} w={40} h={38} pad={4} op={ramp(lt, L3[3], L3[3] + 0.4)} />
             </div>
             <Word x={110} y={110} w={1700} size={64} align="center" op={ramp(lt, 1.2, 2.0) * (1 - c)}>{WORDS3(lt)}</Word>
           </div>
@@ -100,26 +104,26 @@ export const TrailerFull: React.FC = () => {
         return (<>
           <div style={{ position: "absolute", left: 0, top: 0, width: 1920, height: 1080, transformOrigin: "0 0", transform: `translate(${Z.tx}px,${Z.ty}px) scale(${Z.z})` }}>
             <AppBlur file="browse.png" blur={14} a={0.72} /><RowCard />
-            <Lit x={20} y={188} w={318} h={38} op={ramp(lt, 2.5, 3.0)} /><Lit x={350} y={188} w={390} h={38} op={ramp(lt, 5.0, 5.5)} />
+            <Lit x={20} y={188} w={318} h={38} op={ramp(lt, tw(4, /^role/, 2.5, 0.2), tw(4, /^role/, 2.5, 0.2) + 0.4)} /><Lit x={350} y={188} w={390} h={38} op={ramp(lt, tw(4, /^documentation/, 5.0, 0.2), tw(4, /^documentation/, 5.0, 0.2) + 0.4)} />
           </div>
-          <Word x={100} y={40} w={1720} size={104} align="center" op={ramp(lt, 0.5, 1.3)}>The <Em>opportunity.</Em></Word>
+          <Word x={100} y={40} w={1720} size={104} align="center" op={ramp(lt, tw(4, /^opportunity/, 5.8, 0.4), tw(4, /^opportunity/, 5.8, 0.4) + 0.8)}>The <Em>opportunity.</Em></Word>
           <div style={{ position: "absolute", left: 1600, top: 420, width: 150, height: 150, borderRadius: 75, border: `2px solid ${LINE}`, background: "radial-gradient(circle at 40% 35%,#f3f6f9,#cfd8e1)", filter: "blur(9px)", boxShadow: "0 0 60px rgba(95,163,214,.35)", opacity: ramp(lt, 1, 2) }} />
           <div style={{ opacity: ramp(lt, 1, 2), filter: "blur(5px)" }}><Small x={1565} y={600} w={220} op={1}>Member</Small></div>
-          <Word x={100} y={820} w={1720} size={104} align="center" op={ramp(lt, 7.5, 8.4)}><Em>Not</Em> the member.</Word>
+          <Word x={100} y={820} w={1720} size={104} align="center" op={ramp(lt, tw(4, /^not$/, 7.4, 0.2), tw(4, /^not$/, 7.4, 0.2) + 0.8)}><Em>Not</Em> the member.</Word>
         </>);
       }}</Layer>
 
       {/* 5 - the mailbox (plural covered) clears away completely, then the diagram: envelopes travel both ways through the centre */}
       <Layer k={4} t={t} origin="50% 40%" push={0.02} outT={(o) => `scale(${(1 - 0.22 * o).toFixed(3)})`}>{(lt) => {
-        const mb = 1 - ramp(lt, 3.4, 4.2), d = ramp(lt, 4.6, 5.4);
+        const mb = 1 - ramp(lt, 2.6, 3.3), d = ramp(lt, 3.6, 4.4);
         return (<>
           {mb > 0.001 && <div style={{ opacity: mb }}><AppFull file="mailbox.png" /><Covered /></div>}
           {d > 0 && (<div style={{ opacity: d }}>
-            <div dangerouslySetInnerHTML={html(diagram5(Math.max(0, lt - 5.0)))} />
+            <div dangerouslySetInnerHTML={html(diagram5(Math.max(0, lt - 4.0)))} />
             <Small x={150} y={560} w={340} op={1}>Member</Small><Small x={1430} y={560} w={340} op={1}>Member</Small>
             <Word x={760} y={418} w={400} size={42} weight={500} align="center" op={1}>MyPlatform</Word>
             <div style={{ position: "absolute", left: 760, top: 480, width: 400, textAlign: "center", fontFamily: FS, fontSize: 24, letterSpacing: ".26em", textTransform: "uppercase", color: SLATE }}>Operator</div>
-            <Word x={160} y={760} w={1600} size={104} align="center" op={ramp(lt, 6.2, 7.1)}>Through the <Em>Operator.</Em></Word>
+            <Word x={160} y={760} w={1600} size={104} align="center" op={ramp(lt, Math.max(4.2, tw(5, /^operator/, 4.2, 0.3)), Math.max(4.2, tw(5, /^operator/, 4.2, 0.3)) + 0.9)}>Through the <Em>Operator.</Em></Word>
           </div>)}
         </>);
       }}</Layer>
@@ -129,23 +133,23 @@ export const TrailerFull: React.FC = () => {
         const gap = 700 * (1 - eio(lt / 1.6)), sh = lt > 1.9 && lt < 4.3 ? Math.sin(2 * Math.PI * (lt - 1.9) / 1.2) * Math.min(1, (lt - 1.9) / 0.3, (4.3 - lt) / 0.3) : 0;
         return (<>
           <div style={{ position: "absolute", inset: 0, opacity: ramp(lt, 0, 0.5), transform: `translateY(${(-18 * sh).toFixed(1)}px) rotate(${(0.7 * sh).toFixed(2)}deg)`, transformOrigin: "50% 45%" }} dangerouslySetInnerHTML={html(hands14(-40, gap))} />
-          <Word x={100} y={790} w={1720} size={104} align="center" op={ramp(lt, 1.6, 2.6) * (1 - ramp(lt, 8.4, 9.0))}><Em>Mutual agreement.</Em><br /><span style={{ fontSize: 64 }}>Then the introduction.</span></Word>
-          <div style={{ position: "absolute", left: 460, top: 800, width: 1000, padding: "22px 36px", background: "#fff", border: `1px solid ${LINE}`, borderRadius: 10, fontFamily: FF, fontWeight: 400, fontSize: 28, lineHeight: 1.36, color: INK, textAlign: "center", boxShadow: "0 18px 50px rgba(21,32,43,.12)", opacity: ramp(lt, 9.0, 9.8) }}>Membership is provided without any membership or access fees. The Operator of MyPlatform is remunerated by commission on successfully concluded transactions resulting from introductions made through MyPlatform.</div>
+          <Word x={100} y={790} w={1720} size={104} align="center" op={ramp(lt, tw(6, /^agree/, 3.0, 0.4), tw(6, /^agree/, 3.0, 0.4) + 0.9) * (1 - ramp(lt, 7.6, 8.2))}><Em>Mutual agreement.</Em><br /><span style={{ fontSize: 64 }}>Then the introduction.</span></Word>
+          <div style={{ position: "absolute", left: 460, top: 800, width: 1000, padding: "22px 36px", background: "#fff", border: `1px solid ${LINE}`, borderRadius: 10, fontFamily: FF, fontWeight: 400, fontSize: 28, lineHeight: 1.36, color: INK, textAlign: "center", boxShadow: "0 18px 50px rgba(21,32,43,.12)", opacity: ramp(lt, 8.3, 8.9) }}>Membership is provided without any membership or access fees. The Operator of MyPlatform is remunerated by commission on successfully concluded transactions resulting from introductions made through MyPlatform.</div>
         </>);
       }}</Layer>
 
       {/* 7 - the pen writes the signature, stroke by stroke */}
       <Layer k={6} t={t}>{(lt) => (<>
-        <div style={{ opacity: ramp(lt, 0, 1.0) }} dangerouslySetInnerHTML={html(signing12(ramp(lt, 1.0, 5.8)))} />
-        <Word x={100} y={880} w={1720} size={64} align="center" op={ramp(lt, 6.0, 7.0)}>Each member warrants <Em>their own</Em> representations.</Word>
+        <div style={{ opacity: ramp(lt, 0, 1.0) }} dangerouslySetInnerHTML={html(signing12(ramp(lt, 1.0, 7.2)))} />
+        <Word x={100} y={880} w={1720} size={64} align="center" op={ramp(lt, tw(7, /^own/, 6.0, 0.4), tw(7, /^own/, 6.0, 0.4) + 0.8)}>Each member warrants <Em>their own</Em> representations.</Word>
       </>)}</Layer>
 
       {/* 8 - the globe returns faintly; the name, the phrase, the hairline */}
       <Layer k={7} t={t} push={0.02}>{(lt) => (<>
         <div style={{ opacity: 0.2 * ramp(lt, 0, 1.2), filter: "blur(1.5px)" }} dangerouslySetInnerHTML={html(globe(960, 560, 560, 28 + 3.2 * t, t))} />
-        <Word x={110} y={250} w={1700} size={64} weight={500} align="center" op={ramp(lt, 0.3, 1.2)}>MyPlatform</Word>
-        <Word x={110} y={370} w={1700} size={104} align="center" op={ramp(lt, 1.2, 2.4)}>Where opportunity<br />meets <Em>discretion.</Em></Word>
-        <svg width="1920" height="1080" style={{ position: "absolute", left: 0, top: 0 }}><path d={`M560 630 H${560 + 800 * ramp(lt, 2.4, 4.4)}`} stroke={BLUE} strokeWidth="2.4" strokeLinecap="round" filter="url(#glow)" /></svg>
+        <Word x={110} y={250} w={1700} size={64} weight={500} align="center" op={ramp(lt, 0.2, 0.9)}>MyPlatform</Word>
+        <Word x={110} y={370} w={1700} size={104} align="center" op={ramp(lt, 0.8, 1.8)}>Where opportunity<br />meets <Em>discretion.</Em></Word>
+        <svg width="1920" height="1080" style={{ position: "absolute", left: 0, top: 0 }}><path d={`M560 630 H${560 + 800 * ramp(lt, 2.2, 4.2)}`} stroke={BLUE} strokeWidth="2.4" strokeLinecap="round" filter="url(#glow)" /></svg>
       </>)}</Layer>
 
       {/* joins: 1 to 2 the lit lane runs out of the globe and becomes the horizon; 2 to 3 a wash of white */}
