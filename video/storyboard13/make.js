@@ -423,7 +423,7 @@ function hands12(dy = 0) {
   for (let i = 0; i < 24; i++) { const a = r12() * 6.283, d = 160 + r12() * 330; g += `<circle cx="${(1010 + Math.cos(a) * d * 1.5).toFixed(0)}" cy="${(480 + dy + Math.sin(a) * d * .5).toFixed(0)}" r="${(1.5 + r12() * 3.2).toFixed(1)}" fill="#fff" opacity="${(0.4 + r12() * .5).toFixed(2)}" filter="url(#g4)" stroke="none"/>`; }
   return SV(g);
 }
-const hands = (dy) => { hands11(dy); return hands12(dy); };
+const hands = (dy) => { hands11(dy); hands12(dy); return hands13(dy); };
 
 // ---------------------------------------------------------------- act 7 (v12): calligraphic signature and fountain pen
 function signature() { // one centre line (initial with a loop, flowing humps, a long underline flourish), then variable width from the stroke direction
@@ -557,6 +557,48 @@ function seaDay(stage) {
   return SV(g);
 }
 
+// ---------------------------------------------------------------- v13 act 6: the handshake, route (b): a public-domain Openclipart drawing, restyled
+// Source art: handshake-openclipart.svg (Openclipart, public domain; source page recorded in storyboard.md). Only its outlines are used:
+// every fill, outline, sleeve, cuff, fold and light below is ours (skin tones as v12, suit colours as v12).
+const HS = fs.readFileSync(path.join(__dirname, 'handshake-openclipart.svg'), 'utf8');
+const hsPath = (id) => { const m = HS.match(new RegExp('<path[^>]*id="' + id + '"[\\s\\S]*?/>')); return m[0].match(/\sd="([^"]*)"/)[1]; };
+function hands13(dy = 0) {
+  const P = { low: hsPath('path4929'), up: hsPath('path3686'), lsl: hsPath('path8038'), shade: hsPath('path13008'), wr: hsPath('path919'), rsl: hsPath('path9902') };
+  const crease = ['path3604', 'path3604-1', 'path3604-1-7', 'path3604-1-7-4', 'path3604-1-7-9'].map(hsPath), nails = ['path3681', 'path3681-4', 'path3681-4-4', 'path3681-4-5'].map(hsPath);
+  const sk = (id, c) => `<linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c[0]}"/><stop offset=".55" stop-color="${c[1]}"/><stop offset="1" stop-color="${c[2]}"/></linearGradient>`;
+  const S = 1.1, ox = 960 - 467 * S, oy = 400 - 300 * S + dy;
+  let g = `<defs>${BEVEL}${sk('skA3', SKIN_A)}${sk('skB3', SKIN_B)}
+  <linearGradient id="suitL3" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2f6a9c"/><stop offset=".6" stop-color="#245a86"/><stop offset="1" stop-color="#143a5a"/></linearGradient>
+  <linearGradient id="suitR3" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#46586a"/><stop offset=".6" stop-color="#27323d"/><stop offset="1" stop-color="#121a22"/></linearGradient>
+  <linearGradient id="shirt3" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#dfe8f1"/><stop offset=".5" stop-color="#fff"/><stop offset="1" stop-color="#c9d8e6"/></linearGradient>
+  <pattern id="weave3" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(40)"><path d="M0 0 H6" stroke="#fff" stroke-opacity=".08" stroke-width="1"/></pattern>
+  <radialGradient id="fade3" cx="467" cy="300" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(467 300) scale(500 370) translate(-467 -300)"><stop offset=".62" stop-color="#fff"/><stop offset="1" stop-color="#000"/></radialGradient>
+  <mask id="m3" maskUnits="userSpaceOnUse" x="-100" y="-100" width="1200" height="900"><rect x="-100" y="-100" width="1200" height="900" fill="url(#fade3)"/></mask>
+  <clipPath id="cLow"><path d="${P.low}"/></clipPath><clipPath id="cLs"><path d="${P.lsl}"/></clipPath><clipPath id="cRs"><path d="${P.rsl}"/></clipPath>
+  <clipPath id="cutL"><rect x="150" y="0" width="400" height="700"/></clipPath><clipPath id="cutR"><rect x="560" y="0" width="200" height="500"/></clipPath></defs>`;
+  g += `<ellipse cx="960" cy="${640 + dy}" rx="560" ry="30" fill="#15202b" opacity=".16" filter="url(#g40)" stroke="none"/><circle cx="1000" cy="${400 + dy}" r="380" fill="url(#rgBlue)" opacity=".4" stroke="none"/>`;
+  g += `<g transform="translate(${ox.toFixed(1)} ${oy.toFixed(1)}) scale(${S})"><g mask="url(#m3)">`;
+  // cuffs (shirt) peek out from under the sleeves toward the hands
+  g += `<g clip-path="url(#cutL)"><path d="${P.lsl}" transform="translate(40 -5)" fill="url(#shirt3)" stroke="#aebfd0" stroke-width="1.5"/></g><g clip-path="url(#cutR)"><path d="${P.rsl}" transform="translate(-40 5)" fill="url(#shirt3)" stroke="#aebfd0" stroke-width="1.5"/></g>`;
+  // hands: ours skin tones, rounded by the bevel light; a soft shadow from the upper hand falls on the lower one
+  g += `<g filter="url(#bevelF)"><path d="${P.low}" fill="url(#skA3)"/></g><path d="${P.low}" fill="#fff" opacity=".28" transform="translate(0 0)" filter="url(#g16)" clip-path="url(#cLow)"/>`;
+  g += `<g clip-path="url(#cLow)"><path d="${P.up}" fill="none" stroke="#3a1f10" stroke-width="22" opacity=".38" filter="url(#g8)" transform="translate(-4 8)"/></g>`;
+  g += `<g filter="url(#bevelF)"><path d="${P.up}" fill="url(#skB3)"/><path d="${P.wr}" fill="url(#skB3)"/></g>`;
+  g += `<path d="${P.up}" fill="none" stroke="${SKIN_B[2]}" stroke-width="1.6" opacity=".55"/><path d="${P.low}" fill="none" stroke="${SKIN_A[2]}" stroke-width="1.6" opacity=".55"/>`;
+  for (const d of crease) g += `<path d="${d}" fill="none" stroke="${SKIN_A[2]}" stroke-width="2.2" opacity=".55"/>`;
+  for (const d of nails) g += `<path d="${d}" fill="#fbeee3" stroke="${SKIN_A[2]}" stroke-width="1" opacity=".95"/>`;
+  g += `<path d="${P.up}" fill="none" stroke="#fff" stroke-width="3" opacity=".35" filter="url(#g4)" transform="translate(-2 -3)" clip-path="url(#cLow)"/>`;
+  // sleeves: suit cloth with weave and gathered folds, rounded by the bevel
+  const sleeve = (d, grad, clip, dark, light, folds) => { let s = `<g filter="url(#bevel)"><path d="${d}" fill="url(#${grad})"/><path d="${d}" fill="url(#weave3)"/></g><g clip-path="url(#${clip})">`; for (const [x0, y0, x1, y1] of folds) s += `<path d="M${x0} ${y0} C${(x0 * 2 + x1) / 3} ${y0 + (y1 - y0) * .1 + 14} ${(x0 + x1 * 2) / 3} ${y1 - 12} ${x1} ${y1}" stroke="${dark}" stroke-opacity=".5" stroke-width="9" fill="none" filter="url(#g4)"/><path d="M${x0 - 2} ${y0 + 8} C${(x0 * 2 + x1) / 3} ${y0 + (y1 - y0) * .1 + 22} ${(x0 + x1 * 2) / 3} ${y1 - 4} ${x1} ${y1 + 8}" stroke="${light}" stroke-opacity=".3" stroke-width="3" fill="none" filter="url(#g4)"/>`; return s + '</g>'; };
+  const lf = [], rf = []; for (let i = 0; i < 8; i++) { lf.push([236, 170 + i * 52 + (r12() - .5) * 10, 60 + r12() * 80, 150 + i * 62]); } for (let i = 0; i < 6; i++) { rf.push([640, 130 + i * 44 + (r12() - .5) * 10, 760 + r12() * 130, 90 + i * 52]); }
+  g += sleeve(P.lsl, 'suitL3', 'cLs', '#0a2236', '#8fc0e6', lf) + sleeve(P.rsl, 'suitR3', 'cRs', '#05090e', '#8aa0b4', rf);
+  g += `<path d="${P.shade}" fill="#0a131c" opacity=".35" filter="url(#g8)"/>`;
+  g += '</g></g>';
+  g += `<circle cx="1000" cy="${450 + dy}" r="70" fill="url(#rgWhite)" opacity=".25" stroke="none"/>`;
+  for (let i = 0; i < 24; i++) { const a = r13() * 6.283, d = 200 + r13() * 330; g += `<circle cx="${(1000 + Math.cos(a) * d * 1.5).toFixed(0)}" cy="${(440 + dy + Math.sin(a) * d * .45).toFixed(0)}" r="${(1.5 + r13() * 3.2).toFixed(1)}" fill="#fff" opacity="${(0.4 + r13() * .5).toFixed(2)}" filter="url(#g4)" stroke="none"/>`; }
+  return SV(g);
+}
+
 const hair = (x1, x2, y) => SV(`<path d="M${x1} ${y} H${x2}" stroke="${BLUE}" stroke-width="2.4" filter="url(#glow)"/>`);
 const cb = meta.contactBtn || { x: 205, y: 451, w: 82, h: 34 };
 const appImg = (f) => `<div class="abs" style="left:0;top:0;width:1920px;height:1080px;overflow:hidden"><img src="${b64(f)}" style="width:1920px;height:1200px;display:block"></div>`;
@@ -568,7 +610,7 @@ const acts = [
     next: 'The bright Chile-Rotterdam route keeps drawing out past the globe edge and becomes the horizon of the night sea in act 2 (the light dims to black behind it).',
     frames: [['', globe(1300, 540, 400, 28) + motes(26, GLOWB) + kw('big word', 110, 300, 760, 'MyPlatform') + kw('mid', 114, 480, 760, 'Physical commodities.<br>By invitation only.') + finish(false)]] },
   { id: '2', sec: 14, voice: 'In commodity trading, counterparties are often difficult to identify. Disclosing your position too early can weaken your commercial leverage.', screen: '"The counterparty." then "Too early." (in the empty sky above the ships)',
-    moves: 'DARK ACT (v12: deeper). The near ship is large and moves slowly closer (camera and ship drift, 4 %); three layers of textured fog drift at different speeds (parallax: far bank behind, a bank across the hull, a low bank in front); the hull shows soft volume shading, bow spray and a rippling reflection. Each captain sees only a blurred radar blip (?) of the other, the radar sweep turning with a glowing phosphor trail. Then the near ship switches its lights on too early: deck lamps, windows and masthead bloom through the fog with light shafts, the containers show their colours, glitter columns appear on the water; the far ship stays a silhouette in the fog, and its radar now shows the first ship crisp.',
+    moves: 'DAYLIGHT (v13). A pale morning sea in the app\'s light colours; the near ship is large, a far ship small; three layers of textured haze drift at different speeds (parallax: a far bank behind the ships, a bank across the hull, a low bank in front) and a soft sun glows in the upper right; the hull has volume shading, bow spray and a rippling reflection. Each captain sees only a blurred radar blip (?) of the other (the radar sweep turns with a glowing trail). In 2a both ships are veiled in haze. In 2b the haze parts over the near ship: a sunlit clearing with warm light shafts exposes its cargo, white markings and pennant sharp, sparkle on the water too early, while the far ship stays veiled and its radar now shows the first ship crisp.',
     next: 'The light of the exposed ship swells into a white wash that becomes the white page of the app in act 3 (fade through white).',
     frames: [['a', sea(0) + kw('big', 100, 110, 1720, 'The <em>counterparty.</em>', 'center') + finish(false)], ['b', sea(1) + kw('big', 100, 110, 1720, '<em>Too</em> early.', 'center') + finish(false)]] },
   { id: '3', sec: 12, voice: 'Members post buying and selling opportunities with the key details: commodity, quantity, origin and Incoterms.', screen: '"Commodity · Quantity · Origin · Incoterms" (each word lights up as it is spoken)',
@@ -586,7 +628,7 @@ const acts = [
     next: 'Both member lines pull together to the centre and the two rings become the two hands of act 6.',
     frames: [['a', appImg('mailbox.png') + covered() + finish(false, true)], ['b', operator() + kw('small', 150, 560, 340, 'Member', 'center') + kw('small', 1430, 560, 340, 'Member', 'center') + kw('word', 760, 418, 400, 'MyPlatform', 'center', 'font-size:42px') + kw('small', 760, 480, 400, 'Operator', 'center', 'font-size:24px') + kw('big', 160, 760, 1600, 'Through the <em>Operator.</em>', 'center') + motes(18, GLOWB) + finish(false)]] },
   { id: '6', sec: 16, voice: 'Introduction follows only once both sides agree on the essential terms and conditions and wish to proceed.', screen: '"Mutual agreement. Then the introduction." / then, ~10 s, the written card (not spoken) UNDER the dimmed handshake',
-    moves: 'v12: two hands with lit, rounded volume (soft shading and rim light), suit sleeves with gathered fabric folds and shirt cuffs, seen in slight 3/4 perspective (the clasp nearer). The hands glide in from the sides and meet, the fingers close around the other hand and the thumbs settle on top; a bloom of light opens at the clasp and sparks drift outward; the hands softly breathe (1 %). Then the picture dims to ~16 % and the written card, static, shows through the dimmed handshake: dark text on white, about 10 s.',
+    moves: 'v13: a well-drawn, anatomically natural handshake (route b: a public-domain Openclipart drawing, only its outlines used and restyled: our skin tones, suit sleeves with fabric folds and weave, shirt cuffs, soft rounded lighting, a shadow from the upper hand on the lower, the arms fading softly into the page). The hands glide in from the sides and meet; a bloom of light opens at the clasp and sparks drift outward; the hands softly breathe (1 %). Then the picture dims to ~26 % and the written card, static, shows through the dimmed handshake: dark text on white, about 10 s.',
     next: 'The dimmed handshake fades out; the card\'s top edge becomes the paper edge of act 7.',
     frames: [['a', hands(-40) + kw('big', 100, 790, 1720, '<em>Mutual agreement.</em><br><span style="font-size:64px">Then the introduction.</span>', 'center') + finish(false)],
       ['b', `<div class="abs" style="left:210px;top:260px;width:1500px;padding:56px 70px;background:#fff;border:1px solid ${LINE};border-radius:12px;font-family:Spectral,serif;font-weight:400;font-size:46px;line-height:1.35;color:${INK};text-align:center;box-shadow:0 30px 80px rgba(21,32,43,.12)">Membership is provided without any membership or access fees. The Operator of MyPlatform is remunerated by commission on successfully concluded transactions resulting from introductions made through MyPlatform.</div><div class="abs" style="inset:0;opacity:.26;mix-blend-mode:multiply">${hands(60)}</div>` + finish(false)]] },
@@ -616,5 +658,5 @@ const LEVELS = 'All effects well under the music (about 20 dB below it); no effe
   for (const a of acts) t += `| ${a.id} | ${a.sec} | ${a.voice} | ${a.screen} | ${a.moves} | ${a.next} | ${a.frames.map((f) => `act-${a.id}${f[0]}.png`).join(', ')} | ${SFX[a.id] || '(sfx.json missing)'} |\n`;
   t += `| | **${acts.reduce((s, a) => s + a.sec, 0)}** | | | | | | |\n`;
   t += `\n${LEVELS}\n\n${SFXSRC}\n`;
-  fs.writeFileSync(path.join(out, 'storyboard.md'), '# Storyboard v13 - stills only\n\nLight app colours (#ffffff, #15202b, #52677a, #27618f, #f0f6fb, #e2ebf3), key words only, match moves. Act 2 is deliberately dark (night, fog) before the light acts. Music: "Corporate advertising" (Nastelbom, Pixabay), kept out of the repository. Seconds are planned, not measured. App pictures are real screenshots (pieces lit or covered); globe, ships, handshake, pen and the diagram are code-drawn.\n\n' + t);
+  fs.writeFileSync(path.join(out, 'storyboard.md'), '# Storyboard v13 - stills only\n\nLight app colours (#ffffff, #15202b, #52677a, #27618f, #f0f6fb, #e2ebf3), key words only, match moves. Act 2 is daylight, pale morning haze (v13). Music: "Corporate advertising" (Nastelbom, Pixabay), kept out of the repository. Seconds are planned, not measured. App pictures are real screenshots (pieces lit or covered); globe, ships, pen and the diagram are code-drawn; the handshake restyles the outlines of Openclipart 57067 (Handshake with Black Outline, by palomaironique, public domain, https://openclipart.org/download/57067/Handshake-03.svg).\n\n' + t);
 })();
