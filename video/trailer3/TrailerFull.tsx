@@ -68,8 +68,8 @@ export const TrailerFull: React.FC = () => {
       </>)}</Layer>
 
       {/* 2 - the ship sails in through the haze, docks, the crane unloads, trucks drive away */}
-      <Layer k={1} t={t} push={0}>{(lt) => (<AbsoluteFill style={{ transform: `scale(${lerp(1, 1.28, eio((lt - 6) / 5))})`, transformOrigin: "57% 50%" }}>
-        <div dangerouslySetInnerHTML={html(seaDock(Math.max(0, lt), ramp(lt, 8.2, 9.6), shipHref))} />
+      <Layer k={1} t={t} push={0}>{(lt) => (<AbsoluteFill>
+        <AbsoluteFill style={{ transform: `scale(${lerp(1, 1.28, eio((lt - 6) / 5))})`, transformOrigin: "57% 50%" }}><div dangerouslySetInnerHTML={html(seaDock(Math.max(0, lt), ramp(lt, 8.2, 9.6), shipHref))} /></AbsoluteFill>
         <Word x={100} y={110} w={1720} size={104} align="center" op={ramp(lt, 0.5, 1.2) * (1 - ramp(lt, 7.4, 8.0))}>The <Em>counterparty.</Em></Word>
         <Word x={100} y={110} w={1720} size={104} align="center" op={ramp(lt, 8.6, 9.4)}><Em>Too</Em> early.</Word>
       </AbsoluteFill>)}</Layer>
