@@ -967,6 +967,37 @@ Decisions behind each are in `docs/AGREED-2026-10-25.md`.
     change); Spanish film render (voice lines exist; needs OpenMontage set
     up); native-speaker listen to the Spanish voice.
 
+**Demo site on Cloudflare Pages - PLANNED 2026-11-03, NOT SET UP.**
+The demo (PR #76, merged as 630789f) is to be published to its own Pages
+project `myplatform-demo` (address myplatform-demo.pages.dev), separate from
+`platform` and `platform-www`. Owner's decision, relayed by the supervisor.
+Record of the method used for the other two: docs/AGREED-2026-10-28-cloudflare.md.
+
+Setup steps (NOT yet done - see the teardown first):
+1. Prove the teardown on a throwaway project named `deletetest-demo`:
+   create it, delete it, and confirm the project list no longer shows it.
+   Only then create `myplatform-demo`. Nothing has been created yet.
+2. Create the project explicitly. The docs read on 2026-11-03 do not say
+   whether `wrangler pages deploy` creates a missing project, so the
+   deploy job must not rely on it. Create with either:
+   - `npx wrangler pages project create myplatform-demo --production-branch=main`
+   - `POST /accounts/<account_id>/pages/projects` with body
+     `{"name":"myplatform-demo","production_branch":"main"}`
+3. The repository secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are
+   the ones already used for `platform` and `platform-www`. The publish job
+   fails when either is missing.
+
+TEARDOWN - delete the demo project (verified against the Cloudflare docs
+read 2026-11-03; the project and its deployments are removed permanently):
+- `npx wrangler pages project delete myplatform-demo --yes`
+- or `DELETE /accounts/<account_id>/pages/projects/myplatform-demo`
+  (success: HTTP 200, `"success": true`).
+Not yet checked: whether deleting the project also removes its custom
+domains. The demo has none, so this changes nothing today.
+Status: teardown NOT yet proven on a live project. The token used for
+`platform` is with the owner, and this session has no Cloudflare token, so
+step 1 has to be done by someone holding it before setup.
+
 -4. ~~**The Privacy Notice does not yet mention outcome records or the
     scorecard.**~~ RESOLVED 2026-10-28: Terms 3.4 (sql/042), live. The research says members must be told. A new Terms version
     is the owner's decision; nothing has been published.
