@@ -73,10 +73,53 @@ for (const f of fs.readdirSync(wfDir).filter(n => /\.ya?ml$/.test(n))) {
     problems.push(`${f} contains ${count} deploy-pages step(s); only ci.yml's deploy job may publish.`);
   }
   const cf = (body.match(/cloudflare\/wrangler-action@/g) || []).length;
-  if (f === 'ci.yml' ? cf !== 2 : cf !== 0) {
-    problems.push(`${f} contains ${cf} wrangler-action step(s); only ci.yml's deploy-cloudflare and deploy-www jobs may publish there (ci.yml: exactly 2).`);
+  // ci.yml: the app and the front page. demo-pages.yml: the demo, in its own
+  // gated job (checked below). Any other file may not publish to Cloudflare.
+  const expectedCf = f === 'ci.yml' ? 2 : f === 'demo-pages.yml' ? 1 : 0;
+  if (cf !== expectedCf) {
+    problems.push(`${f} contains ${cf} wrangler-action step(s); only ci.yml's deploy-cloudflare and deploy-www jobs, and demo-pages.yml's publish-demo job, may publish there (ci.yml: 2, demo-pages.yml: 1).`);
   }
 }
+
+// The demo's one Cloudflare publish step: its own job, gated like the others.
+// Same rules as the ci.yml jobs (main only, needs the checks, no status
+// function, fails on a missing secret), with the demo's own needs and target.
+function checkDemoPublisher() {
+  const file = 'demo-pages.yml';
+  const demo = fs.readFileSync(path.join(path.dirname(FILE), file), 'utf8').split('\n');
+  const start = demo.findIndex(l => /^  publish-demo:\s*$/.test(l));
+  if (start === -1) {
+    problems.push(`${file} has no \`publish-demo\` job, so nothing publishes the demo behind its tests.`);
+    return;
+  }
+  let end = demo.length;
+  for (let i = start + 1; i < demo.length; i++) {
+    if (/^  [A-Za-z0-9_-]+:\s*$/.test(demo[i])) { end = i; break; }
+  }
+  const block = demo.slice(start, end).filter(l => !/^\s*#/.test(l)).join('\n');
+
+  const needs = (block.match(/^\s{4}needs:\s*\[([^\]]*)\]/m) || [])[1] || '';
+  if (!needs.split(',').map(x => x.trim()).includes('build')) {
+    problems.push(`${file}: the publish-demo job does not wait for \`build\` (the demo's browser tests).`);
+  }
+  const cond = (block.match(/^\s{4}if:\s*(.+)$/m) || [])[1] || '';
+  if (STATUS_FUNCTIONS.test(cond)) {
+    problems.push(`${file}: the publish-demo job's \`if:\` uses a status function (${cond.trim()}).`);
+  }
+  if (!/refs\/heads\/main/.test(cond)) {
+    problems.push(`${file}: the publish-demo job is not limited to main.`);
+  }
+  if (!/-z "\$CLOUDFLARE_API_TOKEN"/.test(block) || !/exit 1/.test(block)) {
+    problems.push(`${file}: the publish-demo job does not fail when the Cloudflare secrets are missing.`);
+  }
+  const deployCmd = (block.match(/command:\s*(pages deploy .+)$/m) || [])[1] || '';
+  if (!/^pages deploy dist-demo --project-name=myplatform-demo --branch=main\b/.test(deployCmd)) {
+    problems.push(`${file}: the publish-demo job does not deploy dist-demo to \`myplatform-demo\` on main.`);
+  }
+  const inBlock = (block.match(/cloudflare\/wrangler-action@/g) || []).length;
+  if (inBlock !== 1) problems.push(`${file}: the publish-demo job must hold the one wrangler step (found ${inBlock}).`);
+}
+checkDemoPublisher();
 
 if (problems.length) {
   console.error('Deploy gate: FAIL\n' + problems.map(p => '  - ' + p).join('\n'));
