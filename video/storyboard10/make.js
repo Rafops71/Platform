@@ -143,6 +143,21 @@ const acts = [
     frames: [['', S(`<path d="M560 600 H1360" stroke="${BLUE}" stroke-width="2.2"/>`) + kw('mid word', 110, 250, 1700, 'MyPlatform', 'center') + kw('big', 110, 370, 1700, 'Where opportunity<br>meets <em>discretion.</em>', 'center')]] },
 ];
 
+
+// Sound effects (planning only, nothing mixed yet): subtle, CC0 only, from Openverse; each file's URL and licence recorded here.
+const WHOOSH = 'whoosh: "Swipe Whoosh" (qubodup, 447 ms, CC0 1.0) https://freesound.org/people/qubodup/sounds/60007 ; alt "13th Whoosh Swing Sound" (qubodup, 522 ms, CC0 1.0) https://freesound.org/people/qubodup/sounds/60000';
+const SFX = {
+  '1': 'at 0.0 s: low tone (open) - file to be chosen (CC0 lookup pending); at the end: ' + WHOOSH,
+  '2': 'at the start: ' + WHOOSH + '; at the end: same whoosh',
+  '3': 'at the start: same whoosh; when the pointer clicks Contact (3a to 3b): quiet mouse click - file to be chosen (CC0 lookup pending)',
+  '4': 'at the start: same whoosh; when the row opens: quiet mouse click',
+  '5': 'at the start: same whoosh; when the message is sent: quiet mouse click; the melt from Mailbox to diagram: soft whoosh',
+  '6': 'at the start: same whoosh; no click',
+  '7': 'at the start: same whoosh (nothing else)',
+  '8': 'at the start: same whoosh; at the end: low tone (close), the same file as the opening one',
+};
+const LEVELS = 'All effects well under the music (about 20 dB below it), no effect longer than 1 s except the two low tones (about 2 s, fading).';
+
 (async () => {
   const browser = await chromium.launch(); const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
   for (const a of acts) for (const [suffix, html] of a.frames) {
@@ -151,8 +166,9 @@ const acts = [
     await page.screenshot({ path: path.join(out, `act-${a.id}${suffix}.png`) });
   }
   await browser.close();
-  let t = '| act | seconds | voice (exact) | on screen | what moves | match move into the next act | stills |\n|---|---|---|---|---|---|---|\n';
-  for (const a of acts) t += `| ${a.id} | ${a.sec} | ${a.voice} | ${a.screen} | ${a.moves} | ${a.next} | ${a.frames.map((f) => `act-${a.id}${f[0]}.png`).join(', ')} |\n`;
-  t += `| | **${acts.reduce((s, a) => s + a.sec, 0)}** | | | | | |\n`;
+  let t = '| act | seconds | voice (exact) | on screen | what moves | match move into the next act | stills | sound effects (planned) |\n|---|---|---|---|---|---|---|---|\n';
+  for (const a of acts) t += `| ${a.id} | ${a.sec} | ${a.voice} | ${a.screen} | ${a.moves} | ${a.next} | ${a.frames.map((f) => `act-${a.id}${f[0]}.png`).join(', ')} | ${SFX[a.id]} |\n`;
+  t += `| | **${acts.reduce((s, a) => s + a.sec, 0)}** | | | | | | |\n`;
+  t += `\n${LEVELS}\n`;
   fs.writeFileSync(path.join(out, 'storyboard.md'), '# Storyboard v10 - stills only\n\nLight app colours, fine line, key words only, match moves. Music: "Corporate advertising" (Nastelbom, Pixabay), kept out of the repository. Seconds are planned, not measured. App pictures are real screenshots; globe, port, handshake and pen are drawn illustrations.\n\n' + t);
 })();
