@@ -126,6 +126,48 @@ test.describe('demo build', () => {
     expect(w.hosts.size, 'the demo did contact its own host').toBeGreaterThan(0);
   });
 
+  test('click-through: member sends a message, Operator opens every console tab, no console errors, no Supabase request', async ({ page }) => {
+    const w = watch(page);
+    const consoleErrors = [];
+    page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text()); });
+
+    // Member A: browse, open the copper request posted by the other member
+    // (A cannot contact its own copper sell offer), send a message, check the mailbox.
+    const body = 'Demo click-through: is the copper cathode request still open for CIF Rotterdam?';
+    await signInAs(page, 'Enter as Member A');
+    await page.waitForURL('**/app.html');
+    await page.waitForTimeout(1000);
+    await clickNav(page, 'Browse');
+    await page.waitForTimeout(800);
+    const copper = page.locator('div', { hasText: 'BUY-26-001' })
+      .filter({ has: page.getByRole('button', { name: 'Contact', exact: true }) }).last();
+    await expect(copper, 'the copper request is on the Browse list').toBeVisible();
+    await copper.getByRole('button', { name: 'Contact', exact: true }).click();
+    await page.locator('#contact-body').fill(body);
+    await page.locator('#contact-send-btn').click();
+    await expect(page.locator('#contact-body'), 'the contact dialog closes after sending').toBeHidden();
+    await clickNav(page, 'Mailbox');
+    await expect(page.getByText(body), 'the message is in the mailbox').toBeVisible();
+    await page.getByText('Sign out', { exact: true }).first().click();
+    await page.waitForURL('**/index.html');
+
+    // The Operator: open every console tab.
+    await signInAs(page, 'Enter as Operator');
+    await page.waitForURL('**/operator.html');
+    await page.waitForTimeout(1200);
+    const tabs = await navLabels(page);
+    expect(tabs.length, 'the Operator console has its tabs').toBeGreaterThan(5);
+    for (const label of tabs) {
+      if (label === 'Sign out') continue;
+      await clickNav(page, label);
+    }
+
+    expect(consoleErrors, 'console errors').toEqual([]);
+    expect(w.errors, 'uncaught script errors').toEqual([]);
+    const supabaseHosts = [...w.hosts].filter((h) => /supabase/i.test(h));
+    expect(supabaseHosts, 'hosts the demo contacted').toEqual([]);
+  });
+
   test('every tab on each side renders without an uncaught script error', async ({ page }) => {
     const w = watch(page);
     const failures = [];

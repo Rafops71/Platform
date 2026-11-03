@@ -9,8 +9,11 @@ name: Demo site
 # makes no request to Supabase (tests/demo). Both must pass before anything is
 # published.
 #
-# Requires GitHub Pages set to "GitHub Actions" as its source. configure-pages
-# below turns that on when the token is allowed to.
+# NOT PUBLISHING YET. A GitHub repository has one Pages site, and the real
+# platform is already published there by ci.yml's deploy job. A second
+# deploy-pages step would overwrite the live site, so this workflow only builds
+# and tests the demo and keeps the build as a workflow artifact. Where the demo
+# is published is the owner's decision; see the pull request.
 
 on:
   push:
@@ -41,23 +44,8 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Demo tests (no Supabase requests, no real keys, every tab renders)
         run: npm run test:demo
-      - uses: actions/configure-pages@v6
+      - name: Keep the demo build as a workflow artifact (not published)
+        uses: actions/upload-pages-artifact@v5
         with:
-          enablement: true
-      - uses: actions/upload-pages-artifact@v5
-        with:
+          name: demo-site
           path: dist-demo
-
-  deploy:
-    name: Publish the demo
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v5

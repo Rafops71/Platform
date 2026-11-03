@@ -10,6 +10,16 @@
 (function () {
   'use strict';
 
+  // The live site has no favicon, so the browser asks for /favicon.ico and
+  // gets a 404 in the console. An empty inline icon stops that request here,
+  // in the demo only.
+  if (!document.querySelector('link[rel="icon"]')) {
+    const icon = document.createElement('link');
+    icon.rel = 'icon';
+    icon.href = 'data:,';
+    document.head.appendChild(icon);
+  }
+
   const ribbon = document.createElement('div');
   ribbon.id = 'demo-ribbon';
   ribbon.setAttribute('role', 'status');
