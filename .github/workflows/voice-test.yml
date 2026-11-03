@@ -250,6 +250,36 @@ jobs:
           retention-days: 14
           if-no-files-found: warn
 
+  storyboard_v10_rebuild:
+    # Rebuilds storyboard v10 from the captures of an earlier run (no live database, no new captures).
+    if: ${{ inputs.only == 'storyboard-v10-rebuild' }}
+    name: Storyboard v10 (rebuild from captures)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - uses: actions/download-artifact@v4
+        with:
+          name: storyboard-v10
+          path: prev
+          run-id: '41640528799'
+          github-token: ${{ github.token }}
+      - run: node video/storyboard10/make.js prev/capture storyboard-v10-final
+      - run: cat storyboard-v10-final/storyboard.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: storyboard-v10-final
+          path: |
+            storyboard-v10-final/
+            prev/capture/
+          retention-days: 14
+
   trailer_voice_en:
     # The new English trailer's narration (owner's approved text, 2026-11-02): Gemini Algieba, two requests, slowed
     # (atempo 0.93), listened to by faster-whisper. Run once; the build reuses its artifact.
