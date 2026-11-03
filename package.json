@@ -31,7 +31,9 @@
     "terms:seed": "node scripts/terms-seed.js --write",
     "check:terms": "node scripts/terms-seed.js",
     "check:purpose": "node scripts/check-pr-purpose.js",
-    "check:deploy": "node scripts/check-deploy-gate.js"
+    "check:deploy": "node scripts/check-deploy-gate.js",
+    "build:demo": "node scripts/build-demo.js",
+    "test:demo": "playwright test -c playwright.demo.config.js"
   },
   "dependencies": {
     "pg": "^8.13.1"

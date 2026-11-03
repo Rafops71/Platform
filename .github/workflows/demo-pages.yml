@@ -1,0 +1,54 @@
+name: Demo site
+
+# Publishes the DEMO build (dist-demo/): the real screens on fake data, with no
+# connection to Supabase. It is separate from ci.yml on purpose: ci.yml's deploy
+# job publishes the real site behind the gate, and this workflow never touches it.
+#
+# The build refuses to finish if any real Supabase address or key is in the
+# output (scripts/build-demo.js), and the browser tests check that the demo
+# makes no request to Supabase (tests/demo). Both must pass before anything is
+# published.
+#
+# NOT PUBLISHING YET. A GitHub repository has one Pages site, and the real
+# platform is already published there by ci.yml's deploy job. A second
+# deploy-pages step would overwrite the live site, so this workflow only builds
+# and tests the demo and keeps the build as a workflow artifact. Where the demo
+# is published is the owner's decision; see the pull request.
+
+on:
+  # pull_request runs the demo's browser tests on every pull request, so they
+  # gate the PR like the other checks. Nothing is published from here at all.
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-demo
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and test the demo
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Build the demo
+        run: npm run build:demo
+      - name: Install the browser for the demo tests
+        run: npx playwright install --with-deps chromium
+      - name: Demo tests (no Supabase requests, no real keys, every tab renders)
+        run: npm run test:demo
+      - name: Keep the demo build as a workflow artifact (not published)
+        uses: actions/upload-pages-artifact@v5
+        with:
+          name: demo-site
+          path: dist-demo
