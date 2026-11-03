@@ -13,7 +13,7 @@ import soundfile as sf
 from faster_whisper import WhisperModel
 from kokoro import KPipeline
 
-S = [0, 7.6, 25.6, 37.0, 48.4, 60.4, 74.4, 84.0]
+S = [0, 7.6, 25.6, 37.0, 48.4, 60.4, 74.4, 85.1]  # act 8 moved 1.1 s later for the longer Spanish act-7 line (supervisor, option a)
 OFF = [1.0, 1.0, 0.9, 0.9, 1.0, 0.8, 0.7, 0.9]
 END = 90.0
 TARGET_WPM = 140

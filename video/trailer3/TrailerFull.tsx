@@ -48,7 +48,7 @@ const Lit = ({ x, y, w, h, pad = 5, op }) => op > 0.01 ? (<div style={{ position
 const Cursor = ({ x, y, s = 1 }) => (<svg width="1920" height="1080" style={{ position: "absolute", left: 0, top: 0, filter: "drop-shadow(0 6px 8px rgba(21,32,43,.4))" }}><g transform={`translate(${x} ${y}) scale(${s})`}><path d="M0 0 L0 34 L9 26 L16 42 L23 39 L16 24 L28 24 Z" fill="#fff" stroke={INK} strokeWidth="2" strokeLinejoin="round" /></g></svg>);
 const Covered = ({ list }) => (<>{list.map((c, i) => <div key={i} style={{ position: "absolute", ...c }} />)}</>);
 
-const S = [0, 7.6, 25.6, 37.0, 48.4, 60.4, 74.4, 84.0], END = 90;
+const S: number[] = ((TIM as any).acts_start_s && (TIM as any).acts_start_s.length === 8) ? (TIM as any).acts_start_s : [0, 7.6, 25.6, 37.0, 48.4, 60.4, 74.4, 84.0], END = 90;
 // the voice: when each word of an act's line is spoken (seconds into that act); falls back to the planned time without timings
 const tw = (act, re, fb, lead = 0) => { const l = (TIM.lines || []).find((x) => x.act === act); if (!l) return fb; const w = l.words.find((x) => re.test(x.w.toLowerCase().replace(/[^a-z']/g, ""))); return w ? w.start - S[act - 1] - lead : fb; };
 const eio = (x) => smooth(x);
