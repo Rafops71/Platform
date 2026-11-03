@@ -13,7 +13,8 @@ const path = require('path');
 
 const PORT = Number(process.env.PORT || 8100);
 const HOST = '127.0.0.1';
-const ROOT = path.resolve(__dirname, '..', 'dist-demo');
+// SERVE_DIR picks the folder: the demo build by default, or the front page (www).
+const ROOT = path.resolve(__dirname, '..', process.env.SERVE_DIR || 'dist-demo');
 
 const TYPES = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
@@ -23,7 +24,7 @@ const TYPES = {
 };
 
 if (!fs.existsSync(path.join(ROOT, 'index.html'))) {
-  console.error('dist-demo/ is missing. Run `npm run build:demo` first.');
+  console.error(`${path.relative(process.cwd(), ROOT) || ROOT} is missing index.html. Run \`npm run build:demo\` first (or check SERVE_DIR).`);
   process.exit(1);
 }
 

@@ -50,11 +50,26 @@
   trailer.poster = 'films/trailer-en-poster.jpg';
   trailer.setAttribute('aria-label', 'MyPlatform trailer');
   trailer.style.cssText = 'display:block;width:100%;border-radius:8px;';
-  const source = document.createElement('source');
-  source.src = 'films/trailer-en.mp4';
-  source.type = 'video/mp4';
-  trailer.appendChild(source);
   panel.appendChild(trailer);
+
+  // The film follows the language: English or Spanish, with its own poster.
+  // Set only when it changes, so switching again does not restart the film.
+  function setTrailer() {
+    const lang = typeof currentLang === 'function' && currentLang() === 'es' ? 'es' : 'en';
+    const next = 'films/trailer-' + lang + '.mp4';
+    if (trailer.getAttribute('src') !== next) {
+      trailer.setAttribute('poster', 'films/trailer-' + lang + '-poster.jpg');
+      trailer.setAttribute('src', next);
+    }
+  }
+  setTrailer();
+  // Keep whatever the page already does on a language change (auth.js sets it),
+  // and run the trailer's own swap after it.
+  const previousOnLanguageChange = window.onLanguageChange;
+  window.onLanguageChange = function () {
+    if (typeof previousOnLanguageChange === 'function') previousOnLanguageChange();
+    setTrailer();
+  };
 
   [
     ['member-a', 'Enter as Member A', 'btn-primary'],

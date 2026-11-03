@@ -38,21 +38,27 @@ if (title === -1 || at === -1 || !(title < at && at < headline)) {
   problems.push('the trailer must sit under the MyPlatform title, above the headline.');
 }
 
-const src = (v.match(/<source\s+src="([^"]+)"/) || [])[1];
-const poster = (open.match(/poster="([^"]+)"/) || [])[1];
-for (const [label, rel] of [['trailer', src], ['poster', poster]]) {
-  if (!rel) { problems.push(`the ${label} path is missing.`); continue; }
+// Both languages: English (the default in the markup) and Spanish, switched by
+// apply(lang) in the page script. Each film and poster must be inside www/.
+const srcAttr = (open.match(/\ssrc="([^"]+)"/) || [])[1];
+if (srcAttr !== 'films/trailer-en.mp4') problems.push(`the <video> must default to films/trailer-en.mp4 (found ${srcAttr}).`);
+if (!/'films\/trailer-' \+ lang \+ '\.mp4'/.test(html)) problems.push('the page does not switch the trailer by language.');
+const files = [
+  'films/trailer-en.mp4', 'films/trailer-en-poster.jpg',
+  'films/trailer-es.mp4', 'films/trailer-es-poster.jpg',
+];
+for (const rel of files) {
   const file = path.join(ROOT, rel);
   if (!fs.existsSync(file)) {
-    problems.push(`${label} ${rel} is not inside www/, so the platform-www project will not serve it.`);
+    problems.push(`${rel} is not inside www/, so the platform-www project will not serve it.`);
     continue;
   }
   const size = fs.statSync(file).size;
-  if (size > LIMIT) problems.push(`${label} ${rel} is ${size} bytes, over the 25 MiB Cloudflare Pages limit (${LIMIT}).`);
+  if (size > LIMIT) problems.push(`${rel} is ${size} bytes, over the 25 MiB Cloudflare Pages limit (${LIMIT}).`);
 }
 
 if (problems.length) {
   console.error('Front page check: FAIL\n' + problems.map((p) => '  - ' + p).join('\n'));
   process.exit(1);
 }
-console.log('Front page check: OK. The trailer is under the title, has controls, does not autoplay, and its file is inside www/ under the 25 MiB limit.');
+console.log('Front page check: OK. The trailer is under the title, has controls, does not autoplay, switches EN/ES, and both films and posters are inside www/ under the 25 MiB limit.');

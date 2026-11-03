@@ -44,9 +44,7 @@ h1 { font-family: var(--font-head); font-weight: 600; color: var(--blue-dark); f
 <div id="lang-toggle" class="lang-toggle" role="group" aria-label="Language"></div>
 <main>
   <p class="title">MyPlatform</p>
-  <video class="trailer" controls playsinline preload="metadata" poster="films/trailer-en-poster.jpg" aria-label="MyPlatform trailer">
-    <source src="films/trailer-en.mp4" type="video/mp4">
-  </video>
+  <video class="trailer" controls playsinline preload="metadata" src="films/trailer-en.mp4" poster="films/trailer-en-poster.jpg" aria-label="MyPlatform trailer"></video>
   <h1 data-i18n="headline">Where opportunity meets discretion.</h1>
   <p class="sub" data-i18n="sub">By invitation only.</p>
 
@@ -101,6 +99,14 @@ function apply(lang) {
   document.documentElement.lang = lang;
   // The app opens in the language chosen here (js/i18n.js adoptLanguageFromLink).
   document.getElementById('signin').href = 'https://app.myplatform.trade/?lang=' + lang;
+  // The trailer follows the language: the English or Spanish film and its poster.
+  // Set only when it changes, so switching again does not restart a film.
+  var trailer = document.querySelector('video.trailer');
+  var next = 'films/trailer-' + lang + '.mp4';
+  if (trailer.getAttribute('src') !== next) {
+    trailer.setAttribute('poster', 'films/trailer-' + lang + '-poster.jpg');
+    trailer.setAttribute('src', next);
+  }
   document.querySelectorAll('[data-i18n]').forEach(function (el) {
     el.textContent = STRINGS[lang][el.getAttribute('data-i18n')];
   });

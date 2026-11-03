@@ -149,6 +149,21 @@ test.describe('demo build', () => {
     expect(poster.status(), 'the poster resolves').toBe(200);
   });
 
+  test('the sign-in trailer follows the language: English, then Spanish after ES', async ({ page, baseURL }) => {
+    await page.goto('/index.html');
+    const video = page.locator('#demo-enter video');
+    const src = () => video.evaluate((v) => v.getAttribute('src'));
+    expect(await src(), 'English by default').toBe('films/trailer-en.mp4');
+    expect((await page.request.get(new URL('films/trailer-en.mp4', baseURL).href)).status()).toBe(200);
+    expect(await video.getAttribute('autoplay'), 'no autoplay').toBeNull();
+
+    await page.getByRole('button', { name: 'ES', exact: true }).click();
+    await expect.poll(src, { message: 'Spanish after ES' }).toBe('films/trailer-es.mp4');
+    expect((await page.request.get(new URL('films/trailer-es.mp4', baseURL).href)).status()).toBe(200);
+    expect((await page.request.get(new URL('films/trailer-es-poster.jpg', baseURL).href)).status()).toBe(200);
+    expect(await video.getAttribute('autoplay'), 'no autoplay after the swap').toBeNull();
+  });
+
   test('the Operator console is absent: its page is missing and its e-mail does not sign in', async ({ page, baseURL }) => {
     // The page itself: a direct visit must not show the console.
     const response = await page.goto('/operator.html');
