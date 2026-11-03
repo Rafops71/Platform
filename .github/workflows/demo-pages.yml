@@ -27,9 +27,12 @@ on:
 permissions:
   contents: read
 
+# One group per branch, so runs for different branches never cancel each other
+# (a shared group let another branch's run cancel PR #78's demo job on 3 Nov).
+# A run on main is never cancelled, so a publish on main always finishes.
 concurrency:
-  group: pages-demo
-  cancel-in-progress: true
+  group: demo-pages-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   build:
@@ -44,6 +47,8 @@ jobs:
       - run: npm ci
       - name: The deploy gate still catches the breaks it exists to catch
         run: node scripts/test-deploy-gate.js
+      - name: The front page's trailer is under the title, does not autoplay, and fits the host's file limit
+        run: npm run check:front-page
       - name: Build the demo
         run: npm run build:demo
       - name: Install the browser for the demo tests

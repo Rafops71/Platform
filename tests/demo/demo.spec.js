@@ -135,6 +135,35 @@ test.describe('demo build', () => {
     await expect(page.getByRole('button', { name: /Operator/ }), 'no Operator button').toHaveCount(0);
   });
 
+  test('the sign-in page has the trailer at its top, with no autoplay, and the files are served', async ({ page, baseURL }) => {
+    await page.goto('/index.html');
+    const video = page.locator('#demo-enter video');
+    await expect(video, 'one trailer on the sign-in page').toHaveCount(1);
+    expect(await video.getAttribute('autoplay'), 'no autoplay').toBeNull();
+    const first = await page.locator('#demo-enter').evaluate((el) => el.firstElementChild && el.firstElementChild.tagName);
+    expect(first, 'the trailer is the first thing above the sign-in buttons').toBe('VIDEO');
+
+    const trailer = await page.request.get(new URL('films/trailer-en.mp4', baseURL).href);
+    expect(trailer.status(), 'the trailer file resolves').toBe(200);
+    const poster = await page.request.get(new URL('films/trailer-en-poster.jpg', baseURL).href);
+    expect(poster.status(), 'the poster resolves').toBe(200);
+  });
+
+  test('the sign-in trailer follows the language: English, then Spanish after ES', async ({ page, baseURL }) => {
+    await page.goto('/index.html');
+    const video = page.locator('#demo-enter video');
+    const src = () => video.evaluate((v) => v.getAttribute('src'));
+    expect(await src(), 'English by default').toBe('films/trailer-en.mp4');
+    expect((await page.request.get(new URL('films/trailer-en.mp4', baseURL).href)).status()).toBe(200);
+    expect(await video.getAttribute('autoplay'), 'no autoplay').toBeNull();
+
+    await page.getByRole('button', { name: 'ES', exact: true }).click();
+    await expect.poll(src, { message: 'Spanish after ES' }).toBe('films/trailer-es.mp4');
+    expect((await page.request.get(new URL('films/trailer-es.mp4', baseURL).href)).status()).toBe(200);
+    expect((await page.request.get(new URL('films/trailer-es-poster.jpg', baseURL).href)).status()).toBe(200);
+    expect(await video.getAttribute('autoplay'), 'no autoplay after the swap').toBeNull();
+  });
+
   test('the Operator console is absent: its page is missing and its e-mail does not sign in', async ({ page, baseURL }) => {
     // The page itself: a direct visit must not show the console.
     const response = await page.goto('/operator.html');
