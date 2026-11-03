@@ -12,6 +12,9 @@ export const DEFS = `<svg width="0" height="0" style="position:absolute"><defs>
 <filter id="g40" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="40"/></filter>
 <filter id="g70" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="70"/></filter>
 <filter id="glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<filter id="g1" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation=".35"/></filter>
+<linearGradient id="gullW" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f7f9fb"/><stop offset="1" stop-color="#cdd7e0"/></linearGradient>
+<linearGradient id="gullB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#c3cdd6"/></linearGradient>
 <radialGradient id="rgBlue"><stop offset="0" stop-color="${GLOWB}" stop-opacity=".9"/><stop offset="1" stop-color="${GLOWB}" stop-opacity="0"/></radialGradient>
 <radialGradient id="rgWhite"><stop offset="0" stop-color="#fff" stop-opacity="1"/><stop offset=".4" stop-color="#fff" stop-opacity=".5"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
 <radialGradient id="rgWarm"><stop offset="0" stop-color="#fff4cf" stop-opacity=".95"/><stop offset="1" stop-color="#ffd98a" stop-opacity="0"/></radialGradient>
@@ -123,14 +126,19 @@ export function seaDay(t, r, shipHref) {
   g += `<g mask="url(#rfm)" opacity="${(.32 + .18 * r).toFixed(2)}"><g filter="url(#rip)"><g transform="translate(0 ${2 * WL}) scale(1 -1)">${shipImg(X0, WL + bob, SC)}</g></g></g>`;
   g += `<g style="filter:blur(${((1 - r) * 4).toFixed(2)}px)" opacity="${(.62 + .38 * r).toFixed(3)}" transform="rotate(${pitch.toFixed(3)} ${X0 + 700 * SC} ${WL})">${shipImg(X0, WL + bob, SC)}</g>`;
   g += `<path d="M${X0 + 1690 * SC} ${WL} Q${X0 + 1745 * SC} ${WL - 10} ${X0 + 1790 * SC} ${WL + 2} Q${X0 + 1745 * SC} ${WL + 14} ${X0 + 1690 * SC} ${WL + 6} Z" fill="#10243a" opacity=".85" stroke="none"/><ellipse cx="${X0 + 1760 * SC}" cy="${WL + 2}" rx="${120 + 10 * Math.sin(t * 2)}" ry="11" fill="#fff" opacity=".85" filter="url(#g8)" stroke="none"/><ellipse cx="${X0 + 40}" cy="${WL + 6}" rx="150" ry="9" fill="#fff" opacity=".5" filter="url(#g8)" stroke="none"/>`;
-  { // a few gulls circling the ship: wings flap, they glide between flaps, they turn with their path
-    const G = [[0.62, 340, 120, 0.9, 0.0, 44], [0.62, 420, 90, 1.2, 2.1, 36], [0.55, 300, 150, 0.7, 4.0, 30], [0.7, 380, 70, 1.4, 1.2, 26], [0.5, 470, 100, 1.05, 5.1, 22]];
+  { // gulls: real silhouette (body, head and beak, angled wings with black tips, soft grey shading); they mostly glide and flap only now and then; kept in the sky band above the mast and cranes
+    const G = [[1.05, 215, 38, 0.38, 0.0, 1.0], [0.55, 270, 26, 0.46, 2.4, 0.8], [1.45, 175, 22, 0.33, 4.1, 0.62], [0.2, 300, 20, 0.5, 5.3, 0.55]];
+    const wing = (sx, wy, ty, rnd2) => { // leading edge shoulder -> wrist -> tip, then the trailing edge back; a black tip at the end
+      const P1 = [sx * 3, -1.5], W = [sx * 17, wy], T = [sx * 38, ty];
+      const body = `M${P1[0]} ${P1[1]} L${W[0]} ${W[1] - 2} L${T[0]} ${T[1]} L${sx * 31} ${ty + 3.2} L${sx * 15} ${wy + 6.5} L${sx * 5} ${3.5} Z`;
+      const tipBlack = `M${sx * 29} ${ty * 0.86 + wy * 0.14 - 0.4} L${T[0]} ${T[1]} L${sx * 31} ${ty + 3.2} L${sx * 26.5} ${ty * 0.8 + wy * 0.2 + 5.2} Z`;
+      return `<path d="${body}" fill="url(#gullW)" stroke="#9fb0bf" stroke-width=".7"/><path d="${tipBlack}" fill="#1c2733"/>`; };
     for (const [cxf, cy, ry, w, ph, size] of G) {
-      const cx = X0 + cxf * 1385 * 0.9, a = w * t * 0.9 + ph, gx = cx + Math.cos(a) * 330, gy = cy + Math.sin(a * 1.7) * ry * 0.5 + Math.sin(a) * 18, vx = -Math.sin(a) * 330 * w * 0.9 + 46, dir = vx >= 0 ? 1 : -1;
-      const flap = Math.sin(t * 9.5 * (0.85 + w * 0.1) + ph * 3) * (0.55 + 0.45 * Math.sin(t * 0.8 + ph)), k = size / 24 * 1.8;
-      const tip = -9 * flap, wr = -5 - 3 * flap;
-      const wing = (sx) => `M0 0 Q${sx * 8} ${wr - 3} ${sx * 15} ${wr} Q${sx * 20} ${tip * 0.8 + wr * 0.3} ${sx * 26} ${tip}`;
-      g += `<g transform="translate(${gx.toFixed(1)} ${gy.toFixed(1)}) scale(${(dir * k).toFixed(3)} ${k.toFixed(3)})" opacity="${(0.55 + 0.4 * r).toFixed(2)}"><path d="${wing(1)} M0 0 ${wing(-1).slice(2)}" stroke="#52677a" stroke-width="5.4" opacity=".5" fill="none"/><path d="${wing(1)}" stroke="#fff" stroke-width="3.6" fill="none"/><path d="${wing(-1)}" stroke="#fff" stroke-width="3.6" fill="none"/><ellipse cx="0" cy="1" rx="6" ry="2.6" fill="#fff" stroke="#8aa0b4" stroke-width=".8"/><circle cx="5.5" cy="0" r="1.8" fill="#fff" stroke="#8aa0b4" stroke-width=".6"/></g>`;
+      const cx = X0 + cxf * 1385 * 0.9, a = w * t + ph, gx = cx + Math.cos(a) * 300, gy = cy + Math.sin(a * 1.3) * ry, vx = -Math.sin(a) * 300 * w + 46, dir = vx >= 0 ? 1 : -1;
+      const glide = Math.sin(t * 0.7 + ph), burst = Math.pow(Math.max(0, Math.sin(t * 0.45 + ph * 2)), 4); // flaps only in short bursts
+      const flap = burst * Math.sin(t * 10 + ph * 3), soar = glide * 1.6, k = size * 3.9;
+      const wy = -4 - 6 * flap - soar * 0.5, ty = -2 - 14 * flap + soar;
+      g += `<g transform="translate(${gx.toFixed(1)} ${gy.toFixed(1)}) rotate(${(Math.cos(a * 1.3) * 7).toFixed(1)}) scale(${(dir * k / 2.6).toFixed(3)} ${(k / 2.6).toFixed(3)})" opacity="${(0.72 + 0.28 * r).toFixed(2)}" filter="url(#g1)">${wing(1, wy, ty)}${wing(-1, wy, ty)}<ellipse cx="0" cy="1.2" rx="9" ry="3.2" fill="url(#gullB)" stroke="#9fb0bf" stroke-width=".6"/><path d="M-9 1.4 L-14 2.2 L-9 3.2 Z" fill="#cdd6de"/><circle cx="8" cy="0.2" r="2.5" fill="#f4f7fa" stroke="#9fb0bf" stroke-width=".5"/><path d="M10.2 0.4 L13.4 1.1 L10.2 1.8 Z" fill="#e6b24a"/><circle cx="8.8" cy="-.2" r=".5" fill="#1c2733"/></g>`;
     }
   }
   g += fogUseH('hm', lerp(.95, .32, r), 60 - t * 10);
