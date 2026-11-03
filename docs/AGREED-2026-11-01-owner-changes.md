@@ -76,3 +76,6 @@ Decided NO (Mistral extras): mandate upload, anti-bribery clause, sanctions-remo
     of the repository, only the finished film is published). File: films/trailer-en.mp4. Place it on the front page
     (www/), at the top under the title, play on press (no autoplay).
 34. (2026-11-03) The same trailer on the demo's start page, at the top above the three sign-in buttons, play on press.
+35. (2026-11-03) Spanish trailer (same picture, Spanish texts, Kokoro ef_dora voice, his licensed music mixed in):
+    films/trailer-es.mp4. On the front page and the demo start page, a visitor who switches to ES sees the Spanish
+    trailer in place of the English one, in the same place, play on press.
