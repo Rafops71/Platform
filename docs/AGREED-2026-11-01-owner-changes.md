@@ -71,3 +71,8 @@ Decided NO (Mistral extras): mandate upload, anti-bribery clause, sanctions-remo
     commercial use", Spanish yes) and Kokoro-82M (hexgrad/Kokoro-82M, Apache-2.0; ES voices ef_dora, em_alex,
     em_santa). Made on GitHub Actions, free. Owner listens and picks. CosyVoice3 avoided ("academic purposes only").
     No paid Google billing (owner).
+33. (2026-11-03) The owner approved the English trailer (90 s, OpenMontage on a runner, drawn pictures, Gemini
+    Algieba voice, his licensed music "Corporate advertising" by Nastelbom mixed in; the music file itself stays out
+    of the repository, only the finished film is published). File: films/trailer-en.mp4. Place it on the front page
+    (www/), at the top under the title, play on press (no autoplay).
+34. (2026-11-03) The same trailer on the demo's start page, at the top above the three sign-in buttons, play on press.
