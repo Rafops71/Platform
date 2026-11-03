@@ -1,0 +1,13 @@
+{
+ "sources": "Sound-effect sources. Whoosh (carried over from the v10 plan, recorded by an earlier session, NOT re-checked in this session): \"Swipe Whoosh\" (qubodup, 447 ms, CC0 1.0) https://freesound.org/people/qubodup/sounds/60007 ; alt \"13th Whoosh Swing Sound\" (qubodup, 522 ms, CC0 1.0) https://freesound.org/people/qubodup/sounds/60000. Quiet click and low tone: NOT yet chosen - the Openverse API timed out from this container on 2026-11-03 (curl: operation timed out after 30 s), so no URL or licence can be recorded yet. Nothing is mixed.",
+ "perAct": {
+  "1": "at 0.0 s: low tone (open, ~2 s fading) - file pending; whoosh on the match move out",
+  "2": "whoosh at the start; soft low swell as the ship lights come on (2b) - same tone file; whoosh at the end (fade through white)",
+  "3": "whoosh at the start; one quiet click as each detail lights up is NOT planned (too busy); quiet click when the pointer presses Contact (3a to 3b)",
+  "4": "whoosh at the start; quiet click as \"Poster: Principal (Trader)\" lights, a second as \"Documents\" lights",
+  "5": "whoosh at the start; quiet click when the message is sent; soft whoosh on the melt from Mailbox to diagram; (no tone)",
+  "6": "whoosh at the start (hands meeting); no click",
+  "7": "whoosh at the start (nothing else)",
+  "8": "whoosh at the start; low tone (close), the same file as the opening one, at the end"
+ }
+}
