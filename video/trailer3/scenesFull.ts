@@ -61,6 +61,62 @@ export function hands13(dy = 0) {
 }
 
 
+export function hands14(dy = 0, gap = 0) { // gap: how far apart the two hands still are (viewBox units); 0 = clasped
+  seed12 = 12345; seed13 = 4242; const P = HSP;
+  const crease = HSP.crease, nails = HSP.nails;
+  const sk = (id, c) => `<linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c[0]}"/><stop offset=".55" stop-color="${c[1]}"/><stop offset="1" stop-color="${c[2]}"/></linearGradient>`;
+  const S = 1.1, ox = 960 - 467 * S, oy = 400 - 300 * S + dy;
+  let g = `<defs>${BEVEL}<linearGradient id="skin3" gradientUnits="userSpaceOnUse" x1="0" y1="80" x2="0" y2="640"><stop offset="0" stop-color="#f3d6c0"/><stop offset=".5" stop-color="#eec5a8"/><stop offset="1" stop-color="#e6b698"/></linearGradient>
+  <radialGradient id="blush3"><stop offset="0" stop-color="#e98a82" stop-opacity=".55"/><stop offset=".6" stop-color="#e98a82" stop-opacity=".18"/><stop offset="1" stop-color="#e98a82" stop-opacity="0"/></radialGradient>
+  <filter id="pore3" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".7" numOctaves="2" seed="7"/><feColorMatrix values="0 0 0 0 .62  0 0 0 0 .38  0 0 0 0 .3  0 0 0 .5 -.08"/></filter>
+  <clipPath id="cUp"><path d="${P.up}"/></clipPath><clipPath id="cWr"><path d="${P.wr}"/></clipPath>
+  <linearGradient id="suitL3" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2f6a9c"/><stop offset=".6" stop-color="#245a86"/><stop offset="1" stop-color="#143a5a"/></linearGradient>
+  <linearGradient id="suitR3" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#46586a"/><stop offset=".6" stop-color="#27323d"/><stop offset="1" stop-color="#121a22"/></linearGradient>
+  <linearGradient id="shirt3" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#dfe8f1"/><stop offset=".5" stop-color="#fff"/><stop offset="1" stop-color="#c9d8e6"/></linearGradient>
+  <pattern id="weave3" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(40)"><path d="M0 0 H6" stroke="#fff" stroke-opacity=".08" stroke-width="1"/></pattern>
+  <radialGradient id="fade3" cx="467" cy="300" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(467 300) scale(500 370) translate(-467 -300)"><stop offset=".62" stop-color="#fff"/><stop offset="1" stop-color="#000"/></radialGradient>
+  <mask id="m3" maskUnits="userSpaceOnUse" x="-100" y="-100" width="1200" height="900"><rect x="-100" y="-100" width="1200" height="900" fill="url(#fade3)"/></mask>
+  <clipPath id="cLow"><path d="${P.low}"/></clipPath><clipPath id="cLs"><path d="${P.lsl}"/></clipPath><clipPath id="cRs"><path d="${P.rsl}"/></clipPath>
+  <clipPath id="cutL"><rect x="150" y="0" width="400" height="700"/></clipPath><clipPath id="cutR"><rect x="560" y="0" width="200" height="500"/></clipPath></defs>`;
+  g += `<ellipse cx="960" cy="${640 + dy}" rx="560" ry="30" fill="#15202b" opacity=".16" filter="url(#g40)" stroke="none"/><circle cx="1000" cy="${400 + dy}" r="380" fill="url(#rgBlue)" opacity=".4" stroke="none"/>`;
+  g += `<g transform="translate(${ox.toFixed(1)} ${oy.toFixed(1)}) scale(${S})">`;
+  const SKINP = (d) => `<g filter="url(#bevelSkin)"><path d="${d}" fill="url(#skin3)"/></g>`;
+  const warm = (clip, d) => `<g clip-path="url(#${clip})"><path d="${d}" fill="none" stroke="#e0746a" stroke-width="34" opacity=".3" filter="url(#g8)"/><path d="${d}" fill="none" stroke="#fff" stroke-width="10" opacity=".22" filter="url(#g8)" transform="translate(-3 -4)"/></g>`;
+  const blushL = [[565, 430, 44], [512, 490, 44], [462, 546, 42], [385, 528, 28], [434, 582, 28], [451, 632, 26]];
+  const lf = [], rf = []; for (let i = 0; i < 8; i++) { lf.push([236, 170 + i * 52 + (r12() - .5) * 10, 60 + r12() * 80, 150 + i * 62]); } for (let i = 0; i < 6; i++) { rf.push([640, 130 + i * 44 + (r12() - .5) * 10, 760 + r12() * 130, 90 + i * 52]); }
+  const sleeve = (d, grad, clip, dark, light, folds) => { let s = `<g filter="url(#bevel)"><path d="${d}" fill="url(#${grad})"/><path d="${d}" fill="url(#weave3)"/></g><g clip-path="url(#${clip})">`; for (const [x0, y0, x1, y1] of folds) s += `<path d="M${x0} ${y0} C${(x0 * 2 + x1) / 3} ${y0 + (y1 - y0) * .1 + 14} ${(x0 + x1 * 2) / 3} ${y1 - 12} ${x1} ${y1}" stroke="${dark}" stroke-opacity=".5" stroke-width="9" fill="none" filter="url(#g4)"/><path d="M${x0 - 2} ${y0 + 8} C${(x0 * 2 + x1) / 3} ${y0 + (y1 - y0) * .1 + 22} ${(x0 + x1 * 2) / 3} ${y1 - 4} ${x1} ${y1 + 8}" stroke="${light}" stroke-opacity=".3" stroke-width="3" fill="none" filter="url(#g4)"/>`; return s + '</g>'; };
+  g += `<g mask="url(#m3)">`;
+  // left hand (the lighter, lower hand) with its cuff, creases and nails
+  g += `<g transform="translate(${(-gap).toFixed(1)} 0)"><g clip-path="url(#cutL)"><path d="${P.lsl}" transform="translate(40 -5)" fill="url(#shirt3)" stroke="#aebfd0" stroke-width="1.5"/></g>`;
+  g += SKINP(P.low) + warm('cLow', P.low);
+  g += `<g clip-path="url(#cLow)">` + blushL.map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="url(#blush3)"/>`).join('') + `</g>`;
+  g += `<g opacity=".045"><g clip-path="url(#cLow)"><rect x="0" y="0" width="1000" height="700" filter="url(#pore3)"/></g></g>`;
+  g += `<path d="${P.low}" fill="none" stroke="${SKIN_A[2]}" stroke-width="1" opacity=".16"/>`;
+  for (const d of crease) g += `<path d="${d}" fill="none" stroke="#a8644a" stroke-width="1.3" opacity=".34" filter="url(#g1)"/>`;
+  for (const [x, y] of [[560, 428], [508, 486], [458, 542]]) g += `<path d="M${x - 16} ${y - 10} q8 4 22 -2 M${x - 18} ${y + 2} q9 4 24 -3 M${x - 14} ${y + 14} q8 3 20 -2" stroke="#a8644a" stroke-width=".9" opacity=".28" fill="none"/>`;
+  for (const d of nails.slice(1)) g += `<path d="${d}" fill="#efd2bd" stroke="#c99c86" stroke-width=".6" opacity=".5"/>`;
+  g += `</g>`;
+  // right hand (the upper hand) with its cuff and thumb nail; its shadow on the lower hand only once they touch
+  g += `<g transform="translate(${gap.toFixed(1)} 0)">`;
+  g += `<g transform="translate(${(-2 * gap).toFixed(1)} 0)"><g clip-path="url(#cLow)"><path d="${P.up}" fill="none" stroke="#7a3f2a" stroke-width="20" opacity="${gap < 30 ? (0.16 * (1 - gap / 30)).toFixed(3) : 0}" filter="url(#g8)" transform="translate(-3 6)"/></g></g>`;
+  g += `<g clip-path="url(#cutR)"><path d="${P.rsl}" transform="translate(-40 5)" fill="url(#shirt3)" stroke="#aebfd0" stroke-width="1.5"/></g>`;
+  g += SKINP(P.up) + SKINP(P.wr) + warm('cUp', P.up) + warm('cWr', P.wr);
+  g += `<g clip-path="url(#cUp)"><circle cx="262" cy="326" r="34" fill="url(#blush3)"/><circle cx="260" cy="330" r="40" fill="url(#blush3)"/><circle cx="300" cy="290" r="40" fill="url(#blush3)" opacity=".6"/><circle cx="430" cy="170" r="130" fill="url(#blush3)" opacity=".35"/><circle cx="560" cy="250" r="90" fill="url(#blush3)" opacity=".3"/></g>`;
+  g += `<g opacity=".045"><g clip-path="url(#cUp)"><rect x="0" y="0" width="1000" height="700" filter="url(#pore3)"/></g></g>`;
+  g += `<path d="${P.up}" fill="none" stroke="${SKIN_A[2]}" stroke-width="1" opacity=".18"/>`;
+  g += `<path d="${nails[0]}" fill="#efd2bd" stroke="#c99c86" stroke-width=".6" opacity=".5"/>`;
+  g += `</g>`;
+  // sleeves last (over the hands): each follows its own hand
+  g += `<g transform="translate(${(-gap).toFixed(1)} 0)">` + sleeve(P.lsl, 'suitL3', 'cLs', '#0a2236', '#8fc0e6', lf) + `</g>`;
+  g += `<g transform="translate(${gap.toFixed(1)} 0)">` + sleeve(P.rsl, 'suitR3', 'cRs', '#05090e', '#8aa0b4', rf) + `<path d="${P.shade}" fill="#0a131c" opacity=".35" filter="url(#g8)"/></g>`;
+  g += `</g>`;
+  g += '</g>';
+  g += `<circle cx="1000" cy="${450 + dy}" r="70" fill="url(#rgWhite)" opacity=".25" stroke="none"/>`;
+  for (let i = 0; i < 24; i++) { const a = r13() * 6.283, d = 200 + r13() * 330; g += `<circle cx="${(1000 + Math.cos(a) * d * 1.5).toFixed(0)}" cy="${(440 + dy + Math.sin(a) * d * .45).toFixed(0)}" r="${(1.5 + r13() * 3.2).toFixed(1)}" fill="#fff" opacity="${(0.4 + r13() * .5).toFixed(2)}" filter="url(#g4)" stroke="none"/>`; }
+  return SV(g);
+}
+
+
 export function signature() { // one centre line (initial with a loop, flowing humps, a long underline flourish), then variable width from the stroke direction
   const key = [[655, 716], [668, 676], [690, 610], [716, 562], [742, 548], [754, 570], [742, 614], [712, 656], [690, 690], [706, 704], [742, 684], [772, 652], [790, 628], [804, 650], [808, 690], [826, 664], [852, 624], [872, 604], [884, 628], [886, 674], [904, 700], [930, 672], [956, 630], [976, 606], [990, 624], [992, 672], [1010, 702], [1038, 680], [1064, 640], [1084, 620], [1098, 640], [1096, 690], [1120, 712], [1160, 690], [1206, 650], [1244, 626], [1262, 648], [1236, 690], [1160, 722], [1040, 742], [900, 752], [780, 750], [690, 744]];
   const pts = []; // Catmull-Rom, centripetal enough at this density

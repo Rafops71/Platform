@@ -570,6 +570,55 @@ jobs:
             frame-*.png
           retention-days: 14
 
+  trailer_full_silent_2:
+    # Full ~90 s trailer, SILENT (no music, no SFX, no voice), drawings and the real app captures only, $0.
+    # OpenMontage's Remotion composer at the pinned commit renders video/trailer3/TrailerFull.tsx (the 8 approved acts, time-driven).
+    # Serves docs/AGREED-2026-11-01-owner-changes.md.
+    if: ${{ inputs.only == 'trailer-full-2' }}
+    name: Full trailer, silent, take 2
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    env:
+      OM_SHA: '195eab24478dc9363326aec437aefc3701635ddf'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - uses: actions/download-artifact@v4
+        with:
+          name: storyboard-v10-final
+          path: prev
+          run-id: '41641574804'
+          github-token: ${{ github.token }}
+      - name: OpenMontage composer
+        run: |
+          mkdir om && cd om && git init -q && git remote add origin https://github.com/calesthio/OpenMontage
+          git fetch -q --depth 1 origin "$OM_SHA" && git checkout -q FETCH_HEAD
+          cd remotion-composer && npm ci --no-audit --no-fund
+          cp ../../video/trailer3/scenes.ts ../../video/trailer3/scenesFull.ts ../../video/trailer3/handshakeData.ts ../../video/trailer3/TrailerFull.tsx src/components/
+          mkdir -p public/mp && cp ../../video/trailer3/ship.svg public/mp/ship.svg
+          cp ../../prev/prev/capture/browse.png ../../prev/prev/capture/row.png ../../prev/prev/capture/contact.png ../../prev/prev/capture/mailbox.png public/mp/
+          sed -i '1i import { TrailerFull } from "./components/TrailerFull";' src/Root.tsx
+          sed -i '0,/^    <\/>$/s//      <Composition id="TrailerFull" component={TrailerFull} durationInFrames={2700} fps={30} width={1920} height={1080} \/>\n    <\/>/' src/Root.tsx
+          grep -n "TrailerFull" src/Root.tsx
+      - name: Render
+        run: cd om/remotion-composer && npx remotion render src/index.tsx TrailerFull ../../trailer-full-silent-2.mp4 --codec h264 --crf 20 --concurrency 4
+      - name: Check it
+        run: |
+          ffprobe -v error -show_entries format=duration:stream=codec_name,width,height,nb_frames -of default=nw=1 trailer-full-silent-2.mp4
+          ffmpeg -i trailer-full-silent-2.mp4 -af volumedetect -vn -f null - 2>&1 | grep max_volume || true
+          ls -l trailer-full-silent-2.mp4
+          for t in 3 6 12 17 20 26 30 33 38 42 50 54 62 68 72 78 82 86 89; do ffmpeg -v error -y -ss $t -i trailer-full-silent-2.mp4 -frames:v 1 -vf scale=960:-1 "frame-$t.png"; done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trailer-full-silent-2
+          path: |
+            trailer-full-silent-2.mp4
+            frame-*.png
+          retention-days: 14
+
   trailer_voice_en:
     # The new English trailer's narration (owner's approved text, 2026-11-02): Gemini Algieba, two requests, slowed
     # (atempo 0.93), listened to by faster-whisper. Run once; the build reuses its artifact.

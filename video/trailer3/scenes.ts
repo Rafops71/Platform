@@ -153,3 +153,128 @@ export function seaDay(t, r, shipHref) {
   g += radarDay(310, 930, 100, 1, 0, sw) + radarDay(1610, 930, 100, 1 - smooth((r - .35) / .4), smooth((r - .35) / .4), sw);
   return SV(g);
 }
+
+// ---------------------------------------------------------------- the quay, quay crane and trucks (act 2): the ship docks, the crane unloads, the trucks drive away
+const QC = ['#27618f', '#b3423a', '#22744a', '#c18a2e', '#52677a'], LIFT = ['#c9702f', '#27618f', '#b3423a'];
+const T_LIFT = [9.0, 12.2, 15.4], LOADX = 1360;
+const eio = (x) => smooth(x);
+const box = (x, y, w, h, col) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${col}" stroke="#15202b" stroke-opacity=".35" stroke-width="1"/><path d="M${x + w * .25} ${y} V${y + h} M${x + w * .5} ${y} V${y + h} M${x + w * .75} ${y} V${y + h}" stroke="#000" stroke-opacity=".25"/><rect x="${x}" y="${y}" width="${w}" height="3" fill="#fff" opacity=".45"/><rect x="${x + 5}" y="${y + h * .38}" width="${w * .3}" height="${h * .22}" fill="#fff" opacity=".75"/>`;
+function truckSvg(x, base, col) { // facing right; x = centre of the trailer
+  let s = `<ellipse cx="${x + 10}" cy="${base + 2}" rx="96" ry="6" fill="#15202b" opacity=".18" filter="url(#g4)" stroke="none"/>`;
+  s += `<rect x="${x - 72}" y="${base - 24}" width="104" height="7" fill="#52677a" stroke="#2c3e50" stroke-width=".8"/>`;
+  if (col) s += box(x - 66, base - 24 - 28, 62, 28, col);
+  s += `<rect x="${x + 30}" y="${base - 46}" width="38" height="34" rx="4" fill="#f6fafd" stroke="#9db1c4" stroke-width="1"/><rect x="${x + 54}" y="${base - 42}" width="12" height="13" fill="#9ec3e0" stroke="#7f9bb2" stroke-width=".8"/><rect x="${x + 30}" y="${base - 22}" width="46" height="6" fill="#27618f"/><rect x="${x + 68}" y="${base - 32}" width="10" height="20" rx="2" fill="#dfe8f1" stroke="#9db1c4" stroke-width=".8"/>`;
+  for (const wx of [x - 50, x - 34, x + 22, x + 50]) s += `<circle cx="${wx}" cy="${base - 8}" r="9" fill="#1d2933"/><circle cx="${wx}" cy="${base - 8}" r="3.5" fill="#9fb0bf"/>`;
+  return s;
+}
+function craneState(t) {
+  let tx = LOADX, y = 450, has = false, k = -1;
+  for (let i = 0; i < 3; i++) {
+    const c = t - T_LIFT[i];
+    if (c >= -0.5 && c < 0) { tx = 1360 + (760 - 1360) * eio((c + 0.5) / 0.5); y = 450; has = false; }
+    else if (c >= 0 && c < 0.5) { tx = 760; y = 450 + 135 * eio(c / 0.5); has = false; }
+    else if (c >= 0.5 && c < 1.3) { tx = 760; y = 585 - 115 * eio((c - 0.5) / 0.8); has = true; k = i; }
+    else if (c >= 1.3 && c < 2.1) { const u = eio((c - 1.3) / 0.8); tx = 760 + 600 * u; y = 470 - 12 * Math.sin(Math.PI * u); has = true; k = i; }
+    else if (c >= 2.1 && c < 2.5) { tx = 1360; y = 470 + 126 * eio((c - 2.1) / 0.4); has = true; k = i; }
+    else if (c >= 2.5 && c < 2.7) { tx = 1360; y = 596 - 146 * eio((c - 2.5) / 0.2); has = false; }
+  }
+  return { tx, y, has, k };
+}
+export function dockScene(t) {
+  let g = '';
+  // quay: deck, wall with fenders, bollards, a container yard
+  g += `<defs><linearGradient id="qd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e3ebf2"/><stop offset="1" stop-color="#c3d2de"/></linearGradient><linearGradient id="qw" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b9c8d5"/><stop offset="1" stop-color="#8da2b5"/></linearGradient></defs>`;
+  g += `<rect x="960" y="596" width="960" height="44" fill="url(#qd)" stroke="none"/><rect x="960" y="595" width="960" height="2" fill="#fff" opacity=".8" stroke="none"/><path d="M960 618 H1920" stroke="#fff" stroke-width="2" stroke-dasharray="26 18" opacity=".7"/>`;
+  QC.forEach((c, i) => { });
+  const yard = [[1650, 3], [1722, 2], [1794, 3], [1866, 2]];
+  yard.forEach(([x, n], j) => { for (let r2 = 0; r2 < n; r2++) g += box(x, 592 - 28 * (r2 + 1) + 26, 64, 28, QC[(j + r2) % QC.length]); });
+  g += `<rect x="960" y="640" width="960" height="28" fill="url(#qw)" stroke="none"/><rect x="960" y="640" width="960" height="3" fill="#fff" opacity=".6" stroke="none"/>`;
+  for (let i = 0; i < 12; i++) g += `<rect x="${990 + i * 80}" y="643" width="20" height="23" rx="3" fill="#3b4652" opacity=".85" stroke="none"/><rect x="${992 + i * 80}" y="643" width="4" height="23" fill="#fff" opacity=".18" stroke="none"/>`;
+  for (const bx of [1180, 1520]) g += `<ellipse cx="${bx}" cy="637" rx="9" ry="5" fill="#3b4652" stroke="none"/><rect x="${bx - 6}" y="628" width="12" height="9" fill="#52677a" stroke="none"/>`;
+  g += `<ellipse cx="1440" cy="672" rx="520" ry="8" fill="#15202b" opacity=".18" filter="url(#g8)" stroke="none"/>`;
+  // trucks: arrive from behind the ship, stop under the crane, leave to the right with their container
+  for (let k = 0; k < 3; k++) {
+    const A = T_LIFT[k] - 0.4, Dp = T_LIFT[k] + 2.8; let x = null;
+    if (t >= A && t < A + 1.6) x = 940 + (LOADX - 940) * (1 - Math.pow(1 - (t - A) / 1.6, 3));
+    else if (t >= A + 1.6 && t < Dp) x = LOADX;
+    else if (t >= Dp) x = LOADX + 230 * Math.pow(t - Dp, 2);
+    if (x === null || x > 2150) continue;
+    const loaded = t >= T_LIFT[k] + 2.5;
+    g += truckSvg(x, 640, loaded ? LIFT[k] : null);
+  }
+  // crane: A-frame legs, portal girder with a landward overhang, boom out over the ship, tower head and stays
+  const steel = '#6f8da8', dark = '#3f5a73', light = '#bcd2e4';
+  const leg = (x0) => `<path d="M${x0} 646 L${x0 + 20} 646 L${x0 + 34} 436 L${x0 + 14} 436 Z" fill="${steel}" stroke="${dark}" stroke-width="1.2"/><path d="M${x0 + 4} 640 L${x0 + 26} 560 M${x0 + 26} 560 L${x0 + 4} 500 M${x0 + 4} 500 L${x0 + 26} 450" stroke="${light}" stroke-width="2" opacity=".8"/>`;
+  g += leg(1086) + leg(1246);
+  g += `<path d="M1106 590 H1260 M1108 520 H1262" stroke="${dark}" stroke-width="5"/>`;
+  g += `<path d="M1076 416 H1450 V438 H1076 Z" fill="${steel}" stroke="${dark}" stroke-width="1.2"/>`;
+  g += `<path d="M590 424 L1076 416 V438 L590 440 Z" fill="${steel}" stroke="${dark}" stroke-width="1.2"/>`;
+  let tz = ''; for (let x = 600; x < 1076; x += 38) tz += `L${x + 19} 438 L${x + 38} 420 `; g += `<path d="M600 421 ${tz}" stroke="${light}" stroke-width="1.6" fill="none" opacity=".9"/>`;
+  tz = ''; for (let x = 1090; x < 1450; x += 36) tz += `L${x + 18} 436 L${x + 36} 420 `; g += `<path d="M1090 420 ${tz}" stroke="${light}" stroke-width="1.6" fill="none" opacity=".9"/>`;
+  g += `<path d="M1190 416 L1200 330 L1214 416 Z" fill="${steel}" stroke="${dark}" stroke-width="1.2"/><path d="M1200 332 L590 424 M1200 332 L1450 418" stroke="${dark}" stroke-width="2" opacity=".9"/><rect x="1370" y="388" width="70" height="28" rx="3" fill="#dfe8f1" stroke="${dark}" stroke-width="1.2"/><rect x="1380" y="394" width="22" height="12" fill="#9ec3e0"/>`;
+  g += `<rect x="1088" y="646" width="1" height="1" fill="none"/><path d="M1060 650 H1330" stroke="${dark}" stroke-width="3" opacity=".6"/>`;
+  // trolley, hoist, spreader and the container being lifted
+  const cs = craneState(t);
+  g += `<rect x="${cs.tx - 20}" y="428" width="40" height="18" rx="3" fill="#27618f" stroke="${dark}" stroke-width="1.2"/><path d="M${cs.tx - 10} 446 L${cs.tx - 14} ${cs.y - 4} M${cs.tx + 10} 446 L${cs.tx + 14} ${cs.y - 4}" stroke="#15202b" stroke-width="1.4" opacity=".85"/><rect x="${cs.tx - 34}" y="${cs.y - 8}" width="68" height="7" fill="#3b4652" stroke="none"/>`;
+  if (cs.has) g += box(cs.tx - 31, cs.y - 1, 62, 28, LIFT[cs.k]);
+  return g;
+}
+
+export function seaDock(t, r, shipHref) {
+  const WL = 742, SC = 0.5, HZ = 570, XF = 135, pr = Math.min(1, t / 8.0), v = 1 - pr, X0 = XF - 1300 * (1 - (1 - (1 - pr) * (1 - pr))) , bob = Math.sin(t * 1.5) * (1.4 + 1.6 * v), pitch = Math.sin(t * 1.5 + 0.6) * (0.15 + 0.2 * v);
+  const hx = 760, hy = WL - 150; seed = 99;
+  let g = `<defs>${shipSym(shipHref)}
+  <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6fafd"/><stop offset=".7" stop-color="#e3edf6"/><stop offset="1" stop-color="#d4e3ef"/></linearGradient>
+  <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d3e3ef"/><stop offset=".25" stop-color="#a9c8de"/><stop offset="1" stop-color="#7fa6c4"/></linearGradient>
+  <linearGradient id="rf" gradientUnits="userSpaceOnUse" x1="0" y1="${WL}" x2="0" y2="${WL + 260}"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>
+  <mask id="rfm" maskUnits="userSpaceOnUse" x="0" y="0" width="1920" height="1080"><rect x="0" y="${WL}" width="1920" height="320" fill="url(#rf)"/></mask>
+  <linearGradient id="ray" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff8e0" stop-opacity=".85"/><stop offset="1" stop-color="#fff8e0" stop-opacity="0"/></linearGradient>
+  <filter id="rip" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="turbulence" baseFrequency="0.0025 0.09" numOctaves="2" seed="4" result="t"/><feDisplacementMap in="SourceGraphic" in2="t" scale="22" xChannelSelector="R" yChannelSelector="G"/><feGaussianBlur stdDeviation="2.5"/></filter>
+  ${fogDef('hb', 440, 330, 21, '0.003 0.010', '.93 .97 1')}${fogDef('hm', 560, 300, 22, '0.0035 0.013', '.9 .95 1')}${fogDef('hf', 840, 240, 23, '0.003 0.01', '.92 .96 1')}${fogDef('hs', 60, 360, 24, '0.002 0.008', '1 1 1')}
+  <mask id="hsm" maskUnits="userSpaceOnUse" x="0" y="0" width="1920" height="1080"><rect x="0" y="60" width="1920" height="360" fill="url(#hsg)"/></mask>
+  ${fogHole('hm', 560, 300, hx + 250, hy, 820 * r, 230 * r)}${fogHole('hf', 840, 240, hx, WL + 40, 700 * r, 150 * r)}${fogHole('hb', 440, 330, hx + 250, hy - 60, 820 * r, 230 * r)}</defs>`;
+  g += `<rect width="1920" height="${HZ}" fill="url(#sky)" stroke="none"/><rect y="${HZ}" width="1920" height="${1080 - HZ}" fill="url(#sea)" stroke="none"/>`;
+  g += `<circle cx="1530" cy="150" r="330" fill="url(#rgWarm)" opacity="${(.45 + .15 * r).toFixed(2)}" stroke="none"/><circle cx="1530" cy="150" r="70" fill="#fffaf0" opacity=".85" filter="url(#g16)" stroke="none"/>`;
+  g += fogUse('hs', .5, -100 + t * 4);
+  g += `<ellipse cx="960" cy="${HZ + 6}" rx="1100" ry="46" fill="#fff" opacity=".85" filter="url(#g40)" stroke="none"/><rect x="0" y="${HZ - 1}" width="1920" height="2" fill="#fff" opacity=".7" filter="url(#g4)" stroke="none"/>`;
+  g += `<g opacity=".45" filter="url(#g4)" transform="translate(${3580 - t * 2} 0) scale(-1 1)">${shipImg(1790, 584 + bob * .3, 0.2)}</g>`;
+  g += fogUseH('hb', lerp(.95, .5, r), -80 + t * 6);
+  g += `<ellipse cx="1500" cy="${HZ + 40}" rx="520" ry="26" fill="#fff" opacity=".6" filter="url(#g16)" stroke="none"/>`;
+  g += dockScene(t);
+  for (let i = 0; i < 80; i++) { const y = HZ + 14 + Math.pow(i / 80, 1.7) * 470, w = 40 + rnd() * 240 * (0.5 + i / 40), x = (rnd() * 1920 + t * (4 + i * .3)) % 1960; g += `<path d="M${x.toFixed(0)} ${y.toFixed(0)} h${w.toFixed(0)}" stroke="#fff" stroke-width="${(0.8 + i / 30).toFixed(1)}" opacity="${(0.12 + rnd() * 0.28).toFixed(2)}"/>`; }
+  { // wake: V-shaped bow wave and a foam trail that stays in the water behind the ship (patches are fixed in the water and fade with age)
+    const bowX = X0 + 1790 * SC, sternX = X0 + 40, wv = 0.3 + 0.7 * v;
+    for (let i = 0; i < 90; i++) { const wx = -1500 + i * 46; if (wx > sternX + 500) break; const age = (sternX + 500 - wx) / 1500; const op = Math.max(0, 0.95 * (1 - age)) * wv; if (op <= 0.02) continue; g += `<ellipse cx="${wx}" cy="${WL + 8 + (i % 3) * 7}" rx="${54 + (i % 4) * 10}" ry="${5 + (i % 2) * 3}" fill="#fff" opacity="${op.toFixed(3)}" filter="url(#g4)" stroke="none"/>`; }
+    g += `<path d="M${bowX - 20} ${WL + 6} L${bowX - 520} ${WL + 44}" stroke="#fff" stroke-width="10" opacity="${(.7 * wv).toFixed(2)}" filter="url(#g4)"/><path d="M${bowX - 20} ${WL + 6} L${bowX - 520} ${WL + 44}" stroke="#fff" stroke-width="3" opacity="${(.95 * wv).toFixed(2)}"/><path d="M${bowX + 6} ${WL + 10} L${bowX - 340} ${WL + 56}" stroke="#fff" stroke-width="3" opacity="${(.4 * wv).toFixed(2)}" filter="url(#g4)"/>`;
+    for (let k = 0; k < 4; k++) { const ph = ((t * 0.9 + k * 0.25) % 1); g += `<ellipse cx="${bowX + 20 + ph * 70}" cy="${WL + 10}" rx="${30 + ph * 90}" ry="${5 + ph * 12}" stroke="#fff" stroke-width="2" opacity="${(0.9 * (1 - ph) * wv).toFixed(3)}"/>`; }
+  }
+  g += `<g mask="url(#rfm)" opacity="${(.32 + .18 * r).toFixed(2)}"><g filter="url(#rip)"><g transform="translate(0 ${2 * WL}) scale(1 -1)">${shipImg(X0, WL + bob, SC)}</g></g></g>`;
+  g += `<g style="filter:blur(${((1 - r) * 4).toFixed(2)}px)" opacity="${(.62 + .38 * r).toFixed(3)}" transform="rotate(${pitch.toFixed(3)} ${X0 + 700 * SC} ${WL})">${shipImg(X0, WL + bob, SC)}</g>`;
+  g += `<path d="M${X0 + 1690 * SC} ${WL} Q${X0 + 1745 * SC} ${WL - 10} ${X0 + 1790 * SC} ${WL + 2} Q${X0 + 1745 * SC} ${WL + 14} ${X0 + 1690 * SC} ${WL + 6} Z" fill="#10243a" opacity=".85" stroke="none"/><ellipse cx="${X0 + 1760 * SC}" cy="${WL + 2}" rx="${120 + 10 * Math.sin(t * 2)}" ry="11" fill="#fff" opacity=".85" filter="url(#g8)" stroke="none"/><ellipse cx="${X0 + 40}" cy="${WL + 6}" rx="150" ry="9" fill="#fff" opacity=".5" filter="url(#g8)" stroke="none"/>`;
+  { // gulls: real silhouette (body, head and beak, angled wings with black tips, soft grey shading); they mostly glide and flap only now and then; kept in the sky band above the mast and cranes
+    const G = [[1.05, 215, 38, 0.38, 0.0, 1.0], [0.55, 270, 26, 0.46, 2.4, 0.8], [1.45, 175, 22, 0.33, 4.1, 0.62], [0.2, 300, 20, 0.5, 5.3, 0.55]];
+    const wing = (sx, wy, ty, rnd2) => { // leading edge shoulder -> wrist -> tip, then the trailing edge back; a black tip at the end
+      const P1 = [sx * 3, -1.5], W = [sx * 17, wy], T = [sx * 38, ty];
+      const body = `M${P1[0]} ${P1[1]} L${W[0]} ${W[1] - 2} L${T[0]} ${T[1]} L${sx * 31} ${ty + 3.2} L${sx * 15} ${wy + 6.5} L${sx * 5} ${3.5} Z`;
+      const tipBlack = `M${sx * 29} ${ty * 0.86 + wy * 0.14 - 0.4} L${T[0]} ${T[1]} L${sx * 31} ${ty + 3.2} L${sx * 26.5} ${ty * 0.8 + wy * 0.2 + 5.2} Z`;
+      return `<path d="${body}" fill="url(#gullW)" stroke="#9fb0bf" stroke-width=".7"/><path d="${tipBlack}" fill="#1c2733"/>`; };
+    for (const [cxf, cy, ry, w, ph, size] of G) {
+      const cx = Math.max(380, X0 + 450) + (cxf - 0.8) * 520, a = w * t + ph, gx = cx + Math.cos(a) * 300, gy = cy + Math.sin(a * 1.3) * ry, vx = -Math.sin(a) * 300 * w + 46, dir = vx >= 0 ? 1 : -1;
+      const glide = Math.sin(t * 0.7 + ph), burst = Math.pow(Math.max(0, Math.sin(t * 0.45 + ph * 2)), 4); // flaps only in short bursts
+      const flap = burst * Math.sin(t * 10 + ph * 3), soar = glide * 1.6, k = size * 3.9;
+      const wy = -4 - 6 * flap - soar * 0.5, ty = -2 - 14 * flap + soar;
+      g += `<g transform="translate(${gx.toFixed(1)} ${gy.toFixed(1)}) rotate(${(Math.cos(a * 1.3) * 7).toFixed(1)}) scale(${(dir * k / 2.6).toFixed(3)} ${(k / 2.6).toFixed(3)})" opacity="${(0.72 + 0.28 * r).toFixed(2)}" filter="url(#g1)">${wing(1, wy, ty)}${wing(-1, wy, ty)}<ellipse cx="0" cy="1.2" rx="9" ry="3.2" fill="url(#gullB)" stroke="#9fb0bf" stroke-width=".6"/><path d="M-9 1.4 L-14 2.2 L-9 3.2 Z" fill="#cdd6de"/><circle cx="8" cy="0.2" r="2.5" fill="#f4f7fa" stroke="#9fb0bf" stroke-width=".5"/><path d="M10.2 0.4 L13.4 1.1 L10.2 1.8 Z" fill="#e6b24a"/><circle cx="8.8" cy="-.2" r=".5" fill="#1c2733"/></g>`;
+    }
+  }
+  g += fogUseH('hm', lerp(.95, .32, r), 60 - t * 10);
+  g += `<rect x="0" y="470" width="1920" height="320" fill="#e8f1f8" opacity="${(.3 * (1 - r)).toFixed(3)}" filter="url(#g40)" stroke="none"/>`;
+  if (r > 0.01) {
+    for (const [a, b, w] of [[1440, 520, 90], [1560, 600, 120], [1330, 430, 60]]) g += `<path d="M${a + Math.sin(t * .5) * 12} -40 L${a + w} -40 L${b + 260} ${WL - 40} L${b - 220} ${WL - 40} Z" fill="url(#ray)" opacity="${(.5 * r).toFixed(3)}" filter="url(#g16)" stroke="none"/>`;
+    g += `<ellipse cx="${hx}" cy="${hy}" rx="560" ry="150" fill="url(#rgWarm)" opacity="${(.4 * r).toFixed(3)}" stroke="none"/>`;
+    for (let i = 0; i < 70; i++) { const x = 160 + rnd() * 1000, y = WL + 12 + rnd() * 150, w = 6 + rnd() * 28, tw = .55 + .45 * Math.sin(t * 6 + i * 1.7); g += `<rect x="${x.toFixed(0)}" y="${y.toFixed(0)}" width="${w.toFixed(0)}" height="2.2" fill="#fff" opacity="${((0.5 + rnd() * .5) * r * tw).toFixed(2)}" stroke="none"/>`; }
+  }
+  g += fogUseH('hf', lerp(.85, .45, r), -120 + t * 16);
+  const sw = -0.9 + t * 1.57;
+  g += radarDay(310, 930, 100, 1, 0, sw) + radarDay(1610, 930, 100, 1 - smooth((r - .35) / .4), smooth((r - .35) / .4), sw);
+  return SV(g);
+}
