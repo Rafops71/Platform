@@ -210,6 +210,46 @@ jobs:
           retention-days: 14
           if-no-files-found: warn
 
+  storyboard_v10:
+    # Storyboard v10 (owner, 2026-11-03): real-app captures (copper cathodes, South Africa, CIF) through the app's own
+    # screens by throwaway members (removed again afterwards), then the key frames and the table. No voice, no video.
+    if: ${{ inputs.only == 'storyboard-v10' }}
+    name: Storyboard v10 (stills only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: ci-live-database
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Capture the real app
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          node scripts/serve.js &
+          for i in $(seq 1 30); do curl -sf http://localhost:8000/index.html >/dev/null && break; sleep 1; done
+          node video/storyboard10/capture.js capture
+      - run: node video/storyboard10/make.js capture storyboard-v10
+      - run: cat storyboard-v10/storyboard.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: storyboard-v10
+          path: |
+            storyboard-v10/
+            capture/
+          retention-days: 14
+          if-no-files-found: warn
+
   trailer_voice_en:
     # The new English trailer's narration (owner's approved text, 2026-11-02): Gemini Algieba, two requests, slowed
     # (atempo 0.93), listened to by faster-whisper. Run once; the build reuses its artifact.
