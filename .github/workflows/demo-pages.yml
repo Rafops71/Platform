@@ -42,6 +42,8 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+      - name: The deploy gate still catches the breaks it exists to catch
+        run: node scripts/test-deploy-gate.js
       - name: Build the demo
         run: npm run build:demo
       - name: Install the browser for the demo tests

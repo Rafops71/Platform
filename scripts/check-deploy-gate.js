@@ -20,7 +20,10 @@
 const fs = require('fs');
 const path = require('path');
 
-const FILE = path.join(__dirname, '..', '.github', 'workflows', 'ci.yml');
+// DEPLOY_GATE_ROOT lets scripts/test-deploy-gate.js point the check at a copy
+// of the workflows with a deliberate break in it. Unset, it checks the repo.
+const GATE_ROOT = process.env.DEPLOY_GATE_ROOT || path.join(__dirname, '..');
+const FILE = path.join(GATE_ROOT, '.github', 'workflows', 'ci.yml');
 const REQUIRED = ['database', 'checklist', 'stress', 'safari', 'package'];
 const STATUS_FUNCTIONS = /\b(always|failure|cancelled)\s*\(/;
 
