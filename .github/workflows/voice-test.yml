@@ -457,9 +457,9 @@ jobs:
       - name: Sound effects (generated here, no third-party sound) and mix plan
         run: |
           mkdir -p sfx
-          ffmpeg -v error -y -f lavfi -i "anoisesrc=d=0.9:c=pink:a=0.6:r=48000" -af "highpass=f=350,lowpass=f=5200,afade=t=in:d=0.3,afade=t=out:st=0.3:d=0.6,aecho=0.6:0.5:60:0.3,volume=-2dB" -ac 2 sfx/whoosh.wav
-          ffmpeg -v error -y -f lavfi -i "anoisesrc=d=0.08:c=white:a=0.8:r=48000" -af "highpass=f=1800,lowpass=f=9000,afade=t=out:st=0.004:d=0.07,volume=-3dB" -ac 2 sfx/click.wav
-          ffmpeg -v error -y -f lavfi -i "aevalsrc='0.55*sin(2*PI*55*t)+0.3*sin(2*PI*82.5*t)+0.15*sin(2*PI*110*t)':d=3.2:s=48000" -af "lowpass=f=420,afade=t=in:d=0.5,afade=t=out:st=0.9:d=2.3,volume=-3dB" -ac 2 sfx/tone-low.wav
+          ffmpeg -v error -y -f lavfi -i "anoisesrc=d=0.9:c=pink:a=0.6:r=48000" -af "highpass=f=350,lowpass=f=5200,afade=t=in:d=0.3,afade=t=out:st=0.3:d=0.6,aecho=0.6:0.5:60:0.3,volume=23.5dB" -ac 2 sfx/whoosh.wav
+          ffmpeg -v error -y -f lavfi -i "anoisesrc=d=0.08:c=white:a=0.8:r=48000" -af "highpass=f=1800,lowpass=f=9000,afade=t=out:st=0.004:d=0.07,volume=3dB" -ac 2 sfx/click.wav
+          ffmpeg -v error -y -f lavfi -i "aevalsrc='0.55*sin(2*PI*55*t)+0.3*sin(2*PI*82.5*t)+0.15*sin(2*PI*110*t)':d=3.2:s=48000" -af "lowpass=f=420,afade=t=in:d=0.5,afade=t=out:st=0.9:d=2.3,volume=0dB" -ac 2 sfx/tone-low.wav
           for f in sfx/*.wav; do echo "$f $(ffprobe -v error -show_entries format=duration -of csv=p=0 $f) s"; ffmpeg -i $f -af volumedetect -f null - 2>&1 | grep max_volume || true; done
           cp video/trailer3/cues.json video/trailer3/cues-full-plan.json video/trailer3/SFX-LICENCE.md .
       - name: Check it
