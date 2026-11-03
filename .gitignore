@@ -27,3 +27,5 @@ checklist-sql.txt
 
 # Local helper, not part of the project
 permissions-to-paste.txt
+__pycache__/
+*.pyc
