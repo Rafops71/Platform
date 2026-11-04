@@ -2,7 +2,8 @@
 
 let CURRENT_PROFILE = null;
 let ALL_PROFILES_BY_ID = {}; // cache for owner-name lookups
-let FORWARD_TARGET = null;   // { messageId, listingId, toUserId, refLabel }
+let FORWARD_TARGET = null;   // { messageId, listingId, toUserId, refLabel, originalBody }
+const FORWARD_BODIES = new Map(); // message id -> the body as it was written
 let REPLY_TARGET = null;     // { originalMessage }
 // Set when the Listings screen was opened from the Overview's stale tile, so
 // the table shows the same rows the count promised. Any Search or Clear on the
@@ -1092,7 +1093,10 @@ async function loadOperatorMailbox() {
     // as well run after it; keeping it per-row means a row is never on screen
     // with its buttons enabled and not yet listening, which is the state that
     // used to swallow a click silently when every iteration awaited.
-    row.querySelectorAll('[data-forward]').forEach(b => b.addEventListener('click', () => openForwardModal(b)));
+    row.querySelectorAll('[data-forward]').forEach(b => {
+      FORWARD_BODIES.set(b.dataset.forward, m.body);
+      b.addEventListener('click', () => openForwardModal(b));
+    });
     row.querySelectorAll('[data-reply]').forEach(b => b.addEventListener('click', () => openReplyModal(b)));
     row.querySelectorAll('[data-ignore]').forEach(b => b.addEventListener('click', async () => {
       const { error } = await jericho.from('messages').update({ status: 'ignored' }).eq('id', b.dataset.ignore);
@@ -1105,6 +1109,7 @@ async function loadOperatorMailbox() {
 function wireForwardModal() {
   document.getElementById('forward-cancel-btn').addEventListener('click', () => document.getElementById('forward-modal').classList.add('hidden'));
   document.getElementById('forward-confirm-btn').addEventListener('click', confirmForward);
+  document.getElementById('forward-edit').addEventListener('input', renderForwardEditor);
 }
 
 function openForwardModal(btn) {
@@ -1125,7 +1130,10 @@ function openForwardModal(btn) {
     listingId: btn.dataset.listing,
     toUserId: btn.dataset.owner,
     refLabel: btn.dataset.ref,
+    originalBody: FORWARD_BODIES.get(btn.dataset.forward) || '',
   };
+  document.getElementById('forward-edit').value = FORWARD_TARGET.originalBody;
+  renderForwardEditor();
 
   const who = btn.dataset.targetName || 'the recipient';
   document.getElementById('forward-target-info').textContent =
@@ -1140,7 +1148,53 @@ async function confirmForward() {
   return withButtonBusy('forward-confirm-btn', 'Forwarding…', confirmForwardNow);
 }
 
+// Contact details a member must not see from another member: email addresses,
+// web addresses and phone numbers. Used only to highlight them for the Operator
+// and to refuse a forward that still carries one. The Operator's judgement still
+// decides what else to remove.
+const CONTACT_PATTERNS = [
+  /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g,            // email
+  /(?:https?:\/\/|www\.)\S+/gi,                                // web address
+  /(?:\+|\b00)?\d[\d\s().-]{6,}\d/g,                          // phone number
+];
+
+function findContacts(text) {
+  const hits = [];
+  CONTACT_PATTERNS.forEach(re => {
+    re.lastIndex = 0;
+    let m;
+    while ((m = re.exec(text)) !== null) hits.push({ start: m.index, end: m.index + m[0].length });
+  });
+  return hits.sort((a, b) => a.start - b.start);
+}
+
+/** Shows the edited text with every contact detail in red, and says how many. */
+function renderForwardEditor() {
+  const text = document.getElementById('forward-edit').value;
+  const hits = findContacts(text);
+  let html = '', at = 0;
+  hits.forEach(h => {
+    if (h.start < at) return; // overlapping match: already shown in red
+    html += escapeHtml(text.slice(at, h.start))
+      + `<mark class="contact-flag" style="background:#fee2e2;color:#b91c1c;font-weight:600;">${escapeHtml(text.slice(h.start, h.end))}</mark>`;
+    at = h.end;
+  });
+  html += escapeHtml(text.slice(at));
+  document.getElementById('forward-preview').innerHTML = html;
+  document.getElementById('forward-flags').textContent = hits.length
+    ? `${hits.length} contact detail(s) highlighted in red. Remove them before forwarding.`
+    : '';
+}
+
 async function confirmForwardNow() {
+  const edited = document.getElementById('forward-edit').value.trim();
+  if (!edited) { showError('The message is empty. Write something to forward.'); return; }
+  if (findContacts(edited).length) {
+    showError('Remove the highlighted contact details before forwarding.');
+    return;
+  }
+  if (edited !== FORWARD_TARGET.originalBody.trim()) return confirmEditedForward(edited);
+
   const { error: e1 } = await jericho.from('message_forward_log').insert({
     message_id: FORWARD_TARGET.messageId, operator_id: CURRENT_PROFILE.id, to_user_id: FORWARD_TARGET.toUserId
   });
@@ -1165,6 +1219,43 @@ function openReplyModal(btn) {
   REPLY_TARGET = { originalMessageId: btn.dataset.reply, senderId: btn.dataset.sender, listingId: btn.dataset.listing2 };
   document.getElementById('reply-body').value = '';
   document.getElementById('reply-modal').classList.remove('hidden');
+}
+
+/** An edited forward: the owner receives a NEW message holding only the edited
+ *  text. The original stays where it was, and the Operator-only activity log
+ *  keeps it (sql/046). */
+async function confirmEditedForward(edited) {
+  const { data: newMsg, error: e1 } = await jericho.from('messages').insert({
+    sender_id: CURRENT_PROFILE.id, listing_id: FORWARD_TARGET.listingId || null,
+    body: edited, status: 'pending_review'
+  }).select('id').single();
+  if (e1) { showError(errorMessage(e1)); return; }
+
+  const { error: e2 } = await jericho.from('message_forward_log').insert({
+    message_id: newMsg.id, operator_id: CURRENT_PROFILE.id, to_user_id: FORWARD_TARGET.toUserId
+  });
+  if (e2) { showError(errorMessage(e2)); return; }
+
+  await jericho.from('messages').update({ status: 'forwarded' }).eq('id', newMsg.id);
+  await jericho.from('messages').update({ status: 'forwarded' }).eq('id', FORWARD_TARGET.messageId);
+
+  const { error: e3 } = await jericho.rpc('record_activity', {
+    p_action: 'message_forward_edited',
+    p_details: {
+      original_message_id: FORWARD_TARGET.messageId,
+      forwarded_message_id: newMsg.id,
+      to_user_id: FORWARD_TARGET.toUserId,
+      original_body: FORWARD_TARGET.originalBody,
+    },
+  });
+  if (e3) console.error('Edited forward was sent but not logged:', e3);
+
+  await jericho.from('notifications').insert({
+    user_id: FORWARD_TARGET.toUserId, type: 'message_forwarded',
+    message: `A message was forwarded to you regarding ${FORWARD_TARGET.refLabel}.`, related_id: FORWARD_TARGET.listingId
+  });
+  document.getElementById('forward-modal').classList.add('hidden');
+  showSuccess('Message forwarded.');
 }
 
 async function confirmReply() {
