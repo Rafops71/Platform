@@ -296,6 +296,8 @@ select case when count(*)=0 then 'PASS' else 'FAIL ('||string_agg(template_key,'
   as "E28 every template has both an en and an es row"
 from (
   select template_key from public.email_templates
+  -- operator_new_message is English only: the Operator side is English only.
+  where template_key <> 'operator_new_message'
   group by template_key having count(distinct lang) <> 2
 ) missing;
 
