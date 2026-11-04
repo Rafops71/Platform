@@ -76,6 +76,7 @@ const DEFAULT_ORDER = [
   '043_principal_kind.sql',
   '044_welcome_seen.sql',
   '045_terms_3_5.sql',
+  '047_operator_mail_on_member_message.sql',
   'seed_commodities.sql',
 ];
 
