@@ -998,6 +998,35 @@ Status: teardown NOT yet proven on a live project. The token used for
 `platform` is with the owner, and this session has no Cloudflare token, so
 step 1 has to be done by someone holding it before setup.
 
+**Operator demo site on Cloudflare Pages - PLANNED 2026-11-04, NOT SET UP (item 42).**
+The Operator demo is the Operator console on fake data, with one sign-in button
+("Enter as Operator", no password). It is published to its own Pages project
+`myplatform-operator-demo`, separate from the member demo (`myplatform-demo`),
+`platform` and `platform-www`. It is not linked from the member demo or from any
+public page. Build: `DEMO_KIND=operator node scripts/build-demo.js` writes
+`dist-demo-operator/`. Workflow: `.github/workflows/operator-demo-pages.yml`.
+
+Setup steps (NOT yet done - the teardown is proven first, on a throwaway project):
+1. `.github/workflows/operator-demo-cloudflare-setup.yml` (workflow_dispatch only)
+   runs `scripts/operator-demo-cloudflare-setup.sh`. It creates
+   `deletetest-operator-demo`, confirms it is listed, deletes it, confirms it is
+   gone, and only then creates `myplatform-operator-demo`. It stops if the test
+   project is still listed after the delete. It refuses `platform`,
+   `platform-www` and `myplatform-demo` by name.
+2. The publish job (`publish-operator-demo` in operator-demo-pages.yml) runs only
+   on main, after the Operator demo's browser tests pass, and fails when a
+   Cloudflare secret is missing. It deploys `dist-demo-operator` to
+   `myplatform-operator-demo` on main.
+3. The repository secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are
+   the ones already used for the other projects.
+
+TEARDOWN - delete the Operator demo project (the same two ways as the member demo):
+- `npx wrangler pages project delete myplatform-operator-demo --yes`
+- or `DELETE /accounts/<account_id>/pages/projects/myplatform-operator-demo`
+  (success: HTTP 200, `"success": true`).
+Status: teardown NOT yet proven on a live project. Setup runs only after that
+proof, in the same workflow run, and it creates nothing before the proof.
+
 -4. ~~**The Privacy Notice does not yet mention outcome records or the
     scorecard.**~~ RESOLVED 2026-10-28: Terms 3.4 (sql/042), live. The research says members must be told. A new Terms version
     is the owner's decision; nothing has been published.

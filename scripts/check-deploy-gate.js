@@ -78,21 +78,28 @@ for (const f of fs.readdirSync(wfDir).filter(n => /\.ya?ml$/.test(n))) {
   const cf = (body.match(/cloudflare\/wrangler-action@/g) || []).length;
   // ci.yml: the app and the front page. demo-pages.yml: the demo, in its own
   // gated job (checked below). Any other file may not publish to Cloudflare.
-  const expectedCf = f === 'ci.yml' ? 2 : f === 'demo-pages.yml' ? 1 : 0;
+  const expectedCf = f === 'ci.yml' ? 2 : (f === 'demo-pages.yml' || f === 'operator-demo-pages.yml') ? 1 : 0;
   if (cf !== expectedCf) {
-    problems.push(`${f} contains ${cf} wrangler-action step(s); only ci.yml's deploy-cloudflare and deploy-www jobs, and demo-pages.yml's publish-demo job, may publish there (ci.yml: 2, demo-pages.yml: 1).`);
+    problems.push(`${f} contains ${cf} wrangler-action step(s); only ci.yml's deploy-cloudflare and deploy-www jobs, demo-pages.yml's publish-demo job and operator-demo-pages.yml's publish-operator-demo job may publish there (ci.yml: 2, the two demo files: 1).`);
   }
 }
 
 // The demo's one Cloudflare publish step: its own job, gated like the others.
 // Same rules as the ci.yml jobs (main only, needs the checks, no status
 // function, fails on a missing secret), with the demo's own needs and target.
+// The same check for each demo site: its own file, its own publish job, its own
+// Cloudflare project. Item 42 added the Operator demo; neither may publish to the
+// other's project.
 function checkDemoPublisher() {
-  const file = 'demo-pages.yml';
+  checkOnePublisher({ file: 'demo-pages.yml', job: 'publish-demo', project: 'myplatform-demo', dir: 'dist-demo' });
+  checkOnePublisher({ file: 'operator-demo-pages.yml', job: 'publish-operator-demo', project: 'myplatform-operator-demo', dir: 'dist-demo-operator' });
+}
+
+function checkOnePublisher({ file, job, project, dir }) {
   const demo = fs.readFileSync(path.join(path.dirname(FILE), file), 'utf8').split('\n');
-  const start = demo.findIndex(l => /^  publish-demo:\s*$/.test(l));
+  const start = demo.findIndex(l => new RegExp(`^  ${job}:\\s*$`).test(l));
   if (start === -1) {
-    problems.push(`${file} has no \`publish-demo\` job, so nothing publishes the demo behind its tests.`);
+    problems.push(`${file} has no \`${job}\` job, so nothing publishes the site behind its tests.`);
     return;
   }
   let end = demo.length;
@@ -116,11 +123,12 @@ function checkDemoPublisher() {
     problems.push(`${file}: the publish-demo job does not fail when the Cloudflare secrets are missing.`);
   }
   const deployCmd = (block.match(/command:\s*(pages deploy .+)$/m) || [])[1] || '';
-  if (!/^pages deploy dist-demo --project-name=myplatform-demo --branch=main\b/.test(deployCmd)) {
-    problems.push(`${file}: the publish-demo job does not deploy dist-demo to \`myplatform-demo\` on main.`);
+  const wantCmd = new RegExp(`^pages deploy ${dir} --project-name=${project} --branch=main\\b`);
+  if (!wantCmd.test(deployCmd)) {
+    problems.push(`${file}: the ${job} job does not deploy ${dir} to \`${project}\` on main.`);
   }
   const inBlock = (block.match(/cloudflare\/wrangler-action@/g) || []).length;
-  if (inBlock !== 1) problems.push(`${file}: the publish-demo job must hold the one wrangler step (found ${inBlock}).`);
+  if (inBlock !== 1) problems.push(`${file}: the ${job} job must hold the one wrangler step (found ${inBlock}).`);
 }
 checkDemoPublisher();
 
