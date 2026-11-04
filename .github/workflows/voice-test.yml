@@ -1095,7 +1095,7 @@ jobs:
             cp -r ../../caps/$f/states public/film/states
             frames=$(node -e "console.log(Math.ceil(require('./src/components/film/timings.json').total_s*30))")
             sed -i '1i import { Film } from "./components/FilmApp";' src/Root.tsx
-            sed -i "0,/^    <\/>\$/s//      <Composition id=\"Film\" component={Film} durationInFrames=$frames fps={30} width={1920} height={1080} \/>\n    <\/>/" src/Root.tsx
+            sed -i "0,/^    <\/>\$/s//      <Composition id=\"Film\" component={Film} durationInFrames={$frames} fps={30} width={1920} height={1080} \/>\n    <\/>/" src/Root.tsx
             grep -n 'id="Film"' src/Root.tsx
             npx remotion render src/index.tsx Film ../../out/$f-silent.mp4 --codec h264 --crf 18 --concurrency 4
             ffmpeg -v error -y -i ../../out/$f-silent.mp4 -i ../../voice-paced/$f/voice-track.wav -map 0:v -map 1:a -c:v copy -c:a aac -b:a 192k -shortest ../../out/$f-voice.mp4
