@@ -30,7 +30,7 @@ def main():
     for bl in sm.get_matching_blocks():
         for k in range(bl.size):
             where[bl.a + k] = bl.b + k
-    rows, ok = [], True
+    rows, ok, miss = [], True, []
     for bi, b in enumerate(T['blocks']):
         idx = [i for i, (_, x) in enumerate(ref) if x == bi]
         hit = [where[i] for i in idx if i in where]
@@ -43,7 +43,13 @@ def main():
         good = 136 <= wpm <= 144 and werr <= 0.15
         ok &= good
         rows.append(f"| {b['block']} | {n} | {wpm:.1f} | {werr:.3f} | {'ok' if good else 'OUTSIDE'} |")
-    out = f"{film}: whisper listened to the paced track\n\n| block | words | wpm (heard) | word miss rate | verdict |\n|---|---|---|---|---|\n" + '\n'.join(rows) + '\n\n' + ('All blocks 136-144 wpm and miss rate <= 0.15.' if ok else 'Some block is outside the limits.') + '\n'
+        # which words were missed, and what whisper heard instead in that gap
+        for i in idx:
+            if i in where:
+                continue
+            pi = max([where[j] for j in range(i) if j in where] or [-1]); ni = min([where[j] for j in range(i + 1, len(ref)) if j in where] or [len(hn)])
+            miss.append(f"block {b['block']}: approved '{ref[i][0]}' (position {i - idx[0] + 1}) -> whisper heard {' '.join(hn[pi + 1:ni]) or '(nothing)'!r} between '{hn[pi] if pi >= 0 else ''}' and '{hn[ni] if ni < len(hn) else ''}' at {heard[pi + 1][1] if pi + 1 < len(heard) else 0:.1f}s")
+    out = f"{film}: whisper listened to the paced track\n\n| block | words | wpm (heard) | word miss rate | verdict |\n|---|---|---|---|---|\n" + '\n'.join(rows) + '\n\nMissed words:\n' + ('\n'.join('- ' + m for m in miss) or '(none)') + '\n\n' + ('All blocks 136-144 wpm and miss rate <= 0.15.' if ok else 'Some block is outside the limits.') + '\n'
     open(os.path.join(d, 'check-table.md'), 'w').write(out)
     print(out)
     sys.exit(0 if ok else 1)
