@@ -331,7 +331,7 @@ function populateStatusFilter() {
     ['listing-filter-type','listing-filter-status','listing-filter-commodity',
      'listing-filter-incoterm','listing-filter-region','listing-filter-qty-min',
      'listing-filter-qty-max','listing-filter-date-from','listing-filter-date-to',
-     'listing-filter-docs','listing-filter-role'].forEach(id => { document.getElementById(id).value = ''; });
+     'listing-filter-role'].forEach(id => { document.getElementById(id).value = ''; });
     loadListings();
   });
 }
@@ -374,7 +374,7 @@ async function populateCommodityFilter() {
 async function loadListings() {
   const fresh = renderToken('op:loadListings');
   const tbody = document.querySelector('#listings-table tbody');
-  tbody.innerHTML = '<tr><td colspan="11" class="empty-state">Loading…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="10" class="empty-state">Loading…</td></tr>';
 
   let query = jericho.from('listings')
     .select('*, profiles!listings_user_id_fkey(first_name,last_name,company)')
@@ -399,7 +399,6 @@ async function loadListings() {
   const qtyMax = document.getElementById('listing-filter-qty-max').value;
   const dateFrom = document.getElementById('listing-filter-date-from').value;
   const dateTo = document.getElementById('listing-filter-date-to').value;
-  const docsFilter = document.getElementById('listing-filter-docs').value;
   const roleFilter = document.getElementById('listing-filter-role').value;
 
   if (type) query = query.eq('type', type);
@@ -424,35 +423,22 @@ async function loadListings() {
 
   const { data, error } = await query;
   if (!fresh()) return;   // a newer render started while this waited
-  if (error) { tbody.innerHTML = `<tr><td colspan="11" class="empty-state">${escapeHtml(errorMessage(error))}</td></tr>`; return; }
+  if (error) { tbody.innerHTML = `<tr><td colspan="10" class="empty-state">${escapeHtml(errorMessage(error))}</td></tr>`; return; }
 
-  // Which listings have at least one ticked document — fetched in one query
-  // rather than per row.
-  const withDocs = new Set();
-  if (data.length) {
-    const { data: checked } = await jericho
-      .from('document_checklist').select('listing_id')
-      .eq('indicated', true).in('listing_id', data.map(l => l.id));
-    (checked || []).forEach(c => withDocs.add(c.listing_id));
-    if (!fresh()) return;
-  }
 
   let rows = data;
-  if (docsFilter === 'yes') rows = rows.filter(l => withDocs.has(l.id));
-  if (docsFilter === 'no') rows = rows.filter(l => !withDocs.has(l.id));
 
   // The note belongs to the rows about to be written, not to whatever the flag
   // says now.
   document.getElementById('listing-stale-note').classList.toggle('hidden', !staleOnly);
 
-  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="11" class="empty-state">No listings match.</td></tr>'; return; }
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="10" class="empty-state">No listings match.</td></tr>'; return; }
 
   tbody.innerHTML = '';
   rows.forEach(l => {
     const owner = l.profiles
       ? `${personName(l.profiles)}${l.profiles.company ? ' (' + l.profiles.company + ')' : ''}`
       : 'Unknown';
-    const hasDocs = withDocs.has(l.id);
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td data-label="Ref">${escapeHtml(l.reference_number)}</td>
@@ -462,7 +448,6 @@ async function loadListings() {
       <td data-label="Commodity">${escapeHtml(l.commodity)}</td>
       <td data-label="Qty">${l.quantity ? escapeHtml(String(l.quantity)) + ' ' + escapeHtml(l.unit || '') : '—'}</td>
       <td data-label="Incoterm">${escapeHtml(l.incoterm)}</td>
-      <td data-label="Docs">${hasDocs ? 'Yes' : '<strong>None</strong>'}</td>
       <td data-label="Status">
         <select data-status-for="${l.id}" aria-label="Listing status">
           ${['available','under_review','negotiation','closed','archived'].map(st =>

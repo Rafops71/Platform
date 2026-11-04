@@ -111,17 +111,12 @@
           <option value="broker">Broker</option>
           <option value="none">Not stated (older listings)</option>
         </select>
-        <select id="listing-filter-docs" aria-label="Filter by documents" style="max-width:200px;">
-          <option value="">Documents: any</option>
-          <option value="yes">Documents indicated</option>
-          <option value="no">No documents indicated</option>
-        </select>
         <button class="btn btn-secondary btn-small" id="listing-search-btn">Search</button>
         <button class="btn btn-secondary btn-small" id="listing-clear-btn">Clear</button>
       </div>
       <div style="overflow-x:auto;">
         <table class="data-table" id="listings-table">
-          <thead><tr><th>Ref</th><th>Owner</th><th>Poster</th><th>Type</th><th>Commodity</th><th>Qty</th><th>Incoterm</th><th>Docs</th><th>Status</th><th>Updated</th><th><span class="sr-only">Actions</span></th></tr></thead>
+          <thead><tr><th>Ref</th><th>Owner</th><th>Poster</th><th>Type</th><th>Commodity</th><th>Qty</th><th>Incoterm</th><th>Status</th><th>Updated</th><th><span class="sr-only">Actions</span></th></tr></thead>
           <tbody><tr><td colspan="10" class="empty-state">Loading…</td></tr></tbody>
         </table>
       </div>
