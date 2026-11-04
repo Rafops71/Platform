@@ -37,6 +37,7 @@ const { Rec } = require('./capture-lib');
     await r.click(p.locator('#gate-btn'), { dur: 0.7 });
     await p.waitForTimeout(800); await r.shot();
   } else console.log('no terms gate visible');
+  await p.evaluate(() => window.scrollTo(0, 0)); r.T += 0.05; await r.shot();
   r.mark('dash'); r.wait(0.7);
   r.mark('newlisting'); await go('new-listing'); r.wait(0.5);
   await p.waitForTimeout(300); await r.shot();

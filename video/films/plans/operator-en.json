@@ -98,8 +98,8 @@
    "times": {
     "card": "b3:^commission$:-0.5",
     "tick": "b3:^executed$:-0.4",
-    "fig": "b3:^only$:-0.2",
-    "join": "b3:^introductions$:+0.3",
+    "fig": "b3:^once$:-0.4",
+    "join": "b3:^only$:-0.2",
     "out": "b3:^only$:-0.4"
    }
   },

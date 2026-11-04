@@ -144,9 +144,9 @@
    "times": {
     "card": "b4:^comision$:-0.5",
     "tick": "b4:^firmado$:-0.4",
-    "fig": "b4:^cada$:-0.2",
-    "join": "b4:^miembro$:+0.2",
-    "out": "b4:^cada$:-0.4"
+    "fig": "b4:^cuando$:-0.3",
+    "join": "b4:^cada$:-0.3",
+    "out": "b4:^cada$:-0.5"
    }
   },
   {

@@ -1097,8 +1097,10 @@ jobs:
             sed -i '1i import { Film } from "./components/FilmApp";' src/Root.tsx
             sed -i "0,/^    <\/>\$/s//      <Composition id=\"Film\" component={Film} durationInFrames={$frames} fps={30} width={1920} height={1080} \/>\n    <\/>/" src/Root.tsx
             grep -n 'id="Film"' src/Root.tsx
-            npx remotion render src/index.tsx Film ../../out/$f-silent.mp4 --codec h264 --crf 18 --concurrency 4
-            ffmpeg -v error -y -i ../../out/$f-silent.mp4 -i ../../voice-paced/$f/voice-track.wav -map 0:v -map 1:a -c:v copy -c:a aac -b:a 192k -shortest ../../out/$f-voice.mp4
+            npx remotion render src/index.tsx Film ../../out/$f-raw.mp4 --codec h264 --crf 18 --concurrency 4
+            ffmpeg -v error -y -i ../../out/$f-raw.mp4 -map 0:v -c:v copy -an ../../out/$f-silent.mp4
+            ffmpeg -v error -y -i ../../out/$f-raw.mp4 -i ../../voice-paced/$f/voice-track.wav -map 0:v -map 1:a -c:v copy -c:a aac -b:a 192k -shortest ../../out/$f-voice.mp4
+            rm ../../out/$f-raw.mp4
             cp ../../voice-paced/$f/voice-track.wav ../../out/$f-voice-track.wav
             cp ../../voice-paced/$f/timings.json ../../out/$f-timings.json
             cp ../../caps/$f/timeline.json ../../out/$f-capture-timeline.json
