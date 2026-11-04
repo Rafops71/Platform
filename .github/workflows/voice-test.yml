@@ -962,6 +962,42 @@ jobs:
           retention-days: 14
           if-no-files-found: warn
 
+  films_pace:
+    # Per-block pace for the films' voices: every block to 140 wpm with one more atempo. No Gemini request.
+    if: ${{ inputs.only == 'films-pace' }}
+    name: Films - per-block pace (no new requests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      VOICE_RUN: '41818970262'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - run: pip install soundfile numpy
+      - uses: actions/download-artifact@v4
+        with:
+          name: films-voice
+          path: voice-in
+          run-id: ${{ env.VOICE_RUN }}
+          github-token: ${{ github.token }}
+      - name: Pace each block
+        run: |
+          rc=0
+          for film in member-en member-es operator-en; do
+            python3 video/films/films_pace.py "voice-in/$film" "voice-paced/$film" || rc=1
+            cat "voice-paced/$film/pace-table.md" >> "$GITHUB_STEP_SUMMARY"
+          done
+          exit $rc
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: films-voice-paced
+          path: voice-paced
+          retention-days: 14
+
   trailer_voice_en:
     # The new English trailer's narration (owner's approved text, 2026-11-02): Gemini Algieba, two requests, slowed
     # (atempo 0.93), listened to by faster-whisper. Run once; the build reuses its artifact.
