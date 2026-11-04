@@ -19,6 +19,8 @@
 const { TAG, buildWorld, account, cleanup, http, asUser, must, guardNotLive } = require('./security-grid');
 
 const KEYS = ['invitation', 'registration_submitted', 'registration_approved', 'registration_rejected', 'new_listing'];
+// English only: the Operator side is English only (owner's rule).
+const ENGLISH_ONLY_KEYS = ['operator_new_message'];
 // The address the invitation link points at: the platform's own (2026-10-29).
 const SITE = 'https://app.myplatform.trade/';
 const ALLOWED_URL = /^https:\/\/(rafops71\.github\.io\/Platform\/|([a-z0-9-]+\.)*myplatform\.trade(\/|$))/;
@@ -38,9 +40,14 @@ async function main() {
     const rows = (await must('templates', http('/rest/v1/email_templates?select=template_key,lang,subject,body_text')));
     const tpl = {};
     for (const r of rows) tpl[`${r.template_key}/${r.lang}`] = r;
-    for (const k of KEYS) {
+    for (const k of [...KEYS, ...ENGLISH_ONLY_KEYS]) {
       const en = tpl[`${k}/en`]; const es = tpl[`${k}/es`];
-      if (!en || !es) { fail(`template "${k}" is missing in ${!en ? 'English' : 'Spanish'}`); continue; }
+      const englishOnly = ENGLISH_ONLY_KEYS.includes(k);
+      if (!en || (!es && !englishOnly)) { fail(`template "${k}" is missing in ${!en ? 'English' : 'Spanish'}`); continue; }
+      if (englishOnly) {
+        for (const part of ['subject', 'body_text']) if (!en[part].trim()) fail(`template "${k}" has an empty ${part}`);
+        continue;
+      }
       for (const part of ['subject', 'body_text']) {
         if (!en[part].trim() || !es[part].trim()) fail(`template "${k}" has an empty ${part}`);
         if (slots(en[part]).join() !== slots(es[part]).join()) {
@@ -48,7 +55,7 @@ async function main() {
         }
       }
     }
-    for (const key of Object.keys(tpl)) if (!KEYS.includes(key.split('/')[0])) fail(`template "${key}" is not covered by this scan`);
+    for (const key of Object.keys(tpl)) if (![...KEYS, ...ENGLISH_ONLY_KEYS].includes(key.split('/')[0])) fail(`template "${key}" is not covered by this scan`);
 
     // 2. Make every kind of email happen, for both languages.
     const w = await buildWorld();

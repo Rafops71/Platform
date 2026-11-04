@@ -35,7 +35,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   wireActivityLog();
   wireInvitations();
   wireCommodities();
-  wireDocRequests();
   wireForwardModal();
   wireReplyModal();
   populateStatusFilter();
@@ -63,7 +62,6 @@ function showScreen(name) {
   if (name === 'invitations') loadInvitations();
   if (name === 'users') loadUsers();
   if (name === 'commodities') loadCommodities();
-  if (name === 'doc-requests') { loadListingsForDocRequest(); loadDocRequests(); }
   if (name === 'mailbox') loadOperatorMailbox();
   if (name === 'matches') loadMatches();
   if (name === 'deals') loadDeals();
@@ -200,8 +198,6 @@ const OVERVIEW_TILES = [
     where: (q) => q.eq('status', 'pending') },
   { id: 'messages',     screen: 'mailbox',      table: 'messages',
     where: (q) => q.eq('status', 'pending_review') },
-  { id: 'doc-requests', screen: 'doc-requests', table: 'document_requests',
-    where: (q) => q.eq('status', 'requested') },
   { id: 'matches',      screen: 'matches',      table: 'matches',
     where: (q) => q.eq('status', 'new') },
   { id: 'stale',        screen: 'listings',     table: 'listings',
@@ -335,7 +331,7 @@ function populateStatusFilter() {
     ['listing-filter-type','listing-filter-status','listing-filter-commodity',
      'listing-filter-incoterm','listing-filter-region','listing-filter-qty-min',
      'listing-filter-qty-max','listing-filter-date-from','listing-filter-date-to',
-     'listing-filter-docs','listing-filter-role'].forEach(id => { document.getElementById(id).value = ''; });
+     'listing-filter-role'].forEach(id => { document.getElementById(id).value = ''; });
     loadListings();
   });
 }
@@ -346,8 +342,6 @@ function populateStatusFilter() {
 const POSTER_ROLE_LABELS = { principal: 'Principal', mandated: 'Mandated intermediary', broker: 'Broker' };
 const PRINCIPAL_KIND_LABELS = { producer: 'Producer', trader: 'Trader' };
 const BROKER_VIA_LABELS = { principal: 'via the principal', mandate_holder: "via the principal's mandate holder", one_broker: 'via one other broker' };
-const DOCS_SEEN_LABELS = { yes: 'docs seen', source_says: 'docs not seen, source says they exist', no: 'docs not seen' };
-const DOCS_SHOWABLE_LABELS = { on_request: 'shown on request', after_agreement: 'shown after an agreement', no: 'not shown' };
 
 function posterDetail(l) {
   if (!l.poster_role) return 'Not stated';
@@ -355,8 +349,6 @@ function posterDetail(l) {
   if (l.poster_role === 'principal' && l.type === 'sell') parts[0] += ` (${l.principal_kind ? PRINCIPAL_KIND_LABELS[l.principal_kind] : 'producer or trader not stated'})`;
   if (l.poster_role === 'mandated') parts.push(`mandate signed ${l.mandate_date ? formatDate(l.mandate_date) : '(no date)'}`);
   if (l.poster_role === 'broker') parts.push(BROKER_VIA_LABELS[l.broker_via] || 'chain not stated');
-  if (l.docs_seen) parts.push(DOCS_SEEN_LABELS[l.docs_seen]);
-  if (l.docs_showable) parts.push(DOCS_SHOWABLE_LABELS[l.docs_showable]);
   if (l.truth_confirmed_at) parts.push(`confirmed true ${formatDateTime(l.truth_confirmed_at)}`);
   return parts.join(' · ');
 }
@@ -378,7 +370,7 @@ async function populateCommodityFilter() {
 async function loadListings() {
   const fresh = renderToken('op:loadListings');
   const tbody = document.querySelector('#listings-table tbody');
-  tbody.innerHTML = '<tr><td colspan="11" class="empty-state">Loading…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="10" class="empty-state">Loading…</td></tr>';
 
   let query = jericho.from('listings')
     .select('*, profiles!listings_user_id_fkey(first_name,last_name,company)')
@@ -403,7 +395,6 @@ async function loadListings() {
   const qtyMax = document.getElementById('listing-filter-qty-max').value;
   const dateFrom = document.getElementById('listing-filter-date-from').value;
   const dateTo = document.getElementById('listing-filter-date-to').value;
-  const docsFilter = document.getElementById('listing-filter-docs').value;
   const roleFilter = document.getElementById('listing-filter-role').value;
 
   if (type) query = query.eq('type', type);
@@ -428,35 +419,22 @@ async function loadListings() {
 
   const { data, error } = await query;
   if (!fresh()) return;   // a newer render started while this waited
-  if (error) { tbody.innerHTML = `<tr><td colspan="11" class="empty-state">${escapeHtml(errorMessage(error))}</td></tr>`; return; }
+  if (error) { tbody.innerHTML = `<tr><td colspan="10" class="empty-state">${escapeHtml(errorMessage(error))}</td></tr>`; return; }
 
-  // Which listings have at least one ticked document — fetched in one query
-  // rather than per row.
-  const withDocs = new Set();
-  if (data.length) {
-    const { data: checked } = await jericho
-      .from('document_checklist').select('listing_id')
-      .eq('indicated', true).in('listing_id', data.map(l => l.id));
-    (checked || []).forEach(c => withDocs.add(c.listing_id));
-    if (!fresh()) return;
-  }
 
   let rows = data;
-  if (docsFilter === 'yes') rows = rows.filter(l => withDocs.has(l.id));
-  if (docsFilter === 'no') rows = rows.filter(l => !withDocs.has(l.id));
 
   // The note belongs to the rows about to be written, not to whatever the flag
   // says now.
   document.getElementById('listing-stale-note').classList.toggle('hidden', !staleOnly);
 
-  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="11" class="empty-state">No listings match.</td></tr>'; return; }
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="10" class="empty-state">No listings match.</td></tr>'; return; }
 
   tbody.innerHTML = '';
   rows.forEach(l => {
     const owner = l.profiles
       ? `${personName(l.profiles)}${l.profiles.company ? ' (' + l.profiles.company + ')' : ''}`
       : 'Unknown';
-    const hasDocs = withDocs.has(l.id);
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td data-label="Ref">${escapeHtml(l.reference_number)}</td>
@@ -466,7 +444,6 @@ async function loadListings() {
       <td data-label="Commodity">${escapeHtml(l.commodity)}</td>
       <td data-label="Qty">${l.quantity ? escapeHtml(String(l.quantity)) + ' ' + escapeHtml(l.unit || '') : '—'}</td>
       <td data-label="Incoterm">${escapeHtml(l.incoterm)}</td>
-      <td data-label="Docs">${hasDocs ? 'Yes' : '<strong>None</strong>'}</td>
       <td data-label="Status">
         <select data-status-for="${l.id}" aria-label="Listing status">
           ${['available','under_review','negotiation','closed','archived'].map(st =>
@@ -916,89 +893,6 @@ async function deleteCommodity(id, name, usage) {
   loadCommodities();
 }
 
-// ----------------------------------------------------- DOCUMENT REQUESTS ----
-function wireDocRequests() {
-  populateSelect('dr-doctype', DOCUMENT_REQUEST_TYPES);
-  document.getElementById('create-doc-request-btn').addEventListener('click', createDocRequest);
-}
-function populateSelect(id, values) {
-  const el = document.getElementById(id);
-  values.forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; el.appendChild(o); });
-}
-
-async function loadListingsForDocRequest() {
-  const fresh = renderToken('op:loadListingsForDocRequest');
-  const select = document.getElementById('dr-listing');
-  const { data, error } = await jericho.from('listings').select('id,reference_number,user_id,commodity').order('created_at', { ascending: false });
-  if (!fresh()) return;
-  if (error) return;
-  select.innerHTML = '<option value="">Select a listing…</option>';
-  data.forEach(l => {
-    const opt = document.createElement('option');
-    opt.value = l.id; opt.dataset.userId = l.user_id;
-    opt.textContent = `${l.reference_number} — ${l.commodity}`;
-    select.appendChild(opt);
-  });
-}
-
-async function createDocRequest() {
-  // One press at a time: this creates a row, and two presses created two.
-  return withButtonBusy('create-doc-request-btn', 'Requesting…', createDocRequestNow);
-}
-
-async function createDocRequestNow() {
-  const select = document.getElementById('dr-listing');
-  const listingId = select.value;
-  if (!listingId) { showError('Choose a listing.'); return; }
-  const participantId = select.selectedOptions[0].dataset.userId;
-  const docType = document.getElementById('dr-doctype').value;
-
-  const { error } = await jericho.from('document_requests').insert({
-    listing_id: listingId, requester_id: CURRENT_PROFILE.id, participant_id: participantId, doc_type: docType
-  });
-  if (error) { showError(errorMessage(error)); return; }
-  // Audit entry is written by trg_log_doc_request_change; the participant
-  // notification is written here because it is addressed to a specific user
-  // chosen by this Operator action.
-  await jericho.from('notifications').insert({
-    user_id: participantId, type: 'document_requested',
-    message: `An Operator requested: ${docType}`, related_id: listingId
-  });
-
-  showSuccess('Request sent.');
-  loadDocRequests();
-}
-
-async function loadDocRequests() {
-  const fresh = renderToken('op:loadDocRequests');
-  const container = document.getElementById('doc-requests-list');
-  container.innerHTML = '<p class="empty-state">Loading…</p>';
-  const { data, error } = await jericho.from('document_requests').select('*').order('requested_at', { ascending: false });
-  if (!fresh()) return;
-  if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
-  if (!data.length) { container.innerHTML = '<p class="empty-state">No document requests yet.</p>'; return; }
-
-  // Resolve reference numbers in one batched query rather than one per row.
-  const { refs: refByListing, error: refError } = await referenceNumbersFor(data.map(r => r.listing_id));
-  if (!fresh()) return;
-  if (refError) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(refError))}</p>`; return; }
-
-  container.innerHTML = '';
-  for (const r of data) {
-    const ref = refByListing.get(r.listing_id);
-    const row = document.createElement('div');
-    row.className = 'list-row';
-    row.innerHTML = `
-      <div class="list-row-top">
-        <span class="list-row-title">${escapeHtml(r.doc_type)} — ${ref ? escapeHtml(ref) : 'listing removed'}</span>
-        <span class="badge ${r.status === 'confirmed' ? 'badge-green' : r.status === 'unavailable' ? 'badge-red' : 'badge-amber'}">${statusLabel(r.status)}</span>
-      </div>
-      <div class="list-row-meta">Requested ${formatDateTime(r.requested_at)}${r.responded_at ? ' · Responded ' + formatDateTime(r.responded_at) : ''}</div>
-    `;
-    container.appendChild(row);
-  }
-}
-
 // ------------------------------------------------------------- MAILBOX ----
 async function loadOperatorMailbox() {
   const fresh = renderToken('op:loadOperatorMailbox');
@@ -1211,8 +1105,6 @@ async function confirmReplyNow() {
 // the stage and the answers, and every change it saves lands in deal_history.
 const DEAL_STAGES = { negotiating: 'Negotiating', agreed: 'Agreed', introduced: 'Introduced', closed: 'Closed' };
 const DEAL_ANSWERS = {
-  docs_match:   { label: 'Documents', options: { matched: 'Matched what was claimed', not_matched: "Didn't match", never_arrived: 'Never arrived' } },
-  docs_genuine: { label: 'Documents genuine?', options: { genuine: 'Genuine', faulty: 'Faulty', false: 'False' } },
   offer_real:   { label: 'Offer / client', options: { real: 'Real', did_not_happen: "Didn't materialise", not_genuine: 'Not genuine' } },
   deal_result:  { label: 'Deal', options: { closed: 'Closed', fell_through: 'Fell through', open: 'Still open' } },
 };
@@ -1313,11 +1205,11 @@ async function showDealHistory(id) {
 async function loadScorecard() {
   const fresh = renderToken('op:loadScorecard');
   const tbody = document.getElementById('scorecard-tbody');
-  tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Loading…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Loading…</td></tr>';
   const { data, error } = await jericho.rpc('member_scorecard', { p_profile_id: null });
   if (!fresh()) return;
-  if (error) { tbody.innerHTML = `<tr><td colspan="8" class="empty-state">${escapeHtml(errorMessage(error))}</td></tr>`; return; }
-  if (!data || !data.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Nothing recorded yet. Figures appear once deal files have outcomes.</td></tr>'; return; }
+  if (error) { tbody.innerHTML = `<tr><td colspan="6" class="empty-state">${escapeHtml(errorMessage(error))}</td></tr>`; return; }
+  if (!data || !data.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Nothing recorded yet. Figures appear once deal files have outcomes.</td></tr>'; return; }
 
   const names = new Map();
   for (const part of chunked(data.map(r => r.profile_id))) {
@@ -1331,8 +1223,6 @@ async function loadScorecard() {
       <td data-label="Deals">${r.deals_as_poster} / ${r.deals_as_other}</td>
       <td data-label="Introduced">${r.introduced}</td>
       <td data-label="Closed / fell through">${r.closed_done} / ${r.fell_through}</td>
-      <td data-label="Docs">${r.docs_matched} / ${r.docs_not_matched} / ${r.docs_never_arrived}</td>
-      <td data-label="Faulty / false">${r.docs_faulty} / ${r.docs_false}</td>
       <td data-label="Offer">${r.offer_real} / ${r.offer_did_not_happen} / ${r.offer_not_genuine}</td>
       <td data-label="Last change">${r.last_activity ? formatDate(r.last_activity) : '—'}</td>
     </tr>`).join('');
