@@ -20,7 +20,7 @@ def main():
     T = json.load(open(os.path.join(d, 'timings.json')))
     wav, sr = sf.read(os.path.join(d, 'voice-track.wav'), dtype='float32')
     mono = np.interp(np.linspace(0, len(wav), int(len(wav) * 16000 / sr), endpoint=False), np.arange(len(wav)), wav).astype(np.float32)
-    model = WhisperModel('small', device='cpu', compute_type='int8')
+    model = WhisperModel(os.environ.get('WHISPER_MODEL', 'small'), device='cpu', compute_type='int8')
     segs, _ = model.transcribe(mono, language=lang, beam_size=5, word_timestamps=True, initial_prompt='MyPlatform, Incoterm, Operator, Operador.')
     heard = [(w.word.strip(), w.start, w.end) for s in segs for w in s.words]
     hn = [(norm(w) or [''])[0] for w, _, _ in heard]

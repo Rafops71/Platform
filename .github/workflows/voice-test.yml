@@ -1006,6 +1006,7 @@ jobs:
     timeout-minutes: 40
     env:
       PACE_RUN: '41819429709'
+      WHISPER_MODEL: 'medium'   # second opinion: a bigger model than the gate's 'small', to tell a real mispronunciation from a spelling quirk
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
