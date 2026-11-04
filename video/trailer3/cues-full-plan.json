@@ -1,0 +1,29 @@
+{
+  "_note": "PLANNED cues for the full ~90 s trailer, from the storyboard table (seconds are planned, not measured). Not final: act lengths will be set when the rendered acts are timed.",
+  "acts_start_s": { "1": 0, "2": 8, "3": 22, "4": 34, "5": 46, "6": 59, "7": 75, "8": 84, "end": 90 },
+  "sfx": [
+    { "file": "sfx/tone-low.wav", "start_s": 0.0, "gain_db": -16, "note": "open" },
+    { "file": "sfx/whoosh.wav", "start_s": 7.6, "gain_db": -14, "note": "act 1 to 2" },
+    { "file": "sfx/tone-low.wav", "start_s": 18.2, "gain_db": -22, "note": "act 2 reveal swell (about 3.2 s into act 2 plus the haze parting)" },
+    { "file": "sfx/whoosh.wav", "start_s": 21.6, "gain_db": -14, "note": "act 2 to 3" },
+    { "file": "sfx/click.wav", "start_s": 31.0, "gain_db": -22, "note": "pointer clicks Contact (act 3a to 3b)" },
+    { "file": "sfx/whoosh.wav", "start_s": 33.6, "gain_db": -14, "note": "act 3 to 4" },
+    { "file": "sfx/click.wav", "start_s": 37.0, "gain_db": -22, "note": "Poster: Principal (Trader) lights" },
+    { "file": "sfx/click.wav", "start_s": 41.0, "gain_db": -22, "note": "Documents lights" },
+    { "file": "sfx/whoosh.wav", "start_s": 45.6, "gain_db": -14, "note": "act 4 to 5" },
+    { "file": "sfx/click.wav", "start_s": 48.0, "gain_db": -22, "note": "message sent" },
+    { "file": "sfx/whoosh.wav", "start_s": 51.5, "gain_db": -16, "note": "Mailbox melts into the diagram" },
+    { "file": "sfx/whoosh.wav", "start_s": 58.6, "gain_db": -14, "note": "act 5 to 6, the hands" },
+    { "file": "sfx/whoosh.wav", "start_s": 74.6, "gain_db": -14, "note": "act 6 to 7" },
+    { "file": "sfx/whoosh.wav", "start_s": 83.6, "gain_db": -14, "note": "act 7 to 8" },
+    { "file": "sfx/tone-low.wav", "start_s": 86.0, "gain_db": -16, "note": "close" }
+  ],
+  "music": {
+    "fade_in": { "start_s": 0.0, "end_s": 1.5 },
+    "duck": [
+      { "start_s": 18.0, "end_s": 20.0, "gain_db": -4, "note": "reveal swell" },
+      { "start_s": 62.0, "end_s": 72.0, "gain_db": -3, "note": "fee card read time: a little more room" }
+    ],
+    "fade_out": { "start_s": 88.0, "end_s": 90.0 }
+  }
+}

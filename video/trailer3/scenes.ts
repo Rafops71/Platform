@@ -1,0 +1,280 @@
+// @ts-nocheck
+// Trailer sample (acts 1-2): the storyboard v14/v15 drawings, now driven by time. Pure string builders: no photos, no stock.
+// Source drawings: globe and haze/radar are ours; the ship is the CC0 Openclipart drawing "Cargo Ship" (j4p4n, https://openclipart.org/detail/322884).
+export const INK = '#15202b', BLUE = '#27618f', SLATE = '#52677a', LINE = '#c9d7e4', GLOWB = '#5fa3d6';
+const cl = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+export const smooth = (x) => { x = cl(x); return x * x * (3 - 2 * x); };
+const lerp = (a, b, t) => a + (b - a) * t;
+export const DEFS = `<svg width="0" height="0" style="position:absolute"><defs>
+<filter id="g4" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"/></filter>
+<filter id="g8" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="8"/></filter>
+<filter id="g16" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="16"/></filter>
+<filter id="g40" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="40"/></filter>
+<filter id="g70" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="70"/></filter>
+<filter id="glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<filter id="g1" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation=".35"/></filter>
+<linearGradient id="gullW" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f7f9fb"/><stop offset="1" stop-color="#cdd7e0"/></linearGradient>
+<linearGradient id="gullB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#c3cdd6"/></linearGradient>
+<radialGradient id="rgBlue"><stop offset="0" stop-color="${GLOWB}" stop-opacity=".9"/><stop offset="1" stop-color="${GLOWB}" stop-opacity="0"/></radialGradient>
+<radialGradient id="rgWhite"><stop offset="0" stop-color="#fff" stop-opacity="1"/><stop offset=".4" stop-color="#fff" stop-opacity=".5"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+<radialGradient id="rgWarm"><stop offset="0" stop-color="#fff4cf" stop-opacity=".95"/><stop offset="1" stop-color="#ffd98a" stop-opacity="0"/></radialGradient>
+</defs></svg>`;
+export const SV = (inner, extra = '') => `<svg width="1920" height="1080" viewBox="0 0 1920 1080" fill="none" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:0;top:0" ${extra}>${inner}</svg>`;
+let seed = 7; const rnd = () => { seed |= 0; seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+// drifting light motes; fixed positions from a seed, moved by time (far ones slower, near ones faster)
+const MOTES = (() => { seed = 11; const a = []; for (let i = 0; i < 26; i++) { const near = rnd() < 0.3; a.push({ x: rnd() * 1920, y: rnd() * 1080, r: near ? 14 + rnd() * 30 : 2 + rnd() * 5, near, v: near ? 14 : 5, ph: rnd() * 6.28 }); } return a; })();
+export const motes = (t, color) => SV(MOTES.map((m) => `<circle cx="${(((m.x + t * m.v) % 1980) - 30).toFixed(0)}" cy="${(m.y + Math.sin(t * .6 + m.ph) * 10).toFixed(0)}" r="${m.r.toFixed(1)}" fill="${color}" opacity="${(m.near ? 0.1 : 0.45)}" ${m.near ? 'filter="url(#g8)"' : ''} stroke="none"/>`).join(''));
+
+// ---------------------------------------------------------------- act 1: globe
+const LAND = [[-120, 55, 25, 12], [-100, 42, 30, 18], [-80, 30, 12, 10], [-100, 20, 12, 8], [-60, -12, 16, 24], [-70, -40, 6, 14], [-5, 40, 10, 7], [15, 52, 20, 10], [18, 66, 10, 7], [20, 5, 21, 28], [30, -20, 10, 14], [47, -19, 3, 8], [90, 55, 55, 12], [70, 40, 30, 12], [45, 25, 12, 10], [78, 20, 9, 11], [105, 30, 18, 14], [110, 5, 8, 5], [118, -2, 14, 5], [140, 37, 4, 8], [135, -25, 17, 11]];
+const isLand = (lon, lat) => LAND.some(([cx, cy, rx, ry]) => ((lon - cx) / rx) ** 2 + ((lat - cy) / ry) ** 2 < 1);
+const PORT = { val: [-72, -33], rdam: [4, 52], dbn: [31, -30], sha: [121, 31], hou: [-95, 29], sin: [104, 1], santos: [-46, -24], lagos: [3, 6], mba: [40, -4], bom: [73, 19], dxb: [55, 25], per: [116, -32], la: [-118, 34], psd: [32, 31], tyo: [140, 36], van: [-123, 49], cal: [-77, -12], tema: [0, 5], gla: [151, -23], ny: [-74, 41], cpt: [18, -34], hou2: [-90, 30] };
+const ROUTES = [['val', 'rdam', 1], ['dbn', 'rdam', 0], ['dbn', 'sha', 0], ['sin', 'rdam', 0], ['hou', 'rdam', 0], ['val', 'sha', 0], ['santos', 'rdam', 0], ['santos', 'cpt', 0], ['lagos', 'rdam', 0], ['mba', 'bom', 0], ['dxb', 'sha', 0], ['per', 'sin', 0], ['la', 'tyo', 0], ['psd', 'rdam', 0], ['tema', 'santos', 0], ['cpt', 'per', 0], ['dxb', 'rdam', 0], ['ny', 'rdam', 1], ['cal', 'la', 0], ['gla', 'sha', 0], ['bom', 'sin', 0], ['mba', 'dbn', 0]];
+export function globe(cx, cy, R, lon0, t) {
+  const tilt = 20 * Math.PI / 180, id = 'gl';
+  const vec = (lon, lat) => { const a = (lon - lon0) * Math.PI / 180, b = lat * Math.PI / 180; return [Math.cos(b) * Math.sin(a), Math.sin(b), Math.cos(b) * Math.cos(a)]; };
+  const proj = (v) => { const y = v[1] * Math.cos(tilt) - v[2] * Math.sin(tilt), z = v[1] * Math.sin(tilt) + v[2] * Math.cos(tilt); return [cx + v[0] * R, cy - y * R, z]; };
+  let g = `<defs><radialGradient id="${id}s" cx=".36" cy=".3" r=".9"><stop offset="0" stop-color="#fff"/><stop offset=".55" stop-color="#eef4fa"/><stop offset="1" stop-color="#c3d6e8"/></radialGradient>
+  <radialGradient id="${id}a" cx=".5" cy=".5" r=".5"><stop offset=".78" stop-color="${GLOWB}" stop-opacity="0"/><stop offset=".9" stop-color="${GLOWB}" stop-opacity=".28"/><stop offset="1" stop-color="${GLOWB}" stop-opacity="0"/></radialGradient>
+  <radialGradient id="${id}d" cx=".35" cy=".3" r=".85"><stop offset=".55" stop-color="#15202b" stop-opacity="0"/><stop offset="1" stop-color="#15202b" stop-opacity=".22"/></radialGradient>
+  <linearGradient id="${id}w" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".85"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+  <clipPath id="${id}c"><circle cx="${cx}" cy="${cy}" r="${R}"/></clipPath></defs>`;
+  g += `<ellipse cx="${cx}" cy="${cy + R * 1.14}" rx="${R * 0.86}" ry="${R * 0.07}" fill="${INK}" opacity=".16" filter="url(#g40)" stroke="none"/>`;
+  g += `<circle cx="${cx}" cy="${cy}" r="${R * 1.28}" fill="url(#${id}a)" stroke="none"/><circle cx="${cx}" cy="${cy}" r="${R}" fill="url(#${id}s)" stroke="none"/>`;
+  for (let lon = -180; lon < 180; lon += 20) { let d = '', on = false; for (let lat = -90; lat <= 90; lat += 4) { const p = proj(vec(lon, lat)); if (p[2] > 0) { d += (on ? 'L' : 'M') + `${p[0].toFixed(1)} ${p[1].toFixed(1)}`; on = true; } else on = false; } g += `<path d="${d}" stroke="#b9cde0" stroke-width="1" opacity=".7"/>`; }
+  for (let lat = -70; lat <= 70; lat += 20) { let d = '', on = false; for (let lon = -180; lon <= 180; lon += 4) { const p = proj(vec(lon, lat)); if (p[2] > 0) { d += (on ? 'L' : 'M') + `${p[0].toFixed(1)} ${p[1].toFixed(1)}`; on = true; } else on = false; } g += `<path d="${d}" stroke="#b9cde0" stroke-width="1" opacity=".7"/>`; }
+  for (let lat = -82; lat <= 82; lat += 2.4) for (let lon = -180; lon < 180; lon += 2.4 / Math.max(0.25, Math.cos(lat * Math.PI / 180))) {
+    if (!isLand(lon, lat)) continue; const p = proj(vec(lon, lat)); if (p[2] <= 0.03) continue;
+    g += `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${(0.9 + p[2] * 1.9).toFixed(1)}" fill="${p[2] > .7 ? '#3d5a75' : SLATE}" stroke="none" opacity="${(0.3 + p[2] * 0.62).toFixed(2)}"/>`;
+  }
+  g += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="url(#${id}d)" stroke="none"/>`;
+  const slerp = (a, b, tt) => { const d = Math.acos(Math.min(1, a[0] * b[0] + a[1] * b[1] + a[2] * b[2])), s = Math.sin(d); if (!s) return a; const k1 = Math.sin((1 - tt) * d) / s, k2 = Math.sin(tt * d) / s; return [0, 1, 2].map((i) => a[i] * k1 + b[i] * k2); };
+  let comets = '', routesBase = '', routesHot = '';
+  ROUTES.forEach(([a, b, hot], i) => {
+    const A = vec(...PORT[a]), B = vec(...PORT[b]); const pts = [];
+    for (let u = 0; u <= 1.001; u += 0.02) { const v = slerp(A, B, u), lift = 1 + 0.07 * Math.sin(Math.PI * u), p = proj([v[0] * lift, v[1] * lift, v[2] * lift]); pts.push({ t: u, x: p[0], y: p[1], front: proj(v)[2] > 0.02 }); }
+    const path = (lo, hi) => { let d = '', on = false; for (const p of pts) { if (p.t < lo || p.t > hi || !p.front) { on = false; continue; } d += (on ? 'L' : 'M') + `${p.x.toFixed(1)} ${p.y.toFixed(1)}`; on = true; } return d; };
+    routesBase += `<path d="${path(0, 1)}" stroke="${BLUE}" stroke-width="${hot ? 3 : 2.2}" opacity="${hot ? .85 : .62}"/>`;
+    // the lit stretch of every route travels from its start to its end, then starts again (each route on its own beat)
+    const len = 0.4 + (hot ? .3 : 0), ph = ((i * 0.137 + t * 0.14) % 1) * (1 + len), h1 = Math.min(1, ph), h0 = Math.max(0, ph - len);
+    if (h1 > h0) routesHot += `<path d="${path(h0, h1)}" stroke="${GLOWB}" stroke-width="${hot ? 7 : 5}" filter="url(#glow)"/><path d="${path(h0, h1)}" stroke="#fff" stroke-width="${hot ? 2.6 : 2}" opacity=".98"/>`;
+    const hp = pts.find((p) => p.t >= h1 - 0.02 && p.front); if (hp && h1 > h0 && h1 < 1) comets += `<circle cx="${hp.x.toFixed(1)}" cy="${hp.y.toFixed(1)}" r="26" fill="url(#rgWhite)" stroke="none"/><circle cx="${hp.x.toFixed(1)}" cy="${hp.y.toFixed(1)}" r="5.6" fill="#fff" stroke="${BLUE}" stroke-width="1.6"/>`;
+  });
+  g += routesBase + routesHot + comets;
+  let k = 0;
+  for (const key of Object.keys(PORT)) {
+    const p = proj(vec(...PORT[key])); if (p[2] <= 0.05) continue; const s = 0.7 + p[2] * 0.5, pulse = 1 + 0.18 * Math.sin(t * 3 + k);
+    g += `<circle cx="${p[0]}" cy="${p[1]}" r="${36 * s}" fill="url(#rgBlue)" stroke="none" opacity=".75"/>`;
+    if (k++ % 2 === 0) g += `<circle cx="${p[0]}" cy="${p[1]}" r="${22 * s * pulse}" stroke="${GLOWB}" stroke-width="1.4" opacity=".7"/><circle cx="${p[0]}" cy="${p[1]}" r="${32 * s * pulse}" stroke="${GLOWB}" stroke-width="1" opacity=".35"/>`;
+    g += `<circle cx="${p[0]}" cy="${p[1]}" r="${8.5 * s}" fill="#fff" stroke="${BLUE}" stroke-width="2.4"/><circle cx="${p[0]}" cy="${p[1]}" r="${3.2 * s}" fill="${BLUE}" stroke="none"/>`;
+  }
+  const sx = cx - R * 1.1 + ((t / 6) % 1) * R * 2.4;
+  g += `<g clip-path="url(#${id}c)"><rect x="${sx}" y="${cy - R * 1.2}" width="${R * 0.5}" height="${R * 2.4}" fill="url(#${id}w)" transform="rotate(24 ${cx} ${cy})" opacity=".45" stroke="none"/></g>`;
+  g += `<circle cx="${cx}" cy="${cy}" r="${R}" stroke="#fff" stroke-width="3" opacity=".9"/><circle cx="${cx}" cy="${cy}" r="${R + 2}" stroke="${GLOWB}" stroke-width="1.5" opacity=".5"/>`;
+  return SV(g);
+}
+
+// ---------------------------------------------------------------- act 2: daylight haze, ship, radar
+const fogDef = (id, y, h, sd, freq, rgb) => { const [r, g2, b] = rgb.split(' '); return `<linearGradient id="${id}g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000"/><stop offset=".5" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient><filter id="${id}" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="${freq}" numOctaves="4" seed="${sd}"/><feColorMatrix type="matrix" values="0 0 0 0 ${r}  0 0 0 0 ${g2}  0 0 0 0 ${b}  0 0 0 2.4 -.7"/></filter>`; };
+const fogHole = (id, y, h, hx, hy, hrx, hry) => `<mask id="${id}h" maskUnits="userSpaceOnUse" x="0" y="0" width="1920" height="1080"><rect x="0" y="${y}" width="1920" height="${h}" fill="url(#${id}g)"/><ellipse cx="${hx}" cy="${hy}" rx="${Math.max(1, hrx)}" ry="${Math.max(1, hry)}" fill="#000" filter="url(#g40)"/></mask>`;
+const fogUseH = (id, op, dx) => `<g mask="url(#${id}h)" opacity="${op.toFixed(3)}"><rect x="${dx.toFixed(1)}" width="2200" height="1080" filter="url(#${id})" stroke="none" fill="#000"/></g>`;
+const fogUse = (id, op, dx) => `<g mask="url(#${id}m)" opacity="${op}"><rect x="${dx.toFixed(1)}" width="2200" height="1080" filter="url(#${id})" stroke="none" fill="#000"/></g>`;
+const shipSym = (href) => `<symbol id="shipSym" viewBox="0 0 1822.84 595.28"><image href="${href}" width="1822.84" height="595.28"/></symbol><clipPath id="wlclip"><rect x="0" y="0" width="1900" height="523"/></clipPath>`;
+const shipImg = (x, wl, s) => `<g transform="translate(${x} ${wl - 523 * s}) scale(${s})"><g clip-path="url(#wlclip)"><use href="#shipSym" width="1822.84" height="595.28"/></g></g>`;
+function radarDay(cx, cy, r, blipA, crispA, sweep) {
+  let g = `<circle cx="${cx}" cy="${cy + 8}" r="${r + 18}" fill="#15202b" opacity=".22" filter="url(#g16)" stroke="none"/><circle cx="${cx}" cy="${cy}" r="${r + 18}" fill="#f6fafd" stroke="#9bb7cc" stroke-width="2.4"/>`;
+  g += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#e9f4fb" stroke="#7fa6c4" stroke-width="2"/>`;
+  for (const f of [.25, .5, .75]) g += `<circle cx="${cx}" cy="${cy}" r="${r * f}" stroke="#7fa6c4" stroke-width="1" opacity=".6"/>`;
+  g += `<path d="M${cx - r} ${cy} H${cx + r} M${cx} ${cy - r} V${cy + r}" stroke="#7fa6c4" stroke-width="1" opacity=".5"/>`;
+  for (let k = 0; k < 36; k++) { const a = k * Math.PI / 18, l = k % 3 ? 7 : 14; g += `<path d="M${cx + Math.cos(a) * (r - l)} ${cy + Math.sin(a) * (r - l)} L${cx + Math.cos(a) * r} ${cy + Math.sin(a) * r}" stroke="#52677a" stroke-width="1.2" opacity=".6"/>`; }
+  const a0 = sweep;
+  for (let k = 0; k < 8; k++) { const aa = a0 - k * 0.2, ab = a0 - (k + 1) * 0.2; g += `<path d="M${cx} ${cy} L${cx + r * Math.cos(aa)} ${cy + r * Math.sin(aa)} A${r} ${r} 0 0 0 ${cx + r * Math.cos(ab)} ${cy + r * Math.sin(ab)} Z" fill="#27618f" opacity="${(0.34 * (1 - k / 8)).toFixed(3)}" stroke="none"/>`; }
+  g += `<path d="M${cx} ${cy} L${cx + r * Math.cos(a0)} ${cy + r * Math.sin(a0)}" stroke="#27618f" stroke-width="2.8" filter="url(#glow)"/>`;
+  const bx = cx + r * .44, by = cy - r * .34;
+  if (blipA > 0.01) g += `<g opacity="${blipA.toFixed(3)}"><circle cx="${bx}" cy="${by}" r="${r * .26}" fill="#27618f" opacity=".45" filter="url(#g8)" stroke="none"/><circle cx="${bx}" cy="${by}" r="${r * .1}" fill="#15202b" filter="url(#g4)" stroke="none"/><text x="${bx}" y="${by + 11}" text-anchor="middle" font-family="Spectral,serif" font-size="32" fill="#15202b" opacity=".9" stroke="none" filter="url(#g4)">?</text></g>`;
+  if (crispA > 0.01) g += `<g opacity="${crispA.toFixed(3)}"><circle cx="${bx}" cy="${by}" r="${r * .3}" stroke="#27618f" stroke-width="1.6" filter="url(#glow)"/><g transform="translate(${bx} ${by}) scale(.1)" stroke="none" filter="url(#g4)"><path d="M-300 20 H300 L330 20 L280 80 H-250 Z" fill="#15202b"/><rect x="-260" y="-90" width="440" height="110" fill="#15202b" opacity=".9"/><rect x="-250" y="-190" width="140" height="100" fill="#15202b"/></g></g>`;
+  return g;
+}
+// t = seconds into act 2; r = reveal progress 0..1 (haze parts over the near ship)
+export function seaDay(t, r, shipHref) {
+  const WL = 742, SC = 0.76, HZ = 570, X0 = 40 + t * 46, bob = Math.sin(t * 1.5) * 3, pitch = Math.sin(t * 1.5 + 0.6) * 0.35;
+  const hx = X0 + 900 * SC, hy = WL - 110; seed = 99;
+  let g = `<defs>${shipSym(shipHref)}
+  <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6fafd"/><stop offset=".7" stop-color="#e3edf6"/><stop offset="1" stop-color="#d4e3ef"/></linearGradient>
+  <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d3e3ef"/><stop offset=".25" stop-color="#a9c8de"/><stop offset="1" stop-color="#7fa6c4"/></linearGradient>
+  <linearGradient id="rf" gradientUnits="userSpaceOnUse" x1="0" y1="${WL}" x2="0" y2="${WL + 260}"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>
+  <mask id="rfm" maskUnits="userSpaceOnUse" x="0" y="0" width="1920" height="1080"><rect x="0" y="${WL}" width="1920" height="320" fill="url(#rf)"/></mask>
+  <linearGradient id="ray" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff8e0" stop-opacity=".85"/><stop offset="1" stop-color="#fff8e0" stop-opacity="0"/></linearGradient>
+  <filter id="rip" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="turbulence" baseFrequency="0.0025 0.09" numOctaves="2" seed="4" result="t"/><feDisplacementMap in="SourceGraphic" in2="t" scale="22" xChannelSelector="R" yChannelSelector="G"/><feGaussianBlur stdDeviation="2.5"/></filter>
+  ${fogDef('hb', 440, 330, 21, '0.003 0.010', '.93 .97 1')}${fogDef('hm', 560, 300, 22, '0.0035 0.013', '.9 .95 1')}${fogDef('hf', 840, 240, 23, '0.003 0.01', '.92 .96 1')}${fogDef('hs', 60, 360, 24, '0.002 0.008', '1 1 1')}
+  <mask id="hsm" maskUnits="userSpaceOnUse" x="0" y="0" width="1920" height="1080"><rect x="0" y="60" width="1920" height="360" fill="url(#hsg)"/></mask>
+  ${fogHole('hm', 560, 300, hx, hy, 560 * r, 190 * r)}${fogHole('hf', 840, 240, hx, WL + 40, 560 * r, 150 * r)}${fogHole('hb', 440, 330, hx, hy - 60, 520 * r, 190 * r)}</defs>`;
+  g += `<rect width="1920" height="${HZ}" fill="url(#sky)" stroke="none"/><rect y="${HZ}" width="1920" height="${1080 - HZ}" fill="url(#sea)" stroke="none"/>`;
+  g += `<circle cx="1530" cy="150" r="330" fill="url(#rgWarm)" opacity="${(.45 + .15 * r).toFixed(2)}" stroke="none"/><circle cx="1530" cy="150" r="70" fill="#fffaf0" opacity=".85" filter="url(#g16)" stroke="none"/>`;
+  g += fogUse('hs', .5, -100 + t * 4);
+  g += `<ellipse cx="960" cy="${HZ + 6}" rx="1100" ry="46" fill="#fff" opacity=".85" filter="url(#g40)" stroke="none"/><rect x="0" y="${HZ - 1}" width="1920" height="2" fill="#fff" opacity=".7" filter="url(#g4)" stroke="none"/>`;
+  g += `<g opacity=".45" filter="url(#g4)" transform="translate(${3580 - t * 2} 0) scale(-1 1)">${shipImg(1790, 640 + bob * .3, 0.22)}</g>`;
+  g += fogUseH('hb', lerp(.95, .5, r), -80 + t * 6);
+  g += `<ellipse cx="1500" cy="${HZ + 40}" rx="520" ry="26" fill="#fff" opacity=".6" filter="url(#g16)" stroke="none"/>`;
+  for (let i = 0; i < 80; i++) { const y = HZ + 14 + Math.pow(i / 80, 1.7) * 470, w = 40 + rnd() * 240 * (0.5 + i / 40), x = (rnd() * 1920 + t * (4 + i * .3)) % 1960; g += `<path d="M${x.toFixed(0)} ${y.toFixed(0)} h${w.toFixed(0)}" stroke="#fff" stroke-width="${(0.8 + i / 30).toFixed(1)}" opacity="${(0.12 + rnd() * 0.28).toFixed(2)}"/>`; }
+  { // wake: V-shaped bow wave and a foam trail that stays in the water behind the ship (patches are fixed in the water and fade with age)
+    const bowX = X0 + 1790 * SC, sternX = X0 + 40;
+    for (let i = 0; i < 46; i++) { const wx = 40 - 260 + i * 46; if (wx > sternX + 700) break; const age = (sternX + 700 - wx) / 1000; const op = Math.max(0, 0.95 * (1 - age)) * (wx < bowX - 500 ? 1 : 0.8); if (op <= 0.02) continue; g += `<ellipse cx="${wx}" cy="${WL + 8 + (i % 3) * 7}" rx="${54 + (i % 4) * 10}" ry="${5 + (i % 2) * 3}" fill="#fff" opacity="${op.toFixed(3)}" filter="url(#g4)" stroke="none"/>`; }
+    g += `<path d="M${bowX - 20} ${WL + 6} L${bowX - 520} ${WL + 44}" stroke="#fff" stroke-width="10" opacity=".7" filter="url(#g4)"/><path d="M${bowX - 20} ${WL + 6} L${bowX - 520} ${WL + 44}" stroke="#fff" stroke-width="3" opacity=".95"/><path d="M${bowX + 6} ${WL + 10} L${bowX - 340} ${WL + 56}" stroke="#fff" stroke-width="3" opacity=".4" filter="url(#g4)"/>`;
+    for (let k = 0; k < 4; k++) { const ph = ((t * 0.9 + k * 0.25) % 1); g += `<ellipse cx="${bowX + 20 + ph * 70}" cy="${WL + 10}" rx="${30 + ph * 90}" ry="${5 + ph * 12}" stroke="#fff" stroke-width="2" opacity="${(0.9 * (1 - ph)).toFixed(3)}"/>`; }
+  }
+  g += `<g mask="url(#rfm)" opacity="${(.32 + .18 * r).toFixed(2)}"><g filter="url(#rip)"><g transform="translate(0 ${2 * WL}) scale(1 -1)">${shipImg(X0, WL + bob, SC)}</g></g></g>`;
+  g += `<g style="filter:blur(${((1 - r) * 4).toFixed(2)}px)" opacity="${(.62 + .38 * r).toFixed(3)}" transform="rotate(${pitch.toFixed(3)} ${X0 + 700 * SC} ${WL})">${shipImg(X0, WL + bob, SC)}</g>`;
+  g += `<path d="M${X0 + 1690 * SC} ${WL} Q${X0 + 1745 * SC} ${WL - 10} ${X0 + 1790 * SC} ${WL + 2} Q${X0 + 1745 * SC} ${WL + 14} ${X0 + 1690 * SC} ${WL + 6} Z" fill="#10243a" opacity=".85" stroke="none"/><ellipse cx="${X0 + 1760 * SC}" cy="${WL + 2}" rx="${120 + 10 * Math.sin(t * 2)}" ry="11" fill="#fff" opacity=".85" filter="url(#g8)" stroke="none"/><ellipse cx="${X0 + 40}" cy="${WL + 6}" rx="150" ry="9" fill="#fff" opacity=".5" filter="url(#g8)" stroke="none"/>`;
+  { // gulls: real silhouette (body, head and beak, angled wings with black tips, soft grey shading); they mostly glide and flap only now and then; kept in the sky band above the mast and cranes
+    const G = [[1.05, 215, 38, 0.38, 0.0, 1.0], [0.55, 270, 26, 0.46, 2.4, 0.8], [1.45, 175, 22, 0.33, 4.1, 0.62], [0.2, 300, 20, 0.5, 5.3, 0.55]];
+    const wing = (sx, wy, ty, rnd2) => { // leading edge shoulder -> wrist -> tip, then the trailing edge back; a black tip at the end
+      const P1 = [sx * 3, -1.5], W = [sx * 17, wy], T = [sx * 38, ty];
+      const body = `M${P1[0]} ${P1[1]} L${W[0]} ${W[1] - 2} L${T[0]} ${T[1]} L${sx * 31} ${ty + 3.2} L${sx * 15} ${wy + 6.5} L${sx * 5} ${3.5} Z`;
+      const tipBlack = `M${sx * 29} ${ty * 0.86 + wy * 0.14 - 0.4} L${T[0]} ${T[1]} L${sx * 31} ${ty + 3.2} L${sx * 26.5} ${ty * 0.8 + wy * 0.2 + 5.2} Z`;
+      return `<path d="${body}" fill="url(#gullW)" stroke="#9fb0bf" stroke-width=".7"/><path d="${tipBlack}" fill="#1c2733"/>`; };
+    for (const [cxf, cy, ry, w, ph, size] of G) {
+      const cx = X0 + cxf * 1385 * 0.9, a = w * t + ph, gx = cx + Math.cos(a) * 300, gy = cy + Math.sin(a * 1.3) * ry, vx = -Math.sin(a) * 300 * w + 46, dir = vx >= 0 ? 1 : -1;
+      const glide = Math.sin(t * 0.7 + ph), burst = Math.pow(Math.max(0, Math.sin(t * 0.45 + ph * 2)), 4); // flaps only in short bursts
+      const flap = burst * Math.sin(t * 10 + ph * 3), soar = glide * 1.6, k = size * 3.9;
+      const wy = -4 - 6 * flap - soar * 0.5, ty = -2 - 14 * flap + soar;
+      g += `<g transform="translate(${gx.toFixed(1)} ${gy.toFixed(1)}) rotate(${(Math.cos(a * 1.3) * 7).toFixed(1)}) scale(${(dir * k / 2.6).toFixed(3)} ${(k / 2.6).toFixed(3)})" opacity="${(0.72 + 0.28 * r).toFixed(2)}" filter="url(#g1)">${wing(1, wy, ty)}${wing(-1, wy, ty)}<ellipse cx="0" cy="1.2" rx="9" ry="3.2" fill="url(#gullB)" stroke="#9fb0bf" stroke-width=".6"/><path d="M-9 1.4 L-14 2.2 L-9 3.2 Z" fill="#cdd6de"/><circle cx="8" cy="0.2" r="2.5" fill="#f4f7fa" stroke="#9fb0bf" stroke-width=".5"/><path d="M10.2 0.4 L13.4 1.1 L10.2 1.8 Z" fill="#e6b24a"/><circle cx="8.8" cy="-.2" r=".5" fill="#1c2733"/></g>`;
+    }
+  }
+  g += fogUseH('hm', lerp(.95, .32, r), 60 - t * 10);
+  g += `<rect x="0" y="470" width="1920" height="320" fill="#e8f1f8" opacity="${(.3 * (1 - r)).toFixed(3)}" filter="url(#g40)" stroke="none"/>`;
+  if (r > 0.01) {
+    for (const [a, b, w] of [[1440, 520, 90], [1560, 600, 120], [1330, 430, 60]]) g += `<path d="M${a + Math.sin(t * .5) * 12} -40 L${a + w} -40 L${b + 260} ${WL - 40} L${b - 220} ${WL - 40} Z" fill="url(#ray)" opacity="${(.5 * r).toFixed(3)}" filter="url(#g16)" stroke="none"/>`;
+    g += `<ellipse cx="${hx}" cy="${hy}" rx="560" ry="150" fill="url(#rgWarm)" opacity="${(.4 * r).toFixed(3)}" stroke="none"/>`;
+    for (let i = 0; i < 70; i++) { const x = 160 + rnd() * 1000, y = WL + 12 + rnd() * 150, w = 6 + rnd() * 28, tw = .55 + .45 * Math.sin(t * 6 + i * 1.7); g += `<rect x="${x.toFixed(0)}" y="${y.toFixed(0)}" width="${w.toFixed(0)}" height="2.2" fill="#fff" opacity="${((0.5 + rnd() * .5) * r * tw).toFixed(2)}" stroke="none"/>`; }
+  }
+  g += fogUseH('hf', lerp(.85, .45, r), -120 + t * 16);
+  const sw = -0.9 + t * 1.57;
+  g += radarDay(310, 930, 100, 1, 0, sw) + radarDay(1610, 930, 100, 1 - smooth((r - .35) / .4), smooth((r - .35) / .4), sw);
+  return SV(g);
+}
+
+// ---------------------------------------------------------------- the quay, quay crane and trucks (act 2): the ship docks, the crane unloads, the trucks drive away
+const QC = ['#27618f', '#b3423a', '#22744a', '#c18a2e', '#52677a'], LIFT = ['#c9702f', '#27618f', '#b3423a'];
+const T_LIFT = [9.0, 12.2, 15.4], LOADX = 1360;
+const eio = (x) => smooth(x);
+const box = (x, y, w, h, col) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${col}" stroke="#15202b" stroke-opacity=".35" stroke-width="1"/><path d="M${x + w * .25} ${y} V${y + h} M${x + w * .5} ${y} V${y + h} M${x + w * .75} ${y} V${y + h}" stroke="#000" stroke-opacity=".25"/><rect x="${x}" y="${y}" width="${w}" height="3" fill="#fff" opacity=".45"/><rect x="${x + 5}" y="${y + h * .38}" width="${w * .3}" height="${h * .22}" fill="#fff" opacity=".75"/>`;
+function truckSvg(x, base, col) { // facing right; x = centre of the trailer
+  let s = `<ellipse cx="${x + 10}" cy="${base + 2}" rx="96" ry="6" fill="#15202b" opacity=".18" filter="url(#g4)" stroke="none"/>`;
+  s += `<rect x="${x - 72}" y="${base - 24}" width="104" height="7" fill="#52677a" stroke="#2c3e50" stroke-width=".8"/>`;
+  if (col) s += box(x - 66, base - 24 - 28, 62, 28, col);
+  s += `<rect x="${x + 30}" y="${base - 46}" width="38" height="34" rx="4" fill="#f6fafd" stroke="#9db1c4" stroke-width="1"/><rect x="${x + 54}" y="${base - 42}" width="12" height="13" fill="#9ec3e0" stroke="#7f9bb2" stroke-width=".8"/><rect x="${x + 30}" y="${base - 22}" width="46" height="6" fill="#27618f"/><rect x="${x + 68}" y="${base - 32}" width="10" height="20" rx="2" fill="#dfe8f1" stroke="#9db1c4" stroke-width=".8"/>`;
+  for (const wx of [x - 50, x - 34, x + 22, x + 50]) s += `<circle cx="${wx}" cy="${base - 8}" r="9" fill="#1d2933"/><circle cx="${wx}" cy="${base - 8}" r="3.5" fill="#9fb0bf"/>`;
+  return s;
+}
+function craneState(t) {
+  let tx = LOADX, y = 450, has = false, k = -1;
+  for (let i = 0; i < 3; i++) {
+    const c = t - T_LIFT[i];
+    if (c >= -0.5 && c < 0) { tx = 1360 + (760 - 1360) * eio((c + 0.5) / 0.5); y = 450; has = false; }
+    else if (c >= 0 && c < 0.5) { tx = 760; y = 450 + 135 * eio(c / 0.5); has = false; }
+    else if (c >= 0.5 && c < 1.3) { tx = 760; y = 585 - 115 * eio((c - 0.5) / 0.8); has = true; k = i; }
+    else if (c >= 1.3 && c < 2.1) { const u = eio((c - 1.3) / 0.8); tx = 760 + 600 * u; y = 470 - 12 * Math.sin(Math.PI * u); has = true; k = i; }
+    else if (c >= 2.1 && c < 2.5) { tx = 1360; y = 470 + 126 * eio((c - 2.1) / 0.4); has = true; k = i; }
+    else if (c >= 2.5 && c < 2.7) { tx = 1360; y = 596 - 146 * eio((c - 2.5) / 0.2); has = false; }
+  }
+  return { tx, y, has, k };
+}
+export function dockScene(t) {
+  let g = '';
+  // quay: deck, wall with fenders, bollards, a container yard
+  g += `<defs><linearGradient id="qd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e3ebf2"/><stop offset="1" stop-color="#c3d2de"/></linearGradient><linearGradient id="qw" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b9c8d5"/><stop offset="1" stop-color="#8da2b5"/></linearGradient></defs>`;
+  g += `<rect x="960" y="596" width="960" height="44" fill="url(#qd)" stroke="none"/><rect x="960" y="595" width="960" height="2" fill="#fff" opacity=".8" stroke="none"/><path d="M960 618 H1920" stroke="#fff" stroke-width="2" stroke-dasharray="26 18" opacity=".7"/>`;
+  QC.forEach((c, i) => { });
+  const yard = [[1650, 3], [1722, 2], [1794, 3], [1866, 2]];
+  yard.forEach(([x, n], j) => { for (let r2 = 0; r2 < n; r2++) g += box(x, 592 - 28 * (r2 + 1) + 26, 64, 28, QC[(j + r2) % QC.length]); });
+  g += `<rect x="960" y="640" width="960" height="28" fill="url(#qw)" stroke="none"/><rect x="960" y="640" width="960" height="3" fill="#fff" opacity=".6" stroke="none"/>`;
+  for (let i = 0; i < 12; i++) g += `<rect x="${990 + i * 80}" y="643" width="20" height="23" rx="3" fill="#3b4652" opacity=".85" stroke="none"/><rect x="${992 + i * 80}" y="643" width="4" height="23" fill="#fff" opacity=".18" stroke="none"/>`;
+  for (const bx of [1180, 1520]) g += `<ellipse cx="${bx}" cy="637" rx="9" ry="5" fill="#3b4652" stroke="none"/><rect x="${bx - 6}" y="628" width="12" height="9" fill="#52677a" stroke="none"/>`;
+  g += `<ellipse cx="1440" cy="672" rx="520" ry="8" fill="#15202b" opacity=".18" filter="url(#g8)" stroke="none"/>`;
+  // trucks: arrive from behind the ship, stop under the crane, leave to the right with their container
+  for (let k = 0; k < 3; k++) {
+    const A = T_LIFT[k] - 0.4, Dp = T_LIFT[k] + 2.8; let x = null;
+    if (t >= A && t < A + 1.6) x = 940 + (LOADX - 940) * (1 - Math.pow(1 - (t - A) / 1.6, 3));
+    else if (t >= A + 1.6 && t < Dp) x = LOADX;
+    else if (t >= Dp) x = LOADX + 230 * Math.pow(t - Dp, 2);
+    if (x === null || x > 2150) continue;
+    const loaded = t >= T_LIFT[k] + 2.5;
+    g += truckSvg(x, 640, loaded ? LIFT[k] : null);
+  }
+  // crane: A-frame legs, portal girder with a landward overhang, boom out over the ship, tower head and stays
+  const steel = '#6f8da8', dark = '#3f5a73', light = '#bcd2e4';
+  const leg = (x0) => `<path d="M${x0} 646 L${x0 + 20} 646 L${x0 + 34} 436 L${x0 + 14} 436 Z" fill="${steel}" stroke="${dark}" stroke-width="1.2"/><path d="M${x0 + 4} 640 L${x0 + 26} 560 M${x0 + 26} 560 L${x0 + 4} 500 M${x0 + 4} 500 L${x0 + 26} 450" stroke="${light}" stroke-width="2" opacity=".8"/>`;
+  g += leg(1086) + leg(1246);
+  g += `<path d="M1106 590 H1260 M1108 520 H1262" stroke="${dark}" stroke-width="5"/>`;
+  g += `<path d="M1076 416 H1450 V438 H1076 Z" fill="${steel}" stroke="${dark}" stroke-width="1.2"/>`;
+  g += `<path d="M590 424 L1076 416 V438 L590 440 Z" fill="${steel}" stroke="${dark}" stroke-width="1.2"/>`;
+  let tz = ''; for (let x = 600; x < 1076; x += 38) tz += `L${x + 19} 438 L${x + 38} 420 `; g += `<path d="M600 421 ${tz}" stroke="${light}" stroke-width="1.6" fill="none" opacity=".9"/>`;
+  tz = ''; for (let x = 1090; x < 1450; x += 36) tz += `L${x + 18} 436 L${x + 36} 420 `; g += `<path d="M1090 420 ${tz}" stroke="${light}" stroke-width="1.6" fill="none" opacity=".9"/>`;
+  g += `<path d="M1190 416 L1200 330 L1214 416 Z" fill="${steel}" stroke="${dark}" stroke-width="1.2"/><path d="M1200 332 L590 424 M1200 332 L1450 418" stroke="${dark}" stroke-width="2" opacity=".9"/><rect x="1370" y="388" width="70" height="28" rx="3" fill="#dfe8f1" stroke="${dark}" stroke-width="1.2"/><rect x="1380" y="394" width="22" height="12" fill="#9ec3e0"/>`;
+  g += `<rect x="1088" y="646" width="1" height="1" fill="none"/><path d="M1060 650 H1330" stroke="${dark}" stroke-width="3" opacity=".6"/>`;
+  // trolley, hoist, spreader and the container being lifted
+  const cs = craneState(t);
+  g += `<rect x="${cs.tx - 20}" y="428" width="40" height="18" rx="3" fill="#27618f" stroke="${dark}" stroke-width="1.2"/><path d="M${cs.tx - 10} 446 L${cs.tx - 14} ${cs.y - 4} M${cs.tx + 10} 446 L${cs.tx + 14} ${cs.y - 4}" stroke="#15202b" stroke-width="1.4" opacity=".85"/><rect x="${cs.tx - 34}" y="${cs.y - 8}" width="68" height="7" fill="#3b4652" stroke="none"/>`;
+  if (cs.has) g += box(cs.tx - 31, cs.y - 1, 62, 28, LIFT[cs.k]);
+  return g;
+}
+
+export function seaDock(t, r, shipHref, hz = 1) { // hz 1: morning haze, 0: clear sunny daylight
+  const WL = 742, SC = 0.5, HZ = 570, XF = 135, pr = Math.min(1, t / 8.0), v = 1 - pr, X0 = XF - 1300 * (1 - (1 - (1 - pr) * (1 - pr))) , bob = Math.sin(t * 1.5) * (1.4 + 1.6 * v), pitch = Math.sin(t * 1.5 + 0.6) * (0.15 + 0.2 * v);
+  const hx = 760, hy = WL - 150; seed = 99;
+  let g = `<defs>${shipSym(shipHref)}
+  <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${hz ? "#f6fafd" : "#b9d9f2"}"/><stop offset=".7" stop-color="${hz ? "#e3edf6" : "#d4e8f7"}"/><stop offset="1" stop-color="${hz ? "#d4e3ef" : "#e6f2fb"}"/></linearGradient>
+  <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d3e3ef"/><stop offset=".25" stop-color="#a9c8de"/><stop offset="1" stop-color="#7fa6c4"/></linearGradient>
+  <linearGradient id="rf" gradientUnits="userSpaceOnUse" x1="0" y1="${WL}" x2="0" y2="${WL + 260}"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>
+  <mask id="rfm" maskUnits="userSpaceOnUse" x="0" y="0" width="1920" height="1080"><rect x="0" y="${WL}" width="1920" height="320" fill="url(#rf)"/></mask>
+  <linearGradient id="ray" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff8e0" stop-opacity=".85"/><stop offset="1" stop-color="#fff8e0" stop-opacity="0"/></linearGradient>
+  <filter id="rip" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="turbulence" baseFrequency="0.0025 0.09" numOctaves="2" seed="4" result="t"/><feDisplacementMap in="SourceGraphic" in2="t" scale="22" xChannelSelector="R" yChannelSelector="G"/><feGaussianBlur stdDeviation="2.5"/></filter>
+  ${fogDef('hb', 440, 330, 21, '0.003 0.010', '.93 .97 1')}${fogDef('hm', 560, 300, 22, '0.0035 0.013', '.9 .95 1')}${fogDef('hf', 840, 240, 23, '0.003 0.01', '.92 .96 1')}${fogDef('hs', 60, 360, 24, '0.002 0.008', '1 1 1')}
+  <mask id="hsm" maskUnits="userSpaceOnUse" x="0" y="0" width="1920" height="1080"><rect x="0" y="60" width="1920" height="360" fill="url(#hsg)"/></mask>
+  ${fogHole('hm', 560, 300, hx + 250, hy, 820 * r, 230 * r)}${fogHole('hf', 840, 240, hx, WL + 40, 700 * r, 150 * r)}${fogHole('hb', 440, 330, hx + 250, hy - 60, 820 * r, 230 * r)}</defs>`;
+  g += `<rect width="1920" height="${HZ}" fill="url(#sky)" stroke="none"/><rect y="${HZ}" width="1920" height="${1080 - HZ}" fill="url(#sea)" stroke="none"/>`;
+  g += `<circle cx="1530" cy="150" r="330" fill="url(#rgWarm)" opacity="${(hz ? .45 + .15 * r : .7 + .15 * r).toFixed(2)}" stroke="none"/><circle cx="1530" cy="150" r="70" fill="#fffaf0" opacity=".85" filter="url(#g16)" stroke="none"/>`;
+  if (hz) g += fogUse('hs', .5, -100 + t * 4);
+  g += `<ellipse cx="960" cy="${HZ + 6}" rx="1100" ry="46" fill="#fff" opacity="${hz ? .85 : .3}" filter="url(#g40)" stroke="none"/><rect x="0" y="${HZ - 1}" width="1920" height="2" fill="#fff" opacity=".7" filter="url(#g4)" stroke="none"/>`;
+  g += `<g opacity=".45" filter="url(#g4)" transform="translate(${3580 - t * 2} 0) scale(-1 1)">${shipImg(1790, 584 + bob * .3, 0.2)}</g>`;
+  if (hz) g += fogUseH('hb', lerp(.95, .5, r), -80 + t * 6);
+  if (hz) g += `<ellipse cx="1500" cy="${HZ + 40}" rx="520" ry="26" fill="#fff" opacity=".6" filter="url(#g16)" stroke="none"/>`;
+  g += dockScene(t);
+  for (let i = 0; i < 80; i++) { const y = HZ + 14 + Math.pow(i / 80, 1.7) * 470, w = 40 + rnd() * 240 * (0.5 + i / 40), x = (rnd() * 1920 + t * (4 + i * .3)) % 1960; g += `<path d="M${x.toFixed(0)} ${y.toFixed(0)} h${w.toFixed(0)}" stroke="#fff" stroke-width="${(0.8 + i / 30).toFixed(1)}" opacity="${(0.12 + rnd() * 0.28).toFixed(2)}"/>`; }
+  { // wake: V-shaped bow wave and a foam trail that stays in the water behind the ship (patches are fixed in the water and fade with age)
+    const bowX = X0 + 1790 * SC, sternX = X0 + 40, wv = 0.3 + 0.7 * v;
+    for (let i = 0; i < 90; i++) { const wx = -1500 + i * 46; if (wx > sternX + 500) break; const age = (sternX + 500 - wx) / 1500; const op = Math.max(0, 0.95 * (1 - age)) * wv; if (op <= 0.02) continue; g += `<ellipse cx="${wx}" cy="${WL + 8 + (i % 3) * 7}" rx="${54 + (i % 4) * 10}" ry="${5 + (i % 2) * 3}" fill="#fff" opacity="${op.toFixed(3)}" filter="url(#g4)" stroke="none"/>`; }
+    g += `<path d="M${bowX - 20} ${WL + 6} L${bowX - 520} ${WL + 44}" stroke="#fff" stroke-width="10" opacity="${(.7 * wv).toFixed(2)}" filter="url(#g4)"/><path d="M${bowX - 20} ${WL + 6} L${bowX - 520} ${WL + 44}" stroke="#fff" stroke-width="3" opacity="${(.95 * wv).toFixed(2)}"/><path d="M${bowX + 6} ${WL + 10} L${bowX - 340} ${WL + 56}" stroke="#fff" stroke-width="3" opacity="${(.4 * wv).toFixed(2)}" filter="url(#g4)"/>`;
+    for (let k = 0; k < 4; k++) { const ph = ((t * 0.9 + k * 0.25) % 1); g += `<ellipse cx="${bowX + 20 + ph * 70}" cy="${WL + 10}" rx="${30 + ph * 90}" ry="${5 + ph * 12}" stroke="#fff" stroke-width="2" opacity="${(0.9 * (1 - ph) * wv).toFixed(3)}"/>`; }
+  }
+  g += `<g mask="url(#rfm)" opacity="${(.32 + .18 * r).toFixed(2)}"><g filter="url(#rip)"><g transform="translate(0 ${2 * WL}) scale(1 -1)">${shipImg(X0, WL + bob, SC)}</g></g></g>`;
+  g += `<g style="filter:blur(${((1 - r) * (hz ? 4 : 1.2)).toFixed(2)}px) brightness(${hz ? 1 : (0.93 + 0.11 * r).toFixed(3)})" opacity="${hz ? (.62 + .38 * r).toFixed(3) : 1}" transform="rotate(${pitch.toFixed(3)} ${X0 + 700 * SC} ${WL})">${shipImg(X0, WL + bob, SC)}</g>`;
+  g += `<path d="M${X0 + 1690 * SC} ${WL} Q${X0 + 1745 * SC} ${WL - 10} ${X0 + 1790 * SC} ${WL + 2} Q${X0 + 1745 * SC} ${WL + 14} ${X0 + 1690 * SC} ${WL + 6} Z" fill="#10243a" opacity=".85" stroke="none"/><ellipse cx="${X0 + 1760 * SC}" cy="${WL + 2}" rx="${120 + 10 * Math.sin(t * 2)}" ry="11" fill="#fff" opacity=".85" filter="url(#g8)" stroke="none"/><ellipse cx="${X0 + 40}" cy="${WL + 6}" rx="150" ry="9" fill="#fff" opacity=".5" filter="url(#g8)" stroke="none"/>`;
+  { // gulls: real silhouette (body, head and beak, angled wings with black tips, soft grey shading); they mostly glide and flap only now and then; kept in the sky band above the mast and cranes
+    const G = [[1.05, 215, 38, 0.38, 0.0, 1.0], [0.55, 270, 26, 0.46, 2.4, 0.8], [1.45, 175, 22, 0.33, 4.1, 0.62], [0.2, 300, 20, 0.5, 5.3, 0.55]];
+    const wing = (sx, wy, ty, rnd2) => { // leading edge shoulder -> wrist -> tip, then the trailing edge back; a black tip at the end
+      const P1 = [sx * 3, -1.5], W = [sx * 17, wy], T = [sx * 38, ty];
+      const body = `M${P1[0]} ${P1[1]} L${W[0]} ${W[1] - 2} L${T[0]} ${T[1]} L${sx * 31} ${ty + 3.2} L${sx * 15} ${wy + 6.5} L${sx * 5} ${3.5} Z`;
+      const tipBlack = `M${sx * 29} ${ty * 0.86 + wy * 0.14 - 0.4} L${T[0]} ${T[1]} L${sx * 31} ${ty + 3.2} L${sx * 26.5} ${ty * 0.8 + wy * 0.2 + 5.2} Z`;
+      return `<path d="${body}" fill="url(#gullW)" stroke="#9fb0bf" stroke-width=".7"/><path d="${tipBlack}" fill="#1c2733"/>`; };
+    for (const [cxf, cy, ry, w, ph, size] of G) {
+      const cx = Math.max(380, X0 + 450) + (cxf - 0.8) * 520, a = w * t + ph, gx = cx + Math.cos(a) * 300, gy = cy + Math.sin(a * 1.3) * ry, vx = -Math.sin(a) * 300 * w + 46, dir = vx >= 0 ? 1 : -1;
+      const glide = Math.sin(t * 0.7 + ph), burst = Math.pow(Math.max(0, Math.sin(t * 0.45 + ph * 2)), 4); // flaps only in short bursts
+      const flap = burst * Math.sin(t * 10 + ph * 3), soar = glide * 1.6, k = size * 3.9;
+      const wy = -4 - 6 * flap - soar * 0.5, ty = -2 - 14 * flap + soar;
+      g += `<g transform="translate(${gx.toFixed(1)} ${gy.toFixed(1)}) rotate(${(Math.cos(a * 1.3) * 7).toFixed(1)}) scale(${(dir * k / 2.6).toFixed(3)} ${(k / 2.6).toFixed(3)})" opacity="${(0.72 + 0.28 * r).toFixed(2)}" filter="url(#g1)">${wing(1, wy, ty)}${wing(-1, wy, ty)}<ellipse cx="0" cy="1.2" rx="9" ry="3.2" fill="url(#gullB)" stroke="#9fb0bf" stroke-width=".6"/><path d="M-9 1.4 L-14 2.2 L-9 3.2 Z" fill="#cdd6de"/><circle cx="8" cy="0.2" r="2.5" fill="#f4f7fa" stroke="#9fb0bf" stroke-width=".5"/><path d="M10.2 0.4 L13.4 1.1 L10.2 1.8 Z" fill="#e6b24a"/><circle cx="8.8" cy="-.2" r=".5" fill="#1c2733"/></g>`;
+    }
+  }
+  if (hz) g += fogUseH('hm', lerp(.95, .32, r), 60 - t * 10);
+  if (hz) g += `<rect x="0" y="470" width="1920" height="320" fill="#e8f1f8" opacity="${(.3 * (1 - r)).toFixed(3)}" filter="url(#g40)" stroke="none"/>`;
+  if (r > 0.01) {
+    for (const [a, b, w] of [[1440, 520, 90], [1560, 600, 120], [1330, 430, 60]]) g += `<path d="M${a + Math.sin(t * .5) * 12} -40 L${a + w} -40 L${b + 260} ${WL - 40} L${b - 220} ${WL - 40} Z" fill="url(#ray)" opacity="${((hz ? .5 : .65) * r).toFixed(3)}" filter="url(#g16)" stroke="none"/>`;
+    g += `<ellipse cx="${hx}" cy="${hy}" rx="560" ry="150" fill="url(#rgWarm)" opacity="${(.4 * r).toFixed(3)}" stroke="none"/>`;
+    for (let i = 0; i < 70; i++) { const x = 160 + rnd() * 1000, y = WL + 12 + rnd() * 150, w = 6 + rnd() * 28, tw = .55 + .45 * Math.sin(t * 6 + i * 1.7); g += `<rect x="${x.toFixed(0)}" y="${y.toFixed(0)}" width="${w.toFixed(0)}" height="2.2" fill="#fff" opacity="${((0.5 + rnd() * .5) * r * tw).toFixed(2)}" stroke="none"/>`; }
+  }
+  if (hz) g += fogUseH('hf', lerp(.85, .45, r), -120 + t * 16);
+  const sw = -0.9 + t * 1.57;
+  g += radarDay(310, 930, 100, 1, 0, sw) + radarDay(1610, 930, 100, 1 - smooth((r - .35) / .4), smooth((r - .35) / .4), sw);
+  return SV(g);
+}

@@ -210,6 +210,722 @@ jobs:
           retention-days: 14
           if-no-files-found: warn
 
+  storyboard_v10:
+    # Storyboard v10 (owner, 2026-11-03): real-app captures (copper cathodes, South Africa, CIF) through the app's own
+    # screens by throwaway members (removed again afterwards), then the key frames and the table. No voice, no video.
+    if: ${{ inputs.only == 'storyboard-v10' }}
+    name: Storyboard v10 (stills only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: ci-live-database
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Capture the real app
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          node scripts/serve.js &
+          for i in $(seq 1 30); do curl -sf http://localhost:8000/index.html >/dev/null && break; sleep 1; done
+          node video/storyboard10/capture.js capture
+      - run: node video/storyboard10/make.js capture storyboard-v10
+      - run: cat storyboard-v10/storyboard.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: storyboard-v10
+          path: |
+            storyboard-v10/
+            capture/
+          retention-days: 14
+          if-no-files-found: warn
+
+  storyboard_v10_rebuild:
+    # Rebuilds storyboard v10 from the captures of an earlier run (no live database, no new captures).
+    if: ${{ inputs.only == 'storyboard-v10-rebuild' }}
+    name: Storyboard v10 (rebuild from captures)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - uses: actions/download-artifact@v4
+        with:
+          name: storyboard-v10
+          path: prev
+          run-id: '41640528799'
+          github-token: ${{ github.token }}
+      - run: node video/storyboard10/make.js prev/capture storyboard-v10-final
+      - run: cat storyboard-v10-final/storyboard.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: storyboard-v10-final
+          path: |
+            storyboard-v10-final/
+            prev/capture/
+          retention-days: 14
+
+  storyboard_v11:
+    # Storyboard v11 (owner, 2026-11-03): stills only, richer motion/lighting. Reuses the real-app captures of the v10 run
+    # (no live database, no voice, no video). Serves docs/AGREED-2026-11-01-owner-changes.md.
+    if: ${{ inputs.only == 'storyboard-v11' }}
+    name: Storyboard v11 (stills only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - uses: actions/download-artifact@v4
+        with:
+          name: storyboard-v10-final
+          path: prev
+          run-id: '41641574804'
+          github-token: ${{ github.token }}
+      - run: node video/storyboard11/make.js prev/prev/capture storyboard-v11
+      - run: cat storyboard-v11/storyboard.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: storyboard-v11
+          path: storyboard-v11/
+          retention-days: 14
+
+  storyboard_v12:
+    # Storyboard v12 (owner, 2026-11-03): stills only, richer motion/lighting. Reuses the real-app captures of the v10 run
+    # (no live database, no voice, no video). Serves docs/AGREED-2026-11-01-owner-changes.md.
+    if: ${{ inputs.only == 'storyboard-v12' }}
+    name: Storyboard v12 (stills only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - uses: actions/download-artifact@v4
+        with:
+          name: storyboard-v10-final
+          path: prev
+          run-id: '41641574804'
+          github-token: ${{ github.token }}
+      - run: node video/storyboard12/make.js prev/prev/capture storyboard-v12
+      - run: cat storyboard-v12/storyboard.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: storyboard-v12
+          path: storyboard-v12/
+          retention-days: 14
+
+  storyboard_v13:
+    # Storyboard v13 (owner, 2026-11-03): stills only, richer motion/lighting. Reuses the real-app captures of the v10 run
+    # (no live database, no voice, no video). Serves docs/AGREED-2026-11-01-owner-changes.md.
+    if: ${{ inputs.only == 'storyboard-v13' }}
+    name: Storyboard v13 (stills only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - uses: actions/download-artifact@v4
+        with:
+          name: storyboard-v10-final
+          path: prev
+          run-id: '41641574804'
+          github-token: ${{ github.token }}
+      - run: node video/storyboard13/make.js prev/prev/capture storyboard-v13
+      - run: cat storyboard-v13/storyboard.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: storyboard-v13
+          path: storyboard-v13/
+          retention-days: 14
+
+  storyboard_v14:
+    # Storyboard v14 (owner, 2026-11-03): stills only, richer motion/lighting. Reuses the real-app captures of the v10 run
+    # (no live database, no voice, no video). Serves docs/AGREED-2026-11-01-owner-changes.md.
+    if: ${{ inputs.only == 'storyboard-v14' }}
+    name: Storyboard v14 (stills only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - uses: actions/download-artifact@v4
+        with:
+          name: storyboard-v10-final
+          path: prev
+          run-id: '41641574804'
+          github-token: ${{ github.token }}
+      - run: node video/storyboard14/make.js prev/prev/capture storyboard-v14
+      - run: cat storyboard-v14/storyboard.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: storyboard-v14
+          path: storyboard-v14/
+          retention-days: 14
+
+  storyboard_v15:
+    # Storyboard v15 (owner, 2026-11-03): stills only, richer motion/lighting. Reuses the real-app captures of the v10 run
+    # (no live database, no voice, no video). Serves docs/AGREED-2026-11-01-owner-changes.md.
+    if: ${{ inputs.only == 'storyboard-v15' }}
+    name: Storyboard v15 (stills only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - uses: actions/download-artifact@v4
+        with:
+          name: storyboard-v10-final
+          path: prev
+          run-id: '41641574804'
+          github-token: ${{ github.token }}
+      - run: node video/storyboard15/make.js prev/prev/capture storyboard-v15
+      - run: cat storyboard-v15/storyboard.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: storyboard-v15
+          path: storyboard-v15/
+          retention-days: 14
+
+  trailer_sample_1:
+    # Trailer sample, acts 1-2 (about 14 s), no voice, no music file (the owner's licence: mixed elsewhere), drawings only, $0. OpenMontage's Remotion composer at the pinned
+    # commit (as the older trailer job) renders video/trailer3/TrailerSample.tsx, which animates the approved storyboard drawings.
+    # Serves docs/AGREED-2026-11-01-owner-changes.md.
+    if: ${{ inputs.only == 'trailer-sample-1' }}
+    name: Trailer sample 1 (acts 1-2)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      OM_SHA: '195eab24478dc9363326aec437aefc3701635ddf'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - name: OpenMontage composer
+        run: |
+          mkdir om && cd om && git init -q && git remote add origin https://github.com/calesthio/OpenMontage
+          git fetch -q --depth 1 origin "$OM_SHA" && git checkout -q FETCH_HEAD
+          cd remotion-composer && npm ci --no-audit --no-fund
+          cp ../../video/trailer3/scenes.ts src/components/scenes.ts
+          cp ../../video/trailer3/TrailerSample.tsx src/components/TrailerSample.tsx
+          mkdir -p public/mp && cp ../../video/trailer3/ship.svg public/mp/ship.svg
+          sed -i '1i import { TrailerSample } from "./components/TrailerSample";' src/Root.tsx
+          sed -i '0,/^    <\/>$/s//      <Composition id="TrailerSample" component={TrailerSample} durationInFrames={420} fps={30} width={1920} height={1080} \/>\n    <\/>/' src/Root.tsx
+          grep -n "TrailerSample" src/Root.tsx
+      - name: Render
+        run: cd om/remotion-composer && npx remotion render src/index.tsx TrailerSample ../../trailer-sample-1.mp4 --codec h264 --crf 20 --concurrency 4
+      - name: Sound effects (generated here, no third-party sound) and mix plan
+        run: |
+          mkdir -p sfx
+          ffmpeg -v error -y -f lavfi -i "anoisesrc=d=0.9:c=pink:a=0.6:r=48000" -af "highpass=f=350,lowpass=f=5200,afade=t=in:d=0.3,afade=t=out:st=0.3:d=0.6,aecho=0.6:0.5:60:0.3,volume=23.5dB" -ac 2 sfx/whoosh.wav
+          ffmpeg -v error -y -f lavfi -i "anoisesrc=d=0.08:c=white:a=0.8:r=48000" -af "highpass=f=1800,lowpass=f=9000,afade=t=out:st=0.004:d=0.07,volume=3dB" -ac 2 sfx/click.wav
+          ffmpeg -v error -y -f lavfi -i "aevalsrc='0.55*sin(2*PI*55*t)+0.3*sin(2*PI*82.5*t)+0.15*sin(2*PI*110*t)':d=3.2:s=48000" -af "lowpass=f=420,afade=t=in:d=0.5,afade=t=out:st=0.9:d=2.3,volume=0dB" -ac 2 sfx/tone-low.wav
+          for f in sfx/*.wav; do echo "$f $(ffprobe -v error -show_entries format=duration -of csv=p=0 $f) s"; ffmpeg -i $f -af volumedetect -f null - 2>&1 | grep max_volume || true; done
+          cp video/trailer3/cues.json video/trailer3/cues-full-plan.json video/trailer3/SFX-LICENCE.md .
+      - name: Check it
+        run: |
+          ffprobe -v error -show_entries format=duration:stream=codec_name,width,height,nb_frames -of default=nw=1 trailer-sample-1.mp4
+          ls -l trailer-sample-1.mp4
+          for t in 1 3 6 8 9.5 11 12.5 13.8; do ffmpeg -v error -y -ss $t -i trailer-sample-1.mp4 -frames:v 1 -vf scale=960:-1 "frame-$t.png"; done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trailer-sample-1
+          path: |
+            trailer-sample-1.mp4
+            frame-*.png
+            sfx/
+            cues.json
+            cues-full-plan.json
+            SFX-LICENCE.md
+          retention-days: 14
+
+  trailer_sample_2:
+    # Trailer sample, acts 1-2 (about 14 s), no voice, no music file (the owner's licence: mixed elsewhere), drawings only, $0. OpenMontage's Remotion composer at the pinned
+    # commit (as the older trailer job) renders video/trailer3/TrailerSample.tsx, which animates the approved storyboard drawings.
+    # Serves docs/AGREED-2026-11-01-owner-changes.md.
+    if: ${{ inputs.only == 'trailer-sample-2' }}
+    name: Trailer sample 2 (acts 1-2)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      OM_SHA: '195eab24478dc9363326aec437aefc3701635ddf'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - name: OpenMontage composer
+        run: |
+          mkdir om && cd om && git init -q && git remote add origin https://github.com/calesthio/OpenMontage
+          git fetch -q --depth 1 origin "$OM_SHA" && git checkout -q FETCH_HEAD
+          cd remotion-composer && npm ci --no-audit --no-fund
+          cp ../../video/trailer3/scenes.ts src/components/scenes.ts
+          cp ../../video/trailer3/TrailerSample.tsx src/components/TrailerSample.tsx
+          mkdir -p public/mp && cp ../../video/trailer3/ship.svg public/mp/ship.svg
+          sed -i '1i import { TrailerSample } from "./components/TrailerSample";' src/Root.tsx
+          sed -i '0,/^    <\/>$/s//      <Composition id="TrailerSample" component={TrailerSample} durationInFrames={420} fps={30} width={1920} height={1080} \/>\n    <\/>/' src/Root.tsx
+          grep -n "TrailerSample" src/Root.tsx
+      - name: Render
+        run: cd om/remotion-composer && npx remotion render src/index.tsx TrailerSample ../../trailer-sample-2.mp4 --codec h264 --crf 20 --concurrency 4
+      - name: Check it
+        run: |
+          ffprobe -v error -show_entries format=duration:stream=codec_name,width,height,nb_frames -of default=nw=1 trailer-sample-2.mp4
+          ls -l trailer-sample-2.mp4
+          for t in 1 3 6 8 9.5 11 12.5 13.8; do ffmpeg -v error -y -ss $t -i trailer-sample-2.mp4 -frames:v 1 -vf scale=960:-1 "frame-$t.png"; done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trailer-sample-2
+          path: |
+            trailer-sample-2.mp4
+            frame-*.png
+          retention-days: 14
+
+  trailer_full_silent:
+    # Full ~90 s trailer, SILENT (no music, no SFX, no voice), drawings and the real app captures only, $0.
+    # OpenMontage's Remotion composer at the pinned commit renders video/trailer3/TrailerFull.tsx (the 8 approved acts, time-driven).
+    # Serves docs/AGREED-2026-11-01-owner-changes.md.
+    if: ${{ inputs.only == 'trailer-full' }}
+    name: Full trailer, silent
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    env:
+      OM_SHA: '195eab24478dc9363326aec437aefc3701635ddf'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - uses: actions/download-artifact@v4
+        with:
+          name: storyboard-v10-final
+          path: prev
+          run-id: '41641574804'
+          github-token: ${{ github.token }}
+      - name: OpenMontage composer
+        run: |
+          mkdir om && cd om && git init -q && git remote add origin https://github.com/calesthio/OpenMontage
+          git fetch -q --depth 1 origin "$OM_SHA" && git checkout -q FETCH_HEAD
+          cd remotion-composer && npm ci --no-audit --no-fund
+          cp ../../video/trailer3/scenes.ts ../../video/trailer3/scenesFull.ts ../../video/trailer3/handshakeData.ts ../../video/trailer3/TrailerFull.tsx src/components/
+          mkdir -p public/mp && cp ../../video/trailer3/ship.svg public/mp/ship.svg
+          cp ../../prev/prev/capture/browse.png ../../prev/prev/capture/row.png ../../prev/prev/capture/contact.png ../../prev/prev/capture/mailbox.png public/mp/
+          sed -i '1i import { TrailerFull } from "./components/TrailerFull";' src/Root.tsx
+          sed -i '0,/^    <\/>$/s//      <Composition id="TrailerFull" component={TrailerFull} durationInFrames={2700} fps={30} width={1920} height={1080} \/>\n    <\/>/' src/Root.tsx
+          grep -n "TrailerFull" src/Root.tsx
+      - name: Render
+        run: cd om/remotion-composer && npx remotion render src/index.tsx TrailerFull ../../trailer-full-silent.mp4 --codec h264 --crf 20 --concurrency 4
+      - name: Check it
+        run: |
+          ffprobe -v error -show_entries format=duration:stream=codec_name,width,height,nb_frames -of default=nw=1 trailer-full-silent.mp4
+          ffmpeg -i trailer-full-silent.mp4 -af volumedetect -vn -f null - 2>&1 | grep max_volume || true
+          ls -l trailer-full-silent.mp4
+          for t in 3 6 12 17 20 26 30 33 38 42 50 54 62 68 72 78 82 86 89; do ffmpeg -v error -y -ss $t -i trailer-full-silent.mp4 -frames:v 1 -vf scale=960:-1 "frame-$t.png"; done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trailer-full-silent
+          path: |
+            trailer-full-silent.mp4
+            frame-*.png
+          retention-days: 14
+
+  trailer_full_silent_2:
+    # Full ~90 s trailer, SILENT (no music, no SFX, no voice), drawings and the real app captures only, $0.
+    # OpenMontage's Remotion composer at the pinned commit renders video/trailer3/TrailerFull.tsx (the 8 approved acts, time-driven).
+    # Serves docs/AGREED-2026-11-01-owner-changes.md.
+    if: ${{ inputs.only == 'trailer-full-2' }}
+    name: Full trailer, silent, take 2
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    env:
+      OM_SHA: '195eab24478dc9363326aec437aefc3701635ddf'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - uses: actions/download-artifact@v4
+        with:
+          name: storyboard-v10-final
+          path: prev
+          run-id: '41641574804'
+          github-token: ${{ github.token }}
+      - name: OpenMontage composer
+        run: |
+          mkdir om && cd om && git init -q && git remote add origin https://github.com/calesthio/OpenMontage
+          git fetch -q --depth 1 origin "$OM_SHA" && git checkout -q FETCH_HEAD
+          cd remotion-composer && npm ci --no-audit --no-fund
+          cp ../../video/trailer3/scenes.ts ../../video/trailer3/scenesFull.ts ../../video/trailer3/handshakeData.ts ../../video/trailer3/TrailerFull.tsx src/components/
+          mkdir -p public/mp && cp ../../video/trailer3/ship.svg public/mp/ship.svg
+          cp ../../prev/prev/capture/browse.png ../../prev/prev/capture/row.png ../../prev/prev/capture/contact.png ../../prev/prev/capture/mailbox.png public/mp/
+          sed -i '1i import { TrailerFull } from "./components/TrailerFull";' src/Root.tsx
+          sed -i '0,/^    <\/>$/s//      <Composition id="TrailerFull" component={TrailerFull} durationInFrames={2700} fps={30} width={1920} height={1080} \/>\n    <\/>/' src/Root.tsx
+          grep -n "TrailerFull" src/Root.tsx
+      - name: Render
+        run: cd om/remotion-composer && npx remotion render src/index.tsx TrailerFull ../../trailer-full-silent-2.mp4 --codec h264 --crf 20 --concurrency 4
+      - name: Check it
+        run: |
+          ffprobe -v error -show_entries format=duration:stream=codec_name,width,height,nb_frames -of default=nw=1 trailer-full-silent-2.mp4
+          ffmpeg -i trailer-full-silent-2.mp4 -af volumedetect -vn -f null - 2>&1 | grep max_volume || true
+          ls -l trailer-full-silent-2.mp4
+          for t in 3 6 12 17 20 26 30 33 38 42 50 54 62 68 72 78 82 86 89; do ffmpeg -v error -y -ss $t -i trailer-full-silent-2.mp4 -frames:v 1 -vf scale=960:-1 "frame-$t.png"; done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trailer-full-silent-2
+          path: |
+            trailer-full-silent-2.mp4
+            frame-*.png
+          retention-days: 14
+
+  trailer_full_silent_3:
+    # Full ~90 s trailer, SILENT (no music, no SFX, no voice), drawings and the real app captures only, $0.
+    # OpenMontage's Remotion composer at the pinned commit renders video/trailer3/TrailerFull.tsx (the 8 approved acts, time-driven).
+    # Serves docs/AGREED-2026-11-01-owner-changes.md.
+    if: ${{ inputs.only == 'trailer-full-3' }}
+    name: Full trailer, silent, take 3 (draft, 960x540)
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    env:
+      OM_SHA: '195eab24478dc9363326aec437aefc3701635ddf'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - uses: actions/download-artifact@v4
+        with:
+          name: storyboard-v10-final
+          path: prev
+          run-id: '41641574804'
+          github-token: ${{ github.token }}
+      - name: OpenMontage composer
+        run: |
+          mkdir om && cd om && git init -q && git remote add origin https://github.com/calesthio/OpenMontage
+          git fetch -q --depth 1 origin "$OM_SHA" && git checkout -q FETCH_HEAD
+          cd remotion-composer && npm ci --no-audit --no-fund
+          cp ../../video/trailer3/scenes.ts ../../video/trailer3/scenesFull.ts ../../video/trailer3/handshakeData.ts ../../video/trailer3/TrailerFull.tsx src/components/
+          mkdir -p public/mp && cp ../../video/trailer3/ship.svg public/mp/ship.svg
+          cp ../../prev/prev/capture/browse.png ../../prev/prev/capture/row.png ../../prev/prev/capture/contact.png ../../prev/prev/capture/mailbox.png public/mp/
+          sed -i '1i import { TrailerFull } from "./components/TrailerFull";' src/Root.tsx
+          sed -i '0,/^    <\/>$/s//      <Composition id="TrailerFull" component={TrailerFull} durationInFrames={2700} fps={30} width={1920} height={1080} \/>\n    <\/>/' src/Root.tsx
+          grep -n "TrailerFull" src/Root.tsx
+      - name: Render
+        run: cd om/remotion-composer && npx remotion render src/index.tsx TrailerFull ../../trailer-full-silent-3.mp4 --scale 0.5 --codec h264 --crf 26 --concurrency 4
+      - name: Check it
+        run: |
+          ffprobe -v error -show_entries format=duration:stream=codec_name,width,height,nb_frames -of default=nw=1 trailer-full-silent-3.mp4
+          ffmpeg -i trailer-full-silent-3.mp4 -af volumedetect -vn -f null - 2>&1 | grep max_volume || true
+          ls -l trailer-full-silent-3.mp4
+          for t in 3 6 12 17 20 26 30 33 38 42 50 54 62 68 72 78 82 86 89; do ffmpeg -v error -y -ss $t -i trailer-full-silent-3.mp4 -frames:v 1 -vf scale=960:-1 "frame-$t.png"; done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trailer-full-silent-3
+          path: |
+            trailer-full-silent-3.mp4
+            frame-*.png
+          retention-days: 14
+
+  trailer_final:
+    # FINAL trailer, 1920x1080: Gemini "Algieba" English voice (the approved act texts, about 140 wpm, at most 8 requests),
+    # the 8 acts rendered by OpenMontage's Remotion composer (pinned commit) with the picture timed to the spoken words.
+    # NO music (mixed elsewhere: licence). Delivers the video with voice, a silent video, the voice-only track and timings.
+    # Serves docs/AGREED-2026-11-01-owner-changes.md.
+    if: ${{ inputs.only == 'trailer-final' }}
+    name: Final trailer (voice, 1080p)
+    runs-on: ubuntu-latest
+    timeout-minutes: 200
+    env:
+      OM_SHA: '195eab24478dc9363326aec437aefc3701635ddf'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - run: pip install faster-whisper soundfile numpy
+      - uses: actions/download-artifact@v4
+        with:
+          name: storyboard-v10-final
+          path: prev
+          run-id: '41641574804'
+          github-token: ${{ github.token }}
+      - name: Voice (Gemini Algieba, listened to by faster-whisper)
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python3 video/trailer3/voice_final.py voice-out
+      - name: The voice check
+        if: always()
+        run: cat voice-out/voice-table.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "No table was written." >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trailer-final-voice-raw
+          path: |
+            voice-out/raw-*.wav
+            voice-out/voice-table.md
+            voice-out/timings.json
+          retention-days: 14
+          if-no-files-found: warn
+      - name: OpenMontage composer
+        run: |
+          mkdir om && cd om && git init -q && git remote add origin https://github.com/calesthio/OpenMontage
+          git fetch -q --depth 1 origin "$OM_SHA" && git checkout -q FETCH_HEAD
+          cd remotion-composer && npm ci --no-audit --no-fund
+          cp ../../video/trailer3/scenes.ts ../../video/trailer3/scenesFull.ts ../../video/trailer3/handshakeData.ts ../../video/trailer3/TrailerFull.tsx src/components/
+          cp ../../voice-out/timings.json src/components/timings.json
+          mkdir -p public/mp && cp ../../video/trailer3/ship.svg public/mp/ship.svg
+          cp ../../prev/prev/capture/browse.png ../../prev/prev/capture/row.png ../../prev/prev/capture/contact.png ../../prev/prev/capture/mailbox.png public/mp/
+          sed -i '1i import { TrailerFull } from "./components/TrailerFull";' src/Root.tsx
+          sed -i '0,/^    <\/>$/s//      <Composition id="TrailerFull" component={TrailerFull} durationInFrames={2700} fps={30} width={1920} height={1080} \/>\n    <\/>/' src/Root.tsx
+          grep -n "TrailerFull" src/Root.tsx
+      - name: Render (silent picture)
+        run: cd om/remotion-composer && npx remotion render src/index.tsx TrailerFull ../../trailer-final-silent.mp4 --codec h264 --crf 20 --concurrency 4
+      - name: Put the voice under the picture
+        run: |
+          ffmpeg -v error -y -i trailer-final-silent.mp4 -i voice-out/voice-track.wav -map 0:v -map 1:a -c:v copy -c:a aac -b:a 192k -t 90 trailer-final-voice.mp4
+          cp voice-out/voice-track.wav voice-out/voice-track.mp3 voice-out/timings.json voice-out/voice-table.md .
+      - name: Check it
+        run: |
+          for f in trailer-final-voice.mp4 trailer-final-silent.mp4; do echo "== $f"; ffprobe -v error -show_entries format=duration,size:stream=codec_name,width,height,nb_frames -of default=nw=1 $f; ffmpeg -i $f -af volumedetect -vn -f null - 2>&1 | grep -E "mean_volume|max_volume" || true; done
+          for t in 3 12 20 30 40 52 64 72 80 87; do ffmpeg -v error -y -ss $t -i trailer-final-voice.mp4 -frames:v 1 -vf scale=960:-1 "frame-$t.png"; done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trailer-final
+          path: |
+            trailer-final-voice.mp4
+            trailer-final-silent.mp4
+            voice-track.wav
+            voice-track.mp3
+            timings.json
+            voice-table.md
+            frame-*.png
+          retention-days: 14
+
+  trailer_capture_es:
+    # Spanish pictures of the real app (Browse, Contact, Mailbox with the language set to Spanish), made through the app's own
+    # screens by throwaway members that the shared fixture cleanup() removes again (same as the earlier capture jobs). Records
+    # where the plural "Operadores" shows so the trailer can cover it. Holds the live-database place in the queue.
+    if: ${{ inputs.only == 'trailer-capture-es' }}
+    name: Trailer capture (Spanish app)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: ci-live-database
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Capture
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          node scripts/serve.js &
+          for i in $(seq 1 30); do curl -sf http://localhost:8000/index.html >/dev/null && break; sleep 1; done
+          node video/trailer3/capture_es.js capture-out
+      - run: cat capture-out/meta.json || true
+        if: always()
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trailer-capture-es
+          path: capture-out/
+          retention-days: 14
+          if-no-files-found: warn
+
+  trailer_voice_es:
+    # Spanish voice for the trailer: Kokoro-82M, three Spanish voices tried, listened to by faster-whisper, the best one used.
+    if: ${{ inputs.only == 'trailer-voice-es' }}
+    name: Trailer voice (Spanish, Kokoro)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg espeak-ng
+      - name: Install Kokoro (CPU build of PyTorch) and the listener
+        run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install "kokoro>=0.9.2" soundfile faster-whisper numpy
+      - name: Speak, slow, listen
+        run: python3 video/trailer3/voice_es.py voice-out
+      - name: The voice check
+        if: always()
+        run: cat voice-out/voice-table.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "No table was written." >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trailer-voice-es
+          path: |
+            voice-out/voice-track.wav
+            voice-out/voice-track.mp3
+            voice-out/timings.json
+            voice-out/voice-table.md
+            voice-out/line-*.wav
+          retention-days: 14
+          if-no-files-found: warn
+
+  trailer_final_es:
+    # FINAL Spanish trailer, 1920x1080: the same picture as trailer-final with every on-screen text in Spanish (texts-es.json), the Spanish
+    # app captures (trailer-capture-es run), the Kokoro Spanish voice (trailer-voice-es run), the picture timed to the spoken words. NO music.
+    if: ${{ inputs.only == 'trailer-final-es' }}
+    name: Final trailer, Spanish (voice, 1080p)
+    runs-on: ubuntu-latest
+    timeout-minutes: 200
+    env:
+      OM_SHA: '195eab24478dc9363326aec437aefc3701635ddf'
+      CAPTURE_RUN: '41699484599'
+      VOICE_RUN: '41700764625'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - uses: actions/download-artifact@v4
+        with:
+          name: trailer-capture-es
+          path: capture-es
+          run-id: ${{ env.CAPTURE_RUN }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: trailer-voice-es
+          path: voice-out
+          run-id: ${{ env.VOICE_RUN }}
+          github-token: ${{ github.token }}
+      - name: OpenMontage composer
+        run: |
+          ls capture-es voice-out
+          mkdir om && cd om && git init -q && git remote add origin https://github.com/calesthio/OpenMontage
+          git fetch -q --depth 1 origin "$OM_SHA" && git checkout -q FETCH_HEAD
+          cd remotion-composer && npm ci --no-audit --no-fund
+          cp ../../video/trailer3/scenes.ts ../../video/trailer3/scenesFull.ts ../../video/trailer3/handshakeData.ts ../../video/trailer3/TrailerFull.tsx src/components/
+          cp ../../video/trailer3/texts-es.json src/components/texts.json
+          cp ../../voice-out/timings.json src/components/timings.json
+          cp ../../capture-es/meta.json src/components/meta.json
+          mkdir -p public/mp && cp ../../video/trailer3/ship.svg public/mp/ship.svg
+          cp ../../capture-es/browse.png ../../capture-es/row.png ../../capture-es/contact.png ../../capture-es/mailbox.png public/mp/
+          sed -i '1i import { TrailerFull } from "./components/TrailerFull";' src/Root.tsx
+          sed -i '0,/^    <\/>$/s//      <Composition id="TrailerFull" component={TrailerFull} durationInFrames={2700} fps={30} width={1920} height={1080} \/>\n    <\/>/' src/Root.tsx
+          grep -n "TrailerFull" src/Root.tsx
+      - name: Render (silent picture)
+        run: cd om/remotion-composer && npx remotion render src/index.tsx TrailerFull ../../trailer-final-es-silent.mp4 --codec h264 --crf 20 --concurrency 4
+      - name: Put the voice under the picture
+        run: |
+          ffmpeg -v error -y -i trailer-final-es-silent.mp4 -i voice-out/voice-track.wav -map 0:v -map 1:a -c:v copy -c:a aac -b:a 192k -t 90 trailer-final-es-voice.mp4
+          cp voice-out/voice-track.wav voice-out/voice-track.mp3 voice-out/timings.json voice-out/voice-table.md .
+      - name: Check it
+        run: |
+          for f in trailer-final-es-voice.mp4 trailer-final-es-silent.mp4; do echo "== $f"; ffprobe -v error -show_entries format=duration,size:stream=codec_name,width,height,nb_frames -of default=nw=1 $f; ffmpeg -i $f -af volumedetect -vn -f null - 2>&1 | grep -E "mean_volume|max_volume" || true; done
+          for t in 3 12 20 30 40 52 64 72 80 87; do ffmpeg -v error -y -ss $t -i trailer-final-es-voice.mp4 -frames:v 1 -vf scale=960:-1 "frame-$t.png"; done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trailer-final-es
+          path: |
+            trailer-final-es-voice.mp4
+            trailer-final-es-silent.mp4
+            voice-track.wav
+            voice-track.mp3
+            timings.json
+            voice-table.md
+            frame-*.png
+          retention-days: 14
+
+  films_diagrams_draft:
+    # Walkthrough films: the drawn diagrams (relay through the Operator, documents directly between parties,
+    # commission agreement then introduction), English then Spanish text. Low-res silent draft, no app captures yet.
+    if: ${{ inputs.only == 'films-diagrams-draft' }}
+    name: Films - diagrams draft (silent, half size)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      OM_SHA: '195eab24478dc9363326aec437aefc3701635ddf'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - name: OpenMontage composer
+        run: |
+          mkdir om && cd om && git init -q && git remote add origin https://github.com/calesthio/OpenMontage
+          git fetch -q --depth 1 origin "$OM_SHA" && git checkout -q FETCH_HEAD
+          cd remotion-composer && npm ci --no-audit --no-fund
+          cp ../../video/trailer3/scenes.ts ../../video/trailer3/scenesFull.ts ../../video/trailer3/handshakeData.ts src/components/
+          cp ../../video/films/filmDiagrams.ts ../../video/films/FilmsDiagramDraft.tsx ../../video/films/films-texts.json src/components/
+          sed -i '1i import { FilmsDiagramDraft } from "./components/FilmsDiagramDraft";' src/Root.tsx
+          sed -i '0,/^    <\/>$/s//      <Composition id="FilmsDiagramDraft" component={FilmsDiagramDraft} durationInFrames={1710} fps={30} width={1920} height={1080} \/>\n    <\/>/' src/Root.tsx
+          grep -n "FilmsDiagramDraft" src/Root.tsx
+      - name: Render (half size)
+        run: cd om/remotion-composer && npx remotion render src/index.tsx FilmsDiagramDraft ../../films-diagrams-draft.mp4 --codec h264 --crf 24 --scale 0.5 --concurrency 4
+      - name: Check it
+        run: |
+          ffprobe -v error -show_entries format=duration:stream=width,height -of default=nw=1 films-diagrams-draft.mp4
+          for t in 3 7 11 15 19 23 33 40 47 52; do ffmpeg -v error -y -ss $t -i films-diagrams-draft.mp4 -frames:v 1 "frame-$t.png"; done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: films-diagrams-draft
+          path: |
+            films-diagrams-draft.mp4
+            frame-*.png
+          retention-days: 14
+
   trailer_voice_en:
     # The new English trailer's narration (owner's approved text, 2026-11-02): Gemini Algieba, two requests, slowed
     # (atempo 0.93), listened to by faster-whisper. Run once; the build reuses its artifact.

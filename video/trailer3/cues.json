@@ -1,0 +1,16 @@
+{
+  "_note": "Mix plan for the 14 s sample (acts 1-2). Times in seconds from 0.0 of trailer-sample-1.mp4. gain_db is the level of each effect before mixing (peak of the file is about -3 dBFS); keep every effect about 20 dB under the music. Music is NOT in this artifact (licence): fade and duck points are given for the mixer.",
+  "sfx": [
+    { "file": "sfx/tone-low.wav", "start_s": 0.0, "gain_db": -16, "note": "opening low tone, about 3 s, fades by itself" },
+    { "file": "sfx/whoosh.wav", "start_s": 7.2, "gain_db": -14, "note": "match move: globe dissolves into the haze sea (act 1 to act 2); starts 0.4 s before act 2 so the peak lands on the dissolve" },
+    { "file": "sfx/tone-low.wav", "start_s": 10.6, "gain_db": -22, "note": "soft swell as the haze parts and the ship is exposed (reveal runs 10.8 s to 12.3 s)" }
+  ],
+  "music": {
+    "fade_in": { "start_s": 0.0, "end_s": 1.5 },
+    "duck": [
+      { "start_s": 10.4, "end_s": 12.4, "gain_db": -4, "note": "dip about 4 dB under the reveal swell, back up after" }
+    ],
+    "fade_out": null,
+    "note": "no fade-out in the sample; the full trailer fades out at its last 2 s"
+  }
+}
