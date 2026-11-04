@@ -79,3 +79,15 @@ Decided NO (Mistral extras): mandate upload, anti-bribery clause, sanctions-remo
 35. (2026-11-03) Spanish trailer (same picture, Spanish texts, Kokoro ef_dora voice, his licensed music mixed in):
     films/trailer-es.mp4. On the front page and the demo start page, a visitor who switches to ES sees the Spanish
     trailer in place of the English one, in the same place, play on press.
+36. (2026-11-04) The Operator never requests, sees or records any document or claim about documents: remove the Operator's
+    Document Requests tab, the document columns in Deals and Scorecard, and the members' Documents tab. Members still declare
+    documents on their listings. (Live: 0 document requests, 0 deals.)
+37. (2026-11-04) Terms 3.5: replace the sentence saying the Operators record whether documents matched or were genuine with the
+    owner's wording in docs/films-2026-11/terms-3-5.md (EN approved; ES translation by the supervisor).
+38. (2026-11-04) Forward with editing: the Operator edits the message before forwarding; emails, phone numbers, websites and
+    LinkedIn/social links are highlighted in red automatically; the receiver gets only the edited text; the original is kept
+    privately in the Activity Log.
+39. (2026-11-04) The Operator gets an email for each new member message ("New message awaiting review" and a console link),
+    never the message content.
+40. (2026-11-04) Walkthrough films: Member EN + ES (about 2 min), Operator EN (about 3 min), Google voice, scripts and scene
+    plans in docs/films-2026-11/. The owner approved scripts and scenes and delegated the rest without further approval.

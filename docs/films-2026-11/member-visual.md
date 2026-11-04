@@ -1,0 +1,6 @@
+# Member film visual plan, owner-approved 04-11
+S1 (35s) sign-in page, cursor types email, Sign In; Terms signed once (3s). New Listing zoom; fields light up+fill as named: Sell, Copper cathodes, 500 t, South Africa, CIF, role Principal, documents ticked; Submit; green live confirmation.
+S2 (30s) My Listings, new copper listing at top, glide. Browse: other made-up opportunities (aluminium, wheat, fuel oil); on "never the member behind it" soft highlight shows no name/company on card. Contact pressed, message window, short message types.
+S3 (30s) envelope travels to centre circle "MyPlatform · Operator", on to other member (trailer diagram style, grey figures). Mailbox: reply at top, zoom. Documents line: small signed seal "Commission agreement" (fine print) appears on the line between the members FIRST, then two document icons pass directly between them, never through the centre.
+S4 (40s) Notifications red dot pulses, opened. Profile: EN/ES switch flips to Spanish and back. Help briefly. Commission line: card "Commission agreement executed" with pen tick, then figures joined by one line (introduction). End: MyPlatform + "Where opportunity meets discretion."
+Data: demo-style fake data only (no live DB). Silent low-res draft first; voice Gemini Algieba EN; ES version later w/ Google ES voice.
