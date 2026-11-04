@@ -59,6 +59,66 @@ fs.writeFileSync(mockPath, mock);
   fs.writeFileSync(sp, seed);
 }
 
+// Films only: the Operator sees nothing about documents (owner's rule), so the documents bits of the console are cut from this
+// build: the Docs column and its filter in All Listings, the docs lines in the Poster cell, and the raw details of the activity log.
+{
+  const op = path.join(OUT, 'js', 'operator.js'), oh = path.join(OUT, 'operator.html');
+  let js = fs.readFileSync(op, 'utf8'), html = fs.readFileSync(oh, 'utf8');
+  const cut = (src, a, b, what) => { if (!src.includes(a)) throw new Error('operator source changed, not found: ' + what); return src.replace(a, b); };
+  js = cut(js, "      <td data-label=\"Docs\">${hasDocs ? 'Yes' : '<strong>None</strong>'}</td>\n", '', 'Docs cell');
+  js = cut(js, "  if (l.docs_seen) parts.push(DOCS_SEEN_LABELS[l.docs_seen]);\n  if (l.docs_showable) parts.push(DOCS_SHOWABLE_LABELS[l.docs_showable]);\n", '', 'docs lines in the Poster cell');
+  js = cut(js, "${a.details ? ' · ' + escapeHtml(JSON.stringify(a.details)) : ''}", '', 'activity details');
+  html = cut(html, '<th>Incoterm</th><th>Docs</th><th>Status</th>', '<th>Incoterm</th><th>Status</th>', 'Docs header');
+  html = cut(html, '<select id="listing-filter-docs" aria-label="Filter by documents" style="max-width:200px;">', '<select id="listing-filter-docs" aria-label="Filter by documents" style="display:none;">', 'documents filter');
+  fs.writeFileSync(op, js); fs.writeFileSync(oh, html);
+}
+
+// Films only: for the Spanish film the demo's own sample texts (notifications, messages, specifications) are Spanish too.
+// Same fake data, in the language the page is in. Names of commodities stay as they are.
+{
+  const sp = path.join(OUT, 'js', 'demo', 'seed.js');
+  let seed = fs.readFileSync(sp, 'utf8');
+  const ES = {
+    'The Operator replied to your message.': 'El Operador ha respondido a su mensaje.',
+    'Our buyer would like to know whether the CIF Rotterdam quote for the copper cathodes is still open, and what the earliest loading window is.': 'Nuestro comprador querría saber si la cotización CIF Rotterdam de los cátodos de cobre sigue abierta y cuál es la primera ventana de carga.',
+    'Can you confirm the protein and Hagberg figures for the milling wheat? The buyer will ask for the certificate before he comes to the table.': '¿Pueden confirmar los valores de proteína y Hagberg del trigo panificable? El comprador pedirá el certificado antes de sentarse a negociar.',
+    'Happy to share the assay report for the copper cathodes once a buyer is named. Please pass that on.': 'Con gusto compartiremos el informe de ensayo de los cátodos de cobre cuando se nombre a un comprador. Por favor, transmítanlo.',
+    '6000 kcal/kg NAR, sulphur maximum 0.6%': '6000 kcal/kg NAR, azufre máximo 0,6 %',
+    '62% Fe fines': 'Finos con 62 % de Fe',
+    'A7E, 99.7% aluminium': 'A7E, aluminio al 99,7 %',
+    'EN590, sulphur maximum 10 ppm': 'EN590, azufre máximo 10 ppm',
+    'Feed or milling grade': 'Calidad forrajera o panificable',
+    'Granular, 46% nitrogen, bulk': 'Granulada, 46 % de nitrógeno, a granel',
+    'LME Grade A, minimum 99.99% copper': 'LME Grado A, cobre mínimo 99,99 %',
+    'LME Grade A': 'LME Grado A',
+    'Milling wheat, 12.5% protein, Hagberg 250 minimum': 'Trigo panificable, 12,5 % de proteína, Hagberg mínimo 250',
+    'Non-GMO, 13% moisture maximum': 'Sin OGM, humedad máxima 13 %',
+    'Pipeline-quality LNG': 'GNL de calidad de gasoducto',
+    'White, ICUMSA 45': 'Blanco, ICUMSA 45',
+    'Fixed price per ton': 'Precio fijo por tonelada',
+    'Index-linked': 'Referenciado a índice',
+    'LME cash settlement plus premium': 'Liquidación al contado LME más prima',
+    'Netback basis': 'Base netback',
+    'Platts average plus fixed premium': 'Promedio Platts más prima fija',
+    'Introduced by a shipping agent': 'Presentado por un agente marítimo',
+    'Mandate from the buyer': 'Mandato del comprador',
+    'Mandate from the producer': 'Mandato del productor',
+  };
+  const flag = "  const FILM_ES = (() => { try { return localStorage.getItem('jericho.language') === 'es'; } catch (e) { return false; } })();\n";
+  const anchor = '  const NOW = Date.now();';
+  if (!seed.includes(anchor)) throw new Error('seed.js changed: NOW anchor not found');
+  seed = seed.replace(anchor, flag + anchor);
+  const both = (en, es) => { if (!seed.includes(en)) throw new Error('seed.js changed: not found ' + en.slice(0, 50)); seed = seed.replace(en, "FILM_ES ? " + es + " : " + en); };
+  both("'A message was forwarded to you regarding ' + listings[0].reference_number + '.'", "'Se le ha reenviado un mensaje sobre ' + listings[0].reference_number + '.'");
+  both("'Your listing ' + listings[8].reference_number + ' was marked closed.'", "'Su publicación ' + listings[8].reference_number + ' se ha marcado como cerrada.'");
+  for (const [en, es] of Object.entries(ES)) {
+    const q = "'" + en + "'";
+    if (!seed.includes(q)) throw new Error('seed.js changed: not found ' + en.slice(0, 50));
+    seed = seed.split(q).join("(FILM_ES ? '" + es.replace(/'/g, "\\'") + "' : '" + en + "')");
+  }
+  fs.writeFileSync(sp, seed);
+}
+
 // no ribbon and no demo sign-in panel (it holds the trailer): the films show the normal sign-in form
 for (const f of fs.readdirSync(OUT).filter((n) => n.endsWith('.html'))) {
   const fp = path.join(OUT, f);
