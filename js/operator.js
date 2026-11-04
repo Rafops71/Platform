@@ -1049,7 +1049,19 @@ function openForwardModal(btn) {
 }
 
 async function confirmForward() {
-  // One press at a time: this creates a row, and two presses created two.
+  // Refused before anything starts: an empty or still-flagged message never
+  // reaches the busy state, so the button stays usable to fix it.
+  const edited = document.getElementById('forward-edit').value.trim();
+  if (!edited) { showError('The message is empty. Write something to forward.'); return; }
+  if (findContacts(edited).length) {
+    showError('Remove the highlighted contact details before forwarding.');
+    return;
+  }
+  // One press at a time: each path creates a row, and two presses created two.
+  // An edited forward and an unedited one each run inside their own busy wrapper.
+  if (edited !== FORWARD_TARGET.originalBody.trim()) {
+    return withButtonBusy('forward-confirm-btn', 'Forwarding…', confirmEditedForward);
+  }
   return withButtonBusy('forward-confirm-btn', 'Forwarding…', confirmForwardNow);
 }
 
@@ -1097,14 +1109,6 @@ function renderForwardEditor() {
 }
 
 async function confirmForwardNow() {
-  const edited = document.getElementById('forward-edit').value.trim();
-  if (!edited) { showError('The message is empty. Write something to forward.'); return; }
-  if (findContacts(edited).length) {
-    showError('Remove the highlighted contact details before forwarding.');
-    return;
-  }
-  if (edited !== FORWARD_TARGET.originalBody.trim()) return confirmEditedForward(edited);
-
   const { error: e1 } = await jericho.from('message_forward_log').insert({
     message_id: FORWARD_TARGET.messageId, operator_id: CURRENT_PROFILE.id, to_user_id: FORWARD_TARGET.toUserId
   });
@@ -1134,7 +1138,9 @@ function openReplyModal(btn) {
 /** An edited forward: the owner receives a NEW message holding only the edited
  *  text. The original stays where it was, and the Operator-only activity log
  *  keeps it (sql/046). */
-async function confirmEditedForward(edited) {
+async function confirmEditedForward() {
+  // The text is read here, after the busy state is on, and the field cannot change while it is.
+  const edited = document.getElementById('forward-edit').value.trim();
   const { data: newMsg, error: e1 } = await jericho.from('messages').insert({
     sender_id: CURRENT_PROFILE.id, listing_id: FORWARD_TARGET.listingId || null,
     body: edited, status: 'pending_review'
