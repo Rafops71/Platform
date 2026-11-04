@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderLanguageToggle('lang-toggle');
 
   if (document.getElementById('login-form')) initLoginPage();
+  if (document.getElementById('walkthrough-video')) initWalkthrough();
   if (document.getElementById('register-form')) initRegisterPage();
 });
 
@@ -130,6 +131,27 @@ function showIntroVideo() {
   // setLang() calls this after it has re-translated the page, so the film
   // follows the EN/ES buttons like every other piece of text here.
   window.onLanguageChange = () => setIntroVideoSource();
+}
+
+/** The member walkthrough under the sign-in box (owner's decision 41): English
+ *  or Spanish, swapped when the language changes. Set only when it changes, so
+ *  switching again does not restart the film. Play on press; nothing autoplays.
+ *  Chained onto the existing onLanguageChange so the page's own handler still runs. */
+function setWalkthroughSource() {
+  const video = document.getElementById('walkthrough-video');
+  if (!video) return;
+  const lang = typeof currentLang === 'function' && currentLang() === 'es' ? 'es' : 'en';
+  const next = `films/walkthrough-member-${lang}.mp4`;
+  if (video.getAttribute('src') !== next) video.setAttribute('src', next);
+}
+
+function initWalkthrough() {
+  setWalkthroughSource();
+  const previous = window.onLanguageChange;
+  window.onLanguageChange = function () {
+    if (typeof previous === 'function') previous();
+    setWalkthroughSource();
+  };
 }
 
 function setIntroVideoSource() {
