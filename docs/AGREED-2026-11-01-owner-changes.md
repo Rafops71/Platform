@@ -91,3 +91,6 @@ Decided NO (Mistral extras): mandate upload, anti-bribery clause, sanctions-remo
     never the message content.
 40. (2026-11-04) Walkthrough films: Member EN + ES (about 2 min), Operator EN (about 3 min), Google voice, scripts and scene
     plans in docs/films-2026-11/. The owner approved scripts and scenes and delegated the rest without further approval.
+41. (2026-11-04) The approved Member walkthrough film on the app's sign-in page (app.myplatform.trade), BELOW the sign-in
+    box, play on press: English when the page is English (films/walkthrough-member-en.mp4), Spanish when it is Spanish
+    (films/walkthrough-member-es.mp4). The Operator film (films/walkthrough-operator-en.mp4) is NOT on the public page.
