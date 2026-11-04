@@ -1087,7 +1087,7 @@ jobs:
           cd om/remotion-composer
           for f in member-en member-es operator-en; do
             echo "=== render $f"
-            git -C ../.. checkout -- remotion-composer/src/Root.tsx
+            git -C .. checkout -- remotion-composer/src/Root.tsx
             rm -rf src/components/film public/film && mkdir -p src/components/film public/film
             cp ../../video/films/plans/$f.json src/components/film/plan.json
             cp ../../caps/$f/timeline.json src/components/film/timeline.json
