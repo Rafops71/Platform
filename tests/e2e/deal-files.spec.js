@@ -46,18 +46,18 @@ test('Item70 a forwarded negotiation appears as a deal file the Operator can mov
   await expect(row).toContainText(listingRef, { timeout: 15_000 });
 
   await row.locator('select[data-deal-field="stage"]').selectOption('agreed');
-  await row.locator('select[data-deal-field="docs_match"]').selectOption('never_arrived');
+  await row.locator('select[data-deal-field="offer_real"]').selectOption('did_not_happen');
   await row.locator('textarea[data-deal-field="note"]').fill('B/L promised, not sent');
   await row.locator('[data-save-deal]').click();
 
   await expect.poll(async () => {
-    const { rows: [d] } = await query('select stage, agreed_at, docs_match, note from public.deals where id = $1', [deal.id]);
-    return d && d.stage === 'agreed' && d.agreed_at !== null && d.docs_match === 'never_arrived' && d.note === 'B/L promised, not sent';
+    const { rows: [d] } = await query('select stage, agreed_at, offer_real, note from public.deals where id = $1', [deal.id]);
+    return d && d.stage === 'agreed' && d.agreed_at !== null && d.offer_real === 'did_not_happen' && d.note === 'B/L promised, not sent';
   }, { timeout: 20_000 }).toBe(true);
 
   const fresh = page.locator(`[data-deal-row="${deal.id}"]`);
   await fresh.locator('[data-deal-history]').click();
-  await expect(page.locator(`[data-history-for="${deal.id}"]`)).toContainText('docs_match — → never_arrived');
+  await expect(page.locator(`[data-history-for="${deal.id}"]`)).toContainText('offer_real — → did_not_happen');
 });
 
 test('Item74 the scorecard shows the counts recorded in the deal file, by side', async ({ page }) => {

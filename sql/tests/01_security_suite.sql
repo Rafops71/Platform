@@ -303,7 +303,7 @@ update public.document_requests set status='confirmed', responded_at=now(), doc_
 reset role; reset test.uid;
 select case when status='confirmed' and doc_type='SGS report' then 'PASS'
             else 'FAIL (status='||status||' doc_type='||doc_type||')' end
-  as "T28 Item32 participant may respond but not rewrite the request" from public.document_requests;
+  as "T28 a participant may respond but not rewrite a document request" from public.document_requests;
 
 select case when exists(select 1 from public.notifications n join public.profiles p on p.id=n.user_id
   where p.role='operator' and n.type='document_request_response') then 'PASS' else 'FAIL' end

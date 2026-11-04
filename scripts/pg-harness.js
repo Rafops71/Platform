@@ -78,6 +78,7 @@ const SETUP = [
   'sql/042_terms_3_4.sql',
   'sql/043_principal_kind.sql',
   'sql/044_welcome_seen.sql',
+  'sql/045_terms_3_5.sql',
   'sql/seed_commodities.sql',
 ];
 

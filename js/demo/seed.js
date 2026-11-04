@@ -237,9 +237,9 @@
   // The Terms the members have already signed. The text itself lives in
   // js/i18n.js; these rows only tell the page which version is current.
   const terms_versions = [
-    { version: '3.4', language: 'en', text: 'Demo copy. The Terms text is in js/i18n.js.', sha256: 'demo',
+    { version: '3.5', language: 'en', text: 'Demo copy. The Terms text is in js/i18n.js.', sha256: 'demo',
       published_at: ago(60) },
-    { version: '3.4', language: 'es', text: 'Copia de demostración. El texto de las condiciones está en js/i18n.js.',
+    { version: '3.5', language: 'es', text: 'Copia de demostración. El texto de las condiciones está en js/i18n.js.',
       sha256: 'demo', published_at: ago(60) },
   ];
 

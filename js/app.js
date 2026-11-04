@@ -46,7 +46,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadMyListings();
   await loadSavedSearches();
   await refreshNotificationDot();
-  await refreshDocRequestDot();
 });
 
 /** The welcome page, once. A member who has never pressed continue sees it
@@ -166,7 +165,6 @@ window.onLanguageChange = function (lang) {
   // first drawn in.
   if (screen === 'my-listings') { loadMyListings(); loadSavedSearches(); }
   if (screen === 'browse') loadBrowseListings();
-  if (screen === 'doc-requests') loadDocRequests();
   if (screen === 'mailbox') loadMailbox();
   if (screen === 'notifications') loadNotifications();
   if (screen === 'help') renderHelp(document.getElementById('help-list'));
@@ -194,7 +192,6 @@ function showScreen(name) {
 
   if (name === 'my-listings') { loadMyListings(); loadSavedSearches(); }
   if (name === 'browse') loadBrowseListings();
-  if (name === 'doc-requests') loadDocRequests();
   if (name === 'mailbox') loadMailbox();
   if (name === 'notifications') loadNotifications();
   if (name === 'new-listing' && !EDITING_LISTING_ID) resetListingForm();
@@ -1120,84 +1117,3 @@ async function changePassword(e) {
   showSuccess(t('profile.passwordUpdated'));
 }
 
-// ------------------------------------------------- DOCUMENT REQUESTS ----
-// Section 14: the participant responds by confirming they have the document
-// or marking it unavailable. No file upload at this stage.
-
-async function loadDocRequests() {
-  const fresh = renderToken('app:loadDocRequests');
-  const container = document.getElementById('doc-requests-list');
-  container.innerHTML = `<p class="empty-state">${t('common.loading')}</p>`;
-
-  const { data, error } = await jericho
-    .from('document_requests')
-    .select('*')
-    .eq('participant_id', CURRENT_PROFILE.id)
-    .order('requested_at', { ascending: false });
-  if (!fresh()) return;
-
-  if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
-  if (!data.length) { container.innerHTML = `<p class="empty-state">${t('docreq.none')}</p>`; return; }
-
-  // Resolve reference numbers in one query rather than one per row.
-  const listingIds = [...new Set(data.map(r => r.listing_id).filter(Boolean))];
-  const refByListing = {};
-  if (listingIds.length) {
-    const { data: listings } = await jericho
-      .from('listings').select('id,reference_number').in('id', listingIds);
-    if (!fresh()) return;
-    (listings || []).forEach(l => { refByListing[l.id] = l.reference_number; });
-  }
-
-  container.innerHTML = '';
-  data.forEach(r => {
-    const badgeClass = r.status === 'confirmed' ? 'badge-green'
-      : r.status === 'unavailable' ? 'badge-red' : 'badge-amber';
-    const row = document.createElement('div');
-    row.className = 'list-row';
-    row.innerHTML = `
-      <div class="list-row-top">
-        <span class="list-row-title">${escapeHtml(docTypeLabel(r.doc_type))}</span>
-        <span class="badge ${badgeClass}">${escapeHtml(statusLabel(r.status))}</span>
-      </div>
-      <div class="list-row-meta">
-        ${r.listing_id && refByListing[r.listing_id] ? escapeHtml(refByListing[r.listing_id]) + ' · ' : ''}
-        ${escapeHtml(t('docreq.requested', { date: formatDateTime(r.requested_at) }))}
-        ${r.responded_at ? ' · ' + escapeHtml(t('docreq.responded', { date: formatDateTime(r.responded_at) })) : ''}
-      </div>
-      ${r.status === 'requested' ? `
-        <div class="row" style="margin-top:4px;">
-          <button class="btn btn-primary btn-small" data-confirm="${r.id}">${escapeHtml(t('docreq.haveIt'))}</button>
-          <button class="btn btn-secondary btn-small" data-unavailable="${r.id}">${escapeHtml(t('docreq.notAvailable'))}</button>
-        </div>` : ''}
-    `;
-    container.appendChild(row);
-  });
-
-  container.querySelectorAll('[data-confirm]').forEach(b =>
-    b.addEventListener('click', () => respondToDocRequest(b.dataset.confirm, 'confirmed')));
-  container.querySelectorAll('[data-unavailable]').forEach(b =>
-    b.addEventListener('click', () => respondToDocRequest(b.dataset.unavailable, 'unavailable')));
-}
-
-async function respondToDocRequest(requestId, status) {
-  const { error } = await jericho
-    .from('document_requests')
-    .update({ status, responded_at: new Date().toISOString() })
-    .eq('id', requestId);
-  if (error) { showError(errorMessage(error)); return; }
-  // The database notifies Operators and writes the audit entry
-  // (trg_notify_doc_request_response / trg_log_doc_request_change).
-  showSuccess(t('docreq.recorded'));
-  loadDocRequests();
-  refreshDocRequestDot();
-}
-
-async function refreshDocRequestDot() {
-  const fresh = renderToken('app:refreshDocRequestDot');
-  const { count } = await jericho
-    .from('document_requests').select('id', { count: 'exact', head: true })
-    .eq('participant_id', CURRENT_PROFILE.id).eq('status', 'requested');
-  if (!fresh()) return;
-  document.getElementById('docreq-dot').classList.toggle('hidden', !count);
-}
