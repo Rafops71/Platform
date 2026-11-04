@@ -301,8 +301,6 @@ const DOCUMENT_TYPES = DOCUMENT_GROUPS.flatMap(g => g.docs);
  *  for at posting (decision 23, 2026-10-25). Past performance stays off the
  *  listing form - newcomers and new stock have none and are not penalised for
  *  it - but an Operator can request it once a deal is being looked at. */
-const OPERATOR_REQUEST_EXTRAS = ['Past performance record', 'COAs from previous shipments'];
-const DOCUMENT_REQUEST_TYPES = [...DOCUMENT_TYPES, ...OPERATOR_REQUEST_EXTRAS];
 
 /** Canonical doc_type -> translation key. Storage never changes language. */
 const DOCUMENT_TYPE_KEYS = {
@@ -341,7 +339,7 @@ function docTypeLabel(docType) {
 // Bump this whenever the terms.* strings in i18n.js change materially. Leaving
 // it alone after a substantive edit is the one thing that breaks the record:
 // two people would hold the same version string against different text.
-const TERMS_VERSION = '3.4';
+const TERMS_VERSION = '3.5';
 
 // The order the Terms sections are rendered in. Adding a section means adding
 // its number here and a terms.sN.title plus either a terms.sN.body or the

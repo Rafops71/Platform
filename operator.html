@@ -32,7 +32,6 @@
     <button data-screen="invitations">Invitations</button>
     <button data-screen="users">Users</button>
     <button data-screen="commodities">Commodities</button>
-    <button data-screen="doc-requests">Document Requests</button>
     <button data-screen="mailbox">Mailbox</button>
     <button data-screen="matches">Matches</button>
     <button data-screen="deals">Deals</button>
@@ -63,10 +62,6 @@
         <button class="stat-tile" id="stat-messages" data-goto="mailbox">
           <span class="stat-value" id="stat-messages-value">—</span>
           <span class="stat-label">Messages awaiting review</span>
-        </button>
-        <button class="stat-tile" id="stat-doc-requests" data-goto="doc-requests">
-          <span class="stat-value" id="stat-doc-requests-value">—</span>
-          <span class="stat-label">Document requests outstanding</span>
         </button>
         <button class="stat-tile" id="stat-matches" data-goto="matches">
           <span class="stat-value" id="stat-matches-value">—</span>
@@ -184,21 +179,6 @@
     </div>
   </section>
 
-  <!-- DOCUMENT REQUESTS -->
-  <section id="screen-doc-requests" class="screen">
-    <div class="card">
-      <h2 class="mt-0">Request a Document</h2>
-      <label for="dr-listing">Listing</label>
-      <select id="dr-listing"><option value="">Select a listing…</option></select>
-      <label for="dr-doctype">Document type</label>
-      <select id="dr-doctype"></select>
-      <button class="btn btn-primary" id="create-doc-request-btn" style="margin-top:12px;">Send Request</button>
-    </div>
-    <div class="card">
-      <h2 class="mt-0">All Document Requests</h2>
-      <div id="doc-requests-list" class="stack"><p class="empty-state">Loading…</p></div>
-    </div>
-  </section>
 
   <!-- MAILBOX -->
   <section id="screen-mailbox" class="screen">
@@ -235,8 +215,8 @@
       <p class="text-muted">Counts of what Operators recorded in deal files, split by the side the member was on. Facts, not a verdict: you decide what they mean. A member may ask to see what is held on them.</p>
       <div class="table-wrap">
         <table class="table">
-          <thead><tr><th>Member</th><th>Deals (posted / other side)</th><th>Introduced</th><th>Closed / fell through</th><th>Docs matched / not / never arrived</th><th>Docs faulty / false</th><th>Offer real / didn't happen / not genuine</th><th>Last change</th></tr></thead>
-          <tbody id="scorecard-tbody"><tr><td colspan="8" class="empty-state">Loading…</td></tr></tbody>
+          <thead><tr><th>Member</th><th>Deals (posted / other side)</th><th>Introduced</th><th>Closed / fell through</th><th>Offer real / didn't happen / not genuine</th><th>Last change</th></tr></thead>
+          <tbody id="scorecard-tbody"><tr><td colspan="6" class="empty-state">Loading…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -313,8 +293,7 @@
         <details class="help-item"><summary>How do messages reach the other member?</summary><p>Every enquiry and reply arrives in your Mailbox first. Read it, then Forward it, Reply to the sender, or leave it. A message is forwarded exactly as written, so if it names the sender, reply and ask them to send it again without. Members never see who wrote to them.</p></details>
         <details class="help-item"><summary>What is a deal file?</summary><p>Deals: a file opens by itself the first time you forward a negotiation between two members about a listing, one per pair. Move it through its stages and record the outcome. Every change is kept, with who and when.</p></details>
         <details class="help-item"><summary>What is the Scorecard?</summary><p>Counts of the outcomes Operators recorded in deal files, per member and per side. Facts, not a verdict: you decide what they mean. Members never see it; a member may ask to see what is held on them.</p></details>
-        <details class="help-item"><summary>How do I check whether a member holds a document?</summary><p>Document Requests: ask about a document for one of their listings. They answer "I have this document" or "Not available". Nothing is ever uploaded.</p></details>
-        <details class="help-item"><summary>Which listings need attention?</summary><p>Overview shows the workload: pending registrations, messages awaiting review, open document requests, unreviewed matches and listings not updated in 30 days.</p></details>
+        <details class="help-item"><summary>Which listings need attention?</summary><p>Overview shows the workload: pending registrations, messages awaiting review, unreviewed matches and listings not updated in 30 days.</p></details>
         <details class="help-item"><summary>Where can I see what happened, and when?</summary><p>Activity Log lists sign-ins, approvals, invitations and other actions. Analytics shows the figures by period.</p></details>
         <details class="help-item"><summary>Something is not working.</summary><p>Write down what you pressed and what you saw, and email info@myplatform.trade.</p></details>
       </div>

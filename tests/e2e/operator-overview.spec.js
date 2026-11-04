@@ -41,11 +41,6 @@ test.beforeAll(async () => {
     [enquirer.profileId, staleId]
   );
   await query(
-    `insert into public.document_requests (listing_id, requester_id, participant_id, doc_type, status)
-     values ($1, $2, $3, 'Certificate of Origin', 'requested')`,
-    [staleId, operator.profileId, owner.profileId]
-  );
-  await query(
     `insert into public.matches (listing_a_id, listing_b_id, score, status)
      values ($1, $2, 'high', 'new')`,
     [staleId, freshId]
@@ -90,7 +85,8 @@ test.describe.serial('operator workload overview', () => {
 
     await expect(page.locator('#screen-overview')).toBeVisible();
     await expect(page.locator('nav.tabs button[data-screen="overview"]')).toHaveClass(/active/);
-    await expect(page.locator('.stat-tile')).toHaveCount(5);
+    // Four tiles: the outstanding document-request tile went with item 36.
+    await expect(page.locator('.stat-tile')).toHaveCount(4);
     await expect(page.locator('#overview-updated')).toContainText('Updated');
   });
 
@@ -106,11 +102,6 @@ test.describe.serial('operator workload overview', () => {
       "select count(*)::int n from public.messages where status = 'pending_review'");
     expect(await tileValue(page, 'messages')).toBe(messages);
     expect(messages).toBeGreaterThanOrEqual(1);
-
-    const docs = await count(
-      "select count(*)::int n from public.document_requests where status = 'requested'");
-    expect(await tileValue(page, 'doc-requests')).toBe(docs);
-    expect(docs).toBeGreaterThanOrEqual(1);
 
     const matches = await count(
       "select count(*)::int n from public.matches where status = 'new'");
@@ -140,7 +131,6 @@ test.describe.serial('operator workload overview', () => {
     for (const [tile, screen] of [
       ['approvals', 'approvals'],
       ['messages', 'mailbox'],
-      ['doc-requests', 'doc-requests'],
       ['matches', 'matches'],
       ['stale', 'listings'],
     ]) {

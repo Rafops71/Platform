@@ -136,7 +136,7 @@ test.describe.serial('on a phone', () => {
     test.setTimeout(180_000);
     await signIn(page, buyer, 'app.html');
 
-    const screens = ['my-listings', 'browse', 'mailbox', 'notifications', 'doc-requests', 'profile'];
+    const screens = ['my-listings', 'browse', 'mailbox', 'notifications', 'profile'];
     const bad = [];
 
     for (const screen of screens) {

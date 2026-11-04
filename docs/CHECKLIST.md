@@ -59,7 +59,7 @@ the suite: this platform's product is controlled disclosure, so proving a thing
 | 29 | Neither party ever sees the other's identity or contact details | MUST NOT |
 | 30 | A member's mailbox shows only their own conversations | MUST NOT |
 | 31 | A member can declare which documents they hold, against a checklist | does |
-| 32 | An Operator can request a document, and the member can respond | does |
+| 32 | An Operator never requests a document, and the Operator's console and the member's screens offer no document request or answer | MUST NOT |
 | 33 | No file is ever uploaded or stored — documents are declared only | MUST NOT |
 | 34 | A member can download their own activity as a CSV | does |
 | 35 | The export contains only the member's own data | MUST NOT |
