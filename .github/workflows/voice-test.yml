@@ -917,7 +917,7 @@ jobs:
       - name: Check it
         run: |
           ffprobe -v error -show_entries format=duration:stream=width,height -of default=nw=1 films-diagrams-draft.mp4
-          for t in 3 7 11 15 19 23 33 40 47 52; do ffmpeg -v error -y -ss $t -i films-diagrams-draft.mp4 -frames:v 1 "frame-$t.png"; done
+          for t in 3 7 11 15 19 23 26 28 40 52; do ffmpeg -v error -y -ss $t -i films-diagrams-draft.mp4 -frames:v 1 "frame-$t.png"; done
       - uses: actions/upload-artifact@v4
         with:
           name: films-diagrams-draft

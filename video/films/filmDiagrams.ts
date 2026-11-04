@@ -16,7 +16,7 @@ const seal = (x, y, u, text, fine = true) => {
   const a = cl(u * 2), tick = cl((u - 0.35) / 0.5), sc = 0.6 + 0.4 * smooth(cl(u * 1.6));
   const tp = `M-17 2 L-5 15 L19 -14`, len = 60;
   return `<g opacity="${a}" transform="translate(${x} ${y}) scale(${sc})"><circle r="52" fill="${GLOWB}" opacity=".3" filter="url(#g16)" stroke="none"/><circle r="40" fill="#fff" stroke="${BLUE}" stroke-width="2.6"/><circle r="33" stroke="${LINE}" stroke-width="1.4"/><path d="${tp}" stroke="${BLUE}" stroke-width="5" stroke-dasharray="${len}" stroke-dashoffset="${(len * (1 - tick)).toFixed(1)}"/></g>` +
-    (fine ? label(x, y + 78, text, 20, a, 400) : "");
+    (fine ? label(x, y + 84, text, 28, a, 400) : "");
 };
 const dir = (a, b, u) => [f(a[0], b[0], u), f(a[1], b[1], u)];
 
@@ -29,8 +29,8 @@ export function relayScene(t, T) {
   const p = cl((t - 0.8) / 5.2); // 0..1 over the journey
   const pulse = (p > 0.38 && p < 0.58) ? 1 - Math.abs(p - 0.48) / 0.1 : 0;
   g += centre(cx, cy, cl(pulse), ramp(t, 0, 0.8)) + figure(L[0], L[1], ramp(t, 0, 0.6)) + figure(R[0], R[1], ramp(t, 0.2, 0.8));
-  g += label(L[0], L[1] + 130, T.you, 26, ramp(t, 0.6, 1.2)) + label(R[0], R[1] + 130, T.other, 26, ramp(t, 0.8, 1.4));
-  g += label(cx, cy + 8, T.centre, 30, ramp(t, 0.4, 1.2), 600);
+  g += label(L[0], L[1] + 130, T.you, 34, ramp(t, 0.6, 1.2)) + label(R[0], R[1] + 130, T.other, 34, ramp(t, 0.8, 1.4));
+  g += label(cx, cy + 190, T.centre, 36, ramp(t, 0.4, 1.2), 600);
   if (t > 0.8 && p < 1) {
     let x;
     if (p < 0.4) x = f(L[0] + 70, cx - 120, p / 0.4); else if (p < 0.56) x = cx; else x = f(cx + 120, R[0] - 70, (p - 0.56) / 0.44);
@@ -39,7 +39,7 @@ export function relayScene(t, T) {
   // "neither side learns who the other is": two crossed-out name tags near the figures at the end
   const n = ramp(t, 6.2, 7.2);
   for (const [x, y] of [L, R]) g += `<g opacity="${n}"><circle cx="${x}" cy="${y - 4}" r="66" fill="${BLUE}" opacity=".08" stroke="none"/></g>`;
-  g += label(cx, 790, T.neither, 34, ramp(t, 6.4, 7.4), 400);
+  g += label(cx, 790, T.neither, 44, ramp(t, 6.4, 7.4), 400);
   return SV(g);
 }
 
@@ -47,9 +47,9 @@ export function relayScene(t, T) {
 export function docsScene(t, T) {
   const cx = 960, cy = 270, L = [320, 640], R = [1600, 640], ly = 640;
   let g = `<defs>${CORE}</defs>`;
-  g += centre(cx, cy, 0, 0.5 * ramp(t, 0, 0.8), 90) + label(cx, cy + 8, T.centre, 24, 0.7 * ramp(t, 0.2, 1));
+  g += centre(cx, cy, 0, 0.5 * ramp(t, 0, 0.8), 90) + label(cx, cy + 130, T.centre, 30, 0.8 * ramp(t, 0.2, 1));
   g += figure(L[0], L[1], ramp(t, 0, 0.6)) + figure(R[0], R[1], ramp(t, 0.2, 0.8));
-  g += label(L[0], L[1] + 130, T.you, 26, ramp(t, 0.6, 1.2)) + label(R[0], R[1] + 130, T.other, 26, ramp(t, 0.8, 1.4));
+  g += label(L[0], L[1] + 130, T.you, 34, ramp(t, 0.6, 1.2)) + label(R[0], R[1] + 130, T.other, 34, ramp(t, 0.8, 1.4));
   // the direct line between the parties; it never touches the centre
   const lu = ramp(t, 1.0, 2.0);
   g += `<path d="M${L[0] + 70} ${ly} H${f(L[0] + 70, R[0] - 70, lu)}" stroke="${GLOWB}" stroke-width="7" opacity=".3" filter="url(#g8)"/><path d="M${L[0] + 70} ${ly} H${f(L[0] + 70, R[0] - 70, lu)}" stroke="${BLUE}" stroke-width="2.4"/>`;
@@ -58,7 +58,7 @@ export function docsScene(t, T) {
   const d1 = cl((t - 4.2) / 2.8), d2 = cl((t - 5.0) / 2.8);
   if (d1 > 0 && d1 < 1) g += doc(f(L[0] + 110, R[0] - 110, smooth(d1)), ly - 46, 0.8, Math.sin(Math.PI * Math.min(1, d1 * 1.05)) > 0.05 ? 1 : 0);
   if (d2 > 0 && d2 < 1) g += doc(f(R[0] - 110, L[0] + 110, smooth(d2)), ly + 46, 0.8, 1, SLATE);
-  g += label(cx, 900, T.never, 32, ramp(t, 5.6, 6.6), 400);
+  g += label(cx, 900, T.never, 42, ramp(t, 5.6, 6.6), 400);
   return SV(g);
 }
 
@@ -71,12 +71,12 @@ export function introScene(t, T) {
   g += `<g opacity="${cardA}"><rect x="${cx - 360}" y="170" width="720" height="260" rx="22" fill="#fff" stroke="${LINE}" stroke-width="2"/><rect x="${cx - 360}" y="170" width="720" height="260" rx="22" fill="${GLOWB}" opacity=".08" filter="url(#g16)" stroke="none"/>`;
   g += `<path d="M${cx - 300} 250 H${cx + 300} M${cx - 300} 290 H${cx + 200} M${cx - 300} 330 H${cx + 120}" stroke="${LINE}" stroke-width="3"/>`;
   g += `<path d="M${cx + 90} 380 q22 -30 40 -2 t38 -4 t36 0" stroke="${BLUE}" stroke-width="3.4" stroke-dasharray="190" stroke-dashoffset="${(190 * (1 - tick)).toFixed(1)}"/></g>`;
-  g += label(cx, 480, T.executed, 34, cardA, 400);
+  g += label(cx, 480, T.executed, 42, cardA, 400);
   const au = ramp(t, 1.0, 2.0) * (1 - ramp(t, 6.4, 7.0));
   const j = ramp(t, 6.8, 8.4);
   g += figure(L[0], L[1], ramp(t, 4.0, 5.0), LINE) + figure(R[0], R[1], ramp(t, 4.2, 5.2), LINE);
   const lu = ramp(t, 7.0, 8.6);
   g += `<path d="M${L[0] + 70} ${L[1]} H${f(L[0] + 70, R[0] - 70, lu)}" stroke="${GLOWB}" stroke-width="9" opacity=".4" filter="url(#g8)"/><path d="M${L[0] + 70} ${L[1]} H${f(L[0] + 70, R[0] - 70, lu)}" stroke="${BLUE}" stroke-width="3"/>`;
-  g += label(cx, 860, T.intro, 34, ramp(t, 8.2, 9.2), 400);
+  g += label(cx, 860, T.intro, 44, ramp(t, 8.2, 9.2), 400);
   return SV(g);
 }
