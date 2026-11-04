@@ -926,6 +926,42 @@ jobs:
             frame-*.png
           retention-days: 14
 
+  films_voice:
+    # Walkthrough films' narration: Gemini Algieba (EN member, ES member, EN Operator), two requests per film,
+    # each listened to by faster-whisper. Worst case 9 requests (free tier 10 a day). Run once; renders reuse the artifact.
+    if: ${{ inputs.only == 'films-voice' }}
+    name: Films - voices (Gemini, gated)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - run: pip install faster-whisper soundfile numpy
+      - name: Speak, listen, time
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          rc=0
+          for film in member-en member-es operator-en; do
+            python3 video/films/films_voice.py "voice-out/$film" "$film" || rc=1
+            cat "voice-out/$film/voice-table.md" >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+          done
+          exit $rc
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: films-voice
+          path: |
+            voice-out/*/voice-track.wav
+            voice-out/*/voice-track.mp3
+            voice-out/*/timings.json
+            voice-out/*/voice-table.md
+          retention-days: 14
+          if-no-files-found: warn
+
   trailer_voice_en:
     # The new English trailer's narration (owner's approved text, 2026-11-02): Gemini Algieba, two requests, slowed
     # (atempo 0.93), listened to by faster-whisper. Run once; the build reuses its artifact.
