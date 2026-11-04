@@ -1,0 +1,160 @@
+{
+ "lang": "es",
+ "segments": [
+  {
+   "kind": "app",
+   "t0": 0,
+   "t1": "b3:^cada$:-0.2",
+   "to": "send",
+   "pin": [
+    [
+     "signin",
+     "b1:^bienvenido$:-0.3"
+    ],
+    [
+     "press_signin",
+     "b1:^recibio$:-0.9"
+    ],
+    [
+     "terms",
+     "b1:^primera$:-0.2"
+    ],
+    [
+     "dash",
+     "b1:^sola$:+0.3"
+    ],
+    [
+     "newlisting",
+     "b1:^nueva$"
+    ],
+    [
+     "f_type",
+     "b1:^elija$"
+    ],
+    [
+     "f_commodity",
+     "b1:^materia$:-0.5"
+    ],
+    [
+     "f_qty",
+     "b1:^cantidad$:-0.4"
+    ],
+    [
+     "f_origin",
+     "b1:^origen$:-0.4"
+    ],
+    [
+     "f_incoterm",
+     "b1:^incoterm$:-0.5"
+    ],
+    [
+     "f_role",
+     "b1:^funcion$:-0.4"
+    ],
+    [
+     "f_docs",
+     "b1:^documentos$:-0.4"
+    ],
+    [
+     "f_submit",
+     "b1:^enviela$:-0.3"
+    ],
+    [
+     "live",
+     "b1:^activa$"
+    ],
+    [
+     "mylist",
+     "b2:^publicaciones$:-0.3"
+    ],
+    [
+     "browse",
+     "b2:^explorar$:-0.3"
+    ],
+    [
+     "anon",
+     "b2:^nunca$:-0.2"
+    ],
+    [
+     "contact",
+     "b2:^pulse$:-0.5"
+    ],
+    [
+     "write",
+     "b2:^escriba$:-0.2"
+    ]
+   ],
+   "from": "signin"
+  },
+  {
+   "kind": "diagram",
+   "name": "relay",
+   "t0": "b3:^cada$:-0.2",
+   "t1": "b3:^respuestas$:-0.3"
+  },
+  {
+   "kind": "app",
+   "t0": "b3:^respuestas$:-0.3",
+   "t1": "b3:^documentos$:-0.3",
+   "to": "notif",
+   "pin": [
+    [
+     "mailbox",
+     "b3:^respuestas$:-0.3"
+    ]
+   ],
+   "from": "mailbox"
+  },
+  {
+   "kind": "diagram",
+   "name": "docs",
+   "t0": "b3:^documentos$:-0.3",
+   "t1": "b4:^punto$:-0.3"
+  },
+  {
+   "kind": "app",
+   "t0": "b4:^punto$:-0.3",
+   "t1": "b4:^cuando$:-0.3",
+   "to": "end",
+   "pin": [
+    [
+     "notif",
+     "b4:^notificaciones$:-0.5"
+    ],
+    [
+     "profile",
+     "b4:^perfil$:-0.5"
+    ],
+    [
+     "lang",
+     "b4:^elige$:-0.4"
+    ],
+    [
+     "help",
+     "b4:^ayuda$:-0.4"
+    ]
+   ],
+   "from": "notif"
+  },
+  {
+   "kind": "diagram",
+   "name": "intro",
+   "t0": "b4:^cuando$:-0.3",
+   "t1": "b4:^myplatform$:-0.3",
+   "times": {
+    "card": "b4:^comision$:-0.5",
+    "tick": "b4:^firmado$:-0.4",
+    "fig": "b4:^cada$:-0.2",
+    "join": "b4:^miembro$:+0.2",
+    "out": "b4:^cada$:-0.4"
+   }
+  },
+  {
+   "kind": "card",
+   "t0": "b4:^myplatform$:-0.3",
+   "t1": "end",
+   "small": "MyPlatform",
+   "big": "Donde la oportunidad se encuentra con la *discreción.*"
+  }
+ ]
+}

@@ -1,0 +1,139 @@
+{
+ "lang": "en",
+ "segments": [
+  {
+   "kind": "app",
+   "t0": 0,
+   "t1": "b3:^once$:-0.4",
+   "from": "signin",
+   "to": "scorecard",
+   "pin": [
+    [
+     "signin",
+     0
+    ],
+    [
+     "press_signin",
+     "b1:^overview$:-0.8"
+    ],
+    [
+     "overview",
+     "b1:^overview$:-0.3"
+    ],
+    [
+     "approvals",
+     "b1:^approvals$:-0.5"
+    ],
+    [
+     "approve",
+     "b1:^approver?$:-0.6"
+    ],
+    [
+     "invitations",
+     "b1:^invitations$:-0.5"
+    ],
+    [
+     "invite_make",
+     "b1:^create$:-0.4"
+    ],
+    [
+     "users",
+     "b1:^users$:-0.4"
+    ],
+    [
+     "listings",
+     "b2:^listings?$:-0.4"
+    ],
+    [
+     "filter",
+     "b2:^filters$:-0.6"
+    ],
+    [
+     "commodities",
+     "b2:^commodities$:-0.5"
+    ],
+    [
+     "mailbox",
+     "b2:^mailbox$:-0.4"
+    ],
+    [
+     "arrives",
+     "b2:^arrives$:-0.3"
+    ],
+    [
+     "btns",
+     "b2:^forward$:-0.6"
+    ],
+    [
+     "forward",
+     "b2:^before$:-0.3"
+    ],
+    [
+     "flags",
+     "b2:^remove$:-0.4"
+    ],
+    [
+     "delete",
+     "b2:^names$:-0.5"
+    ],
+    [
+     "confirm",
+     "b2:^platform$#2:-0.1"
+    ],
+    [
+     "matches",
+     "b3:^matches$:-0.4"
+    ],
+    [
+     "deals",
+     "b3:^deals$:-0.5"
+    ]
+   ]
+  },
+  {
+   "kind": "diagram",
+   "name": "intro",
+   "t0": "b3:^once$:-0.4",
+   "t1": "b4:^scorecard$:-0.5",
+   "times": {
+    "card": "b3:^commission$:-0.5",
+    "tick": "b3:^executed$:-0.4",
+    "fig": "b3:^only$:-0.2",
+    "join": "b3:^introductions$:+0.3",
+    "out": "b3:^only$:-0.4"
+   }
+  },
+  {
+   "kind": "app",
+   "t0": "b4:^scorecard$:-0.5",
+   "t1": "b4:^discretion$:-0.5",
+   "from": "scorecard",
+   "to": "end",
+   "pin": [
+    [
+     "scorecard",
+     "b4:^scorecard$:-0.5"
+    ],
+    [
+     "analytics",
+     "b4:^analytics$:-0.5"
+    ],
+    [
+     "activity",
+     "b4:^activity$:-0.5"
+    ],
+    [
+     "help",
+     "b4:^help$:-0.5"
+    ]
+   ]
+  },
+  {
+   "kind": "card",
+   "t0": "b4:^discretion$:-0.5",
+   "t1": "end",
+   "small": "MyPlatform",
+   "big": "Discretion is the *product.*"
+  }
+ ]
+}

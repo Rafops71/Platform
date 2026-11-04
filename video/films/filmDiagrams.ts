@@ -63,20 +63,21 @@ export function docsScene(t, T) {
 }
 
 // 3. when both sides agree on the essential terms: the commission agreement is executed first (card with pen tick), then introduction.
-export function introScene(t, T) {
+export function introScene(t, T, P = {}) {
   const cx = 960, L = [520, 700], R = [1400, 700];
+  const c0 = P.card ?? 0.3, c1 = P.tick ?? 2.6, f0 = P.fig ?? 4.0, j0 = P.join ?? 7.0, out = P.out ?? 6.2;
   let g = `<defs>${CORE}</defs>`;
-  const cardA = ramp(t, 0.3, 1.2) * (1 - ramp(t, 6.2, 7.2));
-  const tick = cl((t - 2.6) / 1.4);
+  const cardA = ramp(t, c0, c0 + 0.9) * (1 - ramp(t, out, out + 1.0));
+  const tick = cl((t - c1) / 1.4);
   g += `<g opacity="${cardA}"><rect x="${cx - 360}" y="170" width="720" height="260" rx="22" fill="#fff" stroke="${LINE}" stroke-width="2"/><rect x="${cx - 360}" y="170" width="720" height="260" rx="22" fill="${GLOWB}" opacity=".08" filter="url(#g16)" stroke="none"/>`;
   g += `<path d="M${cx - 300} 250 H${cx + 300} M${cx - 300} 290 H${cx + 200} M${cx - 300} 330 H${cx + 120}" stroke="${LINE}" stroke-width="3"/>`;
   g += `<path d="M${cx + 90} 380 q22 -30 40 -2 t38 -4 t36 0" stroke="${BLUE}" stroke-width="3.4" stroke-dasharray="190" stroke-dashoffset="${(190 * (1 - tick)).toFixed(1)}"/></g>`;
   g += label(cx, 480, T.executed, 42, cardA, 400);
   const au = ramp(t, 1.0, 2.0) * (1 - ramp(t, 6.4, 7.0));
   const j = ramp(t, 6.8, 8.4);
-  g += figure(L[0], L[1], ramp(t, 4.0, 5.0), LINE) + figure(R[0], R[1], ramp(t, 4.2, 5.2), LINE);
-  const lu = ramp(t, 7.0, 8.6);
+  g += figure(L[0], L[1], ramp(t, f0, f0 + 1.0), LINE) + figure(R[0], R[1], ramp(t, f0 + 0.2, f0 + 1.2), LINE);
+  const lu = ramp(t, j0, j0 + 1.6);
   g += `<path d="M${L[0] + 70} ${L[1]} H${f(L[0] + 70, R[0] - 70, lu)}" stroke="${GLOWB}" stroke-width="9" opacity=".4" filter="url(#g8)"/><path d="M${L[0] + 70} ${L[1]} H${f(L[0] + 70, R[0] - 70, lu)}" stroke="${BLUE}" stroke-width="3"/>`;
-  g += label(cx, 860, T.intro, 44, ramp(t, 8.2, 9.2), 400);
+  g += label(cx, 860, T.intro, 44, ramp(t, j0 + 1.2, j0 + 2.2), 400);
   return SV(g);
 }

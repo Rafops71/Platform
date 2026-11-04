@@ -1,0 +1,160 @@
+{
+ "lang": "en",
+ "segments": [
+  {
+   "kind": "app",
+   "t0": 0,
+   "t1": "b3:^every$:-0.2",
+   "to": "send",
+   "pin": [
+    [
+     "signin",
+     "b1:^welcome$:-0.3"
+    ],
+    [
+     "press_signin",
+     "b1:^received$:-0.9"
+    ],
+    [
+     "terms",
+     "b1:^first$:-0.2"
+    ],
+    [
+     "dash",
+     "b1:^once$:+0.3"
+    ],
+    [
+     "newlisting",
+     "b1:^new$"
+    ],
+    [
+     "f_type",
+     "b1:^choose$"
+    ],
+    [
+     "f_commodity",
+     "b1:^commodity$:-0.5"
+    ],
+    [
+     "f_qty",
+     "b1:^quantity$:-0.4"
+    ],
+    [
+     "f_origin",
+     "b1:^origin$:-0.4"
+    ],
+    [
+     "f_incoterm",
+     "b1:^incoterm$:-0.5"
+    ],
+    [
+     "f_role",
+     "b1:^role$:-0.4"
+    ],
+    [
+     "f_docs",
+     "b1:^documents$:-0.4"
+    ],
+    [
+     "f_submit",
+     "b1:^submit$:-0.3"
+    ],
+    [
+     "live",
+     "b1:^live$"
+    ],
+    [
+     "mylist",
+     "b2:^(my)?listings$:-0.3"
+    ],
+    [
+     "browse",
+     "b2:^browse$:-0.3"
+    ],
+    [
+     "anon",
+     "b2:^never$:-0.2"
+    ],
+    [
+     "contact",
+     "b2:^press$:-0.5"
+    ],
+    [
+     "write",
+     "b2:^write$:-0.2"
+    ]
+   ],
+   "from": "signin"
+  },
+  {
+   "kind": "diagram",
+   "name": "relay",
+   "t0": "b3:^every$:-0.2",
+   "t1": "b3:^replies$:-0.3"
+  },
+  {
+   "kind": "app",
+   "t0": "b3:^replies$:-0.3",
+   "t1": "b3:^documents$:-0.3",
+   "to": "notif",
+   "pin": [
+    [
+     "mailbox",
+     "b3:^replies$:-0.3"
+    ]
+   ],
+   "from": "mailbox"
+  },
+  {
+   "kind": "diagram",
+   "name": "docs",
+   "t0": "b3:^documents$:-0.3",
+   "t1": "b4:^dot$:-0.3"
+  },
+  {
+   "kind": "app",
+   "t0": "b4:^dot$:-0.3",
+   "t1": "b4:^when$:-0.3",
+   "to": "end",
+   "pin": [
+    [
+     "notif",
+     "b4:^notifications$:-0.5"
+    ],
+    [
+     "profile",
+     "b4:^profile$:-0.5"
+    ],
+    [
+     "lang",
+     "b4:^choose$:-0.4"
+    ],
+    [
+     "help",
+     "b4:^help$:-0.4"
+    ]
+   ],
+   "from": "notif"
+  },
+  {
+   "kind": "diagram",
+   "name": "intro",
+   "t0": "b4:^when$:-0.3",
+   "t1": "b4:^myplatform$:-0.3",
+   "times": {
+    "card": "b4:^commission$:-0.5",
+    "tick": "b4:^executed$:-0.4",
+    "fig": "b4:^each$:-0.2",
+    "join": "b4:^member$:+0.2",
+    "out": "b4:^each$:-0.4"
+   }
+  },
+  {
+   "kind": "card",
+   "t0": "b4:^myplatform$:-0.3",
+   "t1": "end",
+   "small": "MyPlatform",
+   "big": "Where opportunity meets *discretion.*"
+  }
+ ]
+}

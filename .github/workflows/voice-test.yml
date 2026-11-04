@@ -1034,6 +1034,95 @@ jobs:
           path: voice-paced/*/check-table.md
           retention-days: 14
 
+  films_render:
+    # The three walkthrough films, 1080p: real screens of the DEMO build (fake data, no live database; built from the
+    # merge of items 36 and 38), drawn diagrams, the paced Gemini voices. Silent and voice versions of each. No music.
+    if: ${{ inputs.only == 'films-render' }}
+    name: Films - capture, render, mux (1080p)
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    env:
+      OM_SHA: '195eab24478dc9363326aec437aefc3701635ddf'
+      PACE_RUN: '41819429709'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - uses: actions/download-artifact@v4
+        with:
+          name: films-voice-paced
+          path: voice-paced
+          run-id: ${{ env.PACE_RUN }}
+          github-token: ${{ github.token }}
+      - name: Build the films demo (fake data, no Supabase) and serve it
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+          node video/films/build-films-demo.js
+          (SERVE_DIR=dist-demo-films PORT=8111 nohup node scripts/serve-demo.js > serve.log 2>&1 &)
+          sleep 3; curl -sf -o /dev/null http://127.0.0.1:8111/index.html
+      - name: Capture the screens
+        run: |
+          mkdir -p caps
+          node video/films/capture-member.js caps/member-en http://127.0.0.1:8111 en
+          node video/films/capture-member.js caps/member-es http://127.0.0.1:8111 es
+          node video/films/capture-operator.js caps/operator-en http://127.0.0.1:8111
+      - name: Check the plans against the voices and the captures
+        run: |
+          for f in member-en member-es operator-en; do
+            echo "=== $f"; node video/films/plan-check.js video/films/plans/$f.json voice-paced/$f/timings.json caps/$f/timeline.json
+          done
+      - name: OpenMontage composer
+        run: |
+          mkdir om && cd om && git init -q && git remote add origin https://github.com/calesthio/OpenMontage
+          git fetch -q --depth 1 origin "$OM_SHA" && git checkout -q FETCH_HEAD
+          cd remotion-composer && npm ci --no-audit --no-fund
+          cp ../../video/trailer3/scenes.ts ../../video/trailer3/scenesFull.ts ../../video/trailer3/handshakeData.ts src/components/
+          cp ../../video/films/filmDiagrams.ts ../../video/films/FilmApp.tsx ../../video/films/films-texts.json src/components/
+      - name: Render each film (silent), then put its voice under it
+        run: |
+          mkdir -p out
+          cd om/remotion-composer
+          for f in member-en member-es operator-en; do
+            echo "=== render $f"
+            git -C ../.. checkout -- remotion-composer/src/Root.tsx
+            rm -rf src/components/film public/film && mkdir -p src/components/film public/film
+            cp ../../video/films/plans/$f.json src/components/film/plan.json
+            cp ../../caps/$f/timeline.json src/components/film/timeline.json
+            cp ../../voice-paced/$f/timings.json src/components/film/timings.json
+            cp -r ../../caps/$f/states public/film/states
+            frames=$(node -e "console.log(Math.ceil(require('./src/components/film/timings.json').total_s*30))")
+            sed -i '1i import { Film } from "./components/FilmApp";' src/Root.tsx
+            sed -i "0,/^    <\/>\$/s//      <Composition id=\"Film\" component={Film} durationInFrames=$frames fps={30} width={1920} height={1080} \/>\n    <\/>/" src/Root.tsx
+            grep -n 'id="Film"' src/Root.tsx
+            npx remotion render src/index.tsx Film ../../out/$f-silent.mp4 --codec h264 --crf 18 --concurrency 4
+            ffmpeg -v error -y -i ../../out/$f-silent.mp4 -i ../../voice-paced/$f/voice-track.wav -map 0:v -map 1:a -c:v copy -c:a aac -b:a 192k -shortest ../../out/$f-voice.mp4
+            cp ../../voice-paced/$f/voice-track.wav ../../out/$f-voice-track.wav
+            cp ../../voice-paced/$f/timings.json ../../out/$f-timings.json
+            cp ../../caps/$f/timeline.json ../../out/$f-capture-timeline.json
+          done
+      - name: Check them
+        run: |
+          cd out
+          for f in member-en member-es operator-en; do
+            for v in silent voice; do echo "== $f-$v"; ffprobe -v error -show_entries format=duration,size:stream=codec_name,width,height -of default=nw=1 $f-$v.mp4; done
+            ffmpeg -i $f-voice.mp4 -af volumedetect -vn -f null - 2>&1 | grep -E "mean_volume|max_volume" || true
+            d=$(ffprobe -v error -show_entries format=duration -of csv=p=0 $f-voice.mp4 | cut -d. -f1)
+            for n in 1 2 3 4 5 6 7 8 9 10 11 12; do t=$(( d * n / 13 )); ffmpeg -v error -y -ss $t -i $f-voice.mp4 -frames:v 1 -vf scale=640:-1 "$f-t$(printf %03d $t).png"; done
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: films-final
+          path: |
+            out/*.mp4
+            out/*.wav
+            out/*.json
+            out/*.png
+          retention-days: 14
+
   trailer_voice_en:
     # The new English trailer's narration (owner's approved text, 2026-11-02): Gemini Algieba, two requests, slowed
     # (atempo 0.93), listened to by faster-whisper. Run once; the build reuses its artifact.
