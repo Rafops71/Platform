@@ -335,6 +335,10 @@
     <h2 class="mt-0">Forward Message</h2>
     <p class="text-muted" style="font-size:var(--text-base);">Sends this message to the owner of the listing it references, identified only by their reference number.</p>
     <div id="forward-target-info" class="text-muted" style="margin-bottom:10px;"></div>
+    <label for="forward-edit" class="text-muted">Message to forward (you may edit it)</label>
+    <textarea id="forward-edit" rows="5" style="width:100%;"></textarea>
+    <div id="forward-flags" class="text-muted" style="margin:6px 0;"></div>
+    <div id="forward-preview" class="text-muted" style="white-space:pre-wrap;margin-bottom:10px;border:1px solid #ddd;padding:6px;border-radius:4px;"></div>
     <div class="row">
       <button class="btn btn-primary" id="forward-confirm-btn">Forward</button>
       <button class="btn btn-secondary" id="forward-cancel-btn">Cancel</button>
