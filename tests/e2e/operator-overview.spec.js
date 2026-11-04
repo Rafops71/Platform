@@ -85,7 +85,8 @@ test.describe.serial('operator workload overview', () => {
 
     await expect(page.locator('#screen-overview')).toBeVisible();
     await expect(page.locator('nav.tabs button[data-screen="overview"]')).toHaveClass(/active/);
-    await expect(page.locator('.stat-tile')).toHaveCount(5);
+    // Four tiles: the outstanding document-request tile went with item 36.
+    await expect(page.locator('.stat-tile')).toHaveCount(4);
     await expect(page.locator('#overview-updated')).toContainText('Updated');
   });
 

@@ -67,7 +67,12 @@ test('Item74 the scorecard shows the counts recorded in the deal file, by side',
   // "never arrived" for its documents.
   const row = page.locator(`[data-scorecard-for="${owner.profileId}"]`);
   await expect(row.locator('[data-label="Deals"]')).toHaveText('1 / 0', { timeout: 15_000 });
-  await expect(row.locator('[data-label="Docs"]')).toHaveText('0 / 0 / 1');
+  // Item 36: the Docs column went with the document requests. The scorecard
+  // carries no document column at all; the offer answer is what the Item70
+  // test recorded (did not happen), so it reads "0 / 1 / 0".
+  await expect(row.locator('[data-label="Docs"]')).toHaveCount(0);
+  await expect(page.locator('#screen-scorecard th', { hasText: /Docs|Documentos/ })).toHaveCount(0);
+  await expect(row.locator('[data-label="Offer"]')).toHaveText('0 / 1 / 0');
 });
 
 test('Item75 Analytics counts deal files by stage, beside the message counts', async ({ page }) => {
