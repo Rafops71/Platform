@@ -1155,15 +1155,20 @@ async function confirmForward() {
 const CONTACT_PATTERNS = [
   /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g,            // email
   /(?:https?:\/\/|www\.)\S+/gi,                                // web address
-  /(?:\+|\b00)?\d[\d\s().-]{6,}\d/g,                          // phone number
+  /(?:\+|\b00)?\d[\d\s().-]{6,}\d/g,                          // phone number (checked below)
 ];
+const PHONE_PATTERN_INDEX = 2;
+const MIN_PHONE_DIGITS = 10; // 2026-11-04 and 1 000 000 have fewer; a phone number has more
 
 function findContacts(text) {
   const hits = [];
-  CONTACT_PATTERNS.forEach(re => {
+  CONTACT_PATTERNS.forEach((re, i) => {
     re.lastIndex = 0;
     let m;
-    while ((m = re.exec(text)) !== null) hits.push({ start: m.index, end: m.index + m[0].length });
+    while ((m = re.exec(text)) !== null) {
+      if (i === PHONE_PATTERN_INDEX && m[0].replace(/\D/g, '').length < MIN_PHONE_DIGITS) continue;
+      hits.push({ start: m.index, end: m.index + m[0].length });
+    }
   });
   return hits.sort((a, b) => a.start - b.start);
 }
@@ -1236,8 +1241,10 @@ async function confirmEditedForward(edited) {
   });
   if (e2) { showError(errorMessage(e2)); return; }
 
-  await jericho.from('messages').update({ status: 'forwarded' }).eq('id', newMsg.id);
-  await jericho.from('messages').update({ status: 'forwarded' }).eq('id', FORWARD_TARGET.messageId);
+  const { error: e4 } = await jericho.from('messages').update({ status: 'forwarded' }).eq('id', newMsg.id);
+  if (e4) { showError(errorMessage(e4)); return; }
+  const { error: e5 } = await jericho.from('messages').update({ status: 'forwarded' }).eq('id', FORWARD_TARGET.messageId);
+  if (e5) { showError(errorMessage(e5)); return; }
 
   const { error: e3 } = await jericho.rpc('record_activity', {
     p_action: 'message_forward_edited',
@@ -1255,6 +1262,7 @@ async function confirmEditedForward(edited) {
     message: `A message was forwarded to you regarding ${FORWARD_TARGET.refLabel}.`, related_id: FORWARD_TARGET.listingId
   });
   document.getElementById('forward-modal').classList.add('hidden');
+  loadOperatorMailbox();
   showSuccess('Message forwarded.');
 }
 
