@@ -62,7 +62,7 @@ for lang in en es; do check "films/member-$lang.mp4"; done
 # The member walkthrough under the app sign-in box (owner's decision 41). The
 # English one is named in index.html; the Spanish one is built at runtime by
 # js/auth.js, so the loop above cannot see it.
-for lang in en es; do check "films/walkthrough-member-$lang.mp4"; done
+for lang in en es; do check "films/walkthrough-member-$lang.mp4"; check "films/walkthrough-member-$lang-poster.jpg"; done
 
 # The pages themselves.
 for p in index.html register.html app.html operator.html reset.html terms.html; do

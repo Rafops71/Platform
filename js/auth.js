@@ -142,7 +142,10 @@ function setWalkthroughSource() {
   if (!video) return;
   const lang = typeof currentLang === 'function' && currentLang() === 'es' ? 'es' : 'en';
   const next = `films/walkthrough-member-${lang}.mp4`;
-  if (video.getAttribute('src') !== next) video.setAttribute('src', next);
+  if (video.getAttribute('src') !== next) {
+    video.setAttribute('poster', `films/walkthrough-member-${lang}-poster.jpg`);
+    video.setAttribute('src', next);
+  }
 }
 
 function initWalkthrough() {
