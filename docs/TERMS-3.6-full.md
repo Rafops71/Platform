@@ -131,7 +131,7 @@ Los Operadores no verifican, avalan ni garantizan a ningún Participante, empres
 
 5. Diligencia debida propia
 
-Usted es el único responsable de su propia diligencia debida y de cada decisión comercial que adopte. Usted es responsable de la exactitud de lo que manifieste en la Plataforma, y garantiza que posee cualquier autoridad que afirme poseer, antes de asumir cualquier compromiso. Ello incluye verificar la identidad, la solvencia y la reputación de cualquier contraparte; inspeccionar y comprobar la mercancía, los documentos y los certificados; cumplir sus propias obligaciones en materia de cumplimiento normativo, sanciones y prevención del blanqueo de capitales; y obtener asesoramiento profesional independiente. La presentación realizada por un Operador no constituye una recomendación ni comporta garantía alguna.
+Usted es el único responsable de su propia diligencia debida y de cada decisión comercial que adopte. Usted es responsable de la exactitud de lo que manifieste en la Plataforma, y garantiza que posee cualquier autoridad que afirme poseer, antes de que se asuma cualquier compromiso. Ello incluye verificar la identidad, la solvencia y la reputación de cualquier contraparte; inspeccionar y comprobar la mercancía, los documentos y los certificados; cumplir sus propias obligaciones en materia de cumplimiento normativo, sanciones y prevención del blanqueo de capitales; y obtener asesoramiento profesional independiente. La presentación realizada por un Operador no constituye una recomendación ni comporta garantía alguna.
 
 6. Ausencia de asesoramiento profesional
 

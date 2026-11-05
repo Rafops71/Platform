@@ -152,7 +152,7 @@ Los Operadores no verifican, avalan ni garantizan a ningún Participante, empres
 
 5. Diligencia debida propia
 
-Usted es el único responsable de su propia diligencia debida y de cada decisión comercial que adopte. Usted es responsable de la exactitud de lo que manifieste en la Plataforma, y garantiza que posee cualquier autoridad que afirme poseer, antes de asumir cualquier compromiso. Ello incluye verificar la identidad, la solvencia y la reputación de cualquier contraparte; inspeccionar y comprobar la mercancía, los documentos y los certificados; cumplir sus propias obligaciones en materia de cumplimiento normativo, sanciones y prevención del blanqueo de capitales; y obtener asesoramiento profesional independiente. La presentación realizada por un Operador no constituye una recomendación ni comporta garantía alguna.
+Usted es el único responsable de su propia diligencia debida y de cada decisión comercial que adopte. Usted es responsable de la exactitud de lo que manifieste en la Plataforma, y garantiza que posee cualquier autoridad que afirme poseer, antes de que se asuma cualquier compromiso. Ello incluye verificar la identidad, la solvencia y la reputación de cualquier contraparte; inspeccionar y comprobar la mercancía, los documentos y los certificados; cumplir sus propias obligaciones en materia de cumplimiento normativo, sanciones y prevención del blanqueo de capitales; y obtener asesoramiento profesional independiente. La presentación realizada por un Operador no constituye una recomendación ni comporta garantía alguna.
 
 6. Ausencia de asesoramiento profesional
 
@@ -228,12 +228,12 @@ Las notificaciones previstas en estos Términos deberán realizarse por escrito 
 
 Los datos entre corchetes de este apartado no han sido completados. Son PLACEHOLDER y deben sustituirse por los datos reales de la empresa operadora —y estos Términos, incluidas la cláusula de no elusión del apartado 8 y la elección del Derecho inglés del apartado 15, ser revisados por un abogado— antes de utilizar la Plataforma con Participantes reales.
 $terms$,
-  '301031e13964e1a8b4f4441cb68aca449c7c05a9d673d713edc94db8050beecf'
+  '8d1c425a588d53ba165d5ccb3fb0d54349f6132f8be870f6c6469b32afd0adf9'
 ) on conflict (version, language) do nothing;
 
 do $$ begin
   if (select sha256 from public.terms_versions where version = '3.6' and language = 'es')
-     is distinct from '301031e13964e1a8b4f4441cb68aca449c7c05a9d673d713edc94db8050beecf' then
+     is distinct from '8d1c425a588d53ba165d5ccb3fb0d54349f6132f8be870f6c6469b32afd0adf9' then
     raise exception 'terms_versions 3.6/es already holds a different text';
   end if;
 end $$;
