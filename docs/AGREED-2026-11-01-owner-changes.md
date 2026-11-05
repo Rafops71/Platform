@@ -39,3 +39,4 @@ Owner's own pending (from Mistral): FCA-related document to share; a favour to a
 15. ON HOLD (owner checking with Mistral): show BOTH sides the commission amount + who pays,
     in writing, before introduction. Reason: Hopcraft v Close Brothers [2025] UKSC 33 paras 211, 226
     ("Partial disclosure has never been enough"); fiduciary test paras 276-282.
+42. (2026-11-04) An Operator demo, separate from the member demo, at its own Cloudflare Pages project myplatform-operator-demo: one 'Enter as Operator' button, fake data, English, not linked from any public page.
