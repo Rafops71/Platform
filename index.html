@@ -59,6 +59,17 @@
     </div>
   </div>
 
+  <!-- The member walkthrough, below the sign-in box (owner's decision 41).
+       Play on press only: no autoplay. English and Spanish films; the
+       language switch swaps the file (js/auth.js setWalkthroughSource). -->
+  <div class="card" style="margin-top:16px;">
+    <video id="walkthrough-video" controls playsinline preload="none"
+           poster="films/walkthrough-member-en-poster.jpg"
+           src="films/walkthrough-member-en.mp4"
+           aria-label="MyPlatform member walkthrough"
+           style="display:block;width:100%;border-radius:8px;"></video>
+  </div>
+
   <p class="text-center text-muted" style="font-size:var(--text-base);" data-i18n="login.noAccount">
     No account? Access is by invitation only — ask an Operator for an invitation link.
   </p>
