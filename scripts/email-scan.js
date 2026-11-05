@@ -18,7 +18,7 @@
 
 const { TAG, buildWorld, account, cleanup, http, asUser, must, guardNotLive } = require('./security-grid');
 
-const KEYS = ['invitation', 'registration_submitted', 'registration_approved', 'registration_rejected', 'new_listing'];
+const KEYS = ['invitation', 'registration_submitted', 'registration_approved', 'registration_rejected', 'new_listing', 'terms_receipt'];
 // English only: the Operator side is English only (owner's rule).
 const ENGLISH_ONLY_KEYS = ['operator_new_message'];
 // The address the invitation link points at: the platform's own (2026-10-29).

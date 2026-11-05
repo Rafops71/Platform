@@ -81,6 +81,7 @@ const SETUP = [
   'sql/045_terms_3_5.sql',
   'sql/046_forward_edit_activity.sql',
   'sql/047_operator_mail_on_member_message.sql',
+  'sql/048_terms_receipt_email.sql',
   'sql/049_terms_3_6.sql',
   'sql/seed_commodities.sql',
 ];

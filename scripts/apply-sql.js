@@ -78,7 +78,11 @@ const DEFAULT_ORDER = [
   '045_terms_3_5.sql',
   '046_forward_edit_activity.sql',
   '047_operator_mail_on_member_message.sql',
+<<<<<<< HEAD
   '049_terms_3_6.sql',
+=======
+  '048_terms_receipt_email.sql',
+>>>>>>> origin/receipt-email-terms
   'seed_commodities.sql',
 ];
 
