@@ -16,17 +16,17 @@ insert into public.terms_versions (version, language, text, sha256) values (
 
 Version 3.6
 
-These Terms & Conditions govern your access to and use of Jericho Platform, and include the Privacy Notice at section 10. By ticking the acceptance box and completing registration, you confirm that you have read, understood, and agree to be bound by them. If you do not agree, do not register and do not use the Platform.
+These Terms & Conditions govern your access to and use of MyPlatform, and include the Privacy Notice at section 10. By ticking the acceptance box and completing registration, you confirm that you have read, understood, and agree to be bound by them. If you do not agree, do not register and do not use the Platform.
 
 PLACEHOLDER — THIS DOCUMENT IS NOT YET COMPLETE. Some legal details, in section 16 and in the Privacy Notice at section 10, are still placeholders. They must be completed, and these Terms reviewed by a qualified lawyer, before the Platform is opened to real Participants.
 
 1. Nature of the Platform and the role of the Operators
 
-Jericho Platform is a private tool, provided free of charge, through which brokers, intermediaries and principals in physical commodity markets may promote and find business opportunities. The Operators act as brokers and intermediaries between Participants, and may act for both sides of the same transaction. They read what Participants send in order to protect anonymity and decide what is passed on, and they introduce counterparties to one another. This review is not a check of any Participant, offer, document or price. The Operators are intermediaries, not advisers to either party, and their only duties are those set out in these Terms. The Operators are paid for their brokerage by the commission described in section 8; the Platform itself charges nothing. The Operators broker physical commodity transactions only. The Platform is not an exchange, a clearing house, a payment service, or a broker-dealer in securities or other financial instruments. No transaction is executed, cleared, settled, financed or guaranteed through the Platform, and the Operators are never a party to any contract of sale between Participants.
+MyPlatform is a private tool, provided free of charge, through which brokers, intermediaries and principals in physical commodity markets may promote and find business opportunities. The Operators act as brokers and intermediaries between Participants, and may act for both sides of the same transaction. They read what Participants send in order to protect anonymity and decide what is passed on, and they introduce counterparties to one another. This review is not a check of any Participant, offer, document or price. The Operators are intermediaries, not advisers to either party, and their only duties are those set out in these Terms. The Operators are paid for their brokerage by the commission described in section 8; the Platform itself charges nothing. The Operators broker physical commodity transactions only. The Platform is not an exchange, a clearing house, a payment service, or a broker-dealer in securities or other financial instruments. No transaction is executed, cleared, settled, financed or guaranteed through the Platform, and the Operators are never a party to any contract of sale between Participants.
 
 2. A private, invitation-only platform
 
-Jericho Platform is a private, invitation-only facilitation platform. It is not a public marketplace. Membership is closed: listings are not published to the public, are not indexed or advertised, and no one may join by applying. Access is granted solely at the Operators' discretion and may be suspended or revoked at any time without notice. Nothing in these Terms gives you a right to be admitted, a right to remain a Participant, or a right to be told the reason for any decision about your access.
+MyPlatform is a private, invitation-only facilitation platform. It is not a public marketplace. Membership is closed: listings are not published to the public, are not indexed or advertised, and no one may join by applying. Access is granted solely at the Operators' discretion and may be suspended or revoked at any time without notice. Nothing in these Terms gives you a right to be admitted, a right to remain a Participant, or a right to be told the reason for any decision about your access.
 
 3. Access and eligibility
 
@@ -114,12 +114,12 @@ Notices under these Terms must be given in writing to rafael@myplatform.trade an
 
 The details in brackets in this section have not been completed. They are placeholders, and they must be replaced with the actual details of the operating company — and these Terms, including the non-circumvention clause at section 8 and the choice of English law at section 15, reviewed by a qualified lawyer — before the Platform is used with real Participants.
 $terms$,
-  'e3ea1383229077295a92d673c2a45ac5edfab60a73aea3ec9ea1d1510a294a51'
+  '1e1c698ffabffae8dd590528a7f1a3e2e75cd786ec80769520ca6f3da87b8ef1'
 ) on conflict (version, language) do nothing;
 
 do $$ begin
   if (select sha256 from public.terms_versions where version = '3.6' and language = 'en')
-     is distinct from 'e3ea1383229077295a92d673c2a45ac5edfab60a73aea3ec9ea1d1510a294a51' then
+     is distinct from '1e1c698ffabffae8dd590528a7f1a3e2e75cd786ec80769520ca6f3da87b8ef1' then
     raise exception 'terms_versions 3.6/en already holds a different text';
   end if;
 end $$;
@@ -130,17 +130,17 @@ insert into public.terms_versions (version, language, text, sha256) values (
 
 Versión 3.6
 
-Estos Términos y Condiciones regulan su acceso y uso de Jericho Platform, e incluyen el Aviso de Privacidad recogido en el apartado 10. Al marcar la casilla de aceptación y completar el registro, usted confirma que los ha leído, los ha comprendido y acepta quedar vinculado por ellos. Si no está de acuerdo, no se registre ni utilice la Plataforma.
+Estos Términos y Condiciones regulan su acceso y uso de MyPlatform, e incluyen el Aviso de Privacidad recogido en el apartado 10. Al marcar la casilla de aceptación y completar el registro, usted confirma que los ha leído, los ha comprendido y acepta quedar vinculado por ellos. Si no está de acuerdo, no se registre ni utilice la Plataforma.
 
 PLACEHOLDER — ESTE DOCUMENTO AÚN NO ESTÁ COMPLETO. Algunos datos legales, recogidos en el apartado 16 y en el Aviso de Privacidad del apartado 10, siguen siendo PLACEHOLDER. Deben completarse, y estos Términos ser revisados por un abogado, antes de abrir la Plataforma a Participantes reales.
 
 1. Naturaleza de la Plataforma y función de los Operadores
 
-Jericho Platform es una herramienta privada, gratuita, a través de la cual corredores, intermediarios y principales del mercado físico de materias primas pueden promover y encontrar oportunidades de negocio. Los Operadores actúan como corredores e intermediarios entre los Participantes, y pueden actuar para ambas partes de una misma operación. Leen lo que los Participantes envían con el fin de proteger el anonimato y decidir qué se transmite, y ponen en contacto a las contrapartes. Esta revisión no es una comprobación de ningún Participante, oferta, documento ni precio. Los Operadores son intermediarios, no asesores de ninguna de las partes, y sus únicas obligaciones son las establecidas en estos Términos. Los Operadores perciben por su labor de intermediación la comisión descrita en la sección 8; la Plataforma en sí no cobra nada. Los Operadores intermedian únicamente operaciones de materias primas físicas. La Plataforma no es un mercado organizado, una cámara de compensación, un servicio de pagos ni una sociedad de valores en valores u otros instrumentos financieros. A través de la Plataforma no se ejecuta, compensa, liquida, financia ni garantiza ninguna operación, y los Operadores no son en ningún caso parte de los contratos de compraventa entre Participantes.
+MyPlatform es una herramienta privada, gratuita, a través de la cual corredores, intermediarios y principales del mercado físico de materias primas pueden promover y encontrar oportunidades de negocio. Los Operadores actúan como corredores e intermediarios entre los Participantes, y pueden actuar para ambas partes de una misma operación. Leen lo que los Participantes envían con el fin de proteger el anonimato y decidir qué se transmite, y ponen en contacto a las contrapartes. Esta revisión no es una comprobación de ningún Participante, oferta, documento ni precio. Los Operadores son intermediarios, no asesores de ninguna de las partes, y sus únicas obligaciones son las establecidas en estos Términos. Los Operadores perciben por su labor de intermediación la comisión descrita en la sección 8; la Plataforma en sí no cobra nada. Los Operadores intermedian únicamente operaciones de materias primas físicas. La Plataforma no es un mercado organizado, una cámara de compensación, un servicio de pagos ni una sociedad de valores en valores u otros instrumentos financieros. A través de la Plataforma no se ejecuta, compensa, liquida, financia ni garantiza ninguna operación, y los Operadores no son en ningún caso parte de los contratos de compraventa entre Participantes.
 
 2. Plataforma privada y de acceso exclusivo por invitación
 
-Jericho Platform es una plataforma privada de facilitación, de acceso exclusivo por invitación. No es un mercado público. El acceso se concede exclusivamente a discreción de los Operadores y podrá suspenderse o revocarse en cualquier momento sin previo aviso. El acceso es cerrado: las publicaciones no se difunden al público ni se indexan o publicitan, y no es posible incorporarse a la Plataforma mediante solicitud. Nada en estos Términos le confiere derecho a ser admitido, a permanecer como Participante ni a conocer los motivos de cualquier decisión relativa a su acceso.
+MyPlatform es una plataforma privada de facilitación, de acceso exclusivo por invitación. No es un mercado público. El acceso se concede exclusivamente a discreción de los Operadores y podrá suspenderse o revocarse en cualquier momento sin previo aviso. El acceso es cerrado: las publicaciones no se difunden al público ni se indexan o publicitan, y no es posible incorporarse a la Plataforma mediante solicitud. Nada en estos Términos le confiere derecho a ser admitido, a permanecer como Participante ni a conocer los motivos de cualquier decisión relativa a su acceso.
 
 3. Acceso y requisitos
 
@@ -228,12 +228,12 @@ Las notificaciones previstas en estos Términos deberán realizarse por escrito 
 
 Los datos entre corchetes de este apartado no han sido completados. Son PLACEHOLDER y deben sustituirse por los datos reales de la empresa operadora —y estos Términos, incluidas la cláusula de no elusión del apartado 8 y la elección del Derecho inglés del apartado 15, ser revisados por un abogado— antes de utilizar la Plataforma con Participantes reales.
 $terms$,
-  '8d1c425a588d53ba165d5ccb3fb0d54349f6132f8be870f6c6469b32afd0adf9'
+  '0e1fcbbdf5ee1a6d4f8ecf85bf96ebacc6fca8a10dbde48ab3620bc502fe747c'
 ) on conflict (version, language) do nothing;
 
 do $$ begin
   if (select sha256 from public.terms_versions where version = '3.6' and language = 'es')
-     is distinct from '8d1c425a588d53ba165d5ccb3fb0d54349f6132f8be870f6c6469b32afd0adf9' then
+     is distinct from '0e1fcbbdf5ee1a6d4f8ecf85bf96ebacc6fca8a10dbde48ab3620bc502fe747c' then
     raise exception 'terms_versions 3.6/es already holds a different text';
   end if;
 end $$;
