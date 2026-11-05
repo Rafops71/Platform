@@ -9,14 +9,14 @@ insert into public.email_templates (template_key, lang, subject, body_text) valu
  'Your signed MyPlatform Terms: receipt',
  'Hello {{first_name}},' || E'\n\n' ||
  'Thank you. You signed version {{version}} of the MyPlatform Terms on {{date}}.' || E'\n\n' ||
- 'This email is your receipt. Keep it for your records.' || E'\n\n' ||
- 'If you did not sign these Terms, reply to the Operator at once.'),
+ 'This email is your receipt; please keep it for your records.' || E'\n\n' ||
+ 'If you did not sign these Terms, contact the Operator through the platform at once.'),
 ('terms_receipt', 'es',
  'Sus Términos de MyPlatform firmados: recibo',
  'Hola {{first_name}}:' || E'\n\n' ||
- 'Gracias. Firmó la versión {{version}} de los Términos de MyPlatform el {{date}}.' || E'\n\n' ||
- 'Este correo es su recibo. Guárdelo para sus registros.' || E'\n\n' ||
- 'Si usted no firmó estos Términos, responda al Operador de inmediato.')
+ 'Gracias. Usted firmó la versión {{version}} de los Términos de MyPlatform el {{date}}.' || E'\n\n' ||
+ 'Este correo es su recibo; guárdelo para sus registros.' || E'\n\n' ||
+ 'Si usted no firmó estos Términos, póngase en contacto con el Operador a través de la plataforma de inmediato.')
 on conflict do nothing;
 
 create or replace function public.trg_terms_receipt_email()
