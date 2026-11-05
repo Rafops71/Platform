@@ -30,7 +30,16 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..');
-const OUT = path.join(ROOT, 'dist-demo');
+
+// THE TWO DEMOS. The member demo (dist-demo/) is the default and is unchanged.
+// DEMO_KIND=operator builds the Operator demo (dist-demo-operator/): the
+// Operator console on the same fake data, with one sign-in button and no
+// member screens. It is published to its own project and is never linked from
+// the member demo. Item 42 (owner's decision).
+const KIND = process.env.DEMO_KIND === 'operator' ? 'operator' : 'member';
+const OUT = path.join(ROOT, KIND === 'operator' ? 'dist-demo-operator' : 'dist-demo');
+// The Operator demo carries only these pages. Nothing member-only is copied.
+const OPERATOR_PAGES = ['index.html', 'operator.html', 'help.html', 'terms.html'];
 
 const SUPABASE_CDN_TAG = /<script src="https:\/\/cdn\.jsdelivr\.net\/npm\/@supabase\/supabase-js@[^"]*"><\/script>\r?\n?/g;
 const REAL_CONFIG_TAG = /<script src="js\/supabase-config\.js"><\/script>/g;
@@ -40,8 +49,8 @@ const DEMO_UI_TAG = '<script src="js/demo/demo-ui.js"></script>';
 // The demo is for members only. The Operator console is not part of it at all:
 // not its page, not its script, and no way into it from the demo's sign-in.
 // (Owner's correction, 3 Nov: no Operator entry in the demo.)
-const EXCLUDED_PAGES = ['operator.html'];
-const EXCLUDED_FILES = ['js/operator.js'];
+const EXCLUDED_PAGES = KIND === 'operator' ? [] : ['operator.html'];
+const EXCLUDED_FILES = KIND === 'operator' ? ['js/app.js'] : ['js/operator.js'];
 
 // ------------------------------------------------ the values that must not ship
 function forbiddenValues() {
@@ -67,6 +76,10 @@ function copyDir(from, to, skip) {
 
 function rewritePage(html, file) {
   let out = html.replace(SUPABASE_CDN_TAG, '');
+  if (KIND === 'operator') {
+    // Before any other script, so the demo's seed and sign-in panel can read it.
+    out = out.replace('<head>', '<head>\n<script>window.DEMO_KIND = "operator";</script>');
+  }
   if (REAL_CONFIG_TAG.test(out)) {
     REAL_CONFIG_TAG.lastIndex = 0;
     out = out.replace(REAL_CONFIG_TAG, DEMO_CLIENT_TAGS);
@@ -89,7 +102,10 @@ function build() {
     (src) => path.basename(src) === 'supabase-config.js'
       || EXCLUDED_FILES.some((f) => src === path.join(ROOT, f)));
 
-  const pages = fs.readdirSync(ROOT).filter((f) => f.endsWith('.html') && !EXCLUDED_PAGES.includes(f)).sort();
+  const pages = fs.readdirSync(ROOT)
+    .filter((f) => f.endsWith('.html') && !EXCLUDED_PAGES.includes(f))
+    .filter((f) => KIND !== 'operator' || OPERATOR_PAGES.includes(f))
+    .sort();
   for (const page of pages) {
     const html = fs.readFileSync(path.join(ROOT, page), 'utf8');
     fs.writeFileSync(path.join(OUT, page), rewritePage(html, page));
@@ -125,11 +141,24 @@ function check(pages) {
     }
   }
   for (const f of [...EXCLUDED_PAGES, ...EXCLUDED_FILES]) {
-    if (fs.existsSync(path.join(OUT, f))) problems.push(`${f} was copied into dist-demo (the demo has no Operator console)`);
+    if (fs.existsSync(path.join(OUT, f))) problems.push(`${f} was copied into ${path.basename(OUT)} (not allowed in this demo)`);
   }
-  for (const page of pages) {
-    const html = fs.readFileSync(path.join(OUT, page), 'utf8');
-    if (/js\/operator\.js/.test(html)) problems.push(`${page} loads the Operator console script`);
+  if (KIND === 'member') {
+    for (const page of pages) {
+      const html = fs.readFileSync(path.join(OUT, page), 'utf8');
+      if (/js\/operator\.js/.test(html)) problems.push(`${page} loads the Operator console script`);
+    }
+  } else {
+    // The Operator demo has no member pages, and no member film on its pages.
+    for (const page of ['app.html', 'register.html', 'reset.html']) {
+      if (fs.existsSync(path.join(OUT, page))) problems.push(`${page} was copied into the Operator demo`);
+    }
+    for (const page of pages) {
+      if (!OPERATOR_PAGES.includes(page)) problems.push(`${page} is not allowed in the Operator demo`);
+      if (!/window\.DEMO_KIND = "operator"/.test(fs.readFileSync(path.join(OUT, page), 'utf8'))) {
+        problems.push(`${page} does not declare the Operator demo`);
+      }
+    }
   }
   if (fs.existsSync(path.join(OUT, 'js', 'supabase-config.js'))) {
     problems.push('js/supabase-config.js was copied into dist-demo (it holds the real project address)');
@@ -169,4 +198,4 @@ if (problems.length) {
   process.exit(1);
 }
 const count = listFiles(OUT).length;
-console.log(`Demo built in dist-demo/: ${count} files, ${pages.length} pages. No Supabase address or key found in it.`);
+console.log(`Demo built in ${path.basename(OUT)}/: ${count} files, ${pages.length} pages. No Supabase address or key found in it.`);

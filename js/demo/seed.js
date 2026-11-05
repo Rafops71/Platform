@@ -62,6 +62,11 @@
     'member-a': { profileId: IDS.memberA, page: 'app.html' },
     'member-b': { profileId: IDS.memberB, page: 'app.html' },
   };
+  // Only the Operator demo (window.DEMO_KIND, set by scripts/build-demo.js) has
+  // an Operator entry. The member demo has no way in as the Operator.
+  if (typeof window !== 'undefined' && window.DEMO_KIND === 'operator') {
+    enterAs.operator = { profileId: IDS.operator, page: 'operator.html' };
+  }
 
   // -------------------------------------------------------------- listings --
   // Owner A posts odd numbers, owner B even ones. origin is used for sell

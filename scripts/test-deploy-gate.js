@@ -55,6 +55,11 @@ const cases = [
     const p = path.join(d, '.github', 'workflows', 'demo-pages.yml');
     fs.appendFileSync(p, '\n  pages:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/deploy-pages@v5\n');
   }, false],
+  ['the Operator demo publishes to the member demo project', (d) => {
+    const p = path.join(d, '.github', 'workflows', 'operator-demo-pages.yml');
+    const t = fs.readFileSync(p, 'utf8').replace('--project-name=myplatform-operator-demo', '--project-name=myplatform-demo');
+    fs.writeFileSync(p, t);
+  }, false],
 ];
 
 let failed = 0;

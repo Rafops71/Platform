@@ -33,7 +33,9 @@
     "check:purpose": "node scripts/check-pr-purpose.js",
     "check:deploy": "node scripts/check-deploy-gate.js",
     "build:demo": "node scripts/build-demo.js",
+    "build:demo:operator": "DEMO_KIND=operator node scripts/build-demo.js",
     "test:demo": "playwright test -c playwright.demo.config.js",
+    "test:demo:operator": "playwright test -c playwright.operator-demo.config.js",
     "check:front-page": "node scripts/check-front-page.js"
   },
   "dependencies": {
