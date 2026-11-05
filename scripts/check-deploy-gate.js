@@ -78,9 +78,9 @@ for (const f of fs.readdirSync(wfDir).filter(n => /\.ya?ml$/.test(n))) {
   const cf = (body.match(/cloudflare\/wrangler-action@/g) || []).length;
   // ci.yml: the app and the front page. demo-pages.yml: the demo, in its own
   // gated job (checked below). Any other file may not publish to Cloudflare.
-  const expectedCf = f === 'ci.yml' ? 2 : (f === 'demo-pages.yml' || f === 'operator-demo-pages.yml') ? 1 : 0;
+  const expectedCf = f === 'ci.yml' ? 2 : (f === 'demo-pages.yml' || f === 'operator-demo-pages.yml' || f === 'platformdemo-pages.yml') ? 1 : 0;
   if (cf !== expectedCf) {
-    problems.push(`${f} contains ${cf} wrangler-action step(s); only ci.yml's deploy-cloudflare and deploy-www jobs, demo-pages.yml's publish-demo job and operator-demo-pages.yml's publish-operator-demo job may publish there (ci.yml: 2, the two demo files: 1).`);
+    problems.push(`${f} contains ${cf} wrangler-action step(s); only ci.yml's deploy-cloudflare and deploy-www jobs, demo-pages.yml's publish-demo job and operator-demo-pages.yml's publish-operator-demo job and platformdemo-pages.yml's publish-platformdemo job may publish there (ci.yml: 2, each demo file: 1).`);
   }
 }
 
@@ -93,6 +93,7 @@ for (const f of fs.readdirSync(wfDir).filter(n => /\.ya?ml$/.test(n))) {
 function checkDemoPublisher() {
   checkOnePublisher({ file: 'demo-pages.yml', job: 'publish-demo', project: 'myplatform-demo', dir: 'dist-demo' });
   checkOnePublisher({ file: 'operator-demo-pages.yml', job: 'publish-operator-demo', project: 'myplatform-operator-demo', dir: 'dist-demo-operator' });
+  checkOnePublisher({ file: 'platformdemo-pages.yml', job: 'publish-platformdemo', project: 'platformdemo', dir: 'dist-platformdemo' });
 }
 
 function checkOnePublisher({ file, job, project, dir }) {

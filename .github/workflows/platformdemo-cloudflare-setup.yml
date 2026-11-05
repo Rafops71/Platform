@@ -1,0 +1,39 @@
+name: platformdemo Cloudflare project setup (manual)
+
+# Runs ONLY when someone starts it by hand (workflow_dispatch). It proves the
+# teardown for the platformdemo's Cloudflare Pages project on a throwaway project,
+# then creates the platformdemo project. It publishes no site, and it never touches
+# `platform`, `platform-www` or `myplatform-demo`: scripts/platformdemo-cloudflare-setup.sh hard-codes
+# the names and refuses anything else. The member demo (myplatform-demo) is never
+# touched here.
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare-platformdemo-setup
+  cancel-in-progress: false
+
+jobs:
+  setup:
+    name: Prove the teardown, then create platformdemo
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Are the secrets configured?
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::Setup cannot run: CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID must both be set."
+            exit 1
+          fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prove the teardown, then create the platformdemo project
+        run: bash scripts/platformdemo-cloudflare-setup.sh
