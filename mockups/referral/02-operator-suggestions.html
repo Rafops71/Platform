@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MOCKUP - Member suggestions (Operator console)</title>
+<title>MOCKUP - Invitations with candidate recommendations (Operator console)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600&family=Source+Sans+3:wght@400;600&display=swap">
@@ -28,7 +28,7 @@
     <button>Overview</button>
     <button>Approvals</button>
     <button>All Listings</button>
-    <button>Invitations</button>
+    <button class="active">Invitations</button>
     <button>Users</button>
     <button>Commodities</button>
     <button>Mailbox</button>
@@ -40,16 +40,12 @@
     <button>Help</button>
   </div>
 </nav>
-<div class="container" style="padding-top:8px;">
-  <div class="undecided" style="margin:8px 0 0;"><strong>UNDECIDED - owner to choose</strong>Where in the menu does this list sit? (No menu item has been decided.)</div>
-</div>
 
 <main class="container">
   <div class="card">
+    <h2 class="mt-0">Candidate recommendations</h2>
 
-    <div class="undecided title-box"><strong>UNDECIDED - owner to choose</strong>Name of this list: what is it called?</div>
-
-    <div class="table-wrap" style="overflow-x:auto;">
+    <div style="overflow-x:auto;">
       <table class="data-table">
         <thead>
           <tr>
@@ -68,7 +64,7 @@
             <td data-label="Company">Example Company A</td>
             <td data-label="Commodities">Example commodity 1</td>
             <td data-label="Date">2026-11-06</td>
-            <td><button class="btn btn-secondary btn-small" onclick="return false;">Invite</button></td>
+            <td><div class="mock-row-actions"><button class="btn btn-secondary btn-small" onclick="return false;">Invite</button><button class="btn btn-secondary btn-small" onclick="return false;">Decline</button></div></td>
           </tr>
           <tr>
             <td data-label="Suggested by">Example Member</td>
@@ -76,14 +72,13 @@
             <td data-label="Company">Example Company B</td>
             <td data-label="Commodities">Example commodity 2</td>
             <td data-label="Date">2026-11-07</td>
-            <td><button class="btn btn-secondary btn-small" onclick="return false;">Invite</button></td>
+            <td><div class="mock-row-actions"><button class="btn btn-secondary btn-small" onclick="return false;">Invite</button><button class="btn btn-secondary btn-small" onclick="return false;">Decline</button></div></td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <div class="undecided"><strong>UNDECIDED - owner to choose</strong>Decline button: decline? (No decline button has been decided.)</div>
-
+    <div class="undecided"><strong>UNDECIDED - owner to choose</strong>Decline: what does it do, and is the referrer told? Not decided.</div>
   </div>
 </main>
 </body>

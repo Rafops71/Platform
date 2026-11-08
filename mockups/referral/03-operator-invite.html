@@ -28,7 +28,7 @@
     <button>Overview</button>
     <button>Approvals</button>
     <button>All Listings</button>
-    <button>Invitations</button>
+    <button class="active">Invitations</button>
     <button>Users</button>
     <button>Commodities</button>
     <button>Mailbox</button>
@@ -40,26 +40,24 @@
     <button>Help</button>
   </div>
 </nav>
-<div class="container" style="padding-top:8px;">
-  <div class="undecided" style="margin:8px 0 0;"><strong>UNDECIDED - owner to choose</strong>Page title: what is this page called?</div>
-</div>
 
 <main class="container">
   <div class="card">
 
-    <div class="undecided title-box"><strong>UNDECIDED - owner to choose</strong>Page title for this invitation page (not decided).</div>
+    <div class="undecided title-box"><strong>UNDECIDED - owner to choose</strong>Page title for this invitation page: not decided.</div>
 
     <form onsubmit="return false;">
-
-      <div class="undecided"><strong>UNDECIDED - owner to choose</strong>Candidate email. Owner to confirm whether it is asked here or taken from the suggestion.</div>
 
       <label>Candidate name</label>
       <input class="mock-input" type="text" value="Example Candidate">
 
+      <label>Candidate email</label>
+      <input class="mock-input" type="email" value="example.candidate@example.com">
+
       <label>Referrer name</label>
       <input class="mock-input" type="text" value="Example Member">
 
-      <label>Message preview (version A, approved by the owner)</label>
+      <label>Message preview</label>
       <div class="approved-text">Dear Example Candidate,
 
 Example Member has recommended you as a prospective member of MyPlatform, a private, invitation-only marketplace for physical commodities. We are pleased to invite you to join.
