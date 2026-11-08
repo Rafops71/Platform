@@ -112,8 +112,11 @@ async function must(label, p) {
 
 const made = { users: [], rows: [] };
 
-async function account(label, { role = 'participant', status = 'approved', inviter, language = 'en' } = {}) {
-  const email = `${TAG}-${label}@example.invalid`;
+// domain: test accounts use example.invalid, which the email triggers skip on
+// purpose (sql/047, 048, 056). The email scan passes another reserved .invalid
+// domain for the few accounts that must receive a real trigger's email.
+async function account(label, { role = 'participant', status = 'approved', inviter, language = 'en', domain = 'example.invalid' } = {}) {
+  const email = `${TAG}-${label}@${domain}`;
   const password = crypto.randomBytes(18).toString('base64url') + 'aA1!';
   if (inviter) {
     await must(`invite ${label}`, http('/rest/v1/invitations', {
