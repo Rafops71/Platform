@@ -40,6 +40,21 @@ async function waitForFilmsToSettle(page, label) {
   } catch (err) {
     throw new Error(`${label}: a film on the page was still loading, or its poster picture did not load, after 15 seconds, so the picture was not taken (${err.message})`);
   }
+  // Even an idle film (networkState 1, readyState 0, nothing loaded) can have the
+  // browser's loading circle drawn over it, caught at a different angle on each
+  // shot (429 to 538 pixels on the phone start page, PR 93; it appeared in every
+  // one of 25 local shots, and in some CI runs only). Switching the film's own
+  // controls off and on makes the browser work out their state afresh from the
+  // film's real state, which is idle: the circle is gone and the controls are
+  // the ones a member sees (15 of 15 local shots identical). Nothing is hidden,
+  // masked or stubbed, and no approved picture changes.
+  await page.evaluate(() => {
+    for (const v of document.querySelectorAll('video')) {
+      v.controls = false;
+      void v.offsetHeight;
+      v.controls = true;
+    }
+  });
   // One painted frame after the last change, so nothing is caught half-drawn.
   await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
 }
