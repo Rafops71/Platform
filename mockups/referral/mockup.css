@@ -1,0 +1,61 @@
+/* MOCKUP ONLY - nothing here works. Shared by the three referral mockups. */
+
+.mock-banner {
+  background: var(--amber-tint);
+  color: var(--amber);
+  border-bottom: 2px solid var(--amber);
+  text-align: center;
+  font-weight: 600;
+  padding: 8px 12px;
+}
+
+/* A box for anything the owner has not decided. Dashed and grey on purpose,
+   so nobody reads it as a real button, field or wording. */
+.undecided {
+  border: 2px dashed #8a949e;
+  background: #f2f4f6;
+  color: #52677a;
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  margin: 10px 0;
+  font-size: var(--text-base);
+}
+.undecided strong {
+  display: block;
+  color: #3d4a55;
+  text-transform: uppercase;
+  font-size: var(--text-sm);
+  letter-spacing: 0.4px;
+  margin-bottom: 4px;
+}
+.undecided.inline { display: inline-block; margin: 0 0 0 10px; padding: 6px 10px; }
+.undecided.title-box { margin: 0 0 14px; }
+.undecided.title-box strong { font-size: var(--text-base); }
+
+/* Wording shown exactly as the owner approved it. */
+.approved-text {
+  white-space: pre-line;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  background: var(--surface);
+  line-height: 1.5;
+}
+
+.mock-disabled { opacity: 1; }
+.mock-row-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+
+/* Fake form fields are only drawn, never wired. */
+.mock-input {
+  display: block;
+  width: 100%;
+  border: 1px solid #b8c7d4;
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  font-size: var(--text-base);
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-body);
+  box-sizing: border-box;
+}
+.mock-input.area { min-height: 72px; }
