@@ -345,7 +345,7 @@ const TERMS_VERSION = '3.6';
 // its number here and a terms.sN.title plus either a terms.sN.body or the
 // numbered paragraphs below, in both languages. Renumbering means editing the
 // numbers inside the title strings too - they are part of the text.
-const TERMS_SECTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+const TERMS_SECTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
 
 // Sections whose body runs to more than one paragraph. A section listed here
 // has terms.sN.p1 … p{count} instead of a single terms.sN.body; one that is
