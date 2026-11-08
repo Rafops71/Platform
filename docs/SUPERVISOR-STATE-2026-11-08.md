@@ -17,6 +17,9 @@ Read with: docs/HANDOVER-2026-11-08.md, CLAUDE.md, docs/SUPERVISOR-NOTES.md. Pla
 - Migration order fixed: Terms 3.7 is now sql/058 (apply after 056, 057). Live apply of 051-053 DONE and verified (run 42507262422; messages_status_check allows 'denied').
 - One CI lane: push to one PR at a time (shared live-DB group).
 
+- STANDING BATCH GO (owner, 8 Nov late evening, his words: "you have my future permission to batch go"): the supervisor may open and merge pull requests without asking each time, ONLY when every check on the exact head commit is green, in the agreed order (#93 batch 1, then #95 T7, then #86/#87 housekeeping/#89/#90 as per notes). Does NOT cover: live-database applies other than safe additive ones he has said yes to (055 purge needs his explicit yes), deleting members' data, anything he has not approved. Tell him after each merge, with the second-opinion points acted on or not.
+- DONE 8 Nov: PR #96 (Terms 3.7 + Part B) merged into main (99d8533); 051-053 and 056-058 applied live and read back; the unknown 'test participant' account deleted at his word; no Terms letters sent. #93 now has main merged in (builder chose merge, not rebase); only a flaky phone start-page picture is red (builder job 9).
+
 ## Pull requests (verified on GitHub 17:3x UTC)
 - #86 receipt email (head receipt-email-terms 86ae4b4): open, contained in terms-3-6.
 - #87 Terms 3.6 (head terms-3-6 0e03a90): open; the live database is ALREADY on 3.6 (sql 048, 049 applied 05-11).
