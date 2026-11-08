@@ -11,6 +11,12 @@ Read with: docs/HANDOVER-2026-11-08.md, CLAUDE.md, docs/SUPERVISOR-NOTES.md. Pla
 - Terms: STOP deepening. Freeze at version 3.7 = only today's decided changes. Reviews' ideas parked (docs/terms-reviews/ + the merged list in the supervisor scratchpad, TERMS-REVIEWS-RANKED-supervisor.md, not in the repo).
 - Jericho -> MyPlatform / myplatform everywhere (see open question below).
 
+## NEW SETUP (owner yes, 8 Nov evening, confirmed by him in chat)
+- ONE Sonnet builder session (model claude-sonnet-5-5) writes ALL code, migrations and tests. Haiku ONLY for small chores (search, list, copy, run one check, read a log). Supervisor verifies with tools. Haikus mid-way finish only if nearly done, then are archived.
+- Owner rule: saving to a work branch on GitHub is always allowed; BATCH GO is only for opening and merging pull requests. Terms PR #96 opened (BATCH GO given for opening); merge still needs his BATCH GO after all checks are green.
+- Migration order fixed: Terms 3.7 is now sql/058 (apply after 056, 057). Live apply of 051-053 DONE and verified (run 42507262422; messages_status_check allows 'denied').
+- One CI lane: push to one PR at a time (shared live-DB group).
+
 ## Pull requests (verified on GitHub 17:3x UTC)
 - #86 receipt email (head receipt-email-terms 86ae4b4): open, contained in terms-3-6.
 - #87 Terms 3.6 (head terms-3-6 0e03a90): open; the live database is ALREADY on 3.6 (sql 048, 049 applied 05-11).
@@ -18,7 +24,7 @@ Read with: docs/HANDOVER-2026-11-08.md, CLAUDE.md, docs/SUPERVISOR-NOTES.md. Pla
 - #90 remove old films (37db21f): open, owner approved.
 - #93 batch 2026-11-08 (batch-2026-11-08, head 4fb8295): Jericho rename, English+Spanish Help, read-only Operator forward window with red contact details and "Ask member to rewrite", status 'denied', start-page pictures retaken, migrations 051-053. Checks last seen: database tests, second opinion, volume, demos OK; failing: grid (known Terms mismatch), function checklist (Spanish invitation test fixed by Haiku; 'approved participant posts a listing' = known mismatch; forward-modal failure root cause = live database lacks status 'denied' until 052 is applied), pictures (1 phone picture 517 px vs 345 allowed; re-run pending). The owner approved applying 051, 052, 053 to the LIVE database; Haiku was told to run apply-sql.yml ref=batch-2026-11-08 with only those three files and read back; RESULT NOT YET SEEN.
 - #95 T7 Recommend a candidate (t7-recommend-2026-11-08, head af64d4d): open; Items 82-87; migrations 054, 055 (055 = 12-month purge function, NOT scheduled, NOT applied, goes live only with the owner's explicit yes); the cap-of-5 concurrency test joins the gate (owner yes). 'Says what it serves' failed once on an 'Item 81' mention, fixed, now green. Other checks: see GitHub.
-- Branch terms-3-6-final (no PR yet): Terms 3.7 text + Part B (T1 code) being built by Haiku.
+- #96 Terms 3.7 + Part B (head terms-3-6-final, 5d661ca+): open; Haiku fixing grid (terms_change_emails), 16->17 clauses test, 4 Terms baselines. 'approved participant posts a listing' stays red until 056-058 applied live (owner yes needed).
 
 ## Merge order (Opus): 1) terms-3-6-final -> main  2) rebase batch #93 on it (migration lists in scripts/apply-sql.js and scripts/pg-harness.js conflict: keep all 048-057 in number order), re-run all  3) rebase T7 #95. Merge only when every check on the head commit is green AND the owner writes BATCH GO. Never rebase onto terms-3-6 (final already contains it).
 Migration numbers: 048, 049 live (terms-3-6); 050 = Terms 3.7 (never apply before 057); 051-053 batch 1; 054-055 T7; 056, 057 T1 Part B. Checklist: 81 receipt email; 82-87 T7; 88 T1 email (proposed). Item 62 replaced (sign once).
