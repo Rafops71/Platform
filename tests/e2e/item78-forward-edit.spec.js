@@ -95,6 +95,11 @@ test('Item78 a message with contact details is red, cannot be forwarded, and the
   );
   expect(status[0].status).toBe('denied');
   await page.reload();
+  // After a reload the tab buttons are wired only once the console has finished
+  // starting (the same race signIn() waits out: js/operator.js fills #user-name
+  // in the block that calls wireTabs()). A click before that is dropped, and the
+  // Mailbox never opens - which is what failed here, not the feature.
+  await expect(page.locator('#user-name')).not.toBeEmpty({ timeout: 20_000 });
   await openScreen(page, 'mailbox');
   const denied = page.locator('#operator-mailbox-list .list-row', { hasText: ORIGINAL });
   await expect(denied.locator('.badge')).toHaveText('Denied');
