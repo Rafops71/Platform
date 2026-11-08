@@ -146,7 +146,11 @@ reset role; reset test.uid;
 -- Their profile ids are put into terms_change_emails for one version before it
 -- is published; the trigger then skips them, with an empty summary, and the
 -- blank-summary guard still holds for everybody else and for every other version.
--- Here the four approved real participants (3 English, 1 Spanish) stand for them.
+-- Live has two such participants and one approved operator (an operator is never
+-- emailed: sql/056 reads role = 'participant' only). The test matches that: the
+-- two other English members are held pending for this block and put back after.
+update public.profiles set status = 'pending'
+ where email in ('chg-signed@mailcheck-platform.com', 'chg-unsigned@mailcheck-platform.com');
 create temp table t29_before as select count(*) as n from public.email_outbox;
 
 insert into public.terms_change_emails (version, profile_id)
@@ -154,8 +158,8 @@ select '9.5', id from public.profiles
  where role = 'participant' and status = 'approved'
    and email not like 'jericho-e2e-%' and email not like '%@example.%';
 
-select case when count(*) = 4 then 'PASS' else 'FAIL got ' || count(*) end
-  as "T12 Item88 four approved real members are set aside for version 9.5 (setup check)"
+select case when count(*) = 2 then 'PASS' else 'FAIL got ' || count(*) end
+  as "T12 Item88 two approved participants (one English, one Spanish) are set aside for 9.5, the operator is not asked"
 from public.terms_change_emails where version = '9.5';
 
 do $$ begin
@@ -169,7 +173,7 @@ select case when msg = 'OK' then 'PASS' else 'FAIL ' || msg end
 from t29_hold where label = 'publish 9.5';
 
 select case when (select count(*) from public.email_outbox) = (select n from t29_before)
-             and (select count(*) from public.terms_change_emails where version = '9.5') = 4
+             and (select count(*) from public.terms_change_emails where version = '9.5') = 2
             then 'PASS' else 'FAIL' end
   as "T14 Item88 the set-aside members are emailed nothing and no other row was added for 9.5";
 
@@ -208,5 +212,8 @@ from t29_hold where label = 'publish 9.4';
 select case when count(*) = 0 then 'PASS' else 'FAIL got ' || count(*) end
   as "T17 Item88 the refused 9.4 publish leaves no version row behind"
 from public.terms_versions where version = '9.4';
+
+update public.profiles set status = 'approved'
+ where email in ('chg-signed@mailcheck-platform.com', 'chg-unsigned@mailcheck-platform.com');
 
 update public.profiles set status = 'approved' where id in (select id from t29_set_aside);
