@@ -109,6 +109,7 @@ the suite: this platform's product is controlled disclosure, so proving a thing
 | 79 | Every approved Operator is emailed when a member sends a message, and the email carries none of the message | does |
 | 80 | The member walkthrough film sits below the sign-in box, in English or Spanish to match the page, and plays only when pressed | does |
 | 81 | A member who signs the Terms gets one receipt email, in their own language, and re-saving a signed acceptance sends no second one | does |
+| 88 | When new Terms are published, every approved member is emailed a summary of the changes and a link, once | does |
 
 ## Open questions on this list
 

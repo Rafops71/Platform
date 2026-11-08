@@ -80,6 +80,8 @@ const DEFAULT_ORDER = [
   '047_operator_mail_on_member_message.sql',
   '048_terms_receipt_email.sql',
   '049_terms_3_6.sql',
+  '056_terms_change_email.sql',
+  '057_terms_gate_signed_once.sql',
   '050_terms_3_7.sql',
   'seed_commodities.sql',
 ];
