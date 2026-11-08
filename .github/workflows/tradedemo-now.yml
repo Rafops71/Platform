@@ -3,6 +3,7 @@ name: tradedemo publish now (owner, 2026-11-08)
 # One-off, owner's instruction: publish the white-label TEST demo (fake data,
 # no database) from branch platformdemo without waiting for main's gate.
 # Remove this file before merging the branch into main.
+# 2026-11-08: republish without Help and questions (owner).
 on:
   push:
     branches: [platformdemo]

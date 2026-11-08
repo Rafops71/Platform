@@ -115,6 +115,7 @@ function build() {
   fs.rmSync(OUT, { recursive: true, force: true });
   copyDir(SRC, OUT);
   fs.rmSync(path.join(OUT, 'films'), { recursive: true, force: true });
+  fs.rmSync(path.join(OUT, 'help.html'), { force: true });
 
   for (const file of walk(OUT)) {
     const ext = path.extname(file).toLowerCase();
@@ -122,6 +123,12 @@ function build() {
     let text = fs.readFileSync(file, 'utf8');
     const before = text;
     if (ext === '.html') text = stripVideoCards(text);
+    // Owner, 2026-11-08: no Help and questions anywhere in this demo.
+    if (ext === '.html') {
+      text = text.replace(/\s*·\s*<a href="help\.html"[^>]*>[^<]*<\/a>/g, '');
+      text = text.replace(/<a href="help\.html"[^>]*>[^<]*<\/a>/g, '');
+      text = text.replace(/<button data-screen="help"[^>]*>[^<]*<\/button>/g, '');
+    }
     if (ext === '.js') text = stripFilmScripts(file, text);
     for (const [from, to] of PAIRS) text = text.replace(from, to);
     for (const re of LEFTOVER) text = text.replace(re, ' ');
@@ -142,6 +149,7 @@ function scan(dir) {
     if (/myplatform/i.test(text)) bad.push(`${rel}: contains "myplatform"`);
     if (/\.mp4/i.test(text)) bad.push(`${rel}: contains ".mp4"`);
     if (/<video/i.test(text)) bad.push(`${rel}: contains "<video"`);
+    if (/href="help\.html"|data-screen="help"/i.test(text)) bad.push(`${rel}: still links to Help`);
   }
   return bad;
 }
