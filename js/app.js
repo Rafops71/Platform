@@ -872,7 +872,7 @@ async function loadMailbox() {
   container.innerHTML = `<p class="empty-state">${t('common.loading')}</p>`;
 
   const { data: messages, error } = await myplatform
-    .from('messages').select('*').order('created_at', { ascending: false });
+    .from('messages').select('*').neq('status', 'denied').order('created_at', { ascending: false });
   if (!fresh()) return;
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
 

@@ -82,6 +82,7 @@ const SETUP = [
   'sql/046_forward_edit_activity.sql',
   'sql/047_operator_mail_on_member_message.sql',
   'sql/048_message_rewrite_activity.sql',
+  'sql/049_message_denied_status.sql',
   'sql/seed_commodities.sql',
 ];
 

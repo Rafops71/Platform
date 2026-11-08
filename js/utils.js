@@ -507,6 +507,7 @@ function setSelectValue(id, value) {
 }
 
 const STATUS_LABELS = {
+  denied: 'Denied',
   available: 'Available', under_review: 'Under Review', negotiation: 'Negotiation',
   closed: 'Closed', archived: 'Archived',
   pending: 'Pending', approved: 'Approved', rejected: 'Rejected', suspended: 'Suspended',

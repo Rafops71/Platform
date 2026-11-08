@@ -1099,7 +1099,7 @@ function renderForwardEditor() {
   html += escapeHtml(text.slice(at));
   document.getElementById('forward-preview').innerHTML = html;
   document.getElementById('forward-flags').textContent = hits.length
-    ? `${hits.length} contact detail(s) highlighted in red.`
+    ? `${hits.length} contact detail(s) highlighted in red. This message cannot be forwarded.`
     : '';
   // A message with contact details cannot be forwarded: Forward is disabled and
   // the rewrite request is offered instead.
@@ -1132,7 +1132,7 @@ async function askMemberToRewrite() {
 }
 
 /** The message is not forwarded. The member gets a reply with the fixed text,
- *  the original is marked 'ignored' so it is never delivered, and the activity
+ *  the original is marked 'denied' so it is never delivered, and the activity
  *  log keeps the original body (sql/048). */
 async function askMemberToRewriteNow() {
   const original = FORWARD_TARGET;
@@ -1148,7 +1148,7 @@ async function askMemberToRewriteNow() {
   if (e2) { showError(errorMessage(e2)); return; }
 
   await myplatform.from('messages').update({ status: 'forwarded' }).eq('id', newMsg.id);
-  const { error: e3 } = await myplatform.from('messages').update({ status: 'ignored' }).eq('id', original.messageId);
+  const { error: e3 } = await myplatform.from('messages').update({ status: 'denied' }).eq('id', original.messageId);
   if (e3) { showError(errorMessage(e3)); return; }
 
   const { error: e4 } = await myplatform.rpc('record_activity', {

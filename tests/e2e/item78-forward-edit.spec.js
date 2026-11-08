@@ -93,7 +93,12 @@ test('Item78 a message with contact details is red, cannot be forwarded, and the
   const { rows: status } = await query(
     `select status from public.messages where body = $1`, [ORIGINAL]
   );
-  expect(status[0].status).toBe('ignored');
+  expect(status[0].status).toBe('denied');
+  await page.reload();
+  await openScreen(page, 'mailbox');
+  const denied = page.locator('#operator-mailbox-list .list-row', { hasText: ORIGINAL });
+  await expect(denied.locator('.badge')).toHaveText('Denied');
+  await expect(denied.locator('[data-forward], [data-reply], [data-ignore]')).toHaveCount(0);
 
   // The Operator-only log holds the original body.
   const { rows: logged } = await query(
