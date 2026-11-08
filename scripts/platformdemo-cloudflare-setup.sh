@@ -17,8 +17,8 @@
 
 set -euo pipefail
 
-TEST_PROJECT="deletetest-platformdemo"
-DEMO_PROJECT="platformdemo"
+TEST_PROJECT="deletetest-tradedemo"
+DEMO_PROJECT="tradedemo"
 WRANGLER="npx --yes wrangler@4.157.0"
 
 # Refuse to run with any other name. The live projects are never valid here.
@@ -27,8 +27,8 @@ for name in "$TEST_PROJECT" "$DEMO_PROJECT"; do
     platform|platform-www|myplatform-demo|myplatform-operator-demo) echo "REFUSED: $name is a live project, not this one."; exit 1 ;;
   esac
 done
-[ "$TEST_PROJECT" = "deletetest-platformdemo" ] || { echo "REFUSED: test project name changed."; exit 1; }
-[ "$DEMO_PROJECT" = "platformdemo" ] || { echo "REFUSED: platformdemo project name changed."; exit 1; }
+[ "$TEST_PROJECT" = "deletetest-tradedemo" ] || { echo "REFUSED: test project name changed."; exit 1; }
+[ "$DEMO_PROJECT" = "tradedemo" ] || { echo "REFUSED: platformdemo project name changed."; exit 1; }
 
 # Is the project listed? Whole-word match on the name in wrangler's list output.
 # The output is captured first: with `pipefail`, `grep -q` exiting early would

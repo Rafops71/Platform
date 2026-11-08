@@ -93,7 +93,7 @@ for (const f of fs.readdirSync(wfDir).filter(n => /\.ya?ml$/.test(n))) {
 function checkDemoPublisher() {
   checkOnePublisher({ file: 'demo-pages.yml', job: 'publish-demo', project: 'myplatform-demo', dir: 'dist-demo' });
   checkOnePublisher({ file: 'operator-demo-pages.yml', job: 'publish-operator-demo', project: 'myplatform-operator-demo', dir: 'dist-demo-operator' });
-  checkOnePublisher({ file: 'platformdemo-pages.yml', job: 'publish-platformdemo', project: 'platformdemo', dir: 'dist-platformdemo' });
+  checkOnePublisher({ file: 'platformdemo-pages.yml', job: 'publish-platformdemo', project: 'tradedemo', dir: 'dist-platformdemo' });
 }
 
 function checkOnePublisher({ file, job, project, dir }) {
