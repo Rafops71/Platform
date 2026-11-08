@@ -23,7 +23,7 @@ with actual as (
   select c.relname as name from pg_class c join pg_namespace n on n.oid = c.relnamespace
    where n.nspname = 'public' and c.relkind in ('r', 'p')
 ), approved(name) as (values
-  ('activity_log'), ('commodities'), ('deal_history'), ('deals'), ('document_checklist'),
+  ('activity_log'), ('candidate_recommendations'), ('commodities'), ('deal_history'), ('deals'), ('document_checklist'),
   ('document_requests'), ('email_outbox'), ('email_phrases'), ('email_templates'),
   ('invitations'), ('listings'), ('matches'), ('message_forward_log'), ('messages'),
   ('notifications'), ('profiles'), ('reference_counters'), ('saved_searches'),
@@ -79,10 +79,13 @@ with actual as (
      and not has_function_privilege('anon', p.oid, 'execute')
 ), approved(f) as (values
   ('accept_terms(p_version text, p_language text, p_signed_name text, p_capacity text, p_company text, p_address_line1 text, p_address_line2 text, p_city text, p_postal_code text, p_country text)'),
+  ('submit_candidate_recommendation(p_candidate_name text, p_candidate_company text, p_candidate_email text, p_how_known text, p_commodities text, p_agreed_contact boolean, p_own_experience text)'),
   ('deal_analytics(p_bucket text, p_periods integer)'), ('get_public_listings()'),
   ('has_accepted_current_terms()'), ('looks_like_po_box(p text)'), ('mark_invitation_used(p_token text)'),
   ('member_scorecard(p_profile_id uuid)'), ('my_activity_export()'), ('next_reference(p_type text)'),
-  ('operator_analytics(p_bucket text, p_periods integer)'), ('purge_orphaned_activity()'),
+  ('operator_analytics(p_bucket text, p_periods integer)'), ('operator_decline_candidate_recommendation(p_id uuid)'),
+  ('operator_invite_from_recommendation(p_id uuid, p_token text, p_link text, p_lang text)'),
+  ('operator_list_candidate_recommendations()'), ('purge_orphaned_activity()'),
   ('queue_invitation_email(p_to_email text, p_link text, p_lang text)'),
   ('record_activity(p_action text, p_details jsonb)'), ('renew_listing(p_listing_id uuid)'),
   ('send_manual_reminder(p_listing_id uuid)')

@@ -187,7 +187,8 @@ function showScreen(name) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('active'));
   document.getElementById(`screen-${name}`).classList.add('active');
-  const tabBtn = document.querySelector(`nav.tabs button[data-screen="${name}"]`);
+  // The Recommend a candidate page has no tab of its own; it belongs to Profile.
+  const tabBtn = document.querySelector(`nav.tabs button[data-screen="${name === 'recommend' ? 'profile' : name}"]`);
   if (tabBtn) tabBtn.classList.add('active');
 
   if (name === 'my-listings') { loadMyListings(); loadSavedSearches(); }
@@ -1007,6 +1008,8 @@ function wireProfile() {
   fillProfileForm();
 
   document.getElementById('profile-form').addEventListener('submit', saveProfileDetails);
+  document.getElementById('recommend-open-btn').addEventListener('click', () => showScreen('recommend'));
+  document.getElementById('recommend-form').addEventListener('submit', submitRecommendation);
   document.getElementById('email-form').addEventListener('submit', changeEmail);
   document.getElementById('password-form').addEventListener('submit', changePassword);
   document.getElementById('export-activity-btn').addEventListener('click', exportMyActivity);
@@ -1033,6 +1036,34 @@ function fillProfileForm() {
 
   document.getElementById('p_role_value').textContent = roleLabel(CURRENT_PROFILE.role);
   document.getElementById('p_status_value').textContent = statusLabel(CURRENT_PROFILE.status);
+}
+
+// ------------------------------------------------------- RECOMMENDATIONS ----
+// A member recommends a candidate. The row goes to the Operators only: the
+// database lets no member read it back (sql/054). The limit of five open
+// recommendations is enforced there too; this page only says it.
+async function submitRecommendation(e) {
+  e.preventDefault();
+  return withButtonBusy('recommend-btn', t('common.sending'), async () => {
+    const agreed = document.querySelector('input[name="r_agreed"]:checked');
+    if (!agreed) return;
+
+    const { error } = await jericho.rpc('submit_candidate_recommendation', {
+      p_candidate_name: document.getElementById('r_name').value.trim(),
+      p_candidate_company: document.getElementById('r_company').value.trim(),
+      p_candidate_email: document.getElementById('r_email').value.trim(),
+      p_how_known: document.getElementById('r_how').value.trim(),
+      p_commodities: document.getElementById('r_commodities').value.trim(),
+      p_agreed_contact: agreed.value === 'yes',
+      p_own_experience: document.getElementById('r_experience').value.trim(),
+    });
+    // 53400 is the database's own five-open limit (sql/054): the page says it
+    // in the member's language rather than the database's English.
+    if (error) { showError(error.code === '53400' ? t('recommend.limitHint') : errorMessage(error)); return; }
+
+    e.target.reset();
+    showSuccess(t('contact.sent'));
+  });
 }
 
 async function saveProfileDetails(e) {

@@ -108,6 +108,11 @@ the suite: this platform's product is controlled disclosure, so proving a thing
 | 78 | An Operator can edit a message before forwarding it: contact details are highlighted and block the forward, the owner gets only the edited text, and the original stays in the Operator-only activity log | does |
 | 79 | Every approved Operator is emailed when a member sends a message, and the email carries none of the message | does |
 | 80 | The member walkthrough film sits below the sign-in box, in English or Spanish to match the page, and plays only when pressed | does |
+| 81 | A member can recommend a candidate, and only the Operator sees it | does |
+| 82 | A member can never have more than 5 open recommendations | MUST NOT |
+| 83 | A member never sees another member's recommendation | MUST NOT |
+| 84 | The Operator can invite from a recommendation, and the invitation names the referrer | does |
+| 85 | Declining a recommendation does not tell the referrer | MUST NOT |
 
 ## Open questions on this list
 
