@@ -80,6 +80,8 @@ Data controller. The controller responsible for your personal data is Rafael Efr
 
 Complaints. If you believe your personal data has not been handled properly, you may raise it with the Operator using the contact details above, and you may complain to the competent supervisory authority, [PLACEHOLDER — competent data protection supervisory authority], at [PLACEHOLDER — supervisory authority address and contact details].
 
+Candidates. If a member recommends you, MyPlatform receives your name, company, email address, the commodities you trade and the member's notes about how they know you. We use them only to decide whether to invite you and to send you the invitation, because we have a legitimate interest in considering recommendations from our members. We keep them for twelve months after the recommendation is closed. You may ask us for access to, correction of, or erasure of these details by writing to info@myplatform.trade. The invitation names the member who recommended you.
+
 11. Limitation of liability
 
 To the fullest extent permitted by law, neither the Platform nor the Operator is liable for any loss or damage of any kind arising out of or in connection with your use of the Platform or with any dealing between Participants. This includes, without limitation, financial loss, loss of profit, loss of opportunity, loss of goodwill, business interruption, loss arising from a transaction that does not complete or completes on unfavourable terms, and loss caused by the act, omission, misrepresentation, default, insolvency, or fraud of any Participant or third party. The Operator is not liable for any indirect or consequential loss. Nothing in these Terms excludes or limits any liability that cannot lawfully be excluded or limited, including liability for fraud or for death or personal injury caused by negligence.
@@ -118,12 +120,12 @@ The details in brackets in this section have not been completed. They are placeh
 
 A member who suggests a candidate gives only their honest opinion, formed to the best of their knowledge and experience. A suggestion is not a guarantee or warranty of the candidate's conduct, and the member making it is not responsible for what the candidate says or does. The Operator decides independently whether to invite anyone.
 $terms$,
-  'e629862e0503e0af1ae2a5c112d49fd0c407052e8d0afe11e82b0e4b73420a33'
+  '8e1d1dc6dfb95ff68e652942165fabd08fc35013aa9b8a3331f51374f98895fe'
 ) on conflict (version, language) do nothing;
 
 do $$ begin
   if (select sha256 from public.terms_versions where version = '3.7' and language = 'en')
-     is distinct from 'e629862e0503e0af1ae2a5c112d49fd0c407052e8d0afe11e82b0e4b73420a33' then
+     is distinct from '8e1d1dc6dfb95ff68e652942165fabd08fc35013aa9b8a3331f51374f98895fe' then
     raise exception 'terms_versions 3.7/en already holds a different text';
   end if;
 end $$;
@@ -198,6 +200,8 @@ Responsable del tratamiento. El responsable del tratamiento de sus datos persona
 
 Reclamaciones. Si considera que sus datos personales no han sido tratados correctamente, puede comunicarlo al Operador en la dirección indicada más arriba y presentar una reclamación ante la autoridad de control competente, [PLACEHOLDER — autoridad de control de protección de datos competente], en [PLACEHOLDER — dirección y datos de contacto de la autoridad de control].
 
+Candidatos. Si un Participante le recomienda, MyPlatform recibe su nombre, su empresa, su correo electrónico, las materias primas que comercia y las notas del Participante sobre cómo le conoce. Los usamos únicamente para decidir si le invitamos y para enviarle la invitación, porque tenemos un interés legítimo en considerar las recomendaciones de nuestros Participantes. Los conservamos durante doce meses después de cerrar la recomendación. Puede pedirnos acceso, rectificación o supresión de estos datos escribiendo a info@myplatform.trade. La invitación indica el nombre del Participante que le recomendó.
+
 11. Limitación de responsabilidad
 
 En la máxima medida permitida por la ley, ni la Plataforma ni el Operador responderá por pérdidas o daños de cualquier naturaleza derivados del uso de la Plataforma o de cualquier relación entre Participantes. Ello incluye, sin carácter limitativo, pérdidas económicas, lucro cesante, pérdida de oportunidad, daño reputacional, interrupción de la actividad, pérdidas derivadas de operaciones que no lleguen a perfeccionarse o que se cierren en condiciones desfavorables, y pérdidas causadas por actos, omisiones, declaraciones inexactas, incumplimiento, insolvencia o fraude de cualquier Participante o tercero. El Operador no responderá por daños indirectos o consecuenciales. Nada en estos Términos excluye ni limita la responsabilidad que no pueda excluirse o limitarse legalmente, incluida la derivada de dolo o de fallecimiento o daños personales causados por negligencia.
@@ -236,12 +240,12 @@ Los datos entre corchetes de este apartado no han sido completados. Son PLACEHOL
 
 Un Participante que propone a un candidato solo aporta su opinión sincera, formada según su mejor saber y entender y su experiencia. Una propuesta no es una garantía de la conducta del candidato, y el Participante que la hace no responde de lo que el candidato diga o haga. El Operador decide de forma independiente si invita a alguien.
 $terms$,
-  '68fcbb591f111cf91878d5a3036a9f4a29c00faa2c7c43cca0f46de3ee9a41ea'
+  '38e1d902334b635c9a9d2c1348d0eb5636d67ced839a5d3ad101afd325fb8c6a'
 ) on conflict (version, language) do nothing;
 
 do $$ begin
   if (select sha256 from public.terms_versions where version = '3.7' and language = 'es')
-     is distinct from '68fcbb591f111cf91878d5a3036a9f4a29c00faa2c7c43cca0f46de3ee9a41ea' then
+     is distinct from '38e1d902334b635c9a9d2c1348d0eb5636d67ced839a5d3ad101afd325fb8c6a' then
     raise exception 'terms_versions 3.7/es already holds a different text';
   end if;
 end $$;

@@ -355,7 +355,7 @@ const TERMS_SECTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 1
 // make the part people most need to find the hardest to read. And section 16,
 // where each company detail is its own line so that a missing one is visible
 // as a gap rather than buried mid-sentence.
-const TERMS_SECTION_PARAGRAPHS = { 10: 11, 16: 6 };
+const TERMS_SECTION_PARAGRAPHS = { 10: 12, 16: 6 };
 
 // Every legal detail the Terms need but the business does not have yet - the
 // operating company name, its registered address, the data controller, and the

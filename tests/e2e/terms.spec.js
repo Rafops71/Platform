@@ -487,16 +487,20 @@ test.describe.serial('Terms & Conditions', () => {
     expect(rows[0].n, 'an account was created with a PO box as its address').toBe(0);
   });
 
-  test('Item62 a member who has not signed the newest Terms is held at sign-in until they sign', async ({ page }) => {
-    // Needs a published version: sql/031's terms_versions, seeded with the
-    // Terms text. Asserted rather than skipped - no version means no gate.
+  test('Item62 a member who has signed the Terms once is never held at sign-in or asked to sign again when the Terms change', async ({ page }) => {
+    // Needs a published version and an older one to have signed. Asserted
+    // rather than skipped - with no earlier version there is nothing to test.
     const { rows: versions } = await query(
-      'select version from public.terms_versions order by published_at desc limit 1');
-    expect(versions, 'no Terms version is published, so there is nothing to sign').toHaveLength(1);
+      'select version from public.terms_versions order by published_at desc limit 2');
+    expect(versions, 'fewer than two Terms versions are published, so a change cannot be tested').toHaveLength(2);
+    const [newest, older] = versions;
 
-    const member = await createAccount({ label: 'unsigned' });
-    // Undo the fixture's signature, as if they registered under an older text.
-    await query('delete from public.terms_acceptances where profile_id = $1', [member.profileId]);
+    const member = await createAccount({ label: 'signed-once' });
+    // The member signed an older text; the newest version is now in force.
+    await query(
+      'update public.terms_acceptances set version = $2 where profile_id = $1', [member.profileId, older.version]);
+    const before = await query(
+      'select signed_name, version from public.terms_acceptances where profile_id = $1', [member.profileId]);
 
     await page.goto('/index.html');
     await page.fill('#email', member.email);
@@ -504,16 +508,14 @@ test.describe.serial('Terms & Conditions', () => {
     await page.click('#login-btn');
     await page.waitForURL(pagePattern('app.html'));
 
-    await expect(page.locator('#terms-gate')).toBeVisible();
-    await expect(page.locator('main')).toBeHidden();
-
-    await fillSignature(page, { signed_name: 'Unsigned Member' }, 'gate-');
-    await page.click('#gate-btn');
-
     await expect(page.locator('#user-name')).not.toBeEmpty({ timeout: 20_000 });
     await expect(page.locator('#terms-gate')).toBeHidden();
+    await expect(page.locator('main')).toBeVisible();
+
+    // Not asked to sign again: no new acceptance row, and the old one stands.
     const { rows } = await query(
-      `select signed_name, version from public.terms_acceptances where profile_id = $1`, [member.profileId]);
-    expect(rows).toEqual([{ signed_name: 'Unsigned Member', version: versions[0].version }]);
+      'select signed_name, version from public.terms_acceptances where profile_id = $1', [member.profileId]);
+    expect(rows).toEqual(before.rows);
+    expect(rows.map(r => r.version)).not.toContain(newest.version);
   });
 });
