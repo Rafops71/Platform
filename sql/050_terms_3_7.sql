@@ -80,7 +80,7 @@ Data controller. The controller responsible for your personal data is Rafael Efr
 
 Complaints. If you believe your personal data has not been handled properly, you may raise it with the Operator using the contact details above, and you may complain to the competent supervisory authority, [PLACEHOLDER — competent data protection supervisory authority], at [PLACEHOLDER — supervisory authority address and contact details].
 
-Candidates. If a member recommends you, MyPlatform receives your name, company, email address, the commodities you trade and the member's notes about how they know you. We use them only to decide whether to invite you and to send you the invitation, because we have a legitimate interest in considering recommendations from our members. We keep them for twelve months after the recommendation is closed. You may ask us for access to, correction of, or erasure of these details by writing to info@myplatform.trade. The invitation names the member who recommended you.
+Candidates. If a Participant recommends you, MyPlatform receives your name, company, email address, the commodities you trade and the Participant's notes about how they know you. We use them only to decide whether to invite you and to send you the invitation, because we have a legitimate interest in considering recommendations from our Participants. We keep them for twelve months after the recommendation is closed. You may ask us for access to, correction of, or erasure of these details by writing to info@myplatform.trade. The invitation names the Participant who recommended you.
 
 11. Limitation of liability
 
@@ -116,16 +116,16 @@ Notices under these Terms must be given in writing to rafael@myplatform.trade an
 
 The details in brackets in this section have not been completed. They are placeholders, and they must be replaced with the actual details of the operating company — and these Terms, including the non-circumvention clause at section 8 and the choice of English law at section 15, reviewed by a qualified lawyer — before the Platform is used with real Participants.
 
-17. Suggesting new members
+17. Suggesting new Participants
 
-A member who suggests a candidate gives only their honest opinion, formed to the best of their knowledge and experience. A suggestion is not a guarantee or warranty of the candidate's conduct, and the member making it is not responsible for what the candidate says or does. The Operator decides independently whether to invite anyone.
+A Participant who suggests a candidate gives only their honest opinion, formed to the best of their knowledge and experience. A suggestion is not a guarantee or warranty of the candidate's conduct, and the Participant making it is not responsible for what the candidate says or does. The Operator decides independently whether to invite anyone.
 $terms$,
-  '8e1d1dc6dfb95ff68e652942165fabd08fc35013aa9b8a3331f51374f98895fe'
+  '04b9f94226c7bbd821aca34a7d921891d1b55f2ee7298245b208ebf945219caa'
 ) on conflict (version, language) do nothing;
 
 do $$ begin
   if (select sha256 from public.terms_versions where version = '3.7' and language = 'en')
-     is distinct from '8e1d1dc6dfb95ff68e652942165fabd08fc35013aa9b8a3331f51374f98895fe' then
+     is distinct from '04b9f94226c7bbd821aca34a7d921891d1b55f2ee7298245b208ebf945219caa' then
     raise exception 'terms_versions 3.7/en already holds a different text';
   end if;
 end $$;
