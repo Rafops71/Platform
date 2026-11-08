@@ -1136,20 +1136,25 @@ async function askMemberToRewrite() {
  *  log keeps the original body (sql/051). */
 async function askMemberToRewriteNow() {
   const original = FORWARD_TARGET;
+  // The denial is recorded FIRST. If it cannot be recorded (for example the
+  // database refuses the status), nothing is sent to the member at all. If the
+  // reply or its forward log fails after that, the denial is taken back.
+  const { error: e0 } = await myplatform.from('messages').update({ status: 'denied' }).eq('id', original.messageId);
+  if (e0) { showError(errorMessage(e0)); return; }
+  const undoDenial = () => myplatform.from('messages').update({ status: 'pending_review' }).eq('id', original.messageId);
+
   const { data: newMsg, error: e1 } = await myplatform.from('messages').insert({
     sender_id: CURRENT_PROFILE.id, listing_id: original.listingId || null,
     in_reply_to: original.messageId, body: REWRITE_REQUEST_TEXT, status: 'pending_review'
   }).select('id').single();
-  if (e1) { showError(errorMessage(e1)); return; }
+  if (e1) { await undoDenial(); showError(errorMessage(e1)); return; }
 
   const { error: e2 } = await myplatform.from('message_forward_log').insert({
     message_id: newMsg.id, operator_id: CURRENT_PROFILE.id, to_user_id: original.senderId
   });
-  if (e2) { showError(errorMessage(e2)); return; }
+  if (e2) { await undoDenial(); showError(errorMessage(e2)); return; }
 
   await myplatform.from('messages').update({ status: 'forwarded' }).eq('id', newMsg.id);
-  const { error: e3 } = await myplatform.from('messages').update({ status: 'denied' }).eq('id', original.messageId);
-  if (e3) { showError(errorMessage(e3)); return; }
 
   const { error: e4 } = await myplatform.rpc('record_activity', {
     p_action: 'message_rewrite_requested',
