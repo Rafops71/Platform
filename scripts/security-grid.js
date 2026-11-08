@@ -59,6 +59,9 @@ const EXPECTED = {
   reference_counters:  {},
   saved_searches:      {},
   terms_acceptances:   { operator: ['read'] },
+  // Who the Terms-changed emails were sent to (sql/056). Written only by the
+  // trigger; RLS on, no grant to anon or authenticated. Nobody may touch it.
+  terms_change_emails: {},
   terms_versions:      { anon: ['read'], pending: ['read'], suspended: ['read'], member: ['read'], operator: ['read'] },
 };
 const DOC = 'Assay Report';

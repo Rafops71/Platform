@@ -66,17 +66,17 @@ test.describe.serial('Terms & Conditions', () => {
       .toHaveText('Terms & Conditions, Disclaimer and Privacy Notice');
     await expect(page.locator('#terms-version')).toHaveText(`Version ${TERMS_VERSION}`);
 
-    // All sixteen sections rendered, not just the first.
-    await expect(page.locator('#terms-body .terms-section')).toHaveCount(16);
+    // All seventeen sections rendered, not just the first.
+    await expect(page.locator('#terms-body .terms-section')).toHaveCount(17);
 
     const body = await page.locator('#terms-body').innerText();
     expect(body).toContain(EN_MARKER);
     // The protections that must not quietly disappear from the text.
-    expect(body).toContain('do not verify, endorse, or guarantee');
+    expect(body).toContain('does not verify, endorse, or guarantee');
     expect(body).toContain('solely responsible for your own due diligence');
     expect(body).toContain('must not attempt to identify');
     expect(body).toContain('To the fullest extent permitted by law');
-    expect(body).toContain('at their sole discretion');
+    expect(body).toContain('at its sole discretion');
 
     // The commercially load-bearing clauses. These are the reason the terms
     // exist at all, so each is asserted by its operative words rather than by
@@ -84,7 +84,7 @@ test.describe.serial('Terms & Conditions', () => {
     expect(body).toContain('It is not a public marketplace');
     expect(body).toContain('may be suspended or revoked at any time without notice');
     expect(body).toContain('may act for both sides of the same transaction');
-    expect(body).toContain('agreed in writing between the Operators and the paying party during the negotiation, before the introduction is made');
+    expect(body).toContain('agreed in writing between the Operator and the paying party during the negotiation, before the introduction is made');
     expect(body).toContain('a principal may send confidential documents directly to the introduced counterparty');
     expect(body).toContain('twenty-four (24) months from the date the introduction is made');
     expect(body).toContain('governed by and construed in accordance with the law of England and Wales');
@@ -92,7 +92,7 @@ test.describe.serial('Terms & Conditions', () => {
     expect(body).toContain('Article 14(B) of Dubai Law No. (2) of 2025');
     expect(body).toContain('may be served on you by email');
     expect(body).toContain('bills of lading, assay reports and KYC material');
-    expect(body).toContain('The Operators also keep internal records of how each introduction progressed');
+    expect(body).toContain('The Operator also keeps internal records of how each introduction progressed');
   });
 
   test('the Privacy Notice renders in full', async ({ page }) => {
@@ -104,7 +104,7 @@ test.describe.serial('Terms & Conditions', () => {
     // is supposed to cover.
     const privacy = page.locator('#terms-body .terms-section').nth(9);
     await expect(privacy.locator('h3')).toHaveText('10. Privacy Notice');
-    await expect(privacy.locator('p')).toHaveCount(11);   // 11 since Terms 3.4
+    await expect(privacy.locator('p')).toHaveCount(12);   // 12 since the candidates paragraph (clause 10, p12)
 
     const text = await privacy.innerText();
     expect(text).toContain('What is collected');
@@ -112,7 +112,7 @@ test.describe.serial('Terms & Conditions', () => {
     expect(text).toContain('language preference');
     expect(text).toContain('Why it is collected');
     expect(text).toContain('audit trail');
-    expect(text).toContain('visible only to the Operators');
+    expect(text).toContain('visible only to the Operator');
     expect(text).toContain("Participants never see one another's identity");
 
     // The notice has to list what is actually stored. job_title arrived in
@@ -163,7 +163,7 @@ test.describe.serial('Terms & Conditions', () => {
 
     await expect(page.locator('#terms-heading'))
       .toHaveText('Términos y Condiciones, Exención de Responsabilidad y Aviso de Privacidad');
-    await expect(page.locator('#terms-body .terms-section')).toHaveCount(16);
+    await expect(page.locator('#terms-body .terms-section')).toHaveCount(17);
 
     const body = await page.locator('#terms-body').innerText();
     expect(body).toContain(ES_MARKER);
@@ -175,7 +175,7 @@ test.describe.serial('Terms & Conditions', () => {
     expect(body).toContain('No es un mercado público');
     expect(body).toContain('podrá suspenderse o revocarse en cualquier momento sin previo aviso');
     expect(body).toContain('pueden actuar para ambas partes de una misma operación');
-    expect(body).toContain('se acuerdan por escrito entre los Operadores y la parte que la paga durante la negociación, antes de realizar la presentación');
+    expect(body).toContain('se acuerdan por escrito entre el Operador y la parte que la paga durante la negociación, antes de realizar la presentación');
     expect(body).toContain('veinticuatro (24) meses');
     expect(body).toContain('conforme al Derecho de Inglaterra y Gales');
     expect(body).toContain('jurisdicción exclusiva de los Tribunales del Centro Financiero Internacional de Dubái');
@@ -220,7 +220,7 @@ test.describe.serial('Terms & Conditions', () => {
     await expect(notice).toContainText('THIS DOCUMENT IS NOT YET COMPLETE');
 
     const company = page.locator('#terms-body .terms-section').nth(15);
-    await expect(company.locator('h3')).toHaveText('16. The Operators: company details and notices');
+    await expect(company.locator('h3')).toHaveText('16. The Operator: company details and notices');
     await expect(company.locator('p')).toHaveCount(6);
 
     const text = await company.innerText();
@@ -253,7 +253,7 @@ test.describe.serial('Terms & Conditions', () => {
 
     const company = page.locator('#terms-body .terms-section').nth(15);
     await expect(company.locator('h3'))
-      .toHaveText('16. Los Operadores: datos de la sociedad y notificaciones');
+      .toHaveText('16. El Operador: datos de la sociedad y notificaciones');
 
     const text = await company.innerText();
     expect(text).toContain('operada por Rafael Efraim');
