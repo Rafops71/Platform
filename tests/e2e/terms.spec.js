@@ -490,9 +490,12 @@ test.describe.serial('Terms & Conditions', () => {
   test('Item62 a member who has signed the Terms once is never held at sign-in or asked to sign again when the Terms change', async ({ page }) => {
     // Needs a published version and an older one to have signed. Asserted
     // rather than skipped - with no earlier version there is nothing to test.
+    // A version has one row per language, so the two newest DISTINCT versions
+    // are taken, not the two newest rows.
     const { rows: versions } = await query(
-      'select version from public.terms_versions order by published_at desc limit 2');
+      'select version from public.terms_versions group by version order by max(published_at) desc limit 2');
     expect(versions, 'fewer than two Terms versions are published, so a change cannot be tested').toHaveLength(2);
+    expect(versions[0].version, 'the two versions picked are the same one').not.toBe(versions[1].version);
     const [newest, older] = versions;
 
     const member = await createAccount({ label: 'signed-once' });
