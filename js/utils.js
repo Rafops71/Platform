@@ -339,13 +339,13 @@ function docTypeLabel(docType) {
 // Bump this whenever the terms.* strings in i18n.js change materially. Leaving
 // it alone after a substantive edit is the one thing that breaks the record:
 // two people would hold the same version string against different text.
-const TERMS_VERSION = '3.5';
+const TERMS_VERSION = '3.7';
 
 // The order the Terms sections are rendered in. Adding a section means adding
 // its number here and a terms.sN.title plus either a terms.sN.body or the
 // numbered paragraphs below, in both languages. Renumbering means editing the
 // numbers inside the title strings too - they are part of the text.
-const TERMS_SECTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+const TERMS_SECTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
 
 // Sections whose body runs to more than one paragraph. A section listed here
 // has terms.sN.p1 … p{count} instead of a single terms.sN.body; one that is
@@ -355,7 +355,7 @@ const TERMS_SECTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
 // make the part people most need to find the hardest to read. And section 16,
 // where each company detail is its own line so that a missing one is visible
 // as a gap rather than buried mid-sentence.
-const TERMS_SECTION_PARAGRAPHS = { 10: 11, 16: 6 };
+const TERMS_SECTION_PARAGRAPHS = { 10: 12, 16: 6 };
 
 // Every legal detail the Terms need but the business does not have yet - the
 // operating company name, its registered address, the data controller, and the

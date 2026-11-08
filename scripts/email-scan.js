@@ -18,9 +18,17 @@
 
 const { TAG, buildWorld, account, cleanup, http, asUser, must, guardNotLive } = require('./security-grid');
 
-const KEYS = ['invitation', 'registration_submitted', 'registration_approved', 'registration_rejected', 'new_listing'];
+const KEYS = ['invitation', 'registration_submitted', 'registration_approved', 'registration_rejected', 'new_listing', 'terms_receipt'];
 // English only: the Operator side is English only (owner's rule).
 const ENGLISH_ONLY_KEYS = ['operator_new_message'];
+// Templates whose email cannot be made to happen here without touching real
+// state: terms_changed fires only when a Terms version is published, and only
+// to approved non-test members. Their wording is still scanned: both languages
+// present, same slots, nothing empty, links only to the platform.
+const TEMPLATE_ONLY_KEYS = ['terms_changed'];
+// Templates from a migration that may not be on this database yet (T7). Scanned
+// like TEMPLATE_ONLY_KEYS when present; their absence is not a failure.
+const OPTIONAL_TEMPLATE_ONLY_KEYS = ['invitation_recommended'];
 // The address the invitation link points at: the platform's own (2026-10-29).
 const SITE = 'https://app.myplatform.trade/';
 const ALLOWED_URL = /^https:\/\/(rafops71\.github\.io\/Platform\/|([a-z0-9-]+\.)*myplatform\.trade(\/|$))/;
@@ -40,7 +48,8 @@ async function main() {
     const rows = (await must('templates', http('/rest/v1/email_templates?select=template_key,lang,subject,body_text')));
     const tpl = {};
     for (const r of rows) tpl[`${r.template_key}/${r.lang}`] = r;
-    for (const k of [...KEYS, ...ENGLISH_ONLY_KEYS]) {
+    const optionalHere = OPTIONAL_TEMPLATE_ONLY_KEYS.filter((k) => tpl[`${k}/en`] || tpl[`${k}/es`]);
+    for (const k of [...KEYS, ...ENGLISH_ONLY_KEYS, ...TEMPLATE_ONLY_KEYS, ...optionalHere]) {
       const en = tpl[`${k}/en`]; const es = tpl[`${k}/es`];
       const englishOnly = ENGLISH_ONLY_KEYS.includes(k);
       if (!en || (!es && !englishOnly)) { fail(`template "${k}" is missing in ${!en ? 'English' : 'Spanish'}`); continue; }
@@ -55,7 +64,17 @@ async function main() {
         }
       }
     }
-    for (const key of Object.keys(tpl)) if (![...KEYS, ...ENGLISH_ONLY_KEYS].includes(key.split('/')[0])) fail(`template "${key}" is not covered by this scan`);
+    const known = [...KEYS, ...ENGLISH_ONLY_KEYS, ...TEMPLATE_ONLY_KEYS, ...OPTIONAL_TEMPLATE_ONLY_KEYS];
+    for (const key of Object.keys(tpl)) if (!known.includes(key.split('/')[0])) fail(`template "${key}" is not covered by this scan`);
+    for (const k of [...TEMPLATE_ONLY_KEYS, ...optionalHere]) for (const l of ['en', 'es']) {
+      const t = tpl[`${k}/${l}`];
+      if (!t) continue;
+      const text = `${t.subject}\n${t.body_text}`;
+      if (/\bundefined\b|\bnull\b|\bNaN\b|\[object Object\]/.test(text)) fail(`template "${k}/${l}": says "undefined", "null" or similar`);
+      for (const url of text.match(/https?:\/\/[^\s<>"')]+/g) || []) {
+        if (!ALLOWED_URL.test(url)) fail(`template "${k}/${l}": links outside the platform - ${url}`);
+      }
+    }
 
     // 2. Make every kind of email happen, for both languages.
     const w = await buildWorld();
@@ -76,6 +95,12 @@ async function main() {
         { method: 'POST', body: { p_to_email: to, p_link: `${SITE}register.html?token=${TAG}-${l}`, p_lang: l } }));
       lang.set(to, l);
       lang.set(people[`ok-${l}`].email, l); lang.set(people[`no-${l}`].email, l);
+      // The Terms receipt (Item 81) is written when a member signs, but never
+      // to example.* test addresses (sql/048). So this account signs, as a new
+      // member does, from another reserved domain that is not skipped. .invalid
+      // can never be delivered (RFC 2606), and its outbox rows are deleted below.
+      people[`receipt-${l}`] = await account(`mail-receipt-${l}`, { status: 'pending', language: l, inviter: w.operator.profileId, domain: 'grid.invalid' });
+      lang.set(people[`receipt-${l}`].email, l);
     }
     // New listings, a sell offer and a buy request, posted by the English
     // member: every approved member is mailed, each in their own language.
