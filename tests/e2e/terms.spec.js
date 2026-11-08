@@ -48,7 +48,7 @@ test.afterAll(async () => { await cleanup(); });
  *  operator UI to produce one. cleanup() removes it by its prefixed email. */
 async function createInvitation(language) {
   const email = testEmail('terms-invite');
-  const token = `jericho-e2e-terms-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const token = `myplatform-e2e-terms-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   await query(
     `insert into public.invitations (token, email, created_by, expires_at, language)
      values ($1, $2, $3, now() + interval '5 days', $4)`,

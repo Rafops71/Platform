@@ -1,4 +1,4 @@
-// Jericho Platform — bilingual support for the participant interface.
+// MyPlatform — bilingual support for the participant interface.
 //
 // Scope: the participant-facing pages only (index.html, register.html,
 // app.html). The Operator dashboard stays in English by design and simply
@@ -21,7 +21,7 @@
 
 'use strict';
 
-const I18N_STORAGE_KEY = 'jericho.language';
+const I18N_STORAGE_KEY = 'myplatform.language';
 const I18N_DEFAULT = 'en';
 const I18N_LANGUAGES = ['en', 'es'];
 
@@ -48,39 +48,38 @@ const STRINGS = {
     'help.title': 'Help and questions',
     'help.intro': 'Answers to the questions members ask most. Tap a question to open it.',
     'nav.help': 'Help',
-    'help.link': 'Help and questions',
     'help.q1': 'How does MyPlatform work?',
-    'help.a1': 'Members post sell offers and buy requests without their name. Nobody contacts anybody directly: every message goes to the Operator, who passes it on. The Operator introduces the two sides only after both parties have agreed on all issues and terms.',
+    'help.a1': "Members submit buying requests and selling offers on an anonymous basis. All communications between members are channelled through the Operator, ensuring that the identities of the parties remain confidential throughout the initial engagement. Direct introductions between parties are facilitated exclusively once both parties have reached mutual agreement on the relevant commercial terms, transaction procedures and conditions.",
     'help.q2': 'My invitation link does not work.',
-    'help.a2': 'An invitation link is valid for 5 days and works once. If it has expired or was already used, ask the Operator who invited you to send a new one. If the email is missing, check your spam folder first.',
+    'help.a2': "Each invitation link remains valid for five days and may be used only once. Should the link expire or be used previously, please contact the Operator who issued the invitation to request a replacement. If the invitation email has not arrived, please check your spam or junk folder.",
     'help.q3': 'I registered but cannot sign in yet.',
-    'help.a3': 'An Operator reviews every registration by hand. You can sign in once it is approved, and you receive an email when that happens.',
+    'help.a3': "Every registration is manually reviewed by an Operator. Once approved, you'll be able to sign in, and you'll receive an email notification.",
     'help.q4': 'I forgot my password.',
-    'help.a4': 'On the sign-in page, press "Forgotten your password?" and enter your email. You receive a link to set a new password. The link expires and works once.',
+    'help.a4': "On the sign-in page, choose 'Forgotten your password?' and enter your email. We will send you a link to set a new one. The link expires and can be used once.",
     'help.q5': 'Why must I sign the Terms when I sign in?',
-    'help.a5': 'When the Terms change, everyone signs the new version once before continuing. Read them, type your name as your signature and confirm. You can read the Terms at any time from the link at the bottom of every page.',
+    'help.a5': "The Terms are signed only once when you first join. We'll email you about any changes, and you can read them anytime via the link at the bottom of every page.",
     'help.q6': 'How do I post an offer or a request?',
-    'help.a6': 'Open New Listing, choose Sell Offer or Buy Request and fill in the details. You also state your role in this offer (principal, mandated intermediary or broker), answer two questions about documents, and confirm the offer is true. You receive a reference such as SELL-26-001.',
+    'help.a6': "To create a listing, open New Listing and choose Sell Offer or Buy Request, then fill in the details. You'll also specify your role (principal, mandated intermediary, or broker), answer two questions about documents, and confirm that the offer is true. Once done, you'll get a reference like SELL-26-001.",
     'help.q7': 'Why was my listing refused?',
-    'help.a7': 'The form says what is missing. Common reasons: a question about your role or the documents is unanswered, the truth box is not ticked, or the offer is more than two steps from the principal, which MyPlatform does not accept.',
+    'help.a7': "The form shows what is missing. Common reasons: a question about your role or the documents is unanswered, the confirmation box is not ticked, or the offer is more than two steps removed from the principal, which MyPlatform does not accept.",
     'help.q8': 'Who can see my name?',
-    'help.a8': 'No other member. Members see the content of your listing and its reference, never your name, company, email or phone. Only the Operators see who you are.',
+    'help.a8': "No other member can. Members see the content of your listing and its reference, never your name, company, email or phone number. Only the Operator has that access.",
     'help.q9': 'How do I contact the owner of a listing?',
-    'help.a9': 'In Browse, press Contact on the listing and write your message. It goes to the Operators, who pass it on without saying who you are. Answers come back the same way, into your Mailbox. Do not put your name or contact details in a message.',
+    'help.a9': "To initiate contact regarding a listing, navigate to Browse, press Contact, and compose your message. All correspondence is transmitted via the Operators, who relay it without disclosing your identity. Responses are returned through the same channel and appear in your Mailbox. To preserve confidentiality, kindly refrain from including your name or contact details in any correspondence.",
     'help.q10': 'Can I talk to another member directly?',
-    'help.a10': 'No, by design. Every message passes through an Operator. When both sides want to deal, the Operators ask each of you separately and introduce you only if you both agree.',
+    'help.a10': "No, this is by design. All messages pass through the Operator. Introductions are made, and direct access between the parties is granted only after a commission agreement has been executed.",
     'help.q11': 'What does "Is it still available?" on my listing mean?',
-    'help.a11': 'A listing not updated for 30 days asks whether it is still available. Press "Yes, still available" to refresh it, or close it. Up-to-date listings are taken more seriously.',
+    'help.a11': "If a listing has not been updated for 30 days, we ask whether it is still available. Choose 'Yes, still available' to refresh it, or close it. Up-to-date listings are taken more seriously.",
     'help.q12': 'How do I change language, email or password?',
     'help.a12': "The EN / ES buttons at the top switch language, and the platform's emails follow your choice. Under Profile you can change your job title, country, language, email and password. A new email address must be confirmed from a link sent to it.",
     'help.q13': 'What is MyPlatform’s role?',
-    'help.a13': 'MyPlatform is a facilitator. Offers reflect what members state and declare; confirming the details, documents and counterparty remains with the parties themselves, as in any transaction.',
+    'help.a13': "MyPlatform serves as a facilitator only. All offers represent the statements and declarations of the members concerned. The verification of details, documentation, and counterparties remains the exclusive responsibility of the parties involved, as is the case in any transaction.",
     'help.q14': 'Who is responsible for what an offer says?',
-    'help.a14': 'Each member stands behind their own posts and statements. Membership is built on honesty and mutual trust; misleading offers or conduct can lead to suspension or cancellation of membership.',
+    'help.a14': "Each member bears sole responsibility for the accuracy and integrity of their submissions and representations. Membership is predicated on honesty, transparency and professional conduct. Any misleading, deceptive or otherwise improper representations or conduct may result in the suspension or termination of membership.",
     'help.q15': 'Can someone else use my account?',
-    'help.a15': 'Your account and your invitation are personal and for your sole use. Please do not share your sign-in details.',
+    'help.a15': "No. Your account and your invitation are personal and for your sole use. Please do not share your sign-in details or allow anyone else to act through your account.",
     'help.q16': 'Something else is not clear.',
-    'help.a16': 'Write to the Operator from your Mailbox, or email info@myplatform.trade.',
+    'help.a16': "Should you require any further clarification or assistance, please contact the Operator through your platform mailbox or by email at info@myplatform.trade.",
     'common.loading': 'Loading…',
     'common.save': 'Save',
     'err.notAllowed': 'You are not allowed to do that. If you think you should be, ask the Operator.',
@@ -550,7 +549,6 @@ const STRINGS = {
     'help.title': 'Ayuda y preguntas',
     'help.intro': 'Respuestas a las preguntas más habituales de los miembros. Pulse una pregunta para abrirla.',
     'nav.help': 'Ayuda',
-    'help.link': 'Ayuda y preguntas',
     'help.q1': '¿Cómo funciona MyPlatform?',
     'help.a1': 'Los miembros publican ofertas de venta y solicitudes de compra sin su nombre. Nadie contacta directamente con nadie: cada mensaje va al Operador, que lo transmite. El Operador presenta a las dos partes solo después de que ambas hayan acordado todas las cuestiones y condiciones.',
     'help.q2': 'Mi enlace de invitación no funciona.',

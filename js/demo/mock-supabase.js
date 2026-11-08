@@ -1,7 +1,7 @@
 // DEMO BUILD ONLY - never loaded by the real site.
 //
 // scripts/build-demo.js puts this file in place of js/supabase-config.js in
-// dist-demo/, and removes the Supabase script tag. What remains is `jericho`,
+// dist-demo/, and removes the Supabase script tag. What remains is `myplatform`,
 // the same name the real client uses, with the same surface the app calls
 // (every .from(), .rpc() and .auth.* call in js/ and the HTML pages).
 //
@@ -15,7 +15,7 @@
 // so a member's screens show only that member's rows. The sign-in step does
 // not check a password: the demo accounts are a demonstration, not a secret.
 
-const jericho = (function () {
+const myplatform = (function () {
   'use strict';
 
   const SEED = window.DEMO_SEED;

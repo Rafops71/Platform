@@ -75,7 +75,7 @@ test.describe('when the platform cannot be reached', () => {
   test('Item60 the same is true in Spanish', async ({ page }) => {
     test.setTimeout(120_000);
     await signIn(page, member, 'app.html');
-    await page.evaluate(() => { try { localStorage.setItem('jericho.language', 'es'); } catch (e) {} });
+    await page.evaluate(() => { try { localStorage.setItem('myplatform.language', 'es'); } catch (e) {} });
     await page.reload();
 
     // Wait for the page to finish signing back in before touching anything.

@@ -1,5 +1,5 @@
 {
-  "name": "jericho-platform-scripts",
+  "name": "myplatform-platform-scripts",
   "private": true,
   "version": "1.0.0",
   "description": "Node-based tooling for environments without psql. See HANDOFF.md.",

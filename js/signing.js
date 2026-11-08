@@ -119,7 +119,7 @@ function readSignature(prefix) {
 async function saveSignatoryJobTitle(values, userId) {
   if (!userId || values.signing_capacity !== 'company' || !values.job_title) return;
   try {
-    const { error } = await jericho.from('profiles').update({ job_title: values.job_title }).eq('user_id', userId);
+    const { error } = await myplatform.from('profiles').update({ job_title: values.job_title }).eq('user_id', userId);
     if (error) console.error('job title was not saved to the profile:', error);
   } catch (e) { console.error('job title was not saved to the profile:', e); }
 }
@@ -127,7 +127,7 @@ async function saveSignatoryJobTitle(values, userId) {
 /** The newest published Terms version, in the member's language if it
  *  exists in it. null when none is published (before sql/031's text). */
 async function latestPublishedTerms() {
-  const { data, error } = await jericho
+  const { data, error } = await myplatform
     .from('terms_versions').select('version, language, published_at')
     .order('published_at', { ascending: false });
   if (error || !data || !data.length) return null;
@@ -140,7 +140,7 @@ async function latestPublishedTerms() {
  *  the gate is showing. A database without sql/031 has no such function;
  *  that is "nothing to sign", not a reason to lock everyone out. */
 async function checkTermsGate() {
-  const { data, error } = await jericho.rpc('has_accepted_current_terms');
+  const { data, error } = await myplatform.rpc('has_accepted_current_terms');
   if (error) {
     // Failing open is deliberate while the gate is the interface's alone (see
     // sql/031): a broken check must not lock every member out.
@@ -172,7 +172,7 @@ async function submitTermsGate(terms) {
   if (read.errorKey) { showError(t(read.errorKey)); return; }
   const v = read.values;
   await withButtonBusy('gate-btn', t('sign.signing'), async () => {
-    const { error } = await jericho.rpc('accept_terms', {
+    const { error } = await myplatform.rpc('accept_terms', {
       p_version: terms.version, p_language: terms.language,
       p_signed_name: v.signed_name, p_capacity: v.signing_capacity,
       p_company: v.company || null,
@@ -180,7 +180,7 @@ async function submitTermsGate(terms) {
       p_city: v.city, p_postal_code: v.postal_code || null, p_country: v.country,
     });
     if (error) { showError(errorMessage(error)); return; }
-    const { data: me } = await jericho.auth.getUser();
+    const { data: me } = await myplatform.auth.getUser();
     await saveSignatoryJobTitle(v, me && me.user && me.user.id);
     window.location.reload();
   });

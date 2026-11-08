@@ -1,20 +1,32 @@
-// The Help questions (js/help.js): readable before signing in, from the
-// sign-in page, in both languages. Inside the platform the same questions are
-// the member's Help tab, and the Operator has his own; the browser crawl and
-// the picture check open both.
+// The Help questions (js/help.js): available only inside the platform, after
+// sign-in, as the member's Help tab. They are never on the sign-in page or the
+// start page (index.html), and there is no public Help page.
 
 const { test, expect } = require('@playwright/test');
-const { pagePattern } = require('./helpers/session');
+const { createAccount, cleanup, assertConfigured } = require('./helpers/fixtures');
+const { signIn, openScreen } = require('./helpers/session');
 
 // Sixteen questions. The document-request question was removed with the
 // Operator's document requests (owner's decision, items 36-37), so the list
 // shrank from seventeen and the positions below moved up by one.
 const COUNT = 16;
 
-test('Item76 Help answers the common questions in English and Spanish, before signing in', async ({ page }) => {
+let member;
+
+test.beforeAll(async () => {
+  assertConfigured();
+  member = await createAccount({ label: 'helpitem', role: 'participant', status: 'approved' });
+});
+
+test.afterAll(async () => { await cleanup(); });
+
+test('Item76 Help questions are available only after sign-in, never on the sign-in or start pages', async ({ page }) => {
   await page.goto('/index.html');
-  await page.click('a[href="help.html"]');
-  await expect(page).toHaveURL(pagePattern('help.html', { after: 'any' }));
+  await expect(page.locator('a[href="help.html"]')).toHaveCount(0);
+  await expect(page.locator('#help-list')).toHaveCount(0);
+
+  await signIn(page, member);
+  await openScreen(page, 'help');
 
   const items = page.locator('#help-list details.help-item');
   await expect(items).toHaveCount(COUNT);

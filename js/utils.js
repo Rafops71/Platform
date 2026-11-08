@@ -1,5 +1,5 @@
-// Jericho Platform — shared frontend helpers.
-// Depends on `jericho` (the Supabase client) from supabase-config.js.
+// MyPlatform — shared frontend helpers.
+// Depends on `myplatform` (the Supabase client) from supabase-config.js.
 
 /** Escape text before inserting into innerHTML, to avoid stored-XSS from
  *  user-entered fields (notes, company name, etc.) rendered back into the DOM. */
@@ -122,7 +122,7 @@ function errorMessage(err) {
 
   const key = offline ? 'err.offline' : byCode[code];
   if (key && typeof t === 'function') {
-    console.error('[jericho]', code || 'network', raw);
+    console.error('[myplatform]', code || 'network', raw);
     return t(key);
   }
 
@@ -206,9 +206,9 @@ async function withButtonBusy(buttonOrId, busyText, work) {
 /** Fetch the profile row for the currently authenticated user.
  *  Returns null if not logged in or no profile exists yet. */
 async function getCurrentProfile() {
-  const { data: { session } } = await jericho.auth.getSession();
+  const { data: { session } } = await myplatform.auth.getSession();
   if (!session) return null;
-  const { data, error } = await jericho
+  const { data, error } = await myplatform
     .from('profiles')
     .select('*')
     .eq('user_id', session.user.id)
@@ -234,7 +234,7 @@ async function requireAuth(requiredRole = null) {
     return null;
   }
   if (profile.status !== 'approved') {
-    await jericho.auth.signOut();
+    await myplatform.auth.signOut();
     window.location.href = 'index.html?blocked=1';
     return null;
   }
@@ -246,7 +246,7 @@ async function requireAuth(requiredRole = null) {
 }
 
 async function logout() {
-  await jericho.auth.signOut();
+  await myplatform.auth.signOut();
   window.location.href = 'index.html';
 }
 
@@ -580,7 +580,7 @@ async function referenceNumbersFor(ids) {
   const unique = [...new Set((ids || []).filter(Boolean))];
   const refs = new Map();
   for (const part of chunked(unique)) {
-    const { data, error } = await jericho
+    const { data, error } = await myplatform
       .from('listings').select('id,reference_number').in('id', part);
     if (error) return { refs, error };
     (data || []).forEach(l => refs.set(l.id, l.reference_number));
@@ -612,7 +612,7 @@ async function referenceNumbersFor(ids) {
 //     async function loadThing() {
 //       const fresh = renderToken('thing');
 //       …
-//       const { data, error } = await jericho.rpc('thing');
+//       const { data, error } = await myplatform.rpc('thing');
 //       if (!fresh()) return;            // a newer load started; drop this one
 //       …
 //     }

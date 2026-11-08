@@ -325,7 +325,7 @@ test.describe.serial('forgetting a password', () => {
     // A Spanish-speaking member is the one most likely to need this and least
     // able to guess their way through an English page.
     await page.goto('/index.html');
-    await page.evaluate(() => { try { localStorage.setItem('jericho.language', 'es'); } catch (e) {} });
+    await page.evaluate(() => { try { localStorage.setItem('myplatform.language', 'es'); } catch (e) {} });
     await page.reload();
     await page.click('#forgot-link');
     const panel = await page.locator('#forgot-panel').innerText();

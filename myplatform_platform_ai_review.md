@@ -1,7 +1,7 @@
-# Jericho Platform — Project Blueprint for External Review
+# MyPlatform — Project Blueprint for External Review
 
 This document is a self-contained technical and functional description of the
-Jericho Platform. It is written to be read without any additional context, and
+MyPlatform. It is written to be read without any additional context, and
 is intended for independent architectural, security, and product review.
 
 It contains **no credentials, keys, connection strings, or environment variable
@@ -12,9 +12,9 @@ described.
 
 ## 1. Project summary
 
-### What Jericho Platform is
+### What MyPlatform is
 
-Jericho Platform is a **private, invitation-only listing and matching-facilitation
+MyPlatform is a **private, invitation-only listing and matching-facilitation
 platform for physical commodity brokers**. Approved participants publish
 **anonymous Sell Offers and Buy Requests**. A small group of Operators sees the
 full picture and privately brokers introductions between counterparties.

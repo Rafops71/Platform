@@ -1,4 +1,4 @@
-// Jericho Platform — login + invitation-based registration.
+// MyPlatform — login + invitation-based registration.
 // Runs on both index.html (login) and register.html (registration).
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -59,7 +59,7 @@ async function initLoginPage() {
     btn.disabled = true;
     btn.textContent = t('login.submitting');
 
-    const { data, error } = await jericho.auth.signInWithPassword({ email, password });
+    const { data, error } = await myplatform.auth.signInWithPassword({ email, password });
     if (error) {
       showError(errorMessage(error));
       btn.disabled = false;
@@ -67,12 +67,12 @@ async function initLoginPage() {
       return;
     }
 
-    const { data: prof, error: profErr } = await jericho
+    const { data: prof, error: profErr } = await myplatform
       .from('profiles').select('*').eq('user_id', data.user.id).maybeSingle();
 
     if (profErr || !prof) {
       showError(t('login.noProfile'));
-      await jericho.auth.signOut();
+      await myplatform.auth.signOut();
       btn.disabled = false;
       btn.textContent = t('login.submit');
       return;
@@ -81,12 +81,12 @@ async function initLoginPage() {
     await logActivity('login');
 
     if (prof.status === 'pending') {
-      await jericho.auth.signOut();
+      await myplatform.auth.signOut();
       window.location.href = 'index.html?pending=1';
       return;
     }
     if (prof.status !== 'approved') {
-      await jericho.auth.signOut();
+      await myplatform.auth.signOut();
       window.location.href = 'index.html?blocked=1';
       return;
     }
@@ -102,7 +102,7 @@ async function initLoginPage() {
 // gone with it rather than sitting there unread.
 async function logActivity(action, details = null) {
   try {
-    await jericho.rpc('record_activity', { p_action: action, p_details: details });
+    await myplatform.rpc('record_activity', { p_action: action, p_details: details });
   } catch (e) {
     console.warn('activity log failed (non-fatal):', e);
   }
@@ -185,7 +185,7 @@ async function initRegisterPage() {
     return;
   }
 
-  const { data, error } = await jericho.rpc('get_invitation_by_token', { p_token: invitationToken });
+  const { data, error } = await myplatform.rpc('get_invitation_by_token', { p_token: invitationToken });
   const invitation = Array.isArray(data) ? data[0] : data;
 
   checking.classList.add('hidden');
@@ -250,7 +250,7 @@ async function handleRegisterSubmit(e) {
   // the same transaction that creates the profile (sql/010). Recording it
   // from the browser afterwards would mean a registration could complete with
   // no acceptance on file if that second call failed or was never made.
-  const { data, error } = await jericho.auth.signUp({
+  const { data, error } = await myplatform.auth.signUp({
     email, password,
     options: {
       data: {
@@ -302,7 +302,7 @@ async function handleRegisterSubmit(e) {
   // session still exists (js/signing.js; best effort, never blocks).
   await saveSignatoryJobTitle(sig, data.user && data.user.id);
 
-  await jericho.auth.signOut();
+  await myplatform.auth.signOut();
   window.location.href = 'index.html?pending=1';
 }
 
@@ -361,7 +361,7 @@ function wireForgotPassword() {
     // Deliberately unchecked. An error here - unknown address, rate limit -
     // must look exactly like success, or the form becomes a membership oracle.
     // Nothing is logged to the console either, for the same reason.
-    await jericho.auth.resetPasswordForEmail(email, { redirectTo }).catch(() => {});
+    await myplatform.auth.resetPasswordForEmail(email, { redirectTo }).catch(() => {});
 
     form.classList.add('hidden');
     done.textContent = t('reset.sentNeutral');
