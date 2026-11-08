@@ -1,0 +1,50 @@
+# TEMPORARY. One-off: shows the owner's supervisor WHY one start-page picture
+# fails ("[phone] index (en) looks as approved"). It runs that one picture check
+# without updating anything, and commits the ACTUAL, EXPECTED and DIFF images
+# to tmp-visual-diff/. It never touches the approved pictures. Runs on a push
+# to this branch that changes this file. Delete this file and tmp-visual-diff/
+# after use.
+name: Show picture difference (temporary)
+
+on:
+  push:
+    branches: [batch-2026-11-08]
+    paths: ['.github/workflows/show-picture-diff-now.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  show:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: batch-2026-11-08
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - name: Install the browser
+        run: npx playwright install --with-deps chromium
+      - name: Run the one failing picture check (no update)
+        run: npx playwright test -c playwright.visual.config.js tests/visual/pages.spec.js --project=phone -g "index \(en\)" || true
+      - name: Collect the three images
+        run: |
+          mkdir -p tmp-visual-diff
+          find test-results -name '*.png' | sort
+          for k in actual expected diff; do
+            f=$(find test-results -name "index-en-*-${k}.png" | head -1)
+            if [ -n "$f" ]; then cp "$f" "tmp-visual-diff/index-en-phone-${k}.png"; else echo "no $k image found"; fi
+          done
+          ls -l tmp-visual-diff
+      - name: Commit only tmp-visual-diff
+        run: |
+          changed=$(git status --porcelain -- . ':!test-results' | awk '{print $2}' | sort -u)
+          echo "changed:"; echo "$changed"
+          if [ "$changed" != "tmp-visual-diff/" ]; then echo "UNEXPECTED CHANGES - nothing committed"; exit 1; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tmp-visual-diff
+          git commit -m "Temporary: actual, expected and diff images for the failing start-page picture"
+          git push origin HEAD:batch-2026-11-08
