@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MOCKUP - Screen 2 AFTER - start page</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600&family=Source+Sans+3:wght@400;600&display=swap">
+<link rel="stylesheet" href="../../css/styles.css">
+<style>
+  .mock-banner { background: #fff3c4; color: #5a4300; border-bottom: 2px solid #c9a227; text-align: center; font: 700 14px/1.2 var(--font-body, sans-serif); padding: 6px 8px; letter-spacing: .3px; }
+  .mock-label { font: 600 13px/1.3 var(--font-body, sans-serif); color: #52677a; padding: 10px 16px 0; max-width: 1280px; margin: 0 auto; }
+  .mock-undecided { border: 2px dashed #8a949e; background: #f1f3f5; color: #3d4852; border-radius: 10px; padding: 10px 14px; margin: 16px auto; max-width: 420px; font-size: 14px; }
+  .mock-undecided strong { display: block; margin-bottom: 4px; }
+  .lang-toggle-auth { top: 76px; }
+  .mock-notes { max-width: 420px; margin: 0 auto; padding: 0 16px 24px; }
+</style>
+</head>
+<body>
+<div class="mock-banner">MOCKUP - nothing here works</div>
+<div class="mock-label">SCREEN 2 - AFTER - start page, Help link removed, nothing else changed</div>
+
+<main class="auth-shell">
+  <div class="lang-toggle lang-toggle-auth" role="group" aria-label="Language">
+    <button type="button" class="lang-btn lang-btn-active" aria-pressed="true">EN</button>
+    <button type="button" class="lang-btn" aria-pressed="false">ES</button>
+  </div>
+
+  <div class="logo-row">
+    <h1>MyPlatform</h1>
+    <p>Private, invitation-only. Sign in to continue.</p>
+  </div>
+
+  <div class="card">
+    <form>
+      <label for="email">Email</label>
+      <input type="email" id="email" autocomplete="username">
+
+      <label for="password">Password</label>
+      <input type="password" id="password" autocomplete="current-password">
+
+      <button type="button" class="btn btn-primary btn-block" style="margin-top:18px;">Sign In</button>
+    </form>
+
+    <p class="text-center" style="font-size:var(--text-base); margin-top:14px; margin-bottom:0;">
+      <a href="#">Forgotten your password?</a>
+     
+    </p>
+  </div>
+
+  <div class="card" style="margin-top:16px;">
+    <img src="../../films/walkthrough-member-en-poster.jpg" alt="Walkthrough film poster" style="display:block;width:100%;border-radius:8px;">
+  </div>
+
+  <p class="text-center text-muted" style="font-size:var(--text-base);">
+    No account? Access is by invitation only — ask an Operator for an invitation link.
+  </p>
+</main>
+<div class="mock-notes">
+  <div class="mock-undecided"><strong>UNDECIDED - owner to choose</strong>What happens to the public help page (help.html) that the removed link used to open: remove it, or keep it with no link to it.</div>
+</div>
+</body>
+</html>
