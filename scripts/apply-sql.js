@@ -80,6 +80,7 @@ const DEFAULT_ORDER = [
   '047_operator_mail_on_member_message.sql',
   '048_message_rewrite_activity.sql',
   '049_message_denied_status.sql',
+  '050_test_prefix_cleanup_both.sql',
   'seed_commodities.sql',
 ];
 
