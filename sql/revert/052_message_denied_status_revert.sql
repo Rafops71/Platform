@@ -1,4 +1,4 @@
--- Reverts 049: removes 'denied' from the messages.status allowed list.
+-- Reverts 052: removes 'denied' from the messages.status allowed list.
 -- Refused, and changes nothing, while any row still holds 'denied': such a row
 -- must be dealt with first, so the revert never rewrites or deletes it.
 
@@ -7,7 +7,7 @@ begin;
 do $$
 begin
   if exists (select 1 from public.messages where status = 'denied') then
-    raise exception 'Revert 049 refused: messages with status denied still exist.';
+    raise exception 'Revert 052 refused: messages with status denied still exist.';
   end if;
 end
 $$;

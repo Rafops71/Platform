@@ -78,9 +78,9 @@ const DEFAULT_ORDER = [
   '045_terms_3_5.sql',
   '046_forward_edit_activity.sql',
   '047_operator_mail_on_member_message.sql',
-  '048_message_rewrite_activity.sql',
-  '049_message_denied_status.sql',
-  '050_test_prefix_cleanup_both.sql',
+  '051_message_rewrite_activity.sql',
+  '052_message_denied_status.sql',
+  '053_test_prefix_cleanup_both.sql',
   'seed_commodities.sql',
 ];
 

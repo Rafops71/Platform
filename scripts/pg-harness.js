@@ -81,9 +81,9 @@ const SETUP = [
   'sql/045_terms_3_5.sql',
   'sql/046_forward_edit_activity.sql',
   'sql/047_operator_mail_on_member_message.sql',
-  'sql/048_message_rewrite_activity.sql',
-  'sql/049_message_denied_status.sql',
-  'sql/050_test_prefix_cleanup_both.sql',
+  'sql/051_message_rewrite_activity.sql',
+  'sql/052_message_denied_status.sql',
+  'sql/053_test_prefix_cleanup_both.sql',
   'sql/seed_commodities.sql',
 ];
 

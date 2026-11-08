@@ -1,4 +1,4 @@
--- Reverts 048: restores the record_activity() allowlist from sql/046 (without
+-- Reverts 051: restores the record_activity() allowlist from sql/046 (without
 -- 'message_rewrite_requested'). Existing rows are left alone.
 create or replace function public.record_activity(
   p_action  text,

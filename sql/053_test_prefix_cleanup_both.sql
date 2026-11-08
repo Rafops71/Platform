@@ -1,5 +1,13 @@
--- Reverts 050: restores the sql/027 purge and the sql/047 test-mail skip rule
--- to their old-prefix-only form. Nothing is deleted and no row is changed.
+-- 053: the test-data cleanup and the test-mail skip rule match BOTH prefixes.
+--
+-- Test accounts were created with the old prefix 'jericho-e2e-' and are now
+-- created with 'myplatform-e2e-'. sql/027 (purge: unsent test mail) and sql/047
+-- (no Operator mail for test accounts) matched only the old prefix, so mail and
+-- accounts made under the new prefix would not have been caught.
+--
+-- This migration only REPLACES two function bodies. It deletes nothing and
+-- changes no row. The only difference from sql/027 and sql/047 is the added
+-- 'myplatform-e2e-%' pattern; the old pattern is kept.
 
 create or replace function public.purge_orphaned_activity()
 returns integer
@@ -46,7 +54,8 @@ begin
   -- 3. Mail that was never going to reach anybody. New in 027.
   delete from public.email_outbox e
    where e.sent_at is null
-     and (e.to_email like 'jericho-e2e-%'
+     and (e.to_email like 'myplatform-e2e-%'
+       or e.to_email like 'jericho-e2e-%'
        or e.to_email like '%@example.invalid'
        or e.to_email like '%@example.com'
        or e.to_email like '%@example.org'
@@ -85,7 +94,7 @@ begin
   -- Test accounts send no Operator mail. The marker is the one sql/027 uses to
   -- decide what is test mail: the reserved domains (RFC 2606) and the e2e prefix.
   -- Nothing is deleted; the trigger simply does not queue these.
-  if v_email ~* '@example\.(invalid|com|org|net)$' or lower(v_email) like 'jericho-e2e-%' then
+  if v_email ~* '@example\.(invalid|com|org|net)$' or (lower(v_email) like 'myplatform-e2e-%' or lower(v_email) like 'jericho-e2e-%') then
     return new;
   end if;
 

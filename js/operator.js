@@ -1133,7 +1133,7 @@ async function askMemberToRewrite() {
 
 /** The message is not forwarded. The member gets a reply with the fixed text,
  *  the original is marked 'denied' so it is never delivered, and the activity
- *  log keeps the original body (sql/048). */
+ *  log keeps the original body (sql/051). */
 async function askMemberToRewriteNow() {
   const original = FORWARD_TARGET;
   const { data: newMsg, error: e1 } = await myplatform.from('messages').insert({

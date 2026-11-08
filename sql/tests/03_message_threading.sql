@@ -128,7 +128,7 @@ select case when in_reply_to is null then 'PASS' else 'FAIL' end
   as "M8 the orphaned link is nulled, not left dangling"
 from public.messages where body='TH reply';
 
--- 049: 'denied' is an allowed message status (Item 78: the Operator denies a
+-- 052: 'denied' is an allowed message status (Item 78: the Operator denies a
 -- message that holds contact details; it is never delivered).
 select case when pg_get_constraintdef(c.oid) like '%''denied''%' then 'PASS' else 'FAIL' end
   as "M9 the messages status rule allows denied"

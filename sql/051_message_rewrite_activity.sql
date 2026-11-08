@@ -1,4 +1,4 @@
--- 048: an Operator who asks a member to rewrite a message that holds contact
+-- 051: an Operator who asks a member to rewrite a message that holds contact
 -- details leaves the original in the Operator-only activity log. This adds one
 -- action name, 'message_rewrite_requested', to the record_activity()
 -- allowlist (sql/030, extended by sql/046). Nothing else changes: the function
