@@ -33,7 +33,7 @@ test('Item76 Help questions are available only after sign-in, never on the sign-
   await expect(items.first().locator('summary')).toHaveText('How does MyPlatform work?');
   await expect(items.first().locator('p')).toBeHidden();
   await items.first().locator('summary').click();
-  await expect(items.first().locator('p')).toContainText('Nobody contacts anybody directly');
+  await expect(items.first().locator('p')).toContainText('channelled through the Operator');
 
   // MyPlatform's role, who answers for an offer, account sharing - and the
   // catch-all stays the last question.
