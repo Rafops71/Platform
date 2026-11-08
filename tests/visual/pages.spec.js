@@ -13,7 +13,7 @@ const SUPABASE_PUBLISHABLE_KEY = 'picture-check';
 const myplatform = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 `;
 
-const PAGES = ['index', 'register', 'reset', 'terms', 'help'];
+const PAGES = ['index', 'register', 'reset', 'terms'];
 
 for (const lang of ['en', 'es']) {
   for (const name of PAGES) {
