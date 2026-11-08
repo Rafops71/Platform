@@ -127,12 +127,12 @@ reset role;
 select case when exists (select 1 from t27 where msg = 'OTHER_SEES_ROWS' and n = 0) then 'PASS' else 'FAIL' end
   as "T5 Item84 another member sees none of the referrer's recommendations";
 
-select case when exists (select 1 from t27 where msg = 'ERR Only an Operator may list candidate recommendations')
+select case when exists (select 1 from t27 where msg = 'ERR Operators only')
              and not exists (select 1 from t27 where msg = 'OTHER_LISTED') then 'PASS' else 'FAIL' end
   as "T6 Item84 a member cannot list recommendations";
 
 select case when not exists (select 1 from t27 where msg in ('OTHER_DECLINED', 'OTHER_UPDATED'))
-             and exists (select 1 from t27 where msg = 'ERR Only an Operator may decline a candidate recommendation')
+             and exists (select 1 from t27 where msg = 'ERR Operators only')
              and exists (select 1 from t27 where msg like 'ERR permission denied%')
             then 'PASS' else 'FAIL' end
   as "T7 Item84 a member cannot decline or change a recommendation";
@@ -237,3 +237,84 @@ reset role; reset test.uid;
 select case when exists (select 1 from t27 where msg = 'REPLACEMENT_OK')
             then 'PASS' else 'FAIL' end
   as "T16 Item83 a declined recommendation frees one of the five places";
+
+\echo
+\echo '=========== A MEMBER CANNOT INVITE; THE INVITATION SHOWS ONLY THE REFERRER ==========='
+
+-- The Operator guard is inside the function, as sql/026 puts it: a member who
+-- calls it directly is refused, whatever the screen shows.
+set role authenticated; set test.uid = 'f7f70002-0002-0002-0002-000000000002';
+do $$ declare v_id uuid; begin
+  select id into v_id from public.candidate_recommendations where candidate_name = 'Candidate 3';
+  perform public.operator_invite_from_recommendation(v_id,
+    'tok85' || repeat('c', 40), 'https://example.invalid/register.html?token=tok85' || repeat('c', 40),
+    'en', 'https://example.invalid/terms.html');
+  insert into t27 (msg) values ('MEMBER_INVITED');
+exception when others then insert into t27 (msg) values ('INVITE_ERR ' || sqlerrm); end $$;
+reset role; reset test.uid;
+
+select case when exists (select 1 from t27 where msg = 'INVITE_ERR Operators only')
+             and not exists (select 1 from t27 where msg = 'MEMBER_INVITED')
+             and not exists (select 1 from public.invitations where token like 'tok85%')
+             and exists (select 1 from public.candidate_recommendations
+                          where candidate_name = 'Candidate 3' and status = 'open')
+            then 'PASS' else 'FAIL' end
+  as "T18 Item85 a member cannot invite from a recommendation, and nothing is sent";
+
+select case when not exists (select 1 from public.email_outbox
+                              where to_email = 'candidate2@example.invalid'
+                                and (body_text like '%Example Co%' or body_text like '%Copper%'
+                                  or body_text like '%rec-ref@%' or body_text like '%how-known-marker%'
+                                  or body_text like '%experience-marker%'))
+             and exists (select 1 from public.email_outbox
+                          where to_email = 'candidate2@example.invalid'
+                            and body_text like '%Rita Referrer%')
+            then 'PASS' else 'FAIL' end
+  as "T19 Item85 the invitation shows the referrer's name and none of the other recommendation fields";
+
+\echo
+\echo '=========== ANOTHER MEMBER CANNOT READ, CHANGE OR DELETE A RECOMMENDATION ==========='
+
+set role authenticated; set test.uid = 'f7f70003-0003-0003-0003-000000000003';
+insert into t27 (msg, n)
+select 'OTHER_READ_CANDIDATE_3', count(*) from public.candidate_recommendations where candidate_name = 'Candidate 3';
+do $$ begin
+  update public.candidate_recommendations set candidate_name = 'Changed by another member'
+   where candidate_name = 'Candidate 3';
+  insert into t27 (msg) values ('OTHER_UPDATED_ROW');
+exception when others then insert into t27 (msg) values ('UPD_ERR ' || sqlerrm); end $$;
+do $$ begin
+  delete from public.candidate_recommendations where candidate_name = 'Candidate 4';
+  insert into t27 (msg) values ('OTHER_DELETED_ROW');
+exception when others then insert into t27 (msg) values ('DEL_ERR ' || sqlerrm); end $$;
+reset role; reset test.uid;
+
+set role authenticated; set test.uid = 'f7f70002-0002-0002-0002-000000000002';
+do $$ begin
+  update public.candidate_recommendations set candidate_name = 'Changed by the referrer'
+   where candidate_name = 'Candidate 3';
+  insert into t27 (msg) values ('REFERRER_UPDATED_ROW');
+exception when others then insert into t27 (msg) values ('OWN_UPD_ERR ' || sqlerrm); end $$;
+reset role; reset test.uid;
+
+select case when (select n from t27 where msg = 'OTHER_READ_CANDIDATE_3') = 0
+            then 'PASS' else 'FAIL' end
+  as "T20 Item87 another member cannot read a recommendation";
+
+select case when exists (select 1 from t27 where msg = 'UPD_ERR permission denied for table candidate_recommendations')
+             and not exists (select 1 from t27 where msg = 'OTHER_UPDATED_ROW')
+             and exists (select 1 from public.candidate_recommendations where candidate_name = 'Candidate 3')
+            then 'PASS' else 'FAIL' end
+  as "T21 Item87 another member cannot change a recommendation";
+
+select case when exists (select 1 from t27 where msg = 'DEL_ERR permission denied for table candidate_recommendations')
+             and not exists (select 1 from t27 where msg = 'OTHER_DELETED_ROW')
+             and exists (select 1 from public.candidate_recommendations where candidate_name = 'Candidate 4')
+            then 'PASS' else 'FAIL' end
+  as "T22 Item87 another member cannot delete a recommendation";
+
+select case when exists (select 1 from t27 where msg = 'OWN_UPD_ERR permission denied for table candidate_recommendations')
+             and not exists (select 1 from t27 where msg = 'REFERRER_UPDATED_ROW')
+             and exists (select 1 from public.candidate_recommendations where candidate_name = 'Candidate 3')
+            then 'PASS' else 'FAIL' end
+  as "T23 Item87 not even the referrer can change their own recommendation";

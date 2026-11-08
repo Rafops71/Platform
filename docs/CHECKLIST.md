@@ -113,6 +113,7 @@ the suite: this platform's product is controlled disclosure, so proving a thing
 | 84 | A member never sees another member's recommendation | MUST NOT |
 | 85 | The Operator can invite from a recommendation, and the invitation names the referrer | does |
 | 86 | Declining a recommendation does not tell the referrer | MUST NOT |
+| 87 | A member can never read, change or delete another member's recommendation | MUST NOT |
 
 ## Open questions on this list
 

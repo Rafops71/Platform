@@ -14,6 +14,9 @@
 -- holds the candidate's email and token) and the outbox emails already sent.
 -- Those are other tables with their own history rules.
 --
+-- WARNING: this function DELETES data. Its revert cannot restore the rows it
+-- has removed: sql/revert/055 only removes the function.
+--
 -- Nothing runs this by itself. It is scheduled only when the owner says so,
 -- see the report. It is callable by service_role alone, so no signed-in
 -- member and no Operator can run it from the app.

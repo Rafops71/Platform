@@ -119,6 +119,7 @@ begin
 end;
 $$;
 
+-- Operator guard: the same check sql/026 uses on the Operator-only functions.
 -- ---- the Operator's list ---------------------------------------------------
 -- Open recommendations only, with what the Invitations page shows. The
 -- "how known" and "own experience" texts are not returned: the owner's page
@@ -138,8 +139,10 @@ security definer
 set search_path = public
 as $$
 begin
-  if not public.is_operator() then
-    raise exception 'Only an Operator may list candidate recommendations';
+  if not exists (select 1 from public.profiles p
+                  where p.id = public.current_profile_id()
+                    and p.role = 'operator' and p.status = 'approved') then
+    raise exception 'Operators only' using errcode = '42501';
   end if;
 
   return query
@@ -166,8 +169,10 @@ as $$
 declare
   v_me uuid;
 begin
-  if not public.is_operator() then
-    raise exception 'Only an Operator may decline a candidate recommendation';
+  if not exists (select 1 from public.profiles p
+                  where p.id = public.current_profile_id()
+                    and p.role = 'operator' and p.status = 'approved') then
+    raise exception 'Operators only' using errcode = '42501';
   end if;
 
   select p.id into v_me from public.profiles p where p.user_id = auth.uid();
@@ -208,8 +213,10 @@ declare
   v_subject   text;
   v_body      text;
 begin
-  if not public.is_operator() then
-    raise exception 'Only an Operator may invite from a candidate recommendation';
+  if not exists (select 1 from public.profiles p
+                  where p.id = public.current_profile_id()
+                    and p.role = 'operator' and p.status = 'approved') then
+    raise exception 'Operators only' using errcode = '42501';
   end if;
   if p_token is null or length(p_token) < 32 then
     raise exception 'An invitation token is required';
