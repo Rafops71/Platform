@@ -89,7 +89,7 @@ the suite: this platform's product is controlled disclosure, so proving a thing
 | 59 | A member who is not approved cannot read the market, however they ask | MUST NOT |
 | 60 | When the Platform cannot be reached, a member is told so in plain words | does |
 | 61 | A tab left open cannot undo work done elsewhere, and a dead session is not hidden | MUST NOT |
-| 62 | A member who has not signed the newest Terms is held at sign-in until they sign | does |
+| 62 | A member who has signed the Terms once is never held at sign-in or asked to sign again when the Terms change; they are emailed a summary of the changes and a link | does |
 | 63 | A signed acceptance is never lost or rewritten, even when the member is deleted | MUST NOT |
 | 64 | A PO box is never accepted as a signing address | MUST NOT |
 | 65 | A member can never write their own signing record | MUST NOT |
@@ -108,6 +108,8 @@ the suite: this platform's product is controlled disclosure, so proving a thing
 | 78 | The Operator cannot edit a message; a message with contact details is shown with them in red, cannot be forwarded, and the member is asked to rewrite it; the original is never delivered and stays in the Operator-only log | does |
 | 79 | Every approved Operator is emailed when a member sends a message, and the email carries none of the message | does |
 | 80 | The member walkthrough film sits below the sign-in box, in English or Spanish to match the page, and plays only when pressed | does |
+| 81 | A member who signs the Terms gets one receipt email, in their own language, and re-saving a signed acceptance sends no second one | does |
+| 88 | When new Terms are published, every approved member is emailed a summary of the changes and a link, once | does |
 
 ## Open questions on this list
 
