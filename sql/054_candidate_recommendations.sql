@@ -1,4 +1,4 @@
--- 054 (items 81-85): a member recommends a candidate. The recommendation goes
+-- 054 (items 82-86): a member recommends a candidate. The recommendation goes
 -- to the Operators only. The Operator may invite the candidate from it, or
 -- decline it. Declining tells nobody.
 --

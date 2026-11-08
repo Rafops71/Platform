@@ -1,4 +1,4 @@
-// Items 81-85: a member recommends a candidate; only the Operator sees it; a
+// Items 82-86: a member recommends a candidate; only the Operator sees it; a
 // member never has more than five open; a member never sees another member's
 // recommendation; the Operator invites from one (the invitation names the
 // referrer); declining tells nobody.
@@ -15,17 +15,17 @@ const { createAccount, cleanup, assertConfigured, testEmail } = require('./helpe
 const { signIn, openScreen } = require('./helpers/session');
 const { query } = require('../../scripts/db');
 
-const REFERRER = { first_name: 'Item81', last_name: 'Referrerson', company: 'Referrer Metals', phone: '+32471581001' };
-const OTHER    = { first_name: 'Item83', last_name: 'Otherly', company: 'Other Trading', phone: '+32471583001' };
+const REFERRER = { first_name: 'Item82', last_name: 'Referrerson', company: 'Referrer Metals', phone: '+32471581001' };
+const OTHER    = { first_name: 'Item84', last_name: 'Otherly', company: 'Other Trading', phone: '+32471583001' };
 
 let operator, referrer, other;
 
 test.beforeAll(async () => {
   assertConfigured();
   await cleanup();
-  operator = await createAccount({ label: 'i81op', role: 'operator', status: 'approved' });
-  referrer = await createAccount({ label: 'i81rf', role: 'participant', status: 'approved', meta: REFERRER });
-  other    = await createAccount({ label: 'i83ot', role: 'participant', status: 'approved', meta: OTHER });
+  operator = await createAccount({ label: 'i82op', role: 'operator', status: 'approved' });
+  referrer = await createAccount({ label: 'i82rf', role: 'participant', status: 'approved', meta: REFERRER });
+  other    = await createAccount({ label: 'i84ot', role: 'participant', status: 'approved', meta: OTHER });
 });
 
 /** Fills the Recommend a candidate page and sends it. */
@@ -43,9 +43,9 @@ async function recommend(page, name, email) {
   await page.click('#recommend-btn');
 }
 
-test('Item81 a member recommends a candidate from Profile, and only the Operator sees it', async ({ page }) => {
-  const candidate = `Item81 Candidate ${Date.now()}`;
-  const email = testEmail('i81cand');
+test('Item82 a member recommends a candidate from Profile, and only the Operator sees it', async ({ page }) => {
+  const candidate = `Item82 Candidate ${Date.now()}`;
+  const email = testEmail('i82cand');
   await signIn(page, referrer, 'app.html');
   await recommend(page, candidate, email);
   await expect(page.locator('.toast-success')).toContainText('Message sent to Operators.');
@@ -57,12 +57,12 @@ test('Item81 a member recommends a candidate from Profile, and only the Operator
   await signIn(page, operator, 'operator.html');
   await openScreen(page, 'invitations');
   await expect(page.locator('#recommendations-body')).toContainText(candidate, { timeout: 15_000 });
-  await expect(page.locator('#recommendations-body')).toContainText('Item81 Referrerson');
+  await expect(page.locator('#recommendations-body')).toContainText('Item82 Referrerson');
 });
 
-test('Item82 a member with five open recommendations is refused a sixth', async ({ page }) => {
+test('Item83 a member with five open recommendations is refused a sixth', async ({ page }) => {
   // A member of their own, so the five below are the only open ones.
-  const full = await createAccount({ label: 'i82rf', role: 'participant', status: 'approved', meta: REFERRER });
+  const full = await createAccount({ label: 'i83rf', role: 'participant', status: 'approved', meta: REFERRER });
   // Five are filed straight into the database, as five earlier sends would be.
   for (let i = 1; i <= 5; i++) {
     await query(
@@ -71,27 +71,27 @@ test('Item82 a member with five open recommendations is refused a sixth', async 
           commodities, agreed_contact, own_experience)
        select p.id, $2, 'Co', $3, 'known', 'Copper', true, 'exp'
          from public.profiles p where p.user_id = $1`,
-      [full.userId, `Item82 Filler ${i}`, testEmail(`i82f${i}`)]
+      [full.userId, `Item83 Filler ${i}`, testEmail(`i84f${i}`)]
     );
   }
   await signIn(page, full, 'app.html');
-  await recommend(page, 'Item82 Sixth', testEmail('i82six'));
+  await recommend(page, 'Item83 Sixth', testEmail('i83six'));
   await expect(page.locator('.toast-error')).toContainText('You can have up to 5 open recommendations at a time.');
 });
 
-test('Item83 a member never sees another member\'s recommendation', async ({ page }) => {
+test('Item84 a member never sees another member\'s recommendation', async ({ page }) => {
   await signIn(page, other, 'app.html');
   await openScreen(page, 'profile');
-  await expect(page.locator('body')).not.toContainText('Item81 Candidate');
-  await expect(page.locator('body')).not.toContainText('Item82 Filler');
+  await expect(page.locator('body')).not.toContainText('Item82 Candidate');
+  await expect(page.locator('body')).not.toContainText('Item83 Filler');
   await page.click('#recommend-open-btn');
-  await expect(page.locator('body')).not.toContainText('Item81 Candidate');
+  await expect(page.locator('body')).not.toContainText('Item82 Candidate');
 });
 
-test('Item84 the Operator invites from a recommendation, and the invitation names the referrer', async ({ page }) => {
-  const candidate = `Item84 Invitee ${Date.now()}`;
-  const email = testEmail('i84inv');
-  const sender = await createAccount({ label: 'i84rf', role: 'participant', status: 'approved', meta: REFERRER });
+test('Item85 the Operator invites from a recommendation, and the invitation names the referrer', async ({ page }) => {
+  const candidate = `Item85 Invitee ${Date.now()}`;
+  const email = testEmail('i85inv');
+  const sender = await createAccount({ label: 'i85rf', role: 'participant', status: 'approved', meta: REFERRER });
   await signIn(page, sender, 'app.html');
   await recommend(page, candidate, email);
   await expect(page.locator('.toast-success')).toContainText('Message sent to Operators.');
@@ -103,7 +103,7 @@ test('Item84 the Operator invites from a recommendation, and the invitation name
   await row.locator('[data-rec-invite]').click();
   await expect(page.locator('#invite-from-rec-card')).toBeVisible();
   await expect(page.locator('#ir-candidate-email')).toHaveValue(email);
-  await expect(page.locator('#ir-preview')).toContainText('Item81 Referrerson has recommended you');
+  await expect(page.locator('#ir-preview')).toContainText('Item82 Referrerson has recommended you');
   await page.click('#ir-send-btn');
   await expect(page.locator('.toast-success')).toContainText('Invitation email queued to');
   await expect(row).toHaveCount(0);
@@ -111,18 +111,18 @@ test('Item84 the Operator invites from a recommendation, and the invitation name
   await expect.poll(async () => {
     const r = await query(
       `select count(*)::int n from public.email_outbox
-        where to_email = $1 and body_text like '%Item81 Referrerson has recommended you%'`,
+        where to_email = $1 and body_text like '%Item82 Referrerson has recommended you%'`,
       [email]
     );
     return r.rows[0].n;
   }, { timeout: 20_000 }).toBe(1);
 });
 
-test('Item85 declining a recommendation tells the referrer nothing', async ({ page }) => {
-  const candidate = `Item85 Declined ${Date.now()}`;
-  const sender = await createAccount({ label: 'i85rf', role: 'participant', status: 'approved', meta: REFERRER });
+test('Item86 declining a recommendation tells the referrer nothing', async ({ page }) => {
+  const candidate = `Item86 Declined ${Date.now()}`;
+  const sender = await createAccount({ label: 'i86rf', role: 'participant', status: 'approved', meta: REFERRER });
   await signIn(page, sender, 'app.html');
-  await recommend(page, candidate, testEmail('i85dec'));
+  await recommend(page, candidate, testEmail('i86dec'));
   await expect(page.locator('.toast-success')).toContainText('Message sent to Operators.');
 
   const before = await query(
