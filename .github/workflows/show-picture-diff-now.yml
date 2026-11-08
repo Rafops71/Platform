@@ -27,15 +27,20 @@ jobs:
       - run: npm ci
       - name: Install the browser
         run: npx playwright install --with-deps chromium
-      - name: Run the one failing picture check (no update)
-        run: npx playwright test -c playwright.visual.config.js tests/visual/pages.spec.js --project=phone -g "index \(en\)" || true
+      # Exactly as the pictures job runs it: the whole suite, same key. The one
+      # picture passes alone, so the cause may be the order or what ran before.
+      - name: Run the whole picture suite as CI does (no update)
+        run: npx playwright test -c playwright.visual.config.js || true
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
       - name: Collect the three images
         run: |
           mkdir -p tmp-visual-diff
           find test-results -name '*.png' | sort
-          for k in actual expected diff; do
-            f=$(find test-results -name "index-en-*-${k}.png" | head -1)
-            if [ -n "$f" ]; then cp "$f" "tmp-visual-diff/index-en-phone-${k}.png"; else echo "no $k image found"; fi
+          # Every failing picture's three images (there should be one).
+          for f in $(find test-results -name '*-actual.png' -o -name '*-expected.png' -o -name '*-diff.png' | sort); do
+            d=$(basename "$(dirname "$f")")
+            cp "$f" "tmp-visual-diff/${d}__$(basename "$f")"
           done
           ls -l tmp-visual-diff
       - name: Commit only tmp-visual-diff
