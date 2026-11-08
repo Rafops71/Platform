@@ -141,4 +141,72 @@ select case when not public.has_accepted_current_terms() then 'PASS' else 'FAIL'
   as "T11 Item62 a member who has never signed is still held";
 reset role; reset test.uid;
 
+-- ---- Item 88: a deliberate, per-version exclusion (owner's decision, 2026-11-08) ----
+-- Three live accounts are the owner's own test accounts but carry no marker.
+-- Their profile ids are put into terms_change_emails for one version before it
+-- is published; the trigger then skips them, with an empty summary, and the
+-- blank-summary guard still holds for everybody else and for every other version.
+-- Here the four approved real participants (3 English, 1 Spanish) stand for them.
+create temp table t29_before as select count(*) as n from public.email_outbox;
+
+insert into public.terms_change_emails (version, profile_id)
+select '9.5', id from public.profiles
+ where role = 'participant' and status = 'approved'
+   and email not like 'jericho-e2e-%' and email not like '%@example.%';
+
+select case when count(*) = 4 then 'PASS' else 'FAIL got ' || count(*) end
+  as "T12 Item88 four approved real members are set aside for version 9.5 (setup check)"
+from public.terms_change_emails where version = '9.5';
+
+do $$ begin
+  insert into public.terms_versions (version, language, text, sha256) values ('9.5', 'es', 'x', 'x');
+  insert into public.terms_versions (version, language, text, sha256) values ('9.5', 'en', 'x', 'x');
+  insert into t29_hold values ('publish 9.5', 'OK');
+exception when others then insert into t29_hold values ('publish 9.5', sqlerrm); end $$;
+
+select case when msg = 'OK' then 'PASS' else 'FAIL ' || msg end
+  as "T13 Item88 a set-aside version publishes in both languages with an empty summary"
+from t29_hold where label = 'publish 9.5';
+
+select case when (select count(*) from public.email_outbox) = (select n from t29_before)
+             and (select count(*) from public.terms_change_emails where version = '9.5') = 4
+            then 'PASS' else 'FAIL' end
+  as "T14 Item88 the set-aside members are emailed nothing and no other row was added for 9.5";
+
+-- The set-aside is for 9.5 only: the same members under 9.3 are still refused.
+do $$ begin
+  insert into public.terms_versions (version, language, text, sha256) values ('9.3', 'en', 'x', 'x');
+  insert into t29_hold values ('publish 9.3', 'OK');
+exception when others then insert into t29_hold values ('publish 9.3', sqlerrm); end $$;
+
+select case when msg like '%no change summary%' then 'PASS' else 'FAIL ' || msg end
+  as "T15 Item88 the set-aside does not carry to another version: 9.3 is still refused"
+from t29_hold where label = 'publish 9.3';
+
+-- A fifth, later approved real member is not covered: the guard fires again.
+select public.test_invite('chg-late@mailcheck-platform.com');
+insert into auth.users (id, email, raw_user_meta_data) values
+('f2f2f2f2-0008-0008-0008-000000000008'::uuid, 'chg-late@mailcheck-platform.com',
+ jsonb_build_object('first_name','Lea','last_name','Late','phone','+3200000608','country','Chile','language','en'));
+update public.profiles set status = 'approved' where email = 'chg-late@mailcheck-platform.com';
+
+insert into public.terms_change_emails (version, profile_id)
+select '9.4', id from public.profiles
+ where role = 'participant' and status = 'approved'
+   and email not like 'jericho-e2e-%' and email not like '%@example.%'
+   and email <> 'chg-late@mailcheck-platform.com';
+
+do $$ begin
+  insert into public.terms_versions (version, language, text, sha256) values ('9.4', 'en', 'x', 'x');
+  insert into t29_hold values ('publish 9.4', 'OK');
+exception when others then insert into t29_hold values ('publish 9.4', sqlerrm); end $$;
+
+select case when msg like '%no change summary%' then 'PASS' else 'FAIL ' || msg end
+  as "T16 Item88 a real member not set aside brings the blank-summary guard back"
+from t29_hold where label = 'publish 9.4';
+
+select case when count(*) = 0 then 'PASS' else 'FAIL got ' || count(*) end
+  as "T17 Item88 the refused 9.4 publish leaves no version row behind"
+from public.terms_versions where version = '9.4';
+
 update public.profiles set status = 'approved' where id in (select id from t29_set_aside);
