@@ -7,7 +7,7 @@ Generated from js/i18n.js by comparing the file before and after the change. Eac
 - Plural "Operators" / "Operadores" replaced with "Operator" / "Operador" everywhere in the Terms keys, with the verbs, articles and possessives adjusted.
 - Not changed: the Spanish words "operadora" / "sociedad operadora" (the company that will operate the Platform, clause 16) and the English "operating company". They describe the company, not the role.
 
-**Terms version: TERMS_VERSION is now 3.7 (sql/050_terms_3_7.sql, additive). The 3.6 row (sql/049) and its text are not changed. Migration 050 is NOT applied to any live database.**
+**Terms version: TERMS_VERSION is now 3.7 (sql/058_terms_3_7.sql, additive). The 3.6 row (sql/049) and its text are not changed. Migration 058 is NOT applied to any live database.**
 
 ## English
 

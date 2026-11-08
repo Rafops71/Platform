@@ -22,7 +22,7 @@ const crypto = require('crypto');
 
 const ROOT = path.join(__dirname, '..');
 
-const SEED_FILE_NUMBERS = { '3.0': '032', '3.1': '036', '3.2': '039', '3.3': '040', '3.4': '042', '3.5': '045', '3.6': '049', '3.7': '050' };
+const SEED_FILE_NUMBERS = { '3.0': '032', '3.1': '036', '3.2': '039', '3.3': '040', '3.4': '042', '3.5': '045', '3.6': '049', '3.7': '058' };
 
 function load() {
   const stub = { classList: { add() {}, remove() {}, toggle() {} } };
@@ -72,7 +72,7 @@ function build() {
     if (text.includes('$terms$')) throw new Error('the text contains the SQL quote tag $terms$');
     // The owner's summary of the changes, for members who are emailed about
     // this version (sql/056). Absent for a version with no summary yet: then
-    // the row carries no change_summary, as sql/050 always has.
+    // the row carries no change_summary, as sql/058 always has.
     const sumPath = path.join(ROOT, 'terms', 'changes', `${TERMS_VERSION}.${lang}.txt`);
     const summary = fs.existsSync(sumPath) ? fs.readFileSync(sumPath, 'utf8').trim() : null;
     if (summary !== null && (summary === '' || summary.includes('$terms$'))) {

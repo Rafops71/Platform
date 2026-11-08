@@ -82,7 +82,7 @@ const DEFAULT_ORDER = [
   '049_terms_3_6.sql',
   '056_terms_change_email.sql',
   '057_terms_gate_signed_once.sql',
-  '050_terms_3_7.sql',
+  '058_terms_3_7.sql',
   'seed_commodities.sql',
 ];
 

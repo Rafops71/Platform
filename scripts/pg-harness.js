@@ -85,7 +85,7 @@ const SETUP = [
   'sql/049_terms_3_6.sql',
   'sql/056_terms_change_email.sql',
   'sql/057_terms_gate_signed_once.sql',
-  'sql/050_terms_3_7.sql',
+  'sql/058_terms_3_7.sql',
   'sql/seed_commodities.sql',
 ];
 
