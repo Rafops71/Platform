@@ -25,6 +25,19 @@ const I18N_STORAGE_KEY = 'myplatform.language';
 const I18N_DEFAULT = 'en';
 const I18N_LANGUAGES = ['en', 'es'];
 
+// The key used before the rename to MyPlatform. Read once, to carry a saved
+// choice across; it is never written again.
+const I18N_OLD_STORAGE_KEY = 'jericho.language';
+
+function carryOverOldLanguage() {
+  try {
+    if (localStorage.getItem(I18N_STORAGE_KEY)) return;
+    const old = localStorage.getItem(I18N_OLD_STORAGE_KEY);
+    if (old && I18N_LANGUAGES.includes(old)) localStorage.setItem(I18N_STORAGE_KEY, old);
+  } catch { /* no storage: nothing to carry */ }
+}
+carryOverOldLanguage();
+
 // A link may carry the language the visitor already chose elsewhere - the
 // front page at www.myplatform.trade links to the app as /?lang=es. Adopted
 // into storage once, so it survives the app's own redirects, which drop the
