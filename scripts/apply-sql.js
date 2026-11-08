@@ -79,6 +79,7 @@ const DEFAULT_ORDER = [
   '046_forward_edit_activity.sql',
   '047_operator_mail_on_member_message.sql',
   '054_candidate_recommendations.sql',
+  '055_recommendation_retention.sql',
   'seed_commodities.sql',
 ];
 

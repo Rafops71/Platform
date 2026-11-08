@@ -84,7 +84,7 @@ with actual as (
   ('has_accepted_current_terms()'), ('looks_like_po_box(p text)'), ('mark_invitation_used(p_token text)'),
   ('member_scorecard(p_profile_id uuid)'), ('my_activity_export()'), ('next_reference(p_type text)'),
   ('operator_analytics(p_bucket text, p_periods integer)'), ('operator_decline_candidate_recommendation(p_id uuid)'),
-  ('operator_invite_from_recommendation(p_id uuid, p_token text, p_link text, p_lang text)'),
+  ('operator_invite_from_recommendation(p_id uuid, p_token text, p_link text, p_lang text, p_privacy_link text)'),
   ('operator_list_candidate_recommendations()'), ('purge_orphaned_activity()'),
   ('queue_invitation_email(p_to_email text, p_link text, p_lang text)'),
   ('record_activity(p_action text, p_details jsonb)'), ('renew_listing(p_listing_id uuid)'),

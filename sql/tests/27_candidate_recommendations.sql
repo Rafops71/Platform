@@ -149,7 +149,8 @@ do $$ declare v_id uuid; begin
   select id into v_id from public.operator_list_candidate_recommendations()
    where candidate_name = 'Candidate 2';
   perform public.operator_invite_from_recommendation(v_id,
-    'tok84' || repeat('b', 40), 'https://example.invalid/register.html?token=tok84' || repeat('b', 40), 'en');
+    'tok84' || repeat('b', 40), 'https://example.invalid/register.html?token=tok84' || repeat('b', 40), 'en',
+    'https://example.invalid/terms.html');
   insert into t27 (msg) values ('INVITED');
 exception when others then insert into t27 (msg) values ('ERR ' || sqlerrm); end $$;
 reset role; reset test.uid;
@@ -175,6 +176,12 @@ select case when not exists (select 1 from public.email_outbox
                                 and (body_text like '%how-known-marker%' or body_text like '%experience-marker%'))
             then 'PASS' else 'FAIL' end
   as "T11 Item84 the candidate's email carries none of the recommendation's own texts";
+
+select case when exists (select 1 from public.email_outbox
+                          where to_email = 'candidate2@example.invalid'
+                            and body_text like E'%\nPrivacy Notice: https://example.invalid/terms.html%')
+            then 'PASS' else 'FAIL' end
+  as "T17 Item84 the invitation email ends with a Privacy Notice line that links the Terms";
 
 select case when exists (select 1 from public.candidate_recommendations r
                           join public.invitations i on i.id = r.invitation_id

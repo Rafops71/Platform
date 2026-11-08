@@ -82,6 +82,7 @@ const SETUP = [
   'sql/046_forward_edit_activity.sql',
   'sql/047_operator_mail_on_member_message.sql',
   'sql/054_candidate_recommendations.sql',
+  'sql/055_recommendation_retention.sql',
   'sql/seed_commodities.sql',
 ];
 

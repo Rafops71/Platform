@@ -528,7 +528,8 @@ ${referrerName} has recommended you as a prospective member of MyPlatform, a pri
 To register, please use your personal link below. It is valid for five days and can be used once.
 [personal link]
 Yours sincerely,
-The Operator, MyPlatform`;
+The Operator, MyPlatform
+Privacy Notice: ${termsLink()}`;
 }
 
 async function loadRecommendations() {
@@ -590,6 +591,7 @@ async function sendInviteFromRecommendation(e) {
       p_token: token,
       p_link: invitationLink(token),
       p_lang: 'en',
+      p_privacy_link: termsLink(),
     });
     if (error) { showError(errorMessage(error)); return; }
     await logOpActivity('invitation_created', { email: r.candidate_email, language: 'en', recommendation_id: id });
@@ -610,6 +612,12 @@ async function declineRecommendation(id) {
 /** Rebuild the registration link for an invitation token. */
 function invitationLink(token) {
   return `${window.location.origin}${window.location.pathname.replace(/operator(\.html)?$/, 'register.html')}?token=${token}`;
+}
+
+/** The Terms page, which holds the Privacy Notice at section 10. Built from
+ *  the browser's origin, as invitationLink() is. */
+function termsLink() {
+  return `${window.location.origin}${window.location.pathname.replace(/operator(\.html)?$/, 'terms.html')}`;
 }
 
 /** Queue the invitation email. The outbox is not writable by any client

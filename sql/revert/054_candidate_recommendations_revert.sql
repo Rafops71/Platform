@@ -5,7 +5,7 @@
 -- contents are lost.
 begin;
 
-drop function if exists public.operator_invite_from_recommendation(uuid, text, text, text);
+drop function if exists public.operator_invite_from_recommendation(uuid, text, text, text, text);
 drop function if exists public.operator_decline_candidate_recommendation(uuid);
 drop function if exists public.operator_list_candidate_recommendations();
 drop function if exists public.submit_candidate_recommendation(text, text, text, text, text, boolean, text);

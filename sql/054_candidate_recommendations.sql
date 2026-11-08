@@ -188,10 +188,11 @@ $$;
 -- from the table default, single use, language), and the email is rendered
 -- from the outbox template with the referrer's name in it.
 create or replace function public.operator_invite_from_recommendation(
-  p_id    uuid,
-  p_token text,
-  p_link  text,
-  p_lang  text default 'en'
+  p_id           uuid,
+  p_token        text,
+  p_link         text,
+  p_lang         text default 'en',
+  p_privacy_link text default null
 )
 returns void
 language plpgsql
@@ -215,6 +216,9 @@ begin
   end if;
   if p_link is null or position(p_token in p_link) = 0 then
     raise exception 'The invitation link must contain its token';
+  end if;
+  if p_privacy_link is null or length(btrim(p_privacy_link)) = 0 then
+    raise exception 'A link to the Privacy Notice is required';
   end if;
 
   select p.id into v_me from public.profiles p where p.user_id = auth.uid();
@@ -245,7 +249,8 @@ begin
     from public.render_email('invitation_recommended', v_lang,
            jsonb_build_object('link', p_link,
                               'referrer_name', v_referrer,
-                              'candidate_name', v_rec.candidate_name)) r;
+                              'candidate_name', v_rec.candidate_name,
+                              'privacy_link', p_privacy_link)) r;
 
   insert into public.email_outbox (to_email, subject, body_text)
   values (v_rec.candidate_email, v_subject, v_body);
@@ -265,7 +270,8 @@ values
 To register, please use your personal link below. It is valid for five days and can be used once.
 {{link}}
 Yours sincerely,
-The Operator, MyPlatform$body$),
+The Operator, MyPlatform
+Privacy Notice: {{privacy_link}}$body$),
 ('invitation_recommended', 'es',
  (select subject from public.email_templates where template_key = 'invitation' and lang = 'es'),
  $body$Estimado/a {{candidate_name}},
@@ -273,7 +279,8 @@ The Operator, MyPlatform$body$),
 Para registrarse, utilice su enlace personal que figura a continuación. Es válido durante cinco días y solo puede utilizarse una vez.
 {{link}}
 Atentamente,
-El Operador, MyPlatform$body$)
+El Operador, MyPlatform
+Aviso de privacidad: {{privacy_link}}$body$)
 on conflict (template_key, lang) do update
   set subject = excluded.subject, body_text = excluded.body_text;
 
@@ -284,7 +291,7 @@ revoke execute on function public.operator_list_candidate_recommendations() from
 grant  execute on function public.operator_list_candidate_recommendations() to authenticated;
 revoke execute on function public.operator_decline_candidate_recommendation(uuid) from public, anon;
 grant  execute on function public.operator_decline_candidate_recommendation(uuid) to authenticated;
-revoke execute on function public.operator_invite_from_recommendation(uuid, text, text, text) from public, anon;
-grant  execute on function public.operator_invite_from_recommendation(uuid, text, text, text) to authenticated;
+revoke execute on function public.operator_invite_from_recommendation(uuid, text, text, text, text) from public, anon;
+grant  execute on function public.operator_invite_from_recommendation(uuid, text, text, text, text) to authenticated;
 
 commit;
