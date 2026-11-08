@@ -1,0 +1,48 @@
+name: tradedemo publish now (owner, 2026-11-08)
+
+# One-off, owner's instruction: publish the white-label TEST demo (fake data,
+# no database) from branch platformdemo without waiting for main's gate.
+# Remove this file before merging the branch into main.
+on:
+  push:
+    branches: [platformdemo]
+    paths: ['.github/workflows/tradedemo-now.yml']
+  workflow_dispatch:
+
+concurrency:
+  group: tradedemo-now
+  cancel-in-progress: false
+
+jobs:
+  setup:
+    name: Prove teardown, then create tradedemo
+    if: github.ref == 'refs/heads/platformdemo'
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: bash scripts/platformdemo-cloudflare-setup.sh
+
+  publish:
+    name: Build, scan and publish tradedemo
+    needs: [setup]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Build (fails if MyPlatform, .mp4 or <video is left, or if it would reach the live database)
+        run: node scripts/build-platformdemo.js
+      - uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist-platformdemo --project-name=tradedemo --branch=main --commit-hash=${{ github.sha }}
