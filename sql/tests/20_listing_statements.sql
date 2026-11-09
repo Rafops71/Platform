@@ -93,7 +93,7 @@ select case when count(*) = 6 and bool_and(msg <> 'ACCEPTED') then 'PASS'
   as "T1 Item66 no role, chain, mandate, documents answer or tick: refused"
 from t20 where label in ('no role','broker no chain','no mandate','one docs answer','no tick','too far');
 
-select case when msg = 'Jericho accepts offers no more than two steps from the principal. Please post only offers within that distance.'
+select case when msg = 'MyPlatform accepts offers no more than two steps from the principal. Please post only offers within that distance.'
             then 'PASS' else 'FAIL got ' || msg end
   as "T2 Item67 an offer further than two steps is refused in the owner's words"
 from t20 where label = 'too far';

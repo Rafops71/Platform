@@ -92,6 +92,7 @@ const SETUP = [
   'sql/057_terms_gate_signed_once.sql',
   'sql/058_terms_3_7.sql',
   'sql/059_email_templates_myplatform.sql',
+  'sql/060_listing_error_myplatform.sql',
   'sql/seed_commodities.sql',
 ];
 

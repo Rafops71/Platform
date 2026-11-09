@@ -77,6 +77,7 @@ const SUITES = [
   'sql/tests/28_recommendation_retention.sql',
   'sql/tests/29_terms_change_email.sql',
   'sql/tests/30_email_templates_myplatform.sql',
+  'sql/tests/31_listing_error_myplatform.sql',
 ];
 
 /** An assertion is any single-row result whose first column is named "Tn …"
