@@ -15,6 +15,11 @@ on:
 permissions:
   contents: write
 
+# The same Staging address and public key the pictures job uses (security-grid.yml).
+env:
+  SUPABASE_URL: https://pqxlfgvjoowawzgoszna.supabase.co
+  SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxeGxmZ3Zqb293YXd6Z29zem5hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxMTUyNTMsImV4cCI6MjEwODY5MTI1M30.d-5Hk6gljO5IOgsLus3AtddsOD7g9xJ6ra4beHGFtEQ
+
 jobs:
   show:
     runs-on: ubuntu-latest
