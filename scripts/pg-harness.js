@@ -91,11 +91,13 @@ const SETUP = [
   'sql/056_terms_change_email.sql',
   'sql/057_terms_gate_signed_once.sql',
   'sql/058_terms_3_7.sql',
+  'sql/059_email_templates_myplatform.sql',
   'sql/seed_commodities.sql',
 ];
 
 /** Turn psql meta-commands into something a plain connection can run.
  *  \echo 'text' becomes a select whose single column carries the heading;
+ *  \i sql/FILE.sql is replaced by that file's text;
  *  other backslash lines are psql display settings and are dropped. */
 function translateMetaCommands(sql) {
   return sql
@@ -107,6 +109,10 @@ function translateMetaCommands(sql) {
       const echo = trimmed.match(/^\\echo\s+'(.*)'$/);
       if (echo) return `select '${echo[1].replace(/'/g, "''")}' as "__echo";`;
       if (/^\\echo\s*$/.test(trimmed)) return `select '' as "__echo";`;
+      // \i sql/....sql - the file's own text, so a test can run a migration or its
+      // revert from the real file instead of a copy that could drift from it.
+      const inc = trimmed.match(/^\\i\s+(sql\/[A-Za-z0-9_\/.-]+\.sql)$/);
+      if (inc) return fs.readFileSync(path.join(ROOT, inc[1]), 'utf8');
       return '';
     })
     .join('\n');

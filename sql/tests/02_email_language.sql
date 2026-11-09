@@ -73,20 +73,20 @@ update public.profiles set language='en' where email='edward@example.com';
 \echo ''
 \echo '=========== REGISTRATION SUBMITTED ==========='
 
-select case when subject='Hemos recibido su registro en la Plataforma Jericho'
+select case when subject='Hemos recibido su registro en MyPlatform'
                  and position('Hola Sofia:' in body_text) > 0
                  and position('pendiente de revisión' in body_text) > 0
             then 'PASS' else 'FAIL ('||subject||')' end
   as "E5 Spanish participant gets the Spanish registration email"
 from public.email_outbox where to_email='sofia@example.com';
 
-select case when subject='Your Jericho Platform registration has been submitted'
+select case when subject='Your MyPlatform registration has been submitted'
                  and position('Hello Edward,' in body_text) > 0
             then 'PASS' else 'FAIL ('||subject||')' end
   as "E6 English participant gets the English registration email"
 from public.email_outbox where to_email='edward@example.com';
 
-select case when subject='Your Jericho Platform registration has been submitted'
+select case when subject='Your MyPlatform registration has been submitted'
             then 'PASS' else 'FAIL ('||subject||')' end
   as "E7 participant with no preference gets English"
 from public.email_outbox where to_email='noprefs@example.com';
@@ -107,7 +107,7 @@ select public.test_sign_approved();
 update public.profiles set status='rejected' where email='noprefs@example.com';
 \set QUIET off
 
-select case when subject='Su registro en la Plataforma Jericho ha sido aprobado'
+select case when subject='Su registro en MyPlatform ha sido aprobado'
                  and position('Buenas noticias' in body_text) > 0
                  and position('publicaciones' in body_text) > 0
             then 'PASS' else 'FAIL ('||subject||')' end
@@ -115,13 +115,13 @@ select case when subject='Su registro en la Plataforma Jericho ha sido aprobado'
 from public.email_outbox
 where to_email='sofia@example.com' and subject like '%aprobado%';
 
-select case when subject='Your Jericho Platform registration has been approved'
+select case when subject='Your MyPlatform registration has been approved'
             then 'PASS' else 'FAIL ('||subject||')' end
   as "E10 approval email is English for an English participant"
 from public.email_outbox
 where to_email='edward@example.com' and subject like '%approved%';
 
-select case when subject='Your Jericho Platform registration was not approved'
+select case when subject='Your MyPlatform registration was not approved'
             then 'PASS' else 'FAIL ('||subject||')' end
   as "E11 rejection email follows the same preference (English default)"
 from public.email_outbox
@@ -136,7 +136,7 @@ insert into auth.users (id, email, raw_user_meta_data) values
 update public.profiles set status='rejected' where email='rechazado@example.com';
 \set QUIET off
 
-select case when subject='Su registro en la Plataforma Jericho no ha sido aprobado'
+select case when subject='Su registro en MyPlatform no ha sido aprobado'
                  and position('no ha sido aprobado' in body_text) > 0
             then 'PASS' else 'FAIL ('||subject||')' end
   as "E12 rejection email is Spanish for a Spanish participant"
@@ -155,20 +155,20 @@ select public.queue_invitation_email('legacy@example.com', 'https://x/register.h
 reset role; reset test.uid;
 \set QUIET off
 
-select case when subject='Le han invitado a la Plataforma Jericho'
+select case when subject='Le han invitado a MyPlatform'
                  and position('Utilice este enlace' in body_text) > 0
                  and position('token=t1' in body_text) > 0
             then 'PASS' else 'FAIL ('||subject||')' end
   as "E13 invitation email is Spanish when the operator picks Spanish"
 from public.email_outbox where to_email='invitado@example.com';
 
-select case when subject='You have been invited to the Jericho Platform'
+select case when subject='You have been invited to MyPlatform'
                  and position('token=t2' in body_text) > 0
             then 'PASS' else 'FAIL ('||subject||')' end
   as "E14 invitation email is English when English is picked"
 from public.email_outbox where to_email='invitee@example.com';
 
-select case when subject='You have been invited to the Jericho Platform'
+select case when subject='You have been invited to MyPlatform'
             then 'PASS' else 'FAIL ('||subject||')' end
   as "E15 the old 2-argument invitation call still works and is English"
 from public.email_outbox where to_email='legacy@example.com';
@@ -271,7 +271,7 @@ where to_email='omar@example.com' and subject like '%Cobalt%';
 \echo ''
 \echo '=========== DICTIONARY FALLBACK ==========='
 
-select case when subject='You have been invited to the Jericho Platform'
+select case when subject='You have been invited to MyPlatform'
             then 'PASS' else 'FAIL ('||subject||')' end
   as "E25 an unknown language falls back to the English template"
 from public.render_email('invitation', 'de', '{"link":"https://x"}'::jsonb);

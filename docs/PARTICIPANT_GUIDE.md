@@ -30,8 +30,8 @@ Operators put the right two parties in touch when it is worth doing.
 
 You cannot sign up on your own. An Operator invites you.
 
-- You will receive an email titled **"You have been invited to the Jericho
-  Platform"** containing a registration link.
+- You will receive an email titled **"You have been invited to MyPlatform"**
+  containing a registration link.
 - **The link is valid for 5 days and works only once.** After that, or after
   someone has used it, it stops working and you need a new one.
 - If the link has expired, reply to the Operator who invited you and ask them
@@ -216,7 +216,7 @@ ponen en contacto a las dos partes adecuadas cuando merece la pena.
 
 No puede registrarse por su cuenta. Un Operador le invita.
 
-- Recibirá un correo titulado **«Le han invitado a la Plataforma Jericho»** con
+- Recibirá un correo titulado **«Le han invitado a MyPlatform»** con
   un enlace de registro.
 - **El enlace es válido durante 5 días y solo puede utilizarse una vez.**
   Después deja de funcionar y necesitará uno nuevo.
