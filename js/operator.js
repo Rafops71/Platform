@@ -537,7 +537,7 @@ async function loadRecommendations() {
   const body = document.getElementById('recommendations-body');
   body.innerHTML = '<tr><td colspan="6">Loading…</td></tr>';
 
-  const { data, error } = await jericho.rpc('operator_list_candidate_recommendations');
+  const { data, error } = await myplatform.rpc('operator_list_candidate_recommendations');
   if (!fresh()) return;
   if (error) { body.innerHTML = `<tr><td colspan="6">${escapeHtml(errorMessage(error))}</td></tr>`; return; }
 
@@ -586,7 +586,7 @@ async function sendInviteFromRecommendation(e) {
     // The same token shape and five-day, single-use invitation as Create
     // Invitation; the database makes the row and queues the email in one step.
     const token = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
-    const { error } = await jericho.rpc('operator_invite_from_recommendation', {
+    const { error } = await myplatform.rpc('operator_invite_from_recommendation', {
       p_id: id,
       p_token: token,
       p_link: invitationLink(token),
@@ -603,7 +603,7 @@ async function sendInviteFromRecommendation(e) {
 }
 
 async function declineRecommendation(id) {
-  const { error } = await jericho.rpc('operator_decline_candidate_recommendation', { p_id: id });
+  const { error } = await myplatform.rpc('operator_decline_candidate_recommendation', { p_id: id });
   if (error) { showError(errorMessage(error)); return; }
   if (document.getElementById('invite-from-rec-form').dataset.recId === id) hideInviteFromRecommendation();
   loadRecommendations();

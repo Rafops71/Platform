@@ -72,6 +72,11 @@ jobs:
       # runs were spent on the symptom.
       - name: Every call resolves
         run: npm run check:calls
+      # A branch written before the rename to MyPlatform still called
+      # jericho.rpc(...) after it merged: no conflict, parsed cleanly, and
+      # check:calls does not look at method calls. The Operator page died on load.
+      - name: The database is reached only through the declared client
+        run: npm run check:client
       # A phrase missing from Spanish does not crash: it shows English to
       # somebody who does not read English, on a screen nobody who built it
       # ever looks at.

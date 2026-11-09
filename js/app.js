@@ -1048,7 +1048,7 @@ async function submitRecommendation(e) {
     const agreed = document.querySelector('input[name="r_agreed"]:checked');
     if (!agreed) return;
 
-    const { error } = await jericho.rpc('submit_candidate_recommendation', {
+    const { error } = await myplatform.rpc('submit_candidate_recommendation', {
       p_candidate_name: document.getElementById('r_name').value.trim(),
       p_candidate_company: document.getElementById('r_company').value.trim(),
       p_candidate_email: document.getElementById('r_email').value.trim(),

@@ -19,6 +19,7 @@
     "check:guards": "node scripts/check-render-guards.js",
     "check:migrations": "node scripts/check-migration-lists.js",
     "check:calls": "node scripts/check-page-functions.js",
+    "check:client": "node scripts/check-client-name.js",
     "check:i18n": "node scripts/check-translations.js",
     "check:double": "node scripts/check-double-submit.js",
     "check:errors": "node scripts/check-error-messages.js",
