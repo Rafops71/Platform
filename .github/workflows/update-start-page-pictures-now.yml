@@ -29,7 +29,7 @@ jobs:
       - name: Install the browser
         run: npx playwright install --with-deps chromium
       - name: Update the four start-page pictures only
-        run: npx playwright test -c playwright.visual.config.js tests/visual/pages.spec.js --update-snapshots -g "index \((en|es)\)"
+        run: npx playwright test -c playwright.visual.config.js tests/visual/pages.spec.js --update-snapshots=all -g "index \((en|es)\)"
       - name: Allow only the four start-page pictures to change
         id: check
         run: |
@@ -45,13 +45,18 @@ jobs:
             echo "pending=no" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          if [ "$changed" != "$expected" ]; then echo "UNEXPECTED CHANGES - nothing committed"; exit 1; fi
+          # Re-taking all four: one that comes out byte-identical shows no change,
+          # so any non-empty subset of the four is fine; anything else is not.
+          for f in $changed; do
+            if ! printf '%s\n' "$expected" | grep -qx "$f"; then echo "UNEXPECTED CHANGE: $f - nothing committed"; exit 1; fi
+          done
           echo "pending=yes" >> "$GITHUB_OUTPUT"
-      - name: Commit the four pictures
+      - name: Commit the changed pictures
         if: steps.check.outputs.pending == 'yes'
         run: |
+          changed=$(git status --porcelain -- . ':!test-results' | awk '{print $2}' | sort)
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add tests/visual/screenshots/index-en-desktop.png tests/visual/screenshots/index-en-phone.png tests/visual/screenshots/index-es-desktop.png tests/visual/screenshots/index-es-phone.png
+          git add -- $changed
           git commit -m "Start page pictures: loading circle over the film gone (owner approved)"
           git push origin HEAD:batch-2026-11-08
