@@ -88,6 +88,7 @@ const DEFAULT_ORDER = [
   '056_terms_change_email.sql',
   '057_terms_gate_signed_once.sql',
   '058_terms_3_7.sql',
+  '059_email_templates_myplatform.sql',
   'seed_commodities.sql',
 ];
 
