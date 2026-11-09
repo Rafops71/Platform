@@ -59,3 +59,7 @@ Older tabled: repo private; Operator unusual-sign-in alerts; test database; app 
 6. T8, T11, T9, T3 next job.
 7. The purge schedule (pg_cron availability on the project not verified).
 Answered today: the 5 Terms questions (candidates paragraph kept; info@ in it; version 3.7; "Participant" replaces "member" in new text; old commit message stays).
+
+## Queued job (relayed by the former supervisor as the owner's, 9 Nov; NOT started)
+Rebuild the white-label demo https://tradedemo.pages.dev from the new main AFTER the batch is merged: branch platformdemo (PR #89, workflow tradedemo-now.yml, scripts/build-platformdemo.js); also strip (copy only) the sentence 'ask an Operator for an invitation link' (EN+ES) and all Terms (footer link, terms.html, signing gate), extend the final scan, verify live page by page. Show the owner the step plan and get his 'go' BEFORE starting. Also for the REAL app batch list: that sign-in sentence is wrong (nobody outside can contact the Operator); the owner decides the wording.
+Status 9 Nov: #96 (Terms 3.7), #93 (batch 1) merged; 054 live (055 not); #95 (T7) only the Operator Invitations picture left (owner approved the new picture; builder re-taking, steady.css freeze). Cloudflare reconnected by the owner. Docker daemon not running in the cloud container; local throw-away database idea parked pending the owner's yes to a free trial.
