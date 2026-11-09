@@ -1,5 +1,4 @@
-// MyPlatform — the Help questions, shared by the member's Help tab and the
-// public help.html. Each question is a <details>: tap it and its answer
+// MyPlatform — the Help questions, shown in the member's Help tab. Each question is a <details>: tap it and its answer
 // opens. The text is the help.qN / help.aN keys in i18n.js, so it follows the
 // language switch like everything else.
 

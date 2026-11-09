@@ -20,16 +20,16 @@ Requires PostgreSQL 16 locally (no Supabase needed).
 export PATH=/usr/lib/postgresql/16/bin:$PATH
 initdb -D /tmp/pgtest -A trust
 pg_ctl -D /tmp/pgtest -o '-k /tmp/pgsock -p 5433' -l /tmp/pg.log start
-psql -h /tmp/pgsock -p 5433 -d postgres -c 'create database jericho;'
+psql -h /tmp/pgsock -p 5433 -d postgres -c 'create database myplatform;'
 
 for f in sql/tests/00_supabase_stub.sql sql/schema.sql sql/rls_policies.sql \
          sql/002_updates.sql sql/003_email_notifications.sql \
          sql/004_email_outbox_retry.sql sql/005_confirmed_updates.sql \
          sql/seed_commodities.sql; do
-  psql -h /tmp/pgsock -p 5433 -d jericho -v ON_ERROR_STOP=1 -q -f "$f"
+  psql -h /tmp/pgsock -p 5433 -d myplatform -v ON_ERROR_STOP=1 -q -f "$f"
 done
 
-psql -h /tmp/pgsock -p 5433 -d jericho -f sql/tests/01_security_suite.sql
+psql -h /tmp/pgsock -p 5433 -d myplatform -f sql/tests/01_security_suite.sql
 ```
 
 Expect **38 PASS, 0 FAIL**. Always run against a freshly created database —

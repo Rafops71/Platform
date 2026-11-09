@@ -9,7 +9,7 @@
 //      ships them (scripts/assemble-site.sh), except:
 //   2. js/supabase-config.js is NOT copied. In its place each page loads
 //      js/demo/seed.js and js/demo/mock-supabase.js, which define the same
-//      `jericho` client name in memory.
+//      `myplatform` client name in memory.
 //   3. The Supabase script from the CDN is removed from every page, so the
 //      demo never asks the CDN for it.
 //   4. js/demo/demo-ui.js is added to every page: the "example data" ribbon,
@@ -39,7 +39,7 @@ const ROOT = path.resolve(__dirname, '..');
 const KIND = process.env.DEMO_KIND === 'operator' ? 'operator' : 'member';
 const OUT = path.join(ROOT, KIND === 'operator' ? 'dist-demo-operator' : 'dist-demo');
 // The Operator demo carries only these pages. Nothing member-only is copied.
-const OPERATOR_PAGES = ['index.html', 'operator.html', 'help.html', 'terms.html'];
+const OPERATOR_PAGES = ['index.html', 'operator.html', 'terms.html'];
 
 const SUPABASE_CDN_TAG = /<script src="https:\/\/cdn\.jsdelivr\.net\/npm\/@supabase\/supabase-js@[^"]*"><\/script>\r?\n?/g;
 const REAL_CONFIG_TAG = /<script src="js\/supabase-config\.js"><\/script>/g;
@@ -84,7 +84,7 @@ function rewritePage(html, file) {
     REAL_CONFIG_TAG.lastIndex = 0;
     out = out.replace(REAL_CONFIG_TAG, DEMO_CLIENT_TAGS);
   } else {
-    // A page that never talked to the database (terms.html, help.html) still
+    // A page that never talked to the database (terms.html) still
     // gets the ribbon, but not the client.
   }
   const at = out.lastIndexOf('</body>');

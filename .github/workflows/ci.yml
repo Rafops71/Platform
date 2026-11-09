@@ -26,7 +26,7 @@ on:
 
 concurrency:
   # The checklist suite writes to the shared live Supabase project, and its
-  # teardown removes every jericho-e2e- account it can see. Two runs at once
+  # teardown removes every myplatform-e2e- account it can see. Two runs at once
   # therefore delete each other's fixtures mid-test: the signed-in account
   # disappears and sign-in stops redirecting, listings vanish and their
   # foreign keys fail, match counts come back zero. That is exactly what
@@ -72,6 +72,11 @@ jobs:
       # runs were spent on the symptom.
       - name: Every call resolves
         run: npm run check:calls
+      # A branch written before the rename to MyPlatform still called
+      # jericho.rpc(...) after it merged: no conflict, parsed cleanly, and
+      # check:calls does not look at method calls. The Operator page died on load.
+      - name: The database is reached only through the declared client
+        run: npm run check:client
       # A phrase missing from Spanish does not crash: it shows English to
       # somebody who does not read English, on a screen nobody who built it
       # ever looks at.
@@ -119,6 +124,11 @@ jobs:
         # accepted against a limit of 20, which no single-connection test could
         # have seen.
         run: npm run stress
+      - name: The five-open cap holds under two simultaneous submissions
+        # Two submissions fired at the same moment, on two connections, 30
+        # rounds, against a throwaway PostgreSQL. sql/tests uses one connection,
+        # so only this can see the race the advisory lock in sql/054 prevents.
+        run: npm run check:recommend-cap
       - name: The email sender, made to fail on purpose
         # Lost answers, provider errors, refusals and two senders at once,
         # against a fake provider: every email goes out once or is given up.

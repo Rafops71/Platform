@@ -281,6 +281,37 @@
   </section>
 
   <!-- PROFILE -->
+  <!-- RECOMMEND A CANDIDATE (sql/054). A recommendation goes to the Operators
+       only. The page has no tab of its own: showScreen() keeps Profile lit. -->
+  <section id="screen-recommend" class="screen">
+    <div class="card">
+      <h2 class="mt-0" data-i18n="recommend.title">Recommend a candidate</h2>
+      <form id="recommend-form">
+        <label for="r_name" data-i18n="recommend.name">Candidate's name</label>
+        <input type="text" id="r_name" required>
+        <label for="r_company" data-i18n="recommend.company">Candidate's company</label>
+        <input type="text" id="r_company" required>
+        <label for="r_email" data-i18n="recommend.email">Candidate's email</label>
+        <input type="email" id="r_email" required>
+        <label for="r_how" data-i18n="recommend.howKnown">How do you know the candidate?</label>
+        <textarea id="r_how" required></textarea>
+        <label for="r_commodities" data-i18n="recommend.commodities">Commodities the candidate trades</label>
+        <input type="text" id="r_commodities" required>
+        <fieldset>
+          <legend data-i18n="recommend.agreed">Did the candidate agree to be contacted?</legend>
+          <label><input type="radio" name="r_agreed" value="yes" required> <span data-i18n="recommend.yes">Yes</span></label>
+          <label><input type="radio" name="r_agreed" value="no"> <span data-i18n="recommend.no">No</span></label>
+        </fieldset>
+        <label for="r_experience" data-i18n="recommend.experience">Your own experience dealing with the candidate</label>
+        <textarea id="r_experience" required></textarea>
+        <div class="field-hint" data-i18n="recommend.limitHint">You can have up to 5 open recommendations at a time.</div>
+        <p style="margin:16px 0 8px;" data-i18n="recommend.confirm">I confirm that, to the best of my knowledge and experience, this person would be a valuable addition to MyPlatform, based on their reputation and experience. Responsibility for their actions remains with the individual.</p>
+        <p style="margin:0 0 12px;" data-i18n="recommend.informed">In the event the Operator invites this person, they will be informed of your recommendation.</p>
+        <button type="submit" class="btn btn-primary" id="recommend-btn" data-i18n="recommend.send">Send recommendation</button>
+      </form>
+    </div>
+  </section>
+
   <section id="screen-profile" class="screen">
     <div class="card">
       <h2 class="mt-0" data-i18n="profile.title">Profile</h2>
@@ -340,6 +371,12 @@
         </div>
       </div>
       <div class="field-hint" data-i18n="profile.roleLocked">Your role and status are set by an Operator and cannot be changed here.</div>
+    </div>
+
+    <!-- Opens the Recommend a candidate page. No menu item: the page is reached
+         from here only. Its position on this page is the owner's to confirm. -->
+    <div class="card">
+      <button type="button" class="btn btn-secondary" id="recommend-open-btn" data-i18n="profile.recommend">Recommend a candidate</button>
     </div>
 
     <!-- Email and password are Auth's, not the profile's, so they are their own

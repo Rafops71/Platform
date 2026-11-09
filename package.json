@@ -1,5 +1,5 @@
 {
-  "name": "jericho-platform-scripts",
+  "name": "myplatform-platform-scripts",
   "private": true,
   "version": "1.0.0",
   "description": "Node-based tooling for environments without psql. See HANDOFF.md.",
@@ -19,10 +19,12 @@
     "check:guards": "node scripts/check-render-guards.js",
     "check:migrations": "node scripts/check-migration-lists.js",
     "check:calls": "node scripts/check-page-functions.js",
+    "check:client": "node scripts/check-client-name.js",
     "check:i18n": "node scripts/check-translations.js",
     "check:double": "node scripts/check-double-submit.js",
     "check:errors": "node scripts/check-error-messages.js",
     "check:filters": "node scripts/check-query-filters.js",
+    "check:language": "node scripts/check-language-carryover.js",
     "safari": "playwright test --project=safari",
     "hygiene": "node scripts/verify-live.js",
     "timings": "node scripts/timings.js",
@@ -36,7 +38,8 @@
     "build:demo:operator": "DEMO_KIND=operator node scripts/build-demo.js",
     "test:demo": "playwright test -c playwright.demo.config.js",
     "test:demo:operator": "playwright test -c playwright.operator-demo.config.js",
-    "check:front-page": "node scripts/check-front-page.js"
+    "check:front-page": "node scripts/check-front-page.js",
+    "check:recommend-cap": "node scripts/recommendation-cap-test.js"
   },
   "dependencies": {
     "pg": "^8.13.1"

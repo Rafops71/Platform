@@ -318,7 +318,7 @@ jobs:
         if: inputs.stills != 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: jericho-${{ inputs.film }}-${{ inputs.lang }}
+          name: myplatform-${{ inputs.film }}-${{ inputs.lang }}
           path: video/out/*.mp4
           retention-days: 30
           if-no-files-found: error
@@ -327,7 +327,7 @@ jobs:
         if: always() && inputs.engine == 'chatterbox' && inputs.stills != 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: jericho-${{ inputs.film }}-${{ inputs.lang }}-voicecheck
+          name: myplatform-${{ inputs.film }}-${{ inputs.lang }}-voicecheck
           path: video/audio/wer-table.md
           retention-days: 30
           if-no-files-found: ignore
@@ -336,7 +336,7 @@ jobs:
         if: inputs.stills == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: jericho-${{ inputs.film }}-${{ inputs.lang }}-stills
+          name: myplatform-${{ inputs.film }}-${{ inputs.lang }}-stills
           path: video/stills/*.png
           retention-days: 14
           if-no-files-found: error

@@ -1,12 +1,12 @@
 # Handoff — picking this project up
 
-This file is for whoever works on the Jericho Platform next, in a local session
+This file is for whoever works on the MyPlatform next, in a local session
 with access to the live Supabase project. It records what is done, what is
 verified, what is deliberately not built, and what is still open.
 
 For setup and deployment steps, see `README.md`. For a description of the
-product in business terms, see `JERICHO_PLATFORM_PRODUCT_REVIEW.md`; for a
-standalone technical description, `JERICHO_PLATFORM_AI_REVIEW.md`.
+product in business terms, see `myplatform_platform_PRODUCT_REVIEW.md`; for a
+standalone technical description, `myplatform_platform_AI_REVIEW.md`.
 
 ## Getting set up
 
@@ -241,7 +241,7 @@ and every one of them needs them.
 Two things learned getting there, both worth keeping:
 
 - **One live database cannot serve two test runs.** Teardown deleted every
-  `jericho-e2e-` account it could see, so overlapping runs deleted each
+  `myplatform-e2e-` account it could see, so overlapping runs deleted each
   other's fixtures mid-test. CI now serialises on a single
   `ci-live-database` concurrency group, and each run tags its own accounts
   and deletes only those. Symptoms were eleven failures that moved between
@@ -859,9 +859,9 @@ Decisions behind each are in `docs/AGREED-2026-10-25.md`.
     STILLS, all three runs succeeded (GitHub Actions, no voice used). Download
     from the run page, artifact name in brackets, kept 14 days (the first
     expires about 13 Nov):
-    Member film, English  https://github.com/Rafops71/Platform/actions/runs/40994751352  (jericho-member-en-stills)
-    Member film, Spanish  https://github.com/Rafops71/Platform/actions/runs/41265275754  (jericho-member-es-stills)
-    Operator film, English https://github.com/Rafops71/Platform/actions/runs/41267308958 (jericho-operator-en-stills)
+    Member film, English  https://github.com/Rafops71/Platform/actions/runs/40994751352  (myplatform-member-en-stills)
+    Member film, Spanish  https://github.com/Rafops71/Platform/actions/runs/41265275754  (myplatform-member-es-stills)
+    Operator film, English https://github.com/Rafops71/Platform/actions/runs/41267308958 (myplatform-operator-en-stills)
     NOT DONE, and why: the owner has not seen or approved the stills (one answer
     per film); no film is recorded. The real recordings need about 69 spoken
     lines and Gemini's free tier allows 10 requests a day per project (Google's
@@ -1074,13 +1074,16 @@ proof, in the same workflow run, and it creates nothing before the proof.
     taste. CI passed, Safari on an iPhone included, so no touch target was
     narrowed. Verified live: the site serves `--bg: #ffffff`.
 
--0b. **The films exist.** Four of them, in `films/`, each shipped beside the
-    narration timings it was checked against:
+-0b. **The films exist.** Four were made, each shipped beside the narration
+    timings it was checked against. Two of them are NO LONGER in `films/`:
+    `operator-en` and `overview-en` were removed from the public site (PR #90,
+    owner-approved), together with their timings files. Only the member films
+    remain there:
 
       member-en     3m36s   the member's side, 22 beats
       member-es     3m11s   the same in Spanish (voice ef_dora)
-      operator-en   3m02s   the Operator's desk, 13 beats
-      overview-en   2m41s   both sides in one, for a new Operator
+      operator-en   3m02s   the Operator's desk, 13 beats   (removed, PR #90)
+      overview-en   2m41s   both sides in one, for a new Operator   (removed, PR #90)
 
     The member film is embedded on `register.html`, shown only once an
     invitation has been accepted and in whichever language the page is set
@@ -1223,4 +1226,4 @@ proof, in the same workflow run, and it creates nothing before the proof.
    supports one (the insert policy lets a participant record a later version,
    and the uniqueness constraint is on `(profile_id, version)` so an earlier row
    would survive), but nothing drives it.
-   See `JERICHO_PLATFORM_PRODUCT_REVIEW.md` for the wider list.
+   See `myplatform_platform_PRODUCT_REVIEW.md` for the wider list.
