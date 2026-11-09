@@ -1074,13 +1074,16 @@ proof, in the same workflow run, and it creates nothing before the proof.
     taste. CI passed, Safari on an iPhone included, so no touch target was
     narrowed. Verified live: the site serves `--bg: #ffffff`.
 
--0b. **The films exist.** Four of them, in `films/`, each shipped beside the
-    narration timings it was checked against:
+-0b. **The films exist.** Four were made, each shipped beside the narration
+    timings it was checked against. Two of them are NO LONGER in `films/`:
+    `operator-en` and `overview-en` were removed from the public site (PR #90,
+    owner-approved), together with their timings files. Only the member films
+    remain there:
 
       member-en     3m36s   the member's side, 22 beats
       member-es     3m11s   the same in Spanish (voice ef_dora)
-      operator-en   3m02s   the Operator's desk, 13 beats
-      overview-en   2m41s   both sides in one, for a new Operator
+      operator-en   3m02s   the Operator's desk, 13 beats   (removed, PR #90)
+      overview-en   2m41s   both sides in one, for a new Operator   (removed, PR #90)
 
     The member film is embedded on `register.html`, shown only once an
     invitation has been accepted and in whichever language the page is set
