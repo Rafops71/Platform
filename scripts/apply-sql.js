@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Apply the Jericho Platform SQL scripts to the live Supabase database, in order.
+// Apply the MyPlatform SQL scripts to the live Supabase database, in order.
 //
 // Node equivalent of apply-sql.sh, for environments without `psql` installed.
 //
@@ -78,8 +78,16 @@ const DEFAULT_ORDER = [
   '045_terms_3_5.sql',
   '046_forward_edit_activity.sql',
   '047_operator_mail_on_member_message.sql',
+  '048_terms_receipt_email.sql',
+  '049_terms_3_6.sql',
+  '051_message_rewrite_activity.sql',
+  '052_message_denied_status.sql',
+  '053_test_prefix_cleanup_both.sql',
   '054_candidate_recommendations.sql',
   '055_recommendation_retention.sql',
+  '056_terms_change_email.sql',
+  '057_terms_gate_signed_once.sql',
+  '058_terms_3_7.sql',
   'seed_commodities.sql',
 ];
 
@@ -89,7 +97,7 @@ function loadEnv() {
   // no .env to read - demanding one there failed a migration run that had
   // everything it needed. A local .env still fills the gap when it exists.
   if (process.env.SUPABASE_DB_URL) {
-    process.env.JERICHO_DB_SOURCE = 'the environment';
+    process.env.MYPLATFORM_DB_SOURCE = 'the environment';
     return;
   }
 
@@ -141,7 +149,7 @@ async function main() {
   // screen to say so. Raised by the independent reviewer on PR #14, and the
   // one point of five worth acting on.
   console.log(`Target: ${scheme}://...@${dbUrl.slice(at + 1)}`);
-  console.log(`Address taken from: ${process.env.JERICHO_DB_SOURCE || 'the .env file'}`);
+  console.log(`Address taken from: ${process.env.MYPLATFORM_DB_SOURCE || 'the .env file'}`);
   console.log('');
 
   const client = new Client({

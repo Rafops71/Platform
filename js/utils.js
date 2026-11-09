@@ -1,5 +1,5 @@
-// Jericho Platform — shared frontend helpers.
-// Depends on `jericho` (the Supabase client) from supabase-config.js.
+// MyPlatform — shared frontend helpers.
+// Depends on `myplatform` (the Supabase client) from supabase-config.js.
 
 /** Escape text before inserting into innerHTML, to avoid stored-XSS from
  *  user-entered fields (notes, company name, etc.) rendered back into the DOM. */
@@ -122,7 +122,7 @@ function errorMessage(err) {
 
   const key = offline ? 'err.offline' : byCode[code];
   if (key && typeof t === 'function') {
-    console.error('[jericho]', code || 'network', raw);
+    console.error('[myplatform]', code || 'network', raw);
     return t(key);
   }
 
@@ -206,9 +206,9 @@ async function withButtonBusy(buttonOrId, busyText, work) {
 /** Fetch the profile row for the currently authenticated user.
  *  Returns null if not logged in or no profile exists yet. */
 async function getCurrentProfile() {
-  const { data: { session } } = await jericho.auth.getSession();
+  const { data: { session } } = await myplatform.auth.getSession();
   if (!session) return null;
-  const { data, error } = await jericho
+  const { data, error } = await myplatform
     .from('profiles')
     .select('*')
     .eq('user_id', session.user.id)
@@ -234,7 +234,7 @@ async function requireAuth(requiredRole = null) {
     return null;
   }
   if (profile.status !== 'approved') {
-    await jericho.auth.signOut();
+    await myplatform.auth.signOut();
     window.location.href = 'index.html?blocked=1';
     return null;
   }
@@ -246,7 +246,7 @@ async function requireAuth(requiredRole = null) {
 }
 
 async function logout() {
-  await jericho.auth.signOut();
+  await myplatform.auth.signOut();
   window.location.href = 'index.html';
 }
 
@@ -339,13 +339,13 @@ function docTypeLabel(docType) {
 // Bump this whenever the terms.* strings in i18n.js change materially. Leaving
 // it alone after a substantive edit is the one thing that breaks the record:
 // two people would hold the same version string against different text.
-const TERMS_VERSION = '3.5';
+const TERMS_VERSION = '3.7';
 
 // The order the Terms sections are rendered in. Adding a section means adding
 // its number here and a terms.sN.title plus either a terms.sN.body or the
 // numbered paragraphs below, in both languages. Renumbering means editing the
 // numbers inside the title strings too - they are part of the text.
-const TERMS_SECTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+const TERMS_SECTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
 
 // Sections whose body runs to more than one paragraph. A section listed here
 // has terms.sN.p1 … p{count} instead of a single terms.sN.body; one that is
@@ -355,7 +355,7 @@ const TERMS_SECTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
 // make the part people most need to find the hardest to read. And section 16,
 // where each company detail is its own line so that a missing one is visible
 // as a gap rather than buried mid-sentence.
-const TERMS_SECTION_PARAGRAPHS = { 10: 11, 16: 6 };
+const TERMS_SECTION_PARAGRAPHS = { 10: 12, 16: 6 };
 
 // Every legal detail the Terms need but the business does not have yet - the
 // operating company name, its registered address, the data controller, and the
@@ -507,6 +507,7 @@ function setSelectValue(id, value) {
 }
 
 const STATUS_LABELS = {
+  denied: 'Denied',
   available: 'Available', under_review: 'Under Review', negotiation: 'Negotiation',
   closed: 'Closed', archived: 'Archived',
   pending: 'Pending', approved: 'Approved', rejected: 'Rejected', suspended: 'Suspended',
@@ -580,7 +581,7 @@ async function referenceNumbersFor(ids) {
   const unique = [...new Set((ids || []).filter(Boolean))];
   const refs = new Map();
   for (const part of chunked(unique)) {
-    const { data, error } = await jericho
+    const { data, error } = await myplatform
       .from('listings').select('id,reference_number').in('id', part);
     if (error) return { refs, error };
     (data || []).forEach(l => refs.set(l.id, l.reference_number));
@@ -612,7 +613,7 @@ async function referenceNumbersFor(ids) {
 //     async function loadThing() {
 //       const fresh = renderToken('thing');
 //       …
-//       const { data, error } = await jericho.rpc('thing');
+//       const { data, error } = await myplatform.rpc('thing');
 //       if (!fresh()) return;            // a newer load started; drop this one
 //       …
 //     }

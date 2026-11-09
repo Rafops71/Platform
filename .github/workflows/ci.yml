@@ -26,7 +26,7 @@ on:
 
 concurrency:
   # The checklist suite writes to the shared live Supabase project, and its
-  # teardown removes every jericho-e2e- account it can see. Two runs at once
+  # teardown removes every myplatform-e2e- account it can see. Two runs at once
   # therefore delete each other's fixtures mid-test: the signed-in account
   # disappears and sign-in stops redirecting, listings vanish and their
   # foreign keys fail, match counts come back zero. That is exactly what

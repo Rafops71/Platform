@@ -1,6 +1,6 @@
 # Operator Standard Operating Procedure
 
-For the people running the Jericho Platform. Practical, in the order you
+For the people running the MyPlatform. Practical, in the order you
 actually do things.
 
 ---

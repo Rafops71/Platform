@@ -27,7 +27,7 @@ with actual as (
   ('document_requests'), ('email_outbox'), ('email_phrases'), ('email_templates'),
   ('invitations'), ('listings'), ('matches'), ('message_forward_log'), ('messages'),
   ('notifications'), ('profiles'), ('reference_counters'), ('saved_searches'),
-  ('terms_acceptances'), ('terms_versions')
+  ('terms_acceptances'), ('terms_change_emails'), ('terms_versions')
 ), diff as (
   (select '+' || name d from actual except select '+' || name from approved)
   union all

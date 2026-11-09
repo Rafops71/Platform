@@ -89,7 +89,7 @@ the suite: this platform's product is controlled disclosure, so proving a thing
 | 59 | A member who is not approved cannot read the market, however they ask | MUST NOT |
 | 60 | When the Platform cannot be reached, a member is told so in plain words | does |
 | 61 | A tab left open cannot undo work done elsewhere, and a dead session is not hidden | MUST NOT |
-| 62 | A member who has not signed the newest Terms is held at sign-in until they sign | does |
+| 62 | A member who has signed the Terms once is never held at sign-in or asked to sign again when the Terms change; they are emailed a summary of the changes and a link | does |
 | 63 | A signed acceptance is never lost or rewritten, even when the member is deleted | MUST NOT |
 | 64 | A PO box is never accepted as a signing address | MUST NOT |
 | 65 | A member can never write their own signing record | MUST NOT |
@@ -103,17 +103,19 @@ the suite: this platform's product is controlled disclosure, so proving a thing
 | 73 | A member can never read a scorecard, their own or anyone's | MUST NOT |
 | 74 | Scorecard figures are counts of what Operators recorded, kept apart by side | does |
 | 75 | An Operator sees deals opened, introduced, closed and fallen through, period by period | does |
-| 76 | Help answers the common questions in English and Spanish, before signing in and inside the platform | does |
+| 76 | Help questions are available only after sign-in, never on the sign-in or start pages | does |
 | 77 | A new member sees the welcome page once, at their first sign-in, in their own language; it never comes back | does |
-| 78 | An Operator can edit a message before forwarding it: contact details are highlighted and block the forward, the owner gets only the edited text, and the original stays in the Operator-only activity log | does |
+| 78 | The Operator cannot edit a message; a message with contact details is shown with them in red, cannot be forwarded, and the member is asked to rewrite it; the original is never delivered and stays in the Operator-only log | does |
 | 79 | Every approved Operator is emailed when a member sends a message, and the email carries none of the message | does |
 | 80 | The member walkthrough film sits below the sign-in box, in English or Spanish to match the page, and plays only when pressed | does |
+| 81 | A member who signs the Terms gets one receipt email, in their own language, and re-saving a signed acceptance sends no second one | does |
 | 82 | A member can recommend a candidate, and only the Operator sees it | does |
 | 83 | A member can never have more than 5 open recommendations | MUST NOT |
 | 84 | A member never sees another member's recommendation | MUST NOT |
 | 85 | The Operator can invite from a recommendation, and the invitation names the referrer | does |
 | 86 | Declining a recommendation does not tell the referrer | MUST NOT |
 | 87 | A member can never read, change or delete another member's recommendation | MUST NOT |
+| 88 | When new Terms are published, every approved member is emailed a summary of the changes and a link, once | does |
 
 ## Open questions on this list
 

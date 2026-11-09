@@ -1,4 +1,4 @@
-// Jericho Platform — participant dashboard logic.
+// MyPlatform — participant dashboard logic.
 
 let CURRENT_PROFILE = null;
 let COMMODITIES = [];
@@ -65,7 +65,7 @@ async function showWelcomeOnce() {
   await new Promise(release => {
     document.getElementById('welcome-continue').addEventListener('click', async () => {
       await withButtonBusy('welcome-continue', t('common.saving'), async () => {
-        const { error } = await jericho.from('profiles')
+        const { error } = await myplatform.from('profiles')
           .update({ welcome_seen_at: new Date().toISOString() }).eq('id', CURRENT_PROFILE.id);
         if (error) console.error('welcome_seen_at not saved (the page will show again):', error);
       });
@@ -105,7 +105,7 @@ function adoptProfileLanguage() {
     if (profileLang !== currentLang()) setLang(profileLang);
   } else if (stored !== profileLang) {
     CURRENT_PROFILE.language = stored;
-    jericho.from('profiles').update({ language: stored }).eq('id', CURRENT_PROFILE.id)
+    myplatform.from('profiles').update({ language: stored }).eq('id', CURRENT_PROFILE.id)
       .then(({ error }) => { if (error) console.warn('Could not save language preference:', error.message); });
   }
 }
@@ -123,7 +123,7 @@ window.onLanguageChange = function (lang) {
   // toggle will try again.
   if (CURRENT_PROFILE && lang && lang !== CURRENT_PROFILE.language) {
     CURRENT_PROFILE.language = lang;
-    jericho.from('profiles').update({ language: lang }).eq('id', CURRENT_PROFILE.id)
+    myplatform.from('profiles').update({ language: lang }).eq('id', CURRENT_PROFILE.id)
       .then(({ error }) => { if (error) console.warn('Could not save language preference:', error.message); });
   }
 
@@ -206,7 +206,7 @@ async function loadMyListings() {
   const container = document.getElementById('my-listings-list');
   container.innerHTML = `<p class="empty-state">${t('common.loading')}</p>`;
 
-  const { data, error } = await jericho
+  const { data, error } = await myplatform
     .from('listings')
     .select('*')
     .eq('user_id', CURRENT_PROFILE.id)
@@ -230,7 +230,7 @@ async function loadMyListings() {
   const DOC_CHUNK = 50;
   const docCounts = new Map();
   for (const part of chunked(data.map(l => l.id), DOC_CHUNK)) {
-    const { data: ticked, error: docError } = await jericho
+    const { data: ticked, error: docError } = await myplatform
       .from('document_checklist')
       .select('listing_id')
       .eq('indicated', true)
@@ -306,7 +306,7 @@ function statusBadgeClass(status) {
 
 async function removeListing(id) {
   if (!confirm(t('listings.confirmRemove'))) return;
-  const { error } = await jericho.from('listings').delete().eq('id', id);
+  const { error } = await myplatform.from('listings').delete().eq('id', id);
   if (error) { showError(errorMessage(error)); return; }
   // Activity logging happens in the database (trg_log_listing_change).
   showSuccess(t('listings.removed'));
@@ -321,7 +321,7 @@ async function removeListing(id) {
  *  the listing renews it too, through the same trigger - this is for the case
  *  where there is nothing to edit. */
 async function renewListing(id) {
-  const { error } = await jericho.rpc('renew_listing', { p_listing_id: id });
+  const { error } = await myplatform.rpc('renew_listing', { p_listing_id: id });
   if (error) { showError(errorMessage(error)); return; }
   showSuccess(t('listings.renewed'));
   loadMyListings();
@@ -332,7 +332,7 @@ async function renewListing(id) {
  *  - a counterparty who was talking to this listing should still be able to see
  *  what it was. */
 async function closeListing(id) {
-  const { error } = await jericho.from('listings').update({ status: 'closed' }).eq('id', id);
+  const { error } = await myplatform.from('listings').update({ status: 'closed' }).eq('id', id);
   if (error) { showError(errorMessage(error)); return; }
   showSuccess(t('listings.closed'));
   loadMyListings();
@@ -360,7 +360,7 @@ function renderDocChecklist(selected = {}) {
 
 async function loadCommodities() {
   const fresh = renderToken('app:loadCommodities');
-  const { data, error } = await jericho.from('commodities').select('*');
+  const { data, error } = await myplatform.from('commodities').select('*');
   if (!fresh()) return;
   const select = document.getElementById('commodity-select');
   if (error) { console.error(error); return; }
@@ -494,10 +494,10 @@ function resetListingForm() {
 }
 
 async function editListing(id) {
-  const { data: listing, error } = await jericho.from('listings').select('*').eq('id', id).maybeSingle();
+  const { data: listing, error } = await myplatform.from('listings').select('*').eq('id', id).maybeSingle();
   if (error || !listing) { showError(t('listings.loadFailed')); return; }
 
-  const { data: checklist } = await jericho.from('document_checklist').select('*').eq('listing_id', id);
+  const { data: checklist } = await myplatform.from('document_checklist').select('*').eq('listing_id', id);
   const selected = {};
   (checklist || []).forEach(c => { if (c.indicated) selected[c.doc_type] = true; });
 
@@ -576,13 +576,13 @@ async function submitListingForm(e) {
   let listingId = EDITING_LISTING_ID;
 
   if (listingId) {
-    const { error } = await jericho.from('listings').update(payload).eq('id', listingId);
+    const { error } = await myplatform.from('listings').update(payload).eq('id', listingId);
     if (error) { showError(errorMessage(error)); btn.disabled = false; btn.textContent = t('form.saveListing'); return; }
   } else {
-    const { data: refData, error: refError } = await jericho.rpc('next_reference', { p_type: type });
+    const { data: refData, error: refError } = await myplatform.rpc('next_reference', { p_type: type });
     if (refError) { showError(errorMessage(refError)); btn.disabled = false; btn.textContent = t('form.saveListing'); return; }
 
-    const { data: inserted, error } = await jericho
+    const { data: inserted, error } = await myplatform
       .from('listings')
       .insert({ ...payload, user_id: CURRENT_PROFILE.id, reference_number: refData })
       .select('id').single();
@@ -593,7 +593,7 @@ async function submitListingForm(e) {
   // Sync document checklist: upsert one row per doc type.
   const checked = new Set(Array.from(document.querySelectorAll('#doc-checklist input:checked')).map(i => i.value));
   const rows = DOCUMENT_TYPES.map(doc => ({ listing_id: listingId, doc_type: doc, indicated: checked.has(doc) }));
-  const { error: checklistError } = await jericho
+  const { error: checklistError } = await myplatform
     .from('document_checklist')
     .upsert(rows, { onConflict: 'listing_id,doc_type' });
   if (checklistError) console.error('Checklist save failed:', checklistError);
@@ -624,7 +624,7 @@ async function loadBrowseListings() {
   const container = document.getElementById('browse-list');
   container.innerHTML = `<p class="empty-state">${t('common.loading')}</p>`;
 
-  const { data, error } = await jericho.rpc('get_public_listings');
+  const { data, error } = await myplatform.rpc('get_public_listings');
   if (!fresh()) return;
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
 
@@ -714,7 +714,7 @@ async function exportMyActivity() {
   const button = document.getElementById('export-activity-btn');
   button.disabled = true;
   try {
-    const { data, error } = await jericho.rpc('my_activity_export');
+    const { data, error } = await myplatform.rpc('my_activity_export');
     if (error) { showError(errorMessage(error)); return; }
     if (!data || !data.length) { showError(t('export.empty')); return; }
 
@@ -731,7 +731,7 @@ async function exportMyActivity() {
     ]);
 
     const stamp = new Date().toISOString().slice(0, 10);
-    downloadFile(`jericho-activity-${stamp}.csv`, toCsv(headers, rows));
+    downloadFile(`myplatform-activity-${stamp}.csv`, toCsv(headers, rows));
     showSuccess(t('export.done'));
   } finally {
     button.disabled = false;
@@ -792,14 +792,14 @@ async function loadSavedSearches() {
   const container = document.getElementById('saved-searches-list');
   container.innerHTML = `<p class="empty-state">${t('common.loading')}</p>`;
 
-  const { data, error } = await jericho
+  const { data, error } = await myplatform
     .from('saved_searches').select('*').order('created_at', { ascending: false });
   if (!fresh()) return;
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
   if (!data.length) { container.innerHTML = `<p class="empty-state">${t('saved.none')}</p>`; return; }
 
   // One call for every count, against the same anonymised view Browse reads.
-  const { data: listings } = await jericho.rpc('get_public_listings');
+  const { data: listings } = await myplatform.rpc('get_public_listings');
   const all = listings || [];
 
   if (!fresh()) return;
@@ -845,7 +845,7 @@ async function saveCurrentSearch() {
 async function saveCurrentSearchNow() {
   const criteria = browseFilterCriteria();
 
-  const { error } = await jericho.from('saved_searches')
+  const { error } = await myplatform.from('saved_searches')
     .insert({ ...criteria, user_id: CURRENT_PROFILE.id });
 
   if (error) {
@@ -860,7 +860,7 @@ async function saveCurrentSearchNow() {
 }
 
 async function removeSavedSearch(id) {
-  const { error } = await jericho.from('saved_searches').delete().eq('id', id);
+  const { error } = await myplatform.from('saved_searches').delete().eq('id', id);
   if (error) { showError(errorMessage(error)); return; }
   showSuccess(t('saved.removed'));
   loadSavedSearches();
@@ -872,8 +872,8 @@ async function loadMailbox() {
   const container = document.getElementById('mailbox-list');
   container.innerHTML = `<p class="empty-state">${t('common.loading')}</p>`;
 
-  const { data: messages, error } = await jericho
-    .from('messages').select('*').order('created_at', { ascending: false });
+  const { data: messages, error } = await myplatform
+    .from('messages').select('*').neq('status', 'denied').order('created_at', { ascending: false });
   if (!fresh()) return;
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
 
@@ -934,7 +934,7 @@ async function sendContactMessage() {
 async function sendContactMessageNow() {
   const body = document.getElementById('contact-body').value.trim();
   if (!body) { showError(t('contact.empty')); return; }
-  const { error } = await jericho.from('messages').insert({
+  const { error } = await myplatform.from('messages').insert({
     sender_id: CURRENT_PROFILE.id,
     listing_id: CONTACT_TARGET.listingId || null,
     in_reply_to: CONTACT_TARGET.inReplyTo || null,
@@ -952,7 +952,7 @@ async function loadNotifications() {
   const container = document.getElementById('notifications-list');
   container.innerHTML = `<p class="empty-state">${t('common.loading')}</p>`;
 
-  const { data, error } = await jericho
+  const { data, error } = await myplatform
     .from('notifications').select('*')
     .eq('user_id', CURRENT_PROFILE.id)
     .order('created_at', { ascending: false });
@@ -974,7 +974,7 @@ async function loadNotifications() {
     container.appendChild(row);
     if (!n.is_read) {
       row.addEventListener('click', async () => {
-        await jericho.from('notifications').update({ is_read: true }).eq('id', n.id);
+        await myplatform.from('notifications').update({ is_read: true }).eq('id', n.id);
         loadNotifications();
         refreshNotificationDot();
       });
@@ -987,7 +987,7 @@ async function loadNotifications() {
 
 async function refreshNotificationDot() {
   const fresh = renderToken('app:refreshNotificationDot');
-  const { count } = await jericho
+  const { count } = await myplatform
     .from('notifications').select('id', { count: 'exact', head: true })
     .eq('user_id', CURRENT_PROFILE.id).eq('is_read', false);
   if (!fresh()) return;
@@ -1077,7 +1077,7 @@ async function saveProfileDetails(e) {
     phone: document.getElementById('p_phone').value.trim(),
   };
 
-  const { error } = await jericho.from('profiles').update(updates).eq('id', CURRENT_PROFILE.id);
+  const { error } = await myplatform.from('profiles').update(updates).eq('id', CURRENT_PROFILE.id);
   if (error) { showError(errorMessage(error)); return; }
 
   // Role, status and email are absent from `updates` on purpose: the database
@@ -1095,7 +1095,7 @@ async function saveProfileDetails(e) {
  *  session that is already open. A correct one issues a fresh session for the
  *  same user, which is what the updateUser() that follows then uses. */
 async function reauthenticate(password) {
-  const { error } = await jericho.auth.signInWithPassword({
+  const { error } = await myplatform.auth.signInWithPassword({
     email: CURRENT_PROFILE.email,
     password,
   });
@@ -1112,7 +1112,7 @@ async function changeEmail(e) {
   }
   if (!await reauthenticate(password)) { showError(t('profile.wrongPassword')); return; }
 
-  const { error } = await jericho.auth.updateUser({ email: newEmail });
+  const { error } = await myplatform.auth.updateUser({ email: newEmail });
   if (error) { showError(errorMessage(error)); return; }
 
   // Nothing has moved yet. This project requires an email change to be
@@ -1142,7 +1142,7 @@ async function changePassword(e) {
   if (next === current) { showError(t('profile.passwordSame')); return; }
   if (!await reauthenticate(current)) { showError(t('profile.wrongPassword')); return; }
 
-  const { error } = await jericho.auth.updateUser({ password: next });
+  const { error } = await myplatform.auth.updateUser({ password: next });
   if (error) { showError(errorMessage(error)); return; }
   document.getElementById('password-form').reset();
   showSuccess(t('profile.passwordUpdated'));

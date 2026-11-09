@@ -34,6 +34,17 @@ const OPERATOR_ONLY = {
   queue_invitation_email: { p_to_email: 'probe@example.invalid', p_link: 'https://example.invalid', p_lang: 'en' },
   log_activity: (w) => ({ p_user_id: w.operator.profileId, p_action: 'operator agreed to waive documents', p_details: {} }),
   generate_matches_for_listing: (w) => ({ p_listing_id: w.listingId }),
+  // Candidate recommendations (sql/054, 055): only an Operator lists, declines
+  // or invites; the 12-month purge is for the service role alone, so a member
+  // and an Operator are both refused it.
+  operator_list_candidate_recommendations: {},
+  operator_decline_candidate_recommendation: { p_id: '00000000-0000-0000-0000-000000000000' },
+  operator_invite_from_recommendation: {
+    p_id: '00000000-0000-0000-0000-000000000000', p_token: 'privilege-scan-token-0123456789abcdef0123',
+    p_link: 'https://example.invalid/privilege-scan-token-0123456789abcdef0123', p_lang: 'en',
+    p_privacy_link: 'https://example.invalid/privacy',
+  },
+  purge_closed_candidate_recommendations: {},
 };
 
 function forge(token, claims) {

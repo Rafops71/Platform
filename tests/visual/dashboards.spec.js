@@ -17,7 +17,7 @@ const { buildWorld, cleanup, guardNotLive } = require('../../scripts/security-gr
 const STAGING = `
 const SUPABASE_URL = ${JSON.stringify(process.env.SUPABASE_URL)};
 const SUPABASE_PUBLISHABLE_KEY = ${JSON.stringify(process.env.SUPABASE_ANON_KEY)};
-const jericho = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+const myplatform = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 `;
 const STEADY = path.join(__dirname, 'steady.css');
 const DATA = '#user-name, input, textarea, select, .stat-value, .badge, [id$="-list"], [id$="-table"], [id$="-count"], [id$="-updated"], tbody, #doc-checklist, time';
@@ -37,7 +37,7 @@ for (const d of DASHBOARDS) {
     const who = world[d.who];
     await page.route('**/js/supabase-config.js', (r) =>
       r.fulfill({ status: 200, contentType: 'application/javascript', body: STAGING }));
-    await page.addInitScript(() => { try { localStorage.setItem('jericho.language', 'en'); } catch { /* none */ } });
+    await page.addInitScript(() => { try { localStorage.setItem('myplatform.language', 'en'); } catch { /* none */ } });
     await page.goto('/index.html');
     await page.fill('#email', who.email);
     await page.fill('#password', who.password);
