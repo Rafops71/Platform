@@ -42,10 +42,13 @@ jobs:
           mkdir -p tmp-visual-diff
           echo "every failing tab picture in this run:"
           find test-results -name '*-actual.png' | sort
-          for f in $(find test-results -name 'operator-invitations-*-actual.png' -o -name 'operator-invitations-*-expected.png' -o -name 'operator-invitations-*-diff.png' | sort); do
-            d=$(basename "$(dirname "$f")")
-            case "$d" in *phone*) p=phone;; *) p=desktop;; esac
-            cp "$f" "tmp-visual-diff/operator-invitations-${p}__$(basename "$f" | sed 's/^operator-invitations-//')"
+          for p in desktop phone; do
+            d="test-results/dashboards-operator-html-every-tab-looks-as-approved-${p}"
+            for k in actual diff; do
+              if [ -f "$d/operator-invitations-${k}.png" ]; then cp "$d/operator-invitations-${k}.png" "tmp-visual-diff/operator-invitations-${p}__${k}.png"; else echo "no $k image for $p"; fi
+            done
+            # The approved picture is the repository's own file; Playwright does not copy it.
+            cp "tests/visual/screenshots/operator-invitations-${p}.png" "tmp-visual-diff/operator-invitations-${p}__expected.png"
           done
           ls -l tmp-visual-diff
       - name: Commit only tmp-visual-diff
