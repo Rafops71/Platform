@@ -4,6 +4,9 @@ name: tradedemo publish now (owner, 2026-11-08)
 # no database) from branch platformdemo without waiting for main's gate.
 # Remove this file before merging the branch into main.
 # 2026-11-08: republish without Help and questions (owner).
+# 2026-11-09: refresh from the new main (owner: "a go for everything that you need").
+# The copy has no platform name, no film, no Help, no Terms and no "ask an
+# Operator for an invitation link" sentence; the build refuses if any is left.
 on:
   push:
     branches: [platformdemo]
@@ -40,7 +43,7 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - name: Build (fails if MyPlatform, .mp4 or <video is left, or if it would reach the live database)
+      - name: Build (fails if the name, a film, Help, Terms or the invitation sentence is left, or if it would reach the live database)
         run: node scripts/build-platformdemo.js
       - uses: cloudflare/wrangler-action@v4
         with:
