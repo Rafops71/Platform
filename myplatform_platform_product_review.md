@@ -1,6 +1,6 @@
-# Jericho Platform — Product and Business Review Brief
+# MyPlatform — Product and Business Review Brief
 
-This document describes what the Jericho Platform does from a user and business
+This document describes what the MyPlatform does from a user and business
 point of view. It is written in plain language for a business reader and
 deliberately avoids technical detail.
 
@@ -11,9 +11,9 @@ safer, or easier to run.
 
 ---
 
-## 1. What Jericho Platform is, in plain words
+## 1. What MyPlatform is, in plain words
 
-Jericho Platform is a **private, invitation-only tool for physical commodity
+MyPlatform is a **private, invitation-only tool for physical commodity
 brokers**. It is closed by design: nobody can find it, join it, or see anything
 in it without being personally invited and then approved.
 

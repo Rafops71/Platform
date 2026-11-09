@@ -51,7 +51,7 @@ const FEED = Number(process.env.E2E_OP_FEED || 400);
 // not to police milliseconds. Every number is printed either way.
 const RENDER_BUDGET_MS = 30_000;
 
-const OPERATOR = { first_name: 'Hedda',   last_name: 'Vossbrink',  company: 'Jericho Desk',        phone: '+32471558001' };
+const OPERATOR = { first_name: 'Hedda',   last_name: 'Vossbrink',  company: 'MyPlatform Desk',        phone: '+32471558001' };
 const SELLER   = { first_name: 'Anselm',  last_name: 'Krogsgaard', company: 'Krogsgaard Minerals', phone: '+32471558002' };
 const BUYER    = { first_name: 'Marisol', last_name: 'Etcheverry', company: 'Etcheverry SA',       phone: '+32471558003' };
 
@@ -195,7 +195,7 @@ test.beforeAll(async () => {
        (select count(*)::int from public.notifications n
           join public.profiles p on p.id = n.user_id
          where n.related_id in (select id from public.listings where reference_number like 'OPV-%')
-           and p.email not like 'jericho-e2e-%') real_feeds`
+           and p.email not like 'myplatform-e2e-%' and p.email not like 'jericho-e2e-%') real_feeds`
   );
   expect(leak.outbox, 'the fixture must queue mail to nobody').toBe(0);
   expect(leak.real_feeds, 'the fixture must not reach a real Operator feed').toBe(0);

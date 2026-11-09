@@ -55,9 +55,9 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
  *  when the page changes, and the film looks like it is being operated by
  *  something invisible rather than by somebody. */
 async function pressWithPointer(page, selector) {
-  await page.evaluate(s => window.__jericho.moveTo(s), selector);
+  await page.evaluate(s => window.__myplatform.moveTo(s), selector);
   await wait(650);
-  await page.evaluate(() => window.__jericho.press());
+  await page.evaluate(() => window.__myplatform.press());
   await wait(200);
   // .first(): a selector that matches several controls - every Browse row has
   // a Contact button - must press one rather than refuse. Playwright's own
@@ -70,7 +70,7 @@ async function pressWithPointer(page, selector) {
 /** Type at human speed. A form that fills instantly reads as a recording
  *  played at the wrong rate. */
 async function typeSlowly(page, selector, text) {
-  await page.evaluate(s => window.__jericho.moveTo(s), selector);
+  await page.evaluate(s => window.__myplatform.moveTo(s), selector);
   await wait(400);
   await page.click(selector);
   await page.type(selector, text, { delay: 55 });
@@ -130,17 +130,17 @@ async function perform(page, action, world) {
     case 'select':
       // The pointer is moved first so the viewer sees WHERE the choice is
       // being made; selectOption itself draws nothing.
-      await page.evaluate(sel => window.__jericho.moveTo(sel), target);
+      await page.evaluate(sel => window.__myplatform.moveTo(sel), target);
       await wait(400);
       await page.selectOption(target, value);
-      await page.evaluate(() => window.__jericho.press());
+      await page.evaluate(() => window.__myplatform.press());
       return;
 
     case 'check':
-      await page.evaluate(sel => window.__jericho.moveTo(sel), target);
+      await page.evaluate(sel => window.__myplatform.moveTo(sel), target);
       await wait(400);
       await page.locator(target).check();
-      await page.evaluate(() => window.__jericho.press());
+      await page.evaluate(() => window.__myplatform.press());
       return;
 
     case 'signInAs': {
@@ -239,7 +239,7 @@ async function buildWorld(film) {
   if (film === 'operator') {
     world.signInAs = await createAccount({
       label: 'film-op', role: 'operator', status: 'approved',
-      meta: { first_name: 'Operator', last_name: 'Desk', company: 'Jericho Platform' },
+      meta: { first_name: 'Operator', last_name: 'Desk', company: 'MyPlatform' },
     });
     world.landing = 'operator.html';
 
@@ -468,13 +468,13 @@ async function main() {
   // turns that into one sentence naming the problem.
   await page.goto(`${BASE}/index.html`);
   const overlayReady = await page.evaluate(() =>
-    Boolean(window.__jericho && typeof window.__jericho.caption === 'function'));
+    Boolean(window.__myplatform && typeof window.__myplatform.caption === 'function'));
   if (!overlayReady) {
     throw new Error('the overlay never loaded, so there would be no pointer, ring or captions');
   }
 
   if (lang === 'es') {
-    await page.evaluate(() => { try { localStorage.setItem('jericho.language', 'es'); } catch (e) {} });
+    await page.evaluate(() => { try { localStorage.setItem('myplatform.language', 'es'); } catch (e) {} });
   }
 
   // Scenes that overran their line, collected rather than thrown one at a
@@ -494,7 +494,7 @@ async function main() {
     const budget = Math.round(seconds * 1000) + PAUSE;
     const began = Date.now();
 
-    await page.evaluate(t => window.__jericho.caption(t), scene.say[lang]);
+    await page.evaluate(t => window.__myplatform.caption(t), scene.say[lang]);
 
     // ZOOM IN, if this scene has a subject. The viewer gets to see which
     // control is about to be pressed before anything happens to it.
@@ -507,18 +507,18 @@ async function main() {
       // shot as well. A control already on screen is not moved.
       await page.locator(fill(scene.zoom)).first().scrollIntoViewIfNeeded().catch(() => {});
       await page.evaluate(
-        ([sel, scale]) => window.__jericho.zoomTo(sel, scale),
+        ([sel, scale]) => window.__myplatform.zoomTo(sel, scale),
         [fill(scene.zoom), scene.zoomScale || null]).catch(() => {});
       await wait(ZOOM_SETTLE);
     } else {
-      await page.evaluate(() => window.__jericho.zoomOut()).catch(() => {});
+      await page.evaluate(() => window.__myplatform.zoomOut()).catch(() => {});
       await wait(ZOOM_SETTLE);
     }
 
     if (scene.highlight) {
-      await page.evaluate(s => window.__jericho.ringAround(s), fill(scene.highlight)).catch(() => {});
+      await page.evaluate(s => window.__myplatform.ringAround(s), fill(scene.highlight)).catch(() => {});
     } else {
-      await page.evaluate(() => window.__jericho.ringAround(null)).catch(() => {});
+      await page.evaluate(() => window.__myplatform.ringAround(null)).catch(() => {});
     }
 
     await perform(page, fill(scene.do), world);
@@ -536,10 +536,10 @@ async function main() {
     // consequence.
     if (scene.zoom && scene.zoomOutAfter) {
       await wait(500);
-      await page.evaluate(() => window.__jericho.zoomOut()).catch(() => {});
+      await page.evaluate(() => window.__myplatform.zoomOut()).catch(() => {});
       await wait(ZOOM_SETTLE);
       if (scene.highlightAfter) {
-        await page.evaluate(s => window.__jericho.ringAround(s), fill(scene.highlightAfter)).catch(() => {});
+        await page.evaluate(s => window.__myplatform.ringAround(s), fill(scene.highlightAfter)).catch(() => {});
       }
     }
 
@@ -575,7 +575,7 @@ async function main() {
     await wait(Math.max(hold, 0));
   }
 
-  await page.evaluate(() => window.__jericho.caption(''));
+  await page.evaluate(() => window.__myplatform.caption(''));
   await wait(600);
 
   const video = page.video();

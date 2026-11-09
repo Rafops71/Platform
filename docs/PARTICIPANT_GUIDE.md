@@ -6,7 +6,7 @@
 
 ## Before anything else: how this platform works
 
-Two things are unusual about the Jericho Platform, and everything else makes
+Two things are unusual about the MyPlatform, and everything else makes
 more sense once they are clear.
 
 1. **Listings are anonymous.** When you post a Sell Offer or a Buy Request,
@@ -192,7 +192,7 @@ it. Until then you keep signing in with the old address.
 
 ## Antes de nada: cómo funciona esta plataforma
 
-Dos cosas distinguen a la Plataforma Jericho, y todo lo demás se entiende mejor
+Dos cosas distinguen a la Plataforma MyPlatform, y todo lo demás se entiende mejor
 una vez claras.
 
 1. **Las publicaciones son anónimas.** Cuando publica una Oferta de venta o una

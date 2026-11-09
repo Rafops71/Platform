@@ -23,13 +23,13 @@ jobs:
           node-version: '22'
       - uses: actions/download-artifact@v4
         with:
-          name: jericho-member-en
+          name: myplatform-member-en
           run-id: 41377639991
           github-token: ${{ github.token }}
           path: src/member
       - uses: actions/download-artifact@v4
         with:
-          name: jericho-operator-en
+          name: myplatform-operator-en
           run-id: 41376550324
           github-token: ${{ github.token }}
           path: src/operator
