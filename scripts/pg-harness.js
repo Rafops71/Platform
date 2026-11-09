@@ -86,6 +86,8 @@ const SETUP = [
   'sql/051_message_rewrite_activity.sql',
   'sql/052_message_denied_status.sql',
   'sql/053_test_prefix_cleanup_both.sql',
+  'sql/054_candidate_recommendations.sql',
+  'sql/055_recommendation_retention.sql',
   'sql/056_terms_change_email.sql',
   'sql/057_terms_gate_signed_once.sql',
   'sql/058_terms_3_7.sql',

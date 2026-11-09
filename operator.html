@@ -125,6 +125,44 @@
 
   <!-- INVITATIONS -->
   <section id="screen-invitations" class="screen">
+    <!-- Candidate recommendations (sql/054). Only Operators see these. -->
+    <div class="card" id="recommendations-card">
+      <h2 class="mt-0">Candidate recommendations</h2>
+      <div style="overflow-x:auto;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Suggested by</th>
+              <th>Candidate name</th>
+              <th>Company</th>
+              <th>Commodities</th>
+              <th>Date</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="recommendations-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Opened from Invite on a recommendation. Nothing here is editable but
+         the message is shown exactly as the candidate will receive it. -->
+    <div class="card hidden" id="invite-from-rec-card">
+      <form id="invite-from-rec-form">
+        <label for="ir-candidate-name">Candidate name</label>
+        <input type="text" id="ir-candidate-name" readonly>
+        <label for="ir-candidate-email">Candidate email</label>
+        <input type="email" id="ir-candidate-email" readonly>
+        <label for="ir-referrer">Referrer name</label>
+        <input type="text" id="ir-referrer" readonly>
+        <label>Message preview</label>
+        <div id="ir-preview" style="white-space:pre-wrap;border:1px solid var(--border);border-radius:var(--radius);padding:12px;background:var(--blue-tint);"></div>
+        <div style="margin-top:14px;">
+          <button type="submit" class="btn btn-primary" id="ir-send-btn">Send</button>
+        </div>
+      </form>
+    </div>
+
     <div class="card">
       <h2 class="mt-0">Create Invitation</h2>
       <label for="invite-email">Email (optional, for your own reference)</label>

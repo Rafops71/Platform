@@ -42,7 +42,7 @@ const EXPECTED = {
   // Any signed-in caller may read the commodity names (policy: auth.uid() is
   // not null) - pending and suspended included. It is the public product list.
   commodities:         { operator: ['read', 'write'], member: ['read'], pending: ['read'], suspended: ['read'] },
-  // Member recommendations of a candidate (sql/054, on the T7 branch). RLS on,
+  // Member recommendations of a candidate (sql/054). RLS on,
   // one policy: an Operator may read. Every write goes through a function.
   // anon has no grant; a member holds the select grant but the policy returns
   // them no rows. Nobody else may touch it.
@@ -69,11 +69,6 @@ const EXPECTED = {
   terms_change_emails: {},
   terms_versions:      { anon: ['read'], pending: ['read'], suspended: ['read'], member: ['read'], operator: ['read'] },
 };
-// Tables that may be absent for now: their migration is on a branch that has
-// not reached this database yet. Listed here on purpose and printed in the
-// output when absent, so it is seen. Remove the name once the migration is on
-// main - then a missing table fails again.
-const MAY_BE_ABSENT = ['candidate_recommendations'];
 const DOC = 'Assay Report';
 const ROLES = ['anon', 'pending', 'suspended', 'member', 'operator'];
 
@@ -335,11 +330,7 @@ async function main() {
     world = await buildWorld();
     const names = await tables();
     for (const t of names) if (!(t in EXPECTED)) failures.push(`table ${t} is not in the grid: decide who may touch it, then add it to EXPECTED`);
-    for (const t of Object.keys(EXPECTED)) {
-      if (names.includes(t)) continue;
-      if (MAY_BE_ABSENT.includes(t)) console.log(`NOTE: ${t} is not in this database yet (allowed: migration not applied here).`);
-      else failures.push(`EXPECTED lists ${t}, which the database no longer has`);
-    }
+    for (const t of Object.keys(EXPECTED)) if (!names.includes(t)) failures.push(`EXPECTED lists ${t}, which the database no longer has`);
     const callers = { anon: {}, pending: world.pending, suspended: world.suspended, member: world.A, operator: world.operator };
     for (const who of Object.values(callers)) await markForwarded(who);
     for (const t of names.filter((n) => n in EXPECTED)) {

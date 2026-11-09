@@ -73,6 +73,8 @@ const SUITES = [
   'sql/tests/25_welcome_seen.sql',
   'sql/tests/26_operator_mail.sql',
   'sql/tests/27_terms_receipt.sql',
+  'sql/tests/27_candidate_recommendations.sql',
+  'sql/tests/28_recommendation_retention.sql',
   'sql/tests/29_terms_change_email.sql',
 ];
 

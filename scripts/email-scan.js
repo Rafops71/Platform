@@ -23,12 +23,11 @@ const KEYS = ['invitation', 'registration_submitted', 'registration_approved', '
 const ENGLISH_ONLY_KEYS = ['operator_new_message'];
 // Templates whose email cannot be made to happen here without touching real
 // state: terms_changed fires only when a Terms version is published, and only
-// to approved non-test members. Their wording is still scanned: both languages
-// present, same slots, nothing empty, links only to the platform.
-const TEMPLATE_ONLY_KEYS = ['terms_changed'];
-// Templates from a migration that may not be on this database yet (T7). Scanned
-// like TEMPLATE_ONLY_KEYS when present; their absence is not a failure.
-const OPTIONAL_TEMPLATE_ONLY_KEYS = ['invitation_recommended'];
+// to approved non-test members; invitation_recommended is written when an
+// Operator invites from a member's recommendation (sql/054), which needs a real
+// candidate address. Their wording is still scanned: both languages present,
+// same slots, nothing empty, links only to the platform.
+const TEMPLATE_ONLY_KEYS = ['terms_changed', 'invitation_recommended'];
 // The address the invitation link points at: the platform's own (2026-10-29).
 const SITE = 'https://app.myplatform.trade/';
 const ALLOWED_URL = /^https:\/\/(rafops71\.github\.io\/Platform\/|([a-z0-9-]+\.)*myplatform\.trade(\/|$))/;
@@ -48,8 +47,7 @@ async function main() {
     const rows = (await must('templates', http('/rest/v1/email_templates?select=template_key,lang,subject,body_text')));
     const tpl = {};
     for (const r of rows) tpl[`${r.template_key}/${r.lang}`] = r;
-    const optionalHere = OPTIONAL_TEMPLATE_ONLY_KEYS.filter((k) => tpl[`${k}/en`] || tpl[`${k}/es`]);
-    for (const k of [...KEYS, ...ENGLISH_ONLY_KEYS, ...TEMPLATE_ONLY_KEYS, ...optionalHere]) {
+    for (const k of [...KEYS, ...ENGLISH_ONLY_KEYS, ...TEMPLATE_ONLY_KEYS]) {
       const en = tpl[`${k}/en`]; const es = tpl[`${k}/es`];
       const englishOnly = ENGLISH_ONLY_KEYS.includes(k);
       if (!en || (!es && !englishOnly)) { fail(`template "${k}" is missing in ${!en ? 'English' : 'Spanish'}`); continue; }
@@ -64,9 +62,9 @@ async function main() {
         }
       }
     }
-    const known = [...KEYS, ...ENGLISH_ONLY_KEYS, ...TEMPLATE_ONLY_KEYS, ...OPTIONAL_TEMPLATE_ONLY_KEYS];
+    const known = [...KEYS, ...ENGLISH_ONLY_KEYS, ...TEMPLATE_ONLY_KEYS];
     for (const key of Object.keys(tpl)) if (!known.includes(key.split('/')[0])) fail(`template "${key}" is not covered by this scan`);
-    for (const k of [...TEMPLATE_ONLY_KEYS, ...optionalHere]) for (const l of ['en', 'es']) {
+    for (const k of TEMPLATE_ONLY_KEYS) for (const l of ['en', 'es']) {
       const t = tpl[`${k}/${l}`];
       if (!t) continue;
       const text = `${t.subject}\n${t.body_text}`;

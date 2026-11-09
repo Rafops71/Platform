@@ -109,6 +109,12 @@ the suite: this platform's product is controlled disclosure, so proving a thing
 | 79 | Every approved Operator is emailed when a member sends a message, and the email carries none of the message | does |
 | 80 | The member walkthrough film sits below the sign-in box, in English or Spanish to match the page, and plays only when pressed | does |
 | 81 | A member who signs the Terms gets one receipt email, in their own language, and re-saving a signed acceptance sends no second one | does |
+| 82 | A member can recommend a candidate, and only the Operator sees it | does |
+| 83 | A member can never have more than 5 open recommendations | MUST NOT |
+| 84 | A member never sees another member's recommendation | MUST NOT |
+| 85 | The Operator can invite from a recommendation, and the invitation names the referrer | does |
+| 86 | Declining a recommendation does not tell the referrer | MUST NOT |
+| 87 | A member can never read, change or delete another member's recommendation | MUST NOT |
 | 88 | When new Terms are published, every approved member is emailed a summary of the changes and a link, once | does |
 
 ## Open questions on this list

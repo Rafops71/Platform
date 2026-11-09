@@ -60,7 +60,7 @@ function showScreen(name) {
   if (name === 'overview') loadOverview();
   if (name === 'approvals') loadApprovals();
   if (name === 'listings') { populateCommodityFilter(); loadListings(); }
-  if (name === 'invitations') loadInvitations();
+  if (name === 'invitations') { hideInviteFromRecommendation(); loadRecommendations(); loadInvitations(); }
   if (name === 'users') loadUsers();
   if (name === 'commodities') loadCommodities();
   if (name === 'mailbox') loadOperatorMailbox();
@@ -502,11 +502,122 @@ async function loadListings() {
 // --------------------------------------------------------- INVITATIONS ----
 function wireInvitations() {
   document.getElementById('create-invite-btn').addEventListener('click', createInvitation);
+  document.getElementById('invite-from-rec-form').addEventListener('submit', sendInviteFromRecommendation);
+  document.getElementById('recommendations-body').addEventListener('click', (e) => {
+    const inv = e.target.closest('[data-rec-invite]');
+    const dec = e.target.closest('[data-rec-decline]');
+    if (inv) openInviteFromRecommendation(inv.dataset.recInvite);
+    if (dec) declineRecommendation(dec.dataset.recDecline);
+  });
+}
+
+// ------------------------------------------- CANDIDATE RECOMMENDATIONS ----
+// Member recommendations, open ones only (sql/054). Only an Operator can list,
+// invite or decline. A declined recommendation tells nobody: the referrer gets
+// no email and no message.
+
+/** The open recommendations as last listed, by id, for the invite form. */
+let RECOMMENDATIONS = {};
+
+/** The invitation message as the candidate will receive it. The link is shown
+ *  as a placeholder until Send builds the real one. The wording is the
+ *  owner-approved text, English only (Operator side is English). */
+function recommendationMessage(candidateName, referrerName) {
+  return `Dear ${candidateName},
+${referrerName} has recommended you as a prospective member of MyPlatform, a private, invitation-only marketplace for physical commodities. We are pleased to invite you to join.
+To register, please use your personal link below. It is valid for five days and can be used once.
+[personal link]
+Yours sincerely,
+The Operator, MyPlatform
+Privacy Notice: ${termsLink()}`;
+}
+
+async function loadRecommendations() {
+  const fresh = renderToken('op:loadRecommendations');
+  const body = document.getElementById('recommendations-body');
+  body.innerHTML = '<tr><td colspan="6">Loading…</td></tr>';
+
+  const { data, error } = await myplatform.rpc('operator_list_candidate_recommendations');
+  if (!fresh()) return;
+  if (error) { body.innerHTML = `<tr><td colspan="6">${escapeHtml(errorMessage(error))}</td></tr>`; return; }
+
+  RECOMMENDATIONS = {};
+  data.forEach(r => { RECOMMENDATIONS[r.id] = r; });
+  body.innerHTML = data.map(r => `
+    <tr>
+      <td data-label="Suggested by">${escapeHtml(r.referrer_name)}</td>
+      <td data-label="Candidate name">${escapeHtml(r.candidate_name)}</td>
+      <td data-label="Company">${escapeHtml(r.candidate_company)}</td>
+      <td data-label="Commodities">${escapeHtml(r.commodities)}</td>
+      <td data-label="Date">${escapeHtml(String(r.created_at).slice(0, 10))}</td>
+      <td>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-secondary btn-small" data-rec-invite="${escapeHtml(r.id)}">Invite</button>
+          <button class="btn btn-secondary btn-small" data-rec-decline="${escapeHtml(r.id)}">Decline</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+function hideInviteFromRecommendation() {
+  document.getElementById('invite-from-rec-card').classList.add('hidden');
+  document.getElementById('invite-from-rec-form').dataset.recId = '';
+}
+
+/** Opens the pre-filled invitation form for one recommendation. */
+function openInviteFromRecommendation(id) {
+  const r = RECOMMENDATIONS[id];
+  if (!r) { showError('That recommendation is no longer open. The list has been refreshed.'); loadRecommendations(); return; }
+  document.getElementById('ir-candidate-name').value = r.candidate_name;
+  document.getElementById('ir-candidate-email').value = r.candidate_email;
+  document.getElementById('ir-referrer').value = r.referrer_name;
+  document.getElementById('ir-preview').textContent = recommendationMessage(r.candidate_name, r.referrer_name);
+  document.getElementById('invite-from-rec-form').dataset.recId = id;
+  document.getElementById('invite-from-rec-card').classList.remove('hidden');
+  document.getElementById('invite-from-rec-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function sendInviteFromRecommendation(e) {
+  e.preventDefault();
+  const id = e.target.dataset.recId;
+  const r = RECOMMENDATIONS[id];
+  if (!r) return;
+  return withButtonBusy('ir-send-btn', 'Sending…', async () => {
+    // The same token shape and five-day, single-use invitation as Create
+    // Invitation; the database makes the row and queues the email in one step.
+    const token = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
+    const { error } = await myplatform.rpc('operator_invite_from_recommendation', {
+      p_id: id,
+      p_token: token,
+      p_link: invitationLink(token),
+      p_lang: 'en',
+      p_privacy_link: termsLink(),
+    });
+    if (error) { showError(errorMessage(error)); return; }
+    await logOpActivity('invitation_created', { email: r.candidate_email, language: 'en', recommendation_id: id });
+    showSuccess(`Invitation email queued to ${r.candidate_email}.`);
+    hideInviteFromRecommendation();
+    loadRecommendations();
+    loadInvitations();
+  });
+}
+
+async function declineRecommendation(id) {
+  const { error } = await myplatform.rpc('operator_decline_candidate_recommendation', { p_id: id });
+  if (error) { showError(errorMessage(error)); return; }
+  if (document.getElementById('invite-from-rec-form').dataset.recId === id) hideInviteFromRecommendation();
+  loadRecommendations();
 }
 
 /** Rebuild the registration link for an invitation token. */
 function invitationLink(token) {
   return `${window.location.origin}${window.location.pathname.replace(/operator(\.html)?$/, 'register.html')}?token=${token}`;
+}
+
+/** The Terms page, which holds the Privacy Notice at section 10. Built from
+ *  the browser's origin, as invitationLink() is. */
+function termsLink() {
+  return `${window.location.origin}${window.location.pathname.replace(/operator(\.html)?$/, 'terms.html')}`;
 }
 
 /** Queue the invitation email. The outbox is not writable by any client
