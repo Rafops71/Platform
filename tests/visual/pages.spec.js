@@ -22,15 +22,23 @@ const PAGES = ['index', 'register', 'reset', 'terms'];
 // waited for is that no film is in the middle of loading (networkState is not
 // LOADING) and that each poster picture is loaded and decoded. If that does not
 // happen within the time, the test FAILS saying so - it never skips or carries on.
-async function waitForFilmsToSettle(page, label) {
-  const films = await page.evaluate(() => document.querySelectorAll('video').length);
+async function waitForFilmsToSettle(page, label, lang) {
+  // Only films that are on show count: on register.html the film sits in a card
+  // that stays hidden without an invitation, and has no file set at all.
+  const films = await page.evaluate(() => [...document.querySelectorAll('video')].filter((v) => v.getClientRects().length).length);
   if (!films) return;
   try {
+    // The page swaps each film for the reader's language (js/auth.js). Until the
+    // swap has happened the film is still the English one and the swap would
+    // restart its loading after everything below: wait for it first.
     await page.waitForFunction(
-      () => [...document.querySelectorAll('video')].every((v) => v.networkState !== v.NETWORK_LOADING),
+      (l) => [...document.querySelectorAll('video')].filter((v) => v.getClientRects().length).every((v) => new RegExp(`-${l}\\.mp4$`).test(v.getAttribute('src') || '')),
+      lang, { timeout: 15_000 });
+    await page.waitForFunction(
+      () => [...document.querySelectorAll('video')].filter((v) => v.getClientRects().length).every((v) => v.networkState !== v.NETWORK_LOADING),
       null, { timeout: 15_000 });
     await page.evaluate(async () => {
-      for (const v of document.querySelectorAll('video')) {
+      for (const v of [...document.querySelectorAll('video')].filter((x) => x.getClientRects().length)) {
         if (!v.poster) continue;
         const img = new Image();
         img.src = v.poster;
@@ -49,7 +57,7 @@ async function waitForFilmsToSettle(page, label) {
   // the ones a member sees (15 of 15 local shots identical). Nothing is hidden,
   // masked or stubbed, and no approved picture changes.
   await page.evaluate(() => {
-    for (const v of document.querySelectorAll('video')) {
+    for (const v of [...document.querySelectorAll('video')].filter((x) => x.getClientRects().length)) {
       v.controls = false;
       void v.offsetHeight;
       v.controls = true;
@@ -57,6 +65,9 @@ async function waitForFilmsToSettle(page, label) {
   });
   // One painted frame after the last change, so nothing is caught half-drawn.
   await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  // Nothing may have started loading again after the reset above.
+  const again = await page.evaluate(() => [...document.querySelectorAll('video')].filter((v) => v.getClientRects().length).some((v) => v.networkState === v.NETWORK_LOADING));
+  if (again) throw new Error(`${label}: a film started loading again after its controls were reset, so the picture was not taken`);
 }
 
 for (const lang of ['en', 'es']) {
@@ -68,7 +79,7 @@ for (const lang of ['en', 'es']) {
       await page.goto(`/${name}.html`);
       await page.waitForLoadState('networkidle');
       await page.evaluate(() => document.fonts.ready);
-      await waitForFilmsToSettle(page, `${name} (${lang})`);
+      await waitForFilmsToSettle(page, `${name} (${lang})`, lang);
       await expect(page).toHaveScreenshot(`${name}-${lang}.png`, { fullPage: true });
     });
   }
