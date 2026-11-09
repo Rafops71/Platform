@@ -285,7 +285,7 @@
       <div id="operator-help" class="stack">
         <details class="help-item"><summary>How do I invite somebody?</summary><p>Invitations: choose the language of the invitation email (their email is optional, for your own reference) and create it. You get a link to send them; it is valid 5 days and works once. If it expires, you can send a new one or change the expiry date in the list.</p></details>
         <details class="help-item"><summary>A registration is waiting. What do I do?</summary><p>Approvals: check the person's details and approve or reject. They are emailed either way, in their language. Only approved members can sign in.</p></details>
-        <details class="help-item"><summary>How do messages reach the other member?</summary><p>Every enquiry and reply arrives in your Mailbox first. Read it, then Forward it, Reply to the sender, or leave it. A message is forwarded exactly as written, so if it names the sender, reply and ask them to send it again without. Members never see who wrote to them.</p></details>
+        <details class="help-item"><summary>How do messages reach the other member?</summary><p>Every enquiry and reply arrives in your Mailbox first. Read it, then Forward it, Reply to the sender, or leave it. A message is forwarded exactly as written. If it contains contact details, they show in red and the message cannot be forwarded: press Ask member to rewrite. Members never see who wrote to them.</p></details>
         <details class="help-item"><summary>What is a deal file?</summary><p>Deals: a file opens by itself the first time you forward a negotiation between two members about a listing, one per pair. Move it through its stages and record the outcome. Every change is kept, with who and when.</p></details>
         <details class="help-item"><summary>What is the Scorecard?</summary><p>Counts of the outcomes Operators recorded in deal files, per member and per side. Facts, not a verdict: you decide what they mean. Members never see it; a member may ask to see what is held on them.</p></details>
         <details class="help-item"><summary>Which listings need attention?</summary><p>Overview shows the workload: pending registrations, messages awaiting review, unreviewed matches and listings not updated in 30 days.</p></details>
@@ -335,12 +335,13 @@
     <h2 class="mt-0">Forward Message</h2>
     <p class="text-muted" style="font-size:var(--text-base);">Sends this message to the owner of the listing it references, identified only by their reference number.</p>
     <div id="forward-target-info" class="text-muted" style="margin-bottom:10px;"></div>
-    <label for="forward-edit" class="text-muted">Message to forward (you may edit it)</label>
-    <textarea id="forward-edit" rows="5" style="width:100%;"></textarea>
+    <label for="forward-edit" class="text-muted">Message to forward</label>
+    <textarea id="forward-edit" rows="5" readonly style="width:100%;"></textarea>
     <div id="forward-flags" class="text-muted" style="margin:6px 0;"></div>
     <div id="forward-preview" class="text-muted" style="white-space:pre-wrap;margin-bottom:10px;border:1px solid #ddd;padding:6px;border-radius:4px;"></div>
     <div class="row">
       <button class="btn btn-primary" id="forward-confirm-btn">Forward</button>
+      <button class="btn btn-secondary hidden" id="forward-rewrite-btn">Ask member to rewrite</button>
       <button class="btn btn-secondary" id="forward-cancel-btn">Cancel</button>
     </div>
   </div>

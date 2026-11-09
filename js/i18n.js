@@ -1,4 +1,4 @@
-// Jericho Platform — bilingual support for the participant interface.
+// MyPlatform — bilingual support for the participant interface.
 //
 // Scope: the participant-facing pages only (index.html, register.html,
 // app.html). The Operator dashboard stays in English by design and simply
@@ -21,9 +21,22 @@
 
 'use strict';
 
-const I18N_STORAGE_KEY = 'jericho.language';
+const I18N_STORAGE_KEY = 'myplatform.language';
 const I18N_DEFAULT = 'en';
 const I18N_LANGUAGES = ['en', 'es'];
+
+// The key used before the rename to MyPlatform. Read once, to carry a saved
+// choice across; it is never written again.
+const I18N_OLD_STORAGE_KEY = 'jericho.language';
+
+function carryOverOldLanguage() {
+  try {
+    if (localStorage.getItem(I18N_STORAGE_KEY)) return;
+    const old = localStorage.getItem(I18N_OLD_STORAGE_KEY);
+    if (old && I18N_LANGUAGES.includes(old)) localStorage.setItem(I18N_STORAGE_KEY, old);
+  } catch { /* no storage: nothing to carry */ }
+}
+carryOverOldLanguage();
 
 // A link may carry the language the visitor already chose elsewhere - the
 // front page at www.myplatform.trade links to the app as /?lang=es. Adopted
@@ -48,39 +61,38 @@ const STRINGS = {
     'help.title': 'Help and questions',
     'help.intro': 'Answers to the questions members ask most. Tap a question to open it.',
     'nav.help': 'Help',
-    'help.link': 'Help and questions',
     'help.q1': 'How does MyPlatform work?',
-    'help.a1': 'Members post sell offers and buy requests without their name. Nobody contacts anybody directly: every message goes to the Operator, who passes it on. The Operator introduces the two sides only after both parties have agreed on all issues and terms.',
+    'help.a1': "Members submit buying requests and selling offers on an anonymous basis. All communications between members are channelled through the Operator, ensuring that the identities of the parties remain confidential throughout the initial engagement. Direct introductions between parties are facilitated exclusively once both parties have reached mutual agreement on the relevant commercial terms, transaction procedures and conditions.",
     'help.q2': 'My invitation link does not work.',
-    'help.a2': 'An invitation link is valid for 5 days and works once. If it has expired or was already used, ask the Operator who invited you to send a new one. If the email is missing, check your spam folder first.',
+    'help.a2': "Each invitation link remains valid for five days and may be used only once. Should the link expire or be used previously, please contact the Operator who issued the invitation to request a replacement. If the invitation email has not arrived, please check your spam or junk folder.",
     'help.q3': 'I registered but cannot sign in yet.',
-    'help.a3': 'An Operator reviews every registration by hand. You can sign in once it is approved, and you receive an email when that happens.',
+    'help.a3': "Every registration is manually reviewed by an Operator. Once approved, you'll be able to sign in, and you'll receive an email notification.",
     'help.q4': 'I forgot my password.',
-    'help.a4': 'On the sign-in page, press "Forgotten your password?" and enter your email. You receive a link to set a new password. The link expires and works once.',
-    'help.q5': 'Why must I sign the Terms when I sign in?',
-    'help.a5': 'When the Terms change, everyone signs the new version once before continuing. Read them, type your name as your signature and confirm. You can read the Terms at any time from the link at the bottom of every page.',
+    'help.a4': "On the sign-in page, choose 'Forgotten your password?' and enter your email. We will send you a link to set a new one. The link expires and can be used once.",
+    'help.q5': 'When do I sign the Terms?',
+    'help.a5': "The Terms are signed only once when you first join. We'll email you about any changes, and you can read them anytime via the link at the bottom of every page.",
     'help.q6': 'How do I post an offer or a request?',
-    'help.a6': 'Open New Listing, choose Sell Offer or Buy Request and fill in the details. You also state your role in this offer (principal, mandated intermediary or broker), answer two questions about documents, and confirm the offer is true. You receive a reference such as SELL-26-001.',
+    'help.a6': "To create a listing, open New Listing and choose Sell Offer or Buy Request, then fill in the details. You'll also specify your role (principal, mandated intermediary, or broker), answer two questions about documents, and confirm that the offer is true. Once done, you'll get a reference like SELL-26-001.",
     'help.q7': 'Why was my listing refused?',
-    'help.a7': 'The form says what is missing. Common reasons: a question about your role or the documents is unanswered, the truth box is not ticked, or the offer is more than two steps from the principal, which MyPlatform does not accept.',
+    'help.a7': "The form shows what is missing. Common reasons: a question about your role or the documents is unanswered, the confirmation box is not ticked, or the offer is more than two steps removed from the principal, which MyPlatform does not accept.",
     'help.q8': 'Who can see my name?',
-    'help.a8': 'No other member. Members see the content of your listing and its reference, never your name, company, email or phone. Only the Operators see who you are.',
+    'help.a8': "No other member can. Members see the content of your listing and its reference, never your name, company, email or phone number. Only the Operator has that access.",
     'help.q9': 'How do I contact the owner of a listing?',
-    'help.a9': 'In Browse, press Contact on the listing and write your message. It goes to the Operators, who pass it on without saying who you are. Answers come back the same way, into your Mailbox. Do not put your name or contact details in a message.',
+    'help.a9': "To initiate contact regarding a listing, navigate to Browse, press Contact, and compose your message. All correspondence is transmitted via the Operators, who relay it without disclosing your identity. Responses are returned through the same channel and appear in your Mailbox. To preserve confidentiality, kindly refrain from including your name or contact details in any correspondence.",
     'help.q10': 'Can I talk to another member directly?',
-    'help.a10': 'No, by design. Every message passes through an Operator. When both sides want to deal, the Operators ask each of you separately and introduce you only if you both agree.',
+    'help.a10': "No, this is by design. All messages pass through the Operator. Introductions are made, and direct access between the parties is granted only after a commission agreement has been executed.",
     'help.q11': 'What does "Is it still available?" on my listing mean?',
-    'help.a11': 'A listing not updated for 30 days asks whether it is still available. Press "Yes, still available" to refresh it, or close it. Up-to-date listings are taken more seriously.',
+    'help.a11': "If a listing has not been updated for 30 days, we ask whether it is still available. Choose 'Yes, still available' to refresh it, or close it. Up-to-date listings are taken more seriously.",
     'help.q12': 'How do I change language, email or password?',
     'help.a12': "The EN / ES buttons at the top switch language, and the platform's emails follow your choice. Under Profile you can change your job title, country, language, email and password. A new email address must be confirmed from a link sent to it.",
     'help.q13': 'What is MyPlatform’s role?',
-    'help.a13': 'MyPlatform is a facilitator. Offers reflect what members state and declare; confirming the details, documents and counterparty remains with the parties themselves, as in any transaction.',
+    'help.a13': "MyPlatform serves as a facilitator only. All offers represent the statements and declarations of the members concerned. The verification of details, documentation, and counterparties remains the exclusive responsibility of the parties involved, as is the case in any transaction.",
     'help.q14': 'Who is responsible for what an offer says?',
-    'help.a14': 'Each member stands behind their own posts and statements. Membership is built on honesty and mutual trust; misleading offers or conduct can lead to suspension or cancellation of membership.',
+    'help.a14': "Each member bears sole responsibility for the accuracy and integrity of their submissions and representations. Membership is predicated on honesty, transparency and professional conduct. Any misleading, deceptive or otherwise improper representations or conduct may result in the suspension or termination of membership.",
     'help.q15': 'Can someone else use my account?',
-    'help.a15': 'Your account and your invitation are personal and for your sole use. Please do not share your sign-in details.',
+    'help.a15': "No. Your account and your invitation are personal and for your sole use. Please do not share your sign-in details or allow anyone else to act through your account.",
     'help.q16': 'Something else is not clear.',
-    'help.a16': 'Write to the Operator from your Mailbox, or email info@myplatform.trade.',
+    'help.a16': "Should you require any further clarification or assistance, please contact the Operator through your platform mailbox or by email at info@myplatform.trade.",
     'common.loading': 'Loading…',
     'common.save': 'Save',
     'err.notAllowed': 'You are not allowed to do that. If you think you should be, ask the Operator.',
@@ -553,39 +565,38 @@ const STRINGS = {
     'help.title': 'Ayuda y preguntas',
     'help.intro': 'Respuestas a las preguntas más habituales de los miembros. Pulse una pregunta para abrirla.',
     'nav.help': 'Ayuda',
-    'help.link': 'Ayuda y preguntas',
     'help.q1': '¿Cómo funciona MyPlatform?',
-    'help.a1': 'Los miembros publican ofertas de venta y solicitudes de compra sin su nombre. Nadie contacta directamente con nadie: cada mensaje va al Operador, que lo transmite. El Operador presenta a las dos partes solo después de que ambas hayan acordado todas las cuestiones y condiciones.',
+    'help.a1': "Los miembros presentan solicitudes de compra y ofertas de venta de forma anónima. Todas las comunicaciones entre miembros pasan por el Operador, lo que garantiza que la identidad de las partes siga siendo confidencial durante todo el primer contacto. Las presentaciones directas entre las partes solo se realizan cuando ambas han llegado a un acuerdo mutuo sobre las condiciones comerciales, los procedimientos de la operación y las condiciones pertinentes.",
     'help.q2': 'Mi enlace de invitación no funciona.',
-    'help.a2': 'Un enlace de invitación es válido 5 días y funciona una sola vez. Si ha caducado o ya se utilizó, pida al Operador que le invitó que le envíe uno nuevo. Si no encuentra el correo, revise primero la carpeta de spam.',
+    'help.a2': "Cada enlace de invitación sigue siendo válido cinco días y solo puede usarse una vez. Si el enlace caduca o ya se usó, pida al Operador que emitió la invitación que le envíe uno nuevo. Si el correo de invitación no ha llegado, revise la carpeta de spam o de correo no deseado.",
     'help.q3': 'Me he registrado pero aún no puedo iniciar sesión.',
-    'help.a3': 'Un Operador revisa a mano cada registro. Podrá iniciar sesión cuando se apruebe, y recibirá un correo cuando eso ocurra.',
+    'help.a3': "Cada registro lo revisa a mano un Operador. Una vez aprobado, podrá iniciar sesión y recibirá una notificación por correo electrónico.",
     'help.q4': 'He olvidado mi contraseña.',
-    'help.a4': 'En la página de inicio de sesión, pulse "¿Ha olvidado su contraseña?" e introduzca su correo. Recibirá un enlace para crear una contraseña nueva. El enlace caduca y funciona una sola vez.',
-    'help.q5': '¿Por qué debo firmar los Términos al iniciar sesión?',
-    'help.a5': 'Cuando cambian los Términos, todos firman la nueva versión una vez antes de continuar. Léalos, escriba su nombre como firma y confirme. Puede leer los Términos en cualquier momento desde el enlace al pie de cada página.',
+    'help.a4': "En la página de inicio de sesión, elija '¿Ha olvidado su contraseña?' e introduzca su correo. Le enviaremos un enlace para crear una nueva. El enlace caduca y solo puede usarse una vez.",
+    'help.q5': '¿Cuándo firmo los Términos?',
+    'help.a5': "Los Términos se firman una sola vez, al unirse por primera vez. Le avisaremos por correo de cualquier cambio, y puede leerlos en cualquier momento desde el enlace al pie de cada página.",
     'help.q6': '¿Cómo publico una oferta o una solicitud?',
-    'help.a6': 'Abra Nueva publicación, elija Oferta de venta o Solicitud de compra y complete los datos. También indica su papel en esta oferta (principal, intermediario con mandato o corredor), responde dos preguntas sobre documentos y confirma que la oferta es verdadera. Recibirá una referencia como SELL-26-001.',
+    'help.a6': "Para crear una publicación, abra Nueva publicación y elija Oferta de venta o Solicitud de compra, y después rellene los datos. También indicará su papel (principal, intermediario con mandato o corredor), responderá dos preguntas sobre documentos y confirmará que la oferta es veraz. Al terminar, recibirá una referencia como SELL-26-001.",
     'help.q7': '¿Por qué se rechazó mi publicación?',
-    'help.a7': 'El formulario indica qué falta. Motivos habituales: falta responder sobre su papel o los documentos, no está marcada la casilla de veracidad, o la oferta está a más de dos pasos del principal, lo que MyPlatform no acepta.',
+    'help.a7': "El formulario muestra lo que falta. Motivos habituales: una pregunta sobre su papel o los documentos sin responder, la casilla de veracidad sin marcar, o una oferta a más de dos pasos del principal, lo que MyPlatform no acepta.",
     'help.q8': '¿Quién puede ver mi nombre?',
-    'help.a8': 'Ningún otro miembro. Los miembros ven el contenido de su publicación y su referencia, nunca su nombre, empresa, correo ni teléfono. Solo los Operadores saben quién es usted.',
+    'help.a8': "Ningún otro miembro. Los miembros ven el contenido de su publicación y su referencia, nunca su nombre, empresa, correo electrónico ni teléfono. Solo el Operador tiene ese acceso.",
     'help.q9': '¿Cómo contacto con el dueño de una publicación?',
-    'help.a9': 'En Explorar, pulse Contactar en la publicación y escriba su mensaje. Llega a los Operadores, que lo transmiten sin decir quién es usted. Las respuestas vuelven por el mismo camino, a su Buzón. No ponga su nombre ni sus datos de contacto en un mensaje.',
+    'help.a9': "Para iniciar el contacto sobre una publicación, vaya a Explorar, pulse Contactar y redacte su mensaje. Toda la correspondencia se transmite a través de los Operadores, que la reenvían sin revelar su identidad. Las respuestas llegan por el mismo canal y aparecen en su Buzón. Para proteger la confidencialidad, no incluya su nombre ni sus datos de contacto en ninguna comunicación.",
     'help.q10': '¿Puedo hablar directamente con otro miembro?',
-    'help.a10': 'No, por diseño. Cada mensaje pasa por un Operador. Cuando ambas partes quieren negociar, los Operadores preguntan a cada una por separado y solo las presentan si las dos están de acuerdo.',
+    'help.a10': "No, es así por diseño. Todos los mensajes pasan por el Operador. Las presentaciones se hacen, y el acceso directo entre las partes solo se concede una vez firmado un acuerdo de comisión.",
     'help.q11': '¿Qué significa "¿Sigue disponible?" en mi publicación?',
-    'help.a11': 'Una publicación sin actualizar durante 30 días pregunta si sigue disponible. Pulse "Sí, sigue disponible" para renovarla, o ciérrela. Las publicaciones al día se toman más en serio.',
+    'help.a11': "Si una publicación no se ha actualizado durante 30 días, le preguntamos si sigue disponible. Elija 'Sí, sigue disponible' para renovarla, o ciérrela. Las publicaciones actualizadas se toman más en serio.",
     'help.q12': '¿Cómo cambio el idioma, el correo o la contraseña?',
     'help.a12': 'Los botones EN / ES de arriba cambian el idioma, y los correos de la plataforma siguen su elección. En Perfil puede cambiar su cargo, país, idioma, correo y contraseña. Un correo nuevo debe confirmarse desde un enlace enviado a esa dirección.',
     'help.q13': '¿Cuál es el papel de MyPlatform?',
-    'help.a13': 'MyPlatform es un facilitador. Las ofertas reflejan lo que los miembros indican y declaran; confirmar los datos, los documentos y a la contraparte sigue correspondiendo a las propias partes, como en cualquier transacción.',
+    'help.a13': "MyPlatform actúa solo como facilitador. Todas las ofertas representan las declaraciones y manifestaciones de los miembros afectados. La verificación de los datos, la documentación y las contrapartes sigue siendo responsabilidad exclusiva de las partes implicadas, como ocurre en cualquier operación.",
     'help.q14': '¿Quién es responsable de lo que dice una oferta?',
-    'help.a14': 'Cada miembro responde de sus propias publicaciones y declaraciones. La condición de miembro se basa en la honestidad y la confianza mutua; las ofertas o conductas engañosas pueden dar lugar a la suspensión o cancelación de la condición de miembro.',
+    'help.a14': "Cada miembro es el único responsable de la exactitud e integridad de sus envíos y manifestaciones. La condición de miembro se basa en la honestidad, la transparencia y la conducta profesional. Cualquier manifestación o conducta engañosa, fraudulenta o indebida puede dar lugar a la suspensión o cancelación de la condición de miembro.",
     'help.q15': '¿Puede otra persona usar mi cuenta?',
-    'help.a15': 'Su cuenta y su invitación son personales y de su uso exclusivo. No comparta sus datos de acceso.',
+    'help.a15': "No. Su cuenta y su invitación son personales y para su uso exclusivo. No comparta sus datos de acceso ni permita que nadie actúe a través de su cuenta.",
     'help.q16': 'Hay algo más que no está claro.',
-    'help.a16': 'Escriba al Operador desde su Buzón, o envíe un correo a info@myplatform.trade.',
+    'help.a16': "Si necesita más aclaraciones o ayuda, póngase en contacto con el Operador a través de su buzón de la plataforma o por correo electrónico en info@myplatform.trade.",
     'common.loading': 'Cargando…',
     'common.save': 'Guardar',
     'err.notAllowed': 'No tiene permiso para hacer eso. Si cree que debería tenerlo, consulte al Operador.',

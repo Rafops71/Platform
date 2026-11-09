@@ -29,18 +29,18 @@
 // All of this is injected into the page under test and touches nothing in the
 // application's own code.
 
-/** Injected once per page. Defines window.__jericho for the recorder to drive.
+/** Injected once per page. Defines window.__myplatform for the recorder to drive.
  *
  *  Everything is built on FIRST USE, not here.
  *
  *  An init script runs before the document exists - document.documentElement
  *  is null at that moment - so the first version of this threw on its first
- *  appendChild, window.__jericho was never defined, and the recorder failed on
+ *  appendChild, window.__myplatform was never defined, and the recorder failed on
  *  scene one with "Cannot read properties of undefined". The error was in the
  *  page, not in the recorder, which is why nothing in the recorder's own code
  *  looked wrong. */
 function overlayScript() {
-  if (window.__jericho) return;
+  if (window.__myplatform) return;
 
   let parts = null;
 
@@ -50,7 +50,7 @@ function overlayScript() {
 
     const style = document.createElement('style');
   style.textContent = `
-    #jericho-pointer {
+    #myplatform-pointer {
       position: fixed; z-index: 2147483647; left: 0; top: 0;
       width: 26px; height: 26px; margin: -13px 0 0 -13px;
       border-radius: 50%; pointer-events: none;
@@ -60,20 +60,20 @@ function overlayScript() {
       transition: transform .5s cubic-bezier(.22,.61,.36,1);
       transform: translate(-100px, -100px);
     }
-    #jericho-pointer.pressing {
-      animation: jericho-press .45s ease-out;
+    #myplatform-pointer.pressing {
+      animation: myplatform-press .45s ease-out;
     }
-    @keyframes jericho-press {
+    @keyframes myplatform-press {
       0%   { box-shadow: 0 0 0 0 rgba(39,97,143,.55); }
       100% { box-shadow: 0 0 0 26px rgba(39,97,143,0); }
     }
-    .jericho-ring {
+    .myplatform-ring {
       position: fixed; z-index: 2147483646; pointer-events: none;
       border: 3px solid #27618f; border-radius: 10px;
       box-shadow: 0 0 0 4px rgba(39,97,143,.18);
       transition: all .4s cubic-bezier(.22,.61,.36,1);
     }
-    #jericho-caption {
+    #myplatform-caption {
       position: fixed; z-index: 2147483647; left: 0; right: 0; bottom: 0;
       padding: 18px 28px calc(18px + env(safe-area-inset-bottom, 0px));
       background: linear-gradient(to top, rgba(10,16,22,.93), rgba(10,16,22,.72) 70%, rgba(10,16,22,0));
@@ -82,23 +82,23 @@ function overlayScript() {
       pointer-events: none; opacity: 0; transition: opacity .25s;
       text-shadow: 0 1px 3px rgba(0,0,0,.6);
     }
-    #jericho-caption.on { opacity: 1; }
+    #myplatform-caption.on { opacity: 1; }
   `;
     document.documentElement.appendChild(style);
 
     const pointer = document.createElement('div');
-    pointer.id = 'jericho-pointer';
+    pointer.id = 'myplatform-pointer';
     document.documentElement.appendChild(pointer);
 
     const caption = document.createElement('div');
-    caption.id = 'jericho-caption';
+    caption.id = 'myplatform-caption';
     document.documentElement.appendChild(caption);
 
     parts = { pointer, caption, ring: null };
     return parts;
   }
 
-  window.__jericho = {
+  window.__myplatform = {
     /** Glide the pointer to the centre of an element. */
     moveTo(selector) {
       const p = build();
@@ -133,7 +133,7 @@ function overlayScript() {
       const r = el.getBoundingClientRect();
       if (!p.ring) {
         p.ring = document.createElement('div');
-        p.ring.className = 'jericho-ring';
+        p.ring.className = 'myplatform-ring';
         document.documentElement.appendChild(p.ring);
       }
       // 6px of air, so the ring frames the control rather than strangling it.

@@ -1,5 +1,5 @@
 {
-  "name": "jericho-platform-scripts",
+  "name": "myplatform-platform-scripts",
   "private": true,
   "version": "1.0.0",
   "description": "Node-based tooling for environments without psql. See HANDOFF.md.",
@@ -23,6 +23,7 @@
     "check:double": "node scripts/check-double-submit.js",
     "check:errors": "node scripts/check-error-messages.js",
     "check:filters": "node scripts/check-query-filters.js",
+    "check:language": "node scripts/check-language-carryover.js",
     "safari": "playwright test --project=safari",
     "hygiene": "node scripts/verify-live.js",
     "timings": "node scripts/timings.js",

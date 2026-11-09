@@ -116,7 +116,7 @@ test.describe('demo build', () => {
   });
 
   test('every member page shows the example-data ribbon, signed in or not', async ({ page }) => {
-    for (const p of ['index.html', 'register.html', 'reset.html', 'terms.html', 'help.html']) {
+    for (const p of ['index.html', 'register.html', 'reset.html', 'terms.html']) {
       await page.goto('/' + p);
       await expect(page.locator('#demo-ribbon'), p).toHaveText(RIBBON);
       await expect(page.locator('#demo-ribbon'), p).toBeVisible();

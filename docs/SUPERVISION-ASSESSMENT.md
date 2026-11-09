@@ -17,7 +17,7 @@ assumption.
 
 - **Owner:** not a developer. Works on a 13-inch laptop. Cannot pay for
   anything extra right now.
-- **Product:** "Jericho Platform", a private, invitation-only brokered
+- **Product:** "MyPlatform", a private, invitation-only brokered
   marketplace for physical commodities. Members are anonymous to each other;
   every message passes through a human Operator.
 - **Stack:** static HTML/JS pages on **GitHub Pages**, database and auth on

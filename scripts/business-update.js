@@ -7,7 +7,7 @@
 //
 // Test accounts are left out. The browser suite runs against the live
 // database and every account it makes has an email starting with
-// 'jericho-e2e-' (tests/e2e/helpers/fixtures.js, E2E_PREFIX). Counting them
+// 'myplatform-e2e-' (tests/e2e/helpers/fixtures.js, E2E_PREFIX). Counting them
 // would report the robots' activity as the business's.
 //
 //   node scripts/business-update.js            # send
@@ -20,14 +20,15 @@
 const { Client } = require('pg');
 
 const DEFAULT_TO = ['rafael@myplatform.trade', 'rafael.e@telenet.be'];
-const TEST_PREFIX = 'jericho-e2e-%';
+// Both prefixes: accounts created before the rename keep the old one.
+const TEST_PREFIX = ['myplatform-e2e-%', 'jericho-e2e-%'];
 
 // One query. Every figure is for the seven days before `until`, except
 // "waiting for approval", which is how many are waiting right now.
 const SQL = `
 with real_profiles as (
   select id, role, status, created_at from public.profiles
-  where email not like $3
+  where email not like all($3)
 ),
 real_listings as (
   select l.* from public.listings l
@@ -51,15 +52,15 @@ select
   (select count(*) from public.deals d
      where d.opened_at >= $1 and d.opened_at < $2
        and not exists (select 1 from public.profiles p
-                       where p.id in (d.owner_id, d.counterparty_id) and p.email like $3)) as deals_opened,
+                       where p.id in (d.owner_id, d.counterparty_id) and p.email like any($3))) as deals_opened,
   (select count(*) from public.deals d
      where d.agreed_at >= $1 and d.agreed_at < $2
        and not exists (select 1 from public.profiles p
-                       where p.id in (d.owner_id, d.counterparty_id) and p.email like $3)) as deals_agreed,
+                       where p.id in (d.owner_id, d.counterparty_id) and p.email like any($3))) as deals_agreed,
   (select count(*) from public.deals d
      where d.closed_at >= $1 and d.closed_at < $2
        and not exists (select 1 from public.profiles p
-                       where p.id in (d.owner_id, d.counterparty_id) and p.email like $3)) as deals_closed
+                       where p.id in (d.owner_id, d.counterparty_id) and p.email like any($3))) as deals_closed
 `;
 
 async function figures(client, until = new Date()) {

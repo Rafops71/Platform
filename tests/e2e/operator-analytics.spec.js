@@ -121,7 +121,7 @@ test.describe.serial('operator analytics', () => {
     // Asked directly, the way a tampered page would: the refusal has to be the
     // database's, since the participant dashboard simply has no such tab.
     const result = await page.evaluate(async () => {
-      const { data, error } = await jericho.rpc('operator_analytics', { p_bucket: 'week', p_periods: 4 });
+      const { data, error } = await myplatform.rpc('operator_analytics', { p_bucket: 'week', p_periods: 4 });
       return error ? `error: ${error.message}` : `rows: ${(data || []).length}`;
     });
     expect(result).toContain('Operators only');
