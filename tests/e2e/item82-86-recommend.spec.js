@@ -12,7 +12,7 @@
 
 const { test, expect } = require('@playwright/test');
 const { createAccount, cleanup, assertConfigured, testEmail } = require('./helpers/fixtures');
-const { signIn, openScreen } = require('./helpers/session');
+const { signIn, signOut, openScreen } = require('./helpers/session');
 const { query } = require('../../scripts/db');
 
 const REFERRER = { first_name: 'Item82', last_name: 'Referrerson', company: 'Referrer Metals', phone: '+32471581001' };
@@ -54,6 +54,9 @@ test('Item82 a member recommends a candidate from Profile, and only the Operator
   await openScreen(page, 'profile');
   await expect(page.locator('body')).not.toContainText(candidate);
 
+  // The member's session is still in the browser: sign out first, or the
+  // sign-in page bounces to app.html (see signOut() in helpers/session.js).
+  await signOut(page);
   await signIn(page, operator, 'operator.html');
   await openScreen(page, 'invitations');
   await expect(page.locator('#recommendations-body')).toContainText(candidate, { timeout: 15_000 });
@@ -96,6 +99,9 @@ test('Item85 the Operator invites from a recommendation, and the invitation name
   await recommend(page, candidate, email);
   await expect(page.locator('.toast-success')).toContainText('Message sent to Operators.');
 
+  // The member's session is still in the browser: sign out first, or the
+  // sign-in page bounces to app.html (see signOut() in helpers/session.js).
+  await signOut(page);
   await signIn(page, operator, 'operator.html');
   await openScreen(page, 'invitations');
   const row = page.locator('#recommendations-body tr', { hasText: candidate });
@@ -129,6 +135,9 @@ test('Item86 declining a recommendation tells the referrer nothing', async ({ pa
     `select count(*)::int n from public.email_outbox where to_email = $1`, [sender.email]
   );
 
+  // The member's session is still in the browser: sign out first, or the
+  // sign-in page bounces to app.html (see signOut() in helpers/session.js).
+  await signOut(page);
   await signIn(page, operator, 'operator.html');
   await openScreen(page, 'invitations');
   const row = page.locator('#recommendations-body tr', { hasText: candidate });
