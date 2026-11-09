@@ -31,3 +31,4 @@ permissions-to-paste.txt
 # Demo site build (scripts/build-demo.js) - generated, never committed.
 dist-demo/
 dist-demo-operator/
+dist-platformdemo/

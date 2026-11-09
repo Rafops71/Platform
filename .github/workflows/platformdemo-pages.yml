@@ -1,0 +1,83 @@
+name: platformdemo site
+
+# Publishes "platformdemo" (dist-platformdemo/): the member demo with the films and
+# every "MyPlatform" word removed (scripts/build-platformdemo.js). It is a white-label
+# copy, in its own Cloudflare Pages project, `platformdemo`. The build refuses to
+# finish if "myplatform", ".mp4" or "<video" is left anywhere in the output, and if a
+# Supabase address or key is in it (scripts/build-demo.js). It never touches the member
+# demo (myplatform-demo), the Operator demo, GitHub Pages, `platform` or `platform-www`.
+# Setup and the teardown are in HANDOFF.md.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+# One group per branch, so runs for different branches never cancel each other.
+# A run on main is never cancelled, so a publish on main always finishes.
+concurrency:
+  group: platformdemo-pages-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  build:
+    name: Build and test the platformdemo
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Build platformdemo (the copy, the removals, and the scan that refuses leftovers)
+        run: node scripts/build-platformdemo.js
+      - name: Keep the platformdemo build as a workflow artifact (not published)
+        uses: actions/upload-pages-artifact@v5
+        with:
+          name: platformdemo-site
+          path: dist-platformdemo
+
+  # --------------------------------------------------------------------------
+  # PUBLISH platformdemo TO ITS OWN CLOUDFLARE PROJECT
+  # (platformdemo). Same rules as demo-pages.yml's publish-demo:
+  # main only, no always() or other status function, fail on a missing secret,
+  # and it needs the build-and-test job.
+  # --------------------------------------------------------------------------
+  publish-platformdemo:
+    name: Publish platformdemo to Cloudflare Pages
+    needs: [build]
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    concurrency:
+      group: cloudflare-platformdemo-deploy
+      cancel-in-progress: false
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Are the secrets configured?
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::Cloudflare publish cannot run: CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID must both be set."
+            exit 1
+          fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build the platformdemo from this commit
+        run: node scripts/build-platformdemo.js
+      - name: Publish
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist-platformdemo --project-name=tradedemo --branch=main --commit-hash=${{ github.sha }}
