@@ -122,7 +122,7 @@ const STRINGS = {
     'login.tagline': 'Private, invitation-only. Sign in to continue.',
     'login.submit': 'Sign In',
     'login.submitting': 'Signing in…',
-    'login.noAccount': 'No account? Access is by invitation only — ask an Operator for an invitation link.',
+    'login.noAccount': 'Access is by invitation only.',
 
     // Password recovery. The 'sent' line is deliberately the same whether or
     // not the address has an account: this platform's membership is private,
@@ -641,7 +641,7 @@ const STRINGS = {
     'login.tagline': 'Plataforma privada, solo por invitación. Inicie sesión para continuar.',
     'login.submit': 'Iniciar sesión',
     'login.submitting': 'Iniciando sesión…',
-    'login.noAccount': '¿No tiene cuenta? El acceso es únicamente por invitación: solicite un enlace de invitación a un Operador.',
+    'login.noAccount': 'El acceso es únicamente por invitación.',
 
     'register.inviteOnly': 'El registro en la Plataforma es únicamente por invitación. Solicite una nueva invitación al Operador que le invitó.',
     'reset.forgot': '¿Ha olvidado su contraseña?',
