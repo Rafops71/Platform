@@ -49,7 +49,6 @@ test.describe.serial('listing statements', () => {
     await page.check('#role-broker');
     await page.selectOption('#broker_via', 'further');
     await page.selectOption('#docs_seen', 'no');
-    await page.selectOption('#docs_showable', 'no');
     await page.check('#truth-confirm');
     await page.click('#listing-submit-btn');
 
@@ -66,7 +65,6 @@ test.describe.serial('listing statements', () => {
     // question under test here is the missing truth tick, so answer that one.
     await page.check('#kind-producer');
     await page.selectOption('#docs_seen', 'yes');
-    await page.selectOption('#docs_showable', 'on_request');
     await page.click('#listing-submit-btn');
 
     await expect(page.locator('.toast-error').last()).toContainText('Please confirm that this offer is true');
@@ -79,7 +77,6 @@ test.describe.serial('listing statements', () => {
     await page.check('#role-broker');
     await page.selectOption('#broker_via', 'one_broker');
     await page.selectOption('#docs_seen', 'source_says');
-    await page.selectOption('#docs_showable', 'after_agreement');
     await submitListing(page);
     await expect.poll(() => postedBy(poster), { timeout: 20_000 }).toBe(1);
 
@@ -111,7 +108,6 @@ test.describe.serial('listing statements', () => {
     await page.check('#role-principal');
     await expect(page.locator('#kind-row')).toBeVisible();
     await page.selectOption('#docs_seen', 'yes');
-    await page.selectOption('#docs_showable', 'on_request');
     await page.check('#truth-confirm');
     await page.click('#listing-submit-btn');
     await expect(page.locator('.toast-error').last()).toContainText('Please say whether you are a producer or a trader.');
@@ -139,8 +135,9 @@ test.describe.serial('listing statements', () => {
     await page.selectOption('#unit', OFFER.unit);
     await page.selectOption('#incoterm', OFFER.incoterm);
     await page.selectOption('#location', OFFER.origin);
-    await page.selectOption('#docs_seen', 'yes');
-    await page.selectOption('#docs_showable', 'on_request');
+    // A Buy request is asked nothing about documents; a Sell offer is asked one question.
+    await expect(page.locator('#docs-seen-row'), 'a Buy request must not ask about documents').toBeHidden();
+    await expect(page.locator('#docs_showable'), 'the "can documents be shown" question is gone').toHaveCount(0);
     await page.check('#truth-confirm');
     await submitListing(page);
     await expect.poll(() => postedBy(poster), { timeout: 20_000 }).toBe(before + 2);
@@ -156,6 +153,10 @@ test.describe.serial('listing statements', () => {
     await expect(page.locator('.list-row', { hasText: sellRef }).locator('[data-statements]'))
       .toHaveText('Poster: Principal (Trader) · Documents: Seen by the poster', { timeout: 15_000 });
     await expect(page.locator('.list-row', { hasText: buy[0].reference_number }).locator('[data-statements]'))
-      .toHaveText('Poster: Principal · Documents: Seen by the poster', { timeout: 15_000 });
+      .toHaveText('Poster: Principal', { timeout: 15_000 });
+    // Every Sell listing shows the one fixed documents line; a Buy request shows none.
+    await expect(page.locator('.list-row', { hasText: sellRef }).locator('[data-docs-line]'))
+      .toHaveText('Documents: after the introduction, subject to agreement between the parties.');
+    await expect(page.locator('.list-row', { hasText: buy[0].reference_number }).locator('[data-docs-line]')).toHaveCount(0);
   });
 });

@@ -95,6 +95,7 @@ const SETUP = [
   'sql/060_listing_error_myplatform.sql',
   'sql/061_schedule_candidate_purge.sql',
   'sql/062_rename_hms_commodity.sql',
+  'sql/063_documents_questions.sql',
   'sql/seed_commodities.sql',
 ];
 

@@ -1,7 +1,8 @@
 -- 20_listing_statements.sql
 --
--- Proves sql/033: a member cannot publish without saying their role, both
--- document answers and the truth tick; the owner's two-degrees rule is
+-- Proves sql/033: a member cannot publish without saying their role, the
+-- documents answer (a Sell offer only since sql/063; both answers before it)
+-- and the truth tick; the owner's two-degrees rule is
 -- enforced; the tick's time is the server's; Browse shows the role and the
 -- documents line and never the mandate or the chain.
 
@@ -59,8 +60,8 @@ begin
 
   begin
     insert into public.listings (user_id, type, commodity, incoterm, origin, reference_number,
-                                 poster_role, principal_kind, docs_seen, truth_confirmed)
-    values (me, 'sell', 'Stmt Copper', 'FOB', 'Chile', 'SELL-STMT-5', 'principal', 'producer', 'yes', true);
+                                 poster_role, principal_kind, docs_showable, truth_confirmed)
+    values (me, 'sell', 'Stmt Copper', 'FOB', 'Chile', 'SELL-STMT-5', 'principal', 'producer', 'on_request', true);
     insert into t20 values ('one docs answer', 'ACCEPTED');
   exception when others then insert into t20 values ('one docs answer', sqlerrm); end;
 

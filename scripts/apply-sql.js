@@ -92,6 +92,7 @@ const DEFAULT_ORDER = [
   '060_listing_error_myplatform.sql',
   '061_schedule_candidate_purge.sql',
   '062_rename_hms_commodity.sql',
+  '063_documents_questions.sql',
   'seed_commodities.sql',
 ];
 
