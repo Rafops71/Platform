@@ -51,13 +51,9 @@ can run a day or two behind. Stale listings are a weekly job.
 
 **Approvals** lists everyone who has registered and is waiting.
 
-For each, you see name, company, job title, country, phone and email. Before
-approving, satisfy yourself that:
+For each, you see name, company, job title, country, phone and email.
 
-- The company is real and trades in the commodities concerned.
-- The person plausibly works there — a corporate email domain matching the
-  company is the strongest cheap signal.
-- You (or whoever invited them) know why they were invited.
+The Operator decides whom to admit, at its own discretion, and checks nothing on anyone's behalf.
 
 **Approve** lets them sign in, immediately, and they are emailed. **Reject**
 does not. If you are unsure, leave them pending and find out — pending is a
@@ -215,8 +211,7 @@ step that is not.
 1. Both sides have engaged — a real exchange through the mailbox, not one
    enquiry and silence.
 2. The commercial fit is real: commodity, quantity, incoterm, timing.
-3. Any document requests you thought necessary have been answered.
-4. **Both parties have agreed to be introduced.** Ask each, separately, through
+3. **Both parties have agreed to be introduced.** Ask each, separately, through
    the mailbox.
 
 That last one is not a formality. Until you have it in writing from both, an
