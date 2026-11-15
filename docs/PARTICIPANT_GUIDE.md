@@ -72,7 +72,7 @@ Mailbox · Notifications · Profile**.
 - **Quantity and unit** — the unit list is standard (metric tons, barrels,
   troy ounces and so on).
 - **Specification / grade** — free text. Be precise; this is what tells a
-  serious counterparty whether your material is relevant to them.
+  counterparty whether your material is relevant to them.
 - **Incoterm** — FOB, CIF, and the rest.
 - **Origin** (for a Sell Offer) or **Destination** (for a Buy Request) —
   a country, from the dropdown.
@@ -96,8 +96,7 @@ content and the reference, and nothing about you.
 If a listing goes 30 days without being updated, a notice appears on it asking
 whether it is still available, with two buttons: **Still available** (which
 refreshes it) and **Close it**. The Operator can see which listings have gone
-stale, so keeping yours current is the difference between being taken seriously
-and being chased.
+stale, so keeping yours current makes it easier for others to act on, and saves you being chased.
 
 You can **Edit** or **Remove** any of your own listings at any time from
 **My Listings**.
@@ -126,7 +125,7 @@ Write your message and send it. What happens then:
 
 Neither side learns the other's identity unless and until the Operator
 formally introduces you. That is a deliberate step the Operator takes when a conversation
-is serious enough to justify it.
+has gone far enough to justify it.
 
 **Do not put your name, company, email or phone number in the message body.**
 It defeats the anonymity the platform exists to provide, and an Operator may
@@ -259,7 +258,7 @@ complete:
 - **Cantidad y unidad** — unidades estándar (toneladas métricas, barriles,
   onzas troy, etc.).
 - **Especificación / grado** — texto libre. Sea preciso: es lo que permite a
-  una contraparte seria saber si su material le interesa.
+  una contraparte saber si su material le interesa.
 - **Incoterm** — FOB, CIF y los demás.
 - **Origen** (venta) o **Destino** (compra) — un país, de la lista.
 - **Precio / condiciones** y **moneda** — opcionales, aunque una publicación
@@ -306,8 +305,8 @@ Escriba su mensaje y envíelo. Lo que ocurre después:
    Operador, también de forma anónima.
 
 Ninguna de las dos partes conoce la identidad de la otra hasta que el
-Operador les presente formalmente, algo que hace cuando la conversación es
-lo bastante seria como para justificarlo.
+Operador les presente formalmente, algo que hace cuando la conversación ha
+avanzado lo bastante como para justificarlo.
 
 **No incluya su nombre, empresa, correo ni teléfono en el texto del mensaje.**
 Anula el anonimato que da sentido a la plataforma, y un Operador puede negarse
