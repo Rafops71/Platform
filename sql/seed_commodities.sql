@@ -28,7 +28,7 @@ insert into public.commodities (name) values
   ('Crude Oil'),
   ('EN590 Diesel'),
   ('Ferrochrome'),
-  ('HMS 1&2 Scrap'),
+  ('HMS 1&2 (80:20)'),
   ('Hot Briquetted Iron (HBI)'),
   ('Iron Ore'),
   ('Jet A-1'),

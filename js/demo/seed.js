@@ -223,7 +223,7 @@
 
   const commodityNames = [
     'Aluminum Ingots — A7/A8', 'Antimony', 'Chrome Concentrate', 'Chrome Ore', 'Copper Cathodes — Grade A',
-    'Copper Concentrate', 'Crude Oil', 'EN590 Diesel', 'Ferrochrome', 'HMS 1&2 Scrap',
+    'Copper Concentrate', 'Crude Oil', 'EN590 Diesel', 'Ferrochrome', 'HMS 1&2 (80:20)',
     'Hot Briquetted Iron (HBI)', 'Iron Ore', 'Jet A-1', 'Lead Concentrate', 'Lead Ingots', 'LNG',
     'Manganese Concentrate', 'Manganese Ore', 'Petroleum Coke', 'Soybeans', 'Steel Billets', 'Sugar',
     'Thermal Coal', 'Urea', 'Wheat', 'Zinc Concentrate', 'Zinc Ingots',
