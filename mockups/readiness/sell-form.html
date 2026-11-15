@@ -1,0 +1,39 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MOCKUP - Sell offer form</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600&family=Source+Sans+3:wght@400;600&display=swap">
+<link rel="stylesheet" href="../../css/styles.css">
+<style>
+.mock-banner{background:#fff4c2;border-bottom:2px solid #d9b800;padding:8px 12px;font-size:14px;text-align:center}
+.draft{display:inline-block;background:#fde2e2;color:#a11;font-weight:600;font-size:12px;padding:1px 7px;border-radius:10px;margin-left:6px;vertical-align:middle}
+.final{display:inline-block;background:#e0f3e6;color:#1a6b3a;font-weight:600;font-size:12px;padding:1px 7px;border-radius:10px;margin-left:6px;vertical-align:middle}
+.open-q{margin:14px 0 0;padding:10px 12px;border:1px dashed #d9b800;background:#fffbe6;border-radius:8px;font-size:14px}
+.optional-block{background:#f3f8fc}
+</style></head><body>
+<div class="mock-banner"><strong>MOCKUP - not the live site.</strong> Item 1: optional readiness block on the sell form. Seller wording is a first DRAFT.</div>
+<header class="site-header"><div class="container"><h1>MyPlatform</h1><div class="user-info"><span>Member</span> · <span>EN | ES</span> · <a href="#" style="color:#fff;">Sign out</a></div></div></header>
+<nav class="tabs"><div class="container"><button>My Listings</button><button class="active">New Listing</button><button>Browse</button><button>Mailbox</button><button>Notifications</button><button>Profile</button><button>Help</button></div></nav>
+<main class="container" style="padding-top:12px">
+<div class="card"><h2 class="mt-0">New Listing</h2>
+<p class="list-row-meta">(Mockup shows only the part that changes: the role question and what appears under it when the member picks <strong>Principal</strong>. Everything else on the form is as today.)</p>
+<label>Type *</label><div class="row"><label class="checkbox-row"><input type="radio" name="t" checked> <span>Sell Offer</span></label><label class="checkbox-row"><input type="radio" name="t"> <span>Buy Request</span></label></div>
+<fieldset><legend>What is your role in this offer? *</legend>
+<label class="checkbox-row"><input type="radio" name="r"  checked> <span>Principal - I produce the goods or hold legal title to them / I purchase as the contracting party</span></label>
+<label class="checkbox-row"><input type="radio" name="r"> <span>Mandated intermediary - I act directly for the principal, with their written authority</span></label>
+<label class="checkbox-row"><input type="radio" name="r"> <span>Broker</span></label>
+<p class="mb-0" style="margin-bottom:0">Which describes you?</p>
+<label class="checkbox-row"><input type="radio" name="k" checked> <span>Producer</span></label>
+<label class="checkbox-row"><input type="radio" name="k"> <span>Trader</span></label>
+</fieldset>
+
+<fieldset class="optional-block"><legend>Optional <span class="draft">DRAFT wording</span></legend>
+<p style="margin-top:0">Optional. You may indicate the current status of your supply. <span class="draft">DRAFT</span></p>
+<p class="list-row-meta" style="margin:0 0 4px"><strong>If you chose Producer:</strong></p>
+<label class="checkbox-row"><input type="checkbox"> <span>Own production: goods available. <span class="draft">DRAFT</span></span></label>
+<label class="checkbox-row"><input type="checkbox"> <span>Own production: available on a production schedule. <span class="draft">DRAFT</span></span></label>
+<p class="list-row-meta" style="margin:12px 0 4px"><strong>If you chose Trader (shown instead, never both):</strong></p>
+<label class="checkbox-row"><input type="checkbox"> <span>Ex-stock: goods available, title held. <span class="draft">DRAFT</span></span></label>
+<label class="checkbox-row"><input type="checkbox"> <span>Back-to-back: supply contract in place. <span class="draft">DRAFT</span></span></label>
+</fieldset>
+<div class="open-q"><strong>Rules shown here:</strong> only for a Principal (never Mandated intermediary or Broker); optional; no tick means nothing is stated; no document is asked for.<br><strong>Open question (not decided):</strong> does a tick show to other members on the listing, or only to the Operator?</div>
+<div class="row" style="margin-top:18px;"><button class="btn btn-primary">Save Listing</button><button class="btn btn-secondary">Cancel</button></div>
+</div></main></body></html>
