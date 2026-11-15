@@ -48,7 +48,7 @@ test('Item82 a member recommends a candidate from Profile, and only the Operator
   const email = testEmail('i82cand');
   await signIn(page, referrer, 'app.html');
   await recommend(page, candidate, email);
-  await expect(page.locator('.toast-success')).toContainText('Message sent to Operators.');
+  await expect(page.locator('.toast-success')).toContainText('Message sent to the Operator.');
 
   // The member cannot read it back: no list anywhere on the page.
   await openScreen(page, 'profile');
@@ -97,7 +97,7 @@ test('Item85 the Operator invites from a recommendation, and the invitation name
   const sender = await createAccount({ label: 'i85rf', role: 'participant', status: 'approved', meta: REFERRER });
   await signIn(page, sender, 'app.html');
   await recommend(page, candidate, email);
-  await expect(page.locator('.toast-success')).toContainText('Message sent to Operators.');
+  await expect(page.locator('.toast-success')).toContainText('Message sent to the Operator.');
 
   // The member's session is still in the browser: sign out first, or the
   // sign-in page bounces to app.html (see signOut() in helpers/session.js).
@@ -129,7 +129,7 @@ test('Item86 declining a recommendation tells the referrer nothing', async ({ pa
   const sender = await createAccount({ label: 'i86rf', role: 'participant', status: 'approved', meta: REFERRER });
   await signIn(page, sender, 'app.html');
   await recommend(page, candidate, testEmail('i86dec'));
-  await expect(page.locator('.toast-success')).toContainText('Message sent to Operators.');
+  await expect(page.locator('.toast-success')).toContainText('Message sent to the Operator.');
 
   const before = await query(
     `select count(*)::int n from public.email_outbox where to_email = $1`, [sender.email]

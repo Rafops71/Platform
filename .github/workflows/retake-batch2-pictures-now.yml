@@ -1,0 +1,67 @@
+# TEMPORARY. One-off: re-takes the dashboard pictures whose static text changed in this
+# batch (the Operator becomes singular in the member Mailbox, the Operator Scorecard and the
+# Operator Help). It runs on a push to this branch that changes this file, rewrites only
+# pictures that differ beyond tolerance, fails before committing if any file other than the
+# six listed below changed, and does nothing when they already match. Delete after use.
+name: Re-take batch pictures (temporary)
+
+on:
+  push:
+    branches: [batch2-step1-2026-11-15]
+    paths: ['.github/workflows/retake-batch2-pictures-now.yml']
+
+permissions:
+  contents: write
+
+# The same Staging address and public key the pictures job uses (security-grid.yml).
+env:
+  SUPABASE_URL: https://pqxlfgvjoowawzgoszna.supabase.co
+  SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxeGxmZ3Zqb293YXd6Z29zem5hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxMTUyNTMsImV4cCI6MjEwODY5MTI1M30.d-5Hk6gljO5IOgsLus3AtddsOD7g9xJ6ra4beHGFtEQ
+
+jobs:
+  retake:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: batch2-step1-2026-11-15
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - name: Install the browser
+        run: npx playwright install --with-deps chromium
+      - name: Re-take the dashboard pictures that differ
+        run: npx playwright test -c playwright.visual.config.js tests/visual/dashboards.spec.js --update-snapshots=changed
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+      - name: Allow only the three tabs' pictures to change
+        id: check
+        run: |
+          expected=$(printf '%s\n' \
+            tests/visual/screenshots/app-mailbox-desktop.png \
+            tests/visual/screenshots/app-mailbox-phone.png \
+            tests/visual/screenshots/operator-scorecard-desktop.png \
+            tests/visual/screenshots/operator-scorecard-phone.png \
+            tests/visual/screenshots/operator-help-desktop.png \
+            tests/visual/screenshots/operator-help-phone.png | sort)
+          changed=$(git status --porcelain -- . ':!test-results' | awk '{print $2}' | sort)
+          echo "changed:"; echo "$changed"
+          if [ -z "$changed" ]; then
+            echo "Pictures already match. Nothing to commit."
+            echo "pending=no" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          for f in $changed; do
+            if ! printf '%s\n' "$expected" | grep -qx "$f"; then echo "UNEXPECTED CHANGE: $f - nothing committed"; exit 1; fi
+          done
+          echo "pending=yes" >> "$GITHUB_OUTPUT"
+      - name: Commit the changed pictures
+        if: steps.check.outputs.pending == 'yes'
+        run: |
+          changed=$(git status --porcelain -- . ':!test-results' | awk '{print $2}' | sort)
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- $changed
+          git commit -m "Dashboard pictures: the Operator in the singular (owner approved)"
+          git push origin HEAD:batch2-step1-2026-11-15
