@@ -94,6 +94,7 @@ const SETUP = [
   'sql/059_email_templates_myplatform.sql',
   'sql/060_listing_error_myplatform.sql',
   'sql/061_schedule_candidate_purge.sql',
+  'sql/062_rename_hms_commodity.sql',
   'sql/seed_commodities.sql',
 ];
 
