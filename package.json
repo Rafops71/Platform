@@ -42,6 +42,7 @@
     "check:recommend-cap": "node scripts/recommendation-cap-test.js",
     "check:applied-live": "node scripts/check-applied-live.js",
     "check:test-hidden": "node scripts/check-test-hidden.js",
+    "check:ci-targets": "node scripts/check-ci-targets.js",
     "migration:next": "node scripts/next-migration.js",
     "prepush": "node scripts/prepush.js"
   },

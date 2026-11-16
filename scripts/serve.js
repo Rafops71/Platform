@@ -61,6 +61,18 @@ const server = http.createServer((req, res) => {
     return res.end('Forbidden');
   }
 
+  // TEST SERVER ONLY. Pull-request runs of the browser suite point the pages at the STAGING project
+  // (docs/AGREED-2026-11-16-tooling.md, item 4): when both variables are set, the one file that names
+  // the project is answered with their values instead of the file on disk. The file itself is never
+  // changed, and the published site (scripts/assemble-site.sh) never goes through this server.
+  if (rel === '/js/supabase-config.js' && process.env.SERVE_SUPABASE_URL && process.env.SERVE_SUPABASE_KEY) {
+    const body = `const SUPABASE_URL = ${JSON.stringify(process.env.SERVE_SUPABASE_URL)};\n` +
+                 `const SUPABASE_PUBLISHABLE_KEY = ${JSON.stringify(process.env.SERVE_SUPABASE_KEY)};\n` +
+                 'const myplatform = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);\n';
+    res.writeHead(200, { 'Content-Type': TYPES['.js'], 'Content-Length': Buffer.byteLength(body), 'Cache-Control': 'no-store' });
+    return req.method === 'HEAD' ? res.end() : res.end(body);
+  }
+
   fs.stat(target, (err, stat) => {
     if (err || !stat.isFile()) {
       res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
