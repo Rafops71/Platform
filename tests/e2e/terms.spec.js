@@ -174,7 +174,7 @@ test.describe.serial('Terms & Conditions', () => {
     // read and relied on in.
     expect(body).toContain('No es un mercado público');
     expect(body).toContain('podrá suspenderse o revocarse en cualquier momento sin previo aviso');
-    expect(body).toContain('pueden actuar para ambas partes de una misma operación');
+    expect(body).toContain('y puede actuar para ambas partes de una misma operación');
     expect(body).toContain('se acuerdan por escrito entre el Operador y la parte que la paga durante la negociación, antes de realizar la presentación');
     expect(body).toContain('veinticuatro (24) meses');
     expect(body).toContain('conforme al Derecho de Inglaterra y Gales');
@@ -233,7 +233,7 @@ test.describe.serial('Terms & Conditions', () => {
     expect(text).toContain('registered office address');
     expect(text).toContain('trading address');
     expect(text).toContain('VAT or tax registration number');
-    expect(text).toContain('in writing to rafael@myplatform.trade');
+    expect(text).toContain('in writing to info@myplatform.trade');
     expect(text).toContain('reviewed by a qualified lawyer');
 
     // Nothing bracketed anywhere in the terms may be unmarked. This is the

@@ -94,6 +94,7 @@ const DEFAULT_ORDER = [
   '062_rename_hms_commodity.sql',
   '063_documents_questions.sql',
   '064_dated_statements.sql',
+  '065_terms_3_8.sql',
   'seed_commodities.sql',
 ];
 
