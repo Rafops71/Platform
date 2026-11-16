@@ -353,6 +353,14 @@ function populateStatusFilter() {
  *  chain - sql/033). Listings from before 033 say so rather than guess. */
 const POSTER_ROLE_LABELS = { principal: 'Principal', mandated: 'Mandated intermediary', broker: 'Broker' };
 const PRINCIPAL_KIND_LABELS = { producer: 'Producer', trader: 'Trader' };
+// The readiness ticks (sql/066), in the members' own words; shown to the Operator only.
+const READINESS_LABELS = {
+  own_available: 'Own production: goods available.',
+  own_scheduled: 'Own production: available on a production schedule.',
+  ex_stock: 'Ex-stock: goods available, title held.',
+  back_to_back: 'Back-to-back: supply contract in place.',
+  buy_ready: 'Prepared to proceed; financing is secured and any agreed payment instrument can be issued when required.',
+};
 const BROKER_VIA_LABELS = { principal: 'via the principal', mandate_holder: "via the principal's mandate holder", one_broker: 'via one other broker' };
 
 function posterDetail(l) {
@@ -361,6 +369,7 @@ function posterDetail(l) {
   if (l.poster_role === 'principal' && l.type === 'sell') parts[0] += ` (${l.principal_kind ? PRINCIPAL_KIND_LABELS[l.principal_kind] : 'producer or trader not stated'})`;
   if (l.poster_role === 'mandated') parts.push(`mandate signed ${l.mandate_date ? formatDate(l.mandate_date) : '(no date)'}`);
   if (l.poster_role === 'broker') parts.push(BROKER_VIA_LABELS[l.broker_via] || 'chain not stated');
+  if (l.readiness && l.readiness.length) parts.push(`ticked: ${l.readiness.map(k => READINESS_LABELS[k] || k).join(' ')}`);
   if (l.truth_confirmed_at) parts.push(`confirmed true ${formatDateTime(l.truth_confirmed_at)}`);
   return parts.join(' · ');
 }

@@ -98,6 +98,7 @@ const SETUP = [
   'sql/063_documents_questions.sql',
   'sql/064_dated_statements.sql',
   'sql/065_terms_3_8.sql',
+  'sql/066_readiness_ticks.sql',
   'sql/seed_commodities.sql',
 ];
 

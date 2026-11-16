@@ -46,8 +46,8 @@ async function postListing(browser, who, spec) {
   const origin = origins.find((o) => o.t === spec.origin) || origins[spec.fallbackOrigin] || origins[0];
   console.log(`options: ${commodities.length} commodities, ${origins.length} origins`);
   await page.selectOption('#location', origin.v);
-  await page.check('#role-principal');
-  await page.check(`#kind-${spec.kind}`);
+  await page.selectOption('#poster_role', 'principal');
+  await page.selectOption('#principal_kind', spec.kind);
   await page.selectOption('#docs_seen', 'yes');
   await page.selectOption('#docs_showable', 'on_request');
   await page.check('#truth-confirm');

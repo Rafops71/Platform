@@ -160,17 +160,31 @@
              answer again; js/app.js readListingStatements() checks first). -->
         <fieldset>
           <legend><span data-i18n="stmt.role">What is your role in this offer?</span> *</legend>
-          <label class="checkbox-row"><input type="radio" name="poster_role" id="role-principal" value="principal">
-            <span data-i18n="stmt.role.principal">Principal - I produce the goods or hold legal title to them / I purchase as the contracting party</span></label>
-          <label class="checkbox-row"><input type="radio" name="poster_role" id="role-mandated" value="mandated">
-            <span data-i18n="stmt.role.mandated">Mandated intermediary - I act directly for the principal, with their written authority</span></label>
-          <label class="checkbox-row"><input type="radio" name="poster_role" id="role-broker" value="broker">
-            <span data-i18n="stmt.role.broker">Broker</span></label>
+          <label for="poster_role" class="sr-only" data-i18n="stmt.role">What is your role in this offer?</label>
+          <select id="poster_role" name="poster_role">
+            <option value="" data-i18n="stmt.choose">Choose…</option>
+            <option value="principal" data-i18n="stmt.role.principal">Principal - I produce the goods or hold legal title to them / I purchase as the contracting party</option>
+            <option value="mandated" data-i18n="stmt.role.mandated">Mandated intermediary - I act directly for the principal, with their written authority</option>
+            <option value="broker" data-i18n="stmt.role.broker">Broker</option>
+          </select>
 
           <div id="kind-row" class="hidden">
-            <p class="mb-0" data-i18n="stmt.kind.q">Which describes you?</p>
-            <label class="checkbox-row"><input type="radio" name="principal_kind" id="kind-producer" value="producer"> <span data-i18n="stmt.kind.producer">Producer</span></label>
-            <label class="checkbox-row"><input type="radio" name="principal_kind" id="kind-trader" value="trader"> <span data-i18n="stmt.kind.trader">Trader</span></label>
+            <label for="principal_kind" data-i18n="stmt.kind.q">Which describes you?</label>
+            <select id="principal_kind" name="principal_kind">
+              <option value="" data-i18n="stmt.choose">Choose…</option>
+              <option value="producer" data-i18n="stmt.kind.producer">Producer</option>
+              <option value="trader" data-i18n="stmt.kind.trader">Trader</option>
+            </select>
+          </div>
+
+          <!-- Readiness ticks (sql/066): Principal only, optional, shown to the Operator only. -->
+          <div id="readiness-row" class="hidden">
+            <p class="mb-0" id="readiness-intro" data-i18n="stmt.ready.sellIntro">Optional. You may indicate the current status of your supply.</p>
+            <label class="checkbox-row rd-producer"><input type="checkbox" name="readiness" value="own_available"> <span data-i18n="stmt.ready.own_available">Own production: goods available.</span></label>
+            <label class="checkbox-row rd-producer"><input type="checkbox" name="readiness" value="own_scheduled"> <span data-i18n="stmt.ready.own_scheduled">Own production: available on a production schedule.</span></label>
+            <label class="checkbox-row rd-trader"><input type="checkbox" name="readiness" value="ex_stock"> <span data-i18n="stmt.ready.ex_stock">Ex-stock: goods available, title held.</span></label>
+            <label class="checkbox-row rd-trader"><input type="checkbox" name="readiness" value="back_to_back"> <span data-i18n="stmt.ready.back_to_back">Back-to-back: supply contract in place.</span></label>
+            <label class="checkbox-row rd-buyer"><input type="checkbox" name="readiness" value="buy_ready"> <span data-i18n="stmt.ready.buy_ready">Prepared to proceed; financing is secured and any agreed payment instrument can be issued when required.</span></label>
           </div>
 
           <div id="mandate-row" class="hidden">

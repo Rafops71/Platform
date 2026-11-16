@@ -130,6 +130,7 @@ window.onLanguageChange = function (lang) {
   populateSelect('unit', UNITS, true, unitLabel);
   populateSelect('price_unit', UNITS, true, unitLabel);
   populateSelect('location', COUNTRIES, true, countryLabel);
+  showRoleQuestions();  // the buyer's Principal wording and the ticks' intro follow the language
   // The Profile country dropdown carries translated labels over canonical
   // English values, so it repopulates like the others - and its own selection
   // has to survive that, or switching language would silently blank the
@@ -421,8 +422,8 @@ function wireListingForm() {
     showScreen('my-listings');
   });
 
-  document.querySelectorAll('input[name="poster_role"]').forEach(r =>
-    r.addEventListener('change', showRoleQuestions));
+  document.getElementById('poster_role').addEventListener('change', showRoleQuestions);
+  document.getElementById('principal_kind').addEventListener('change', showRoleQuestions);
 
   document.getElementById('listing-form').addEventListener('submit', submitListingForm);
 }
@@ -449,22 +450,45 @@ function statementsDateLine(l) {
 /** The mandate question for a mandated intermediary, the chain question for
  *  a broker, Producer-or-Trader for a principal on a Sell offer only. */
 function showRoleQuestions() {
-  const role = document.querySelector('input[name="poster_role"]:checked')?.value;
+  const role = document.getElementById('poster_role').value;
   const isSell = document.querySelector('input[name="type"]:checked')?.value === 'sell';
+  // The Principal option reads differently for a buyer (the seller's wording is unchanged).
+  document.querySelector('#poster_role option[value="principal"]').textContent =
+    t(document.querySelector('input[name="type"]:checked')?.value === 'buy' ? 'stmt.role.principalBuy' : 'stmt.role.principal');
   document.getElementById('kind-row').classList.toggle('hidden', !(role === 'principal' && isSell));
+  showReadinessTicks(role, isSell);
   document.getElementById('mandate-row').classList.toggle('hidden', role !== 'mandated');
   document.getElementById('broker-row').classList.toggle('hidden', role !== 'broker');
   // The documents question is for a Sell offer only.
   document.getElementById('docs-seen-row').classList.toggle('hidden', !isSell);
 }
 
+/** Readiness ticks (sql/066): optional, Principal only, for the Operator's eyes only. A seller sees
+ *  the two ticks that fit Producer or Trader once chosen; a buyer sees the one buyer tick. A tick
+ *  that stops applying is cleared here as well as on the server, so nothing stale is sent. */
+function showReadinessTicks(role, isSell) {
+  const type = document.querySelector('input[name="type"]:checked')?.value;
+  const kind = document.getElementById('principal_kind').value;
+  const show = { 'rd-producer': role === 'principal' && type === 'sell' && kind === 'producer',
+                 'rd-trader': role === 'principal' && type === 'sell' && kind === 'trader',
+                 'rd-buyer': role === 'principal' && type === 'buy' };
+  document.getElementById('readiness-row').classList.toggle('hidden', !Object.values(show).some(Boolean));
+  document.getElementById('readiness-intro').textContent = t(type === 'buy' ? 'stmt.ready.buyIntro' : 'stmt.ready.sellIntro');
+  Object.entries(show).forEach(([cls, on]) => {
+    document.querySelectorAll(`#readiness-row .${cls}`).forEach(row => {
+      row.classList.toggle('hidden', !on);
+      if (!on) row.querySelector('input').checked = false;
+    });
+  });
+}
+
 /** What the poster says about the offer. Returns { values } or { errorKey }.
  *  sql/033 makes every one of these checks again; these exist so the member
  *  reads the reason before pressing, in their own language. */
 function readListingStatements() {
-  const role = document.querySelector('input[name="poster_role"]:checked')?.value;
+  const role = document.getElementById('poster_role').value;
   const kindShown = role === 'principal' && document.querySelector('input[name="type"]:checked')?.value === 'sell';
-  const kind = document.querySelector('input[name="principal_kind"]:checked')?.value;
+  const kind = document.getElementById('principal_kind').value;
   const mandate = document.querySelector('input[name="has_mandate"]:checked')?.value;
   const mandateDate = document.getElementById('mandate_date').value;
   const via = document.getElementById('broker_via').value;
@@ -478,9 +502,12 @@ function readListingStatements() {
   if (role === 'broker' && !via) return { errorKey: 'stmt.err.via' };
   if (isSell && !docsSeen) return { errorKey: 'stmt.err.docs' };
   if (!document.getElementById('truth-confirm').checked) return { errorKey: 'stmt.err.truth' };
+  const ticked = [...document.querySelectorAll('#readiness-row input[name="readiness"]:checked')].map(i => i.value);
   return { values: {
     poster_role: role,
     principal_kind: kindShown ? kind : null,
+    // Only the ticks still shown are sent; none ticked is stored as nothing stated (sql/066).
+    readiness: ticked.length ? ticked : null,
     has_mandate: role === 'mandated' ? true : null,
     mandate_date: role === 'mandated' ? mandateDate : null,
     broker_via: role === 'broker' ? via : null,
@@ -535,16 +562,19 @@ async function editListing(id) {
   document.getElementById('notes').value = listing.notes ?? '';
   // The statements are filled back in; the truth box never is. Saving an edit
   // is a new statement and has to be ticked again (sql/033).
-  const roleInput = listing.poster_role && document.querySelector(`input[name="poster_role"][value="${listing.poster_role}"]`);
-  if (roleInput) roleInput.checked = true;
-  const kindInput = listing.principal_kind && document.querySelector(`input[name="principal_kind"][value="${listing.principal_kind}"]`);
-  if (kindInput) kindInput.checked = true;
+  document.getElementById('poster_role').value = listing.poster_role ?? '';
+  document.getElementById('principal_kind').value = listing.principal_kind ?? '';
   if (listing.has_mandate) document.getElementById('mandate-yes').checked = true;
   document.getElementById('mandate_date').value = listing.mandate_date ?? '';
   document.getElementById('broker_via').value = listing.broker_via ?? '';
   document.getElementById('docs_seen').value = listing.docs_seen ?? '';
   document.getElementById('truth-confirm').checked = false;
   showRoleQuestions();
+  // The ticks are filled back in after the questions are shown (showRoleQuestions clears hidden ones).
+  (listing.readiness || []).forEach(v => {
+    const box = document.querySelector(`#readiness-row input[name="readiness"][value="${v}"]`);
+    if (box) box.checked = true;
+  });
   renderDocChecklist(selected);
 
   showScreen('new-listing');
