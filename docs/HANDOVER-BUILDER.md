@@ -1,10 +1,10 @@
-# HANDOVER (supervisor + builder). Update only when something meaningful changes.
-Last updated: 16 Nov 2026, after Terms 3.8 merged (#113). Longer history: docs/SUPERVISOR-STATE-2026-11-08.md.
+# HANDOVER FOR THE BUILDER. Technical only. Update only when something meaningful changes.
+Last updated: 16 Nov 2026, after Terms 3.8 merged (#113); next migration number 066. Longer history: docs/SUPERVISOR-STATE-2026-11-08.md.
 
 ## 1. Architecture and current state
 - MyPlatform (repo Rafops71/Platform): static HTML/CSS/JS on Cloudflare Pages, Supabase live project coarclhafggkakmpggfh (+ Staging pqxlfgvjoowawzgoszna). Operator = ONE legal party (singular everywhere). Entity will be UAE; Terms: English law, DIFC courts, PLACEHOLDER banner kept.
 - Gate: CI (.github/workflows/ci.yml) on PR head; Function checklist (Playwright, live DB) is the verification. Migrations sql/NNN_*.sql + sql/revert; applied live ONLY via apply-sql.yml (workflow_dispatch, input files, ref = branch). Live now: up to 065.
-- People/windows: owner (non-developer, small screen, toddler plain English, one block at a time, buttons, Brussels time, wording and Spanish: owner delegated Spanish to us, member-visible English wording is his). Supervisor Sonnet = me. ONE Sonnet builder (code). Former supervisor (Opus window) keeps idea list docs/IDEAS-2026-11-12.md.
+- You report to the supervisor session by send_message. You never merge or apply live. Spanish wording is yours to write and verify; member-visible English wording only from a brief.
 
 ## 2. Completed (live)
 #102 sign-in line; #103 pg_cron daily purge (061, 055); #108 Operator singular, SOP approval paragraph, introduction rule in Help/welcome; #109 HMS rename (062); #110 no "serious"; #111 document questions (063: buy skips both, fixed Documents line); #112 dated statements (064, Option A: "Yes, still available" restamps); #113 Terms 3.8 (065).
