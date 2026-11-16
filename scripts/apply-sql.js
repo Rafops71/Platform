@@ -93,6 +93,7 @@ const DEFAULT_ORDER = [
   '061_schedule_candidate_purge.sql',
   '062_rename_hms_commodity.sql',
   '063_documents_questions.sql',
+  '064_dated_statements.sql',
   'seed_commodities.sql',
 ];
 

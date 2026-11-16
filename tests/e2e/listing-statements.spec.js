@@ -93,6 +93,8 @@ test.describe.serial('listing statements', () => {
     await expect(row.locator('[data-statements]')).toHaveText(
       "Poster: Broker · Documents: Not seen; the poster's source says they exist", { timeout: 15_000 });
     await expect(row).not.toContainText('other broker');
+    // The one date the poster's statements were confirmed (sql/064): fresh, so "Stated by".
+    await expect(row.locator('[data-statements-date]')).toHaveText(/^Stated by the poster on \d{2}\/\d{2}\/\d{4}$/);
     await signOut(page);
 
     await signIn(page, operator, 'operator.html');

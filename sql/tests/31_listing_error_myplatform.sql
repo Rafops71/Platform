@@ -22,6 +22,8 @@
 
 -- This file proves the function as sql/060 left it. Migration 063 (documents questions) changed the
 -- function later, so it is stepped back to 060's state here and put forward again at the end.
+-- (064 changed the same function again, so it is stepped back first.)
+\i sql/revert/064_dated_statements_revert.sql
 \i sql/revert/063_documents_questions_revert.sql
 
 create temp table t31_new as
@@ -80,3 +82,4 @@ select case when count(*) = 1 then 'PASS' else 'FAIL got ' || count(*) end
 from pg_trigger t where t.tgname = 'trg_enforce_listing_statements' and not t.tgisinternal;
 
 \i sql/063_documents_questions.sql
+\i sql/064_dated_statements.sql

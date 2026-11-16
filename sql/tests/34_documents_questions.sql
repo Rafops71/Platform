@@ -17,6 +17,9 @@
 \echo
 \echo '=========== DOCUMENTS QUESTIONS (BUY SKIPS, SHOWABLE GONE) ==========='
 
+-- 064 changed the same function again: step back to 063's state for this file, forward again at the end.
+\i sql/revert/064_dated_statements_revert.sql
+
 select public.test_invite('doc-member@example.invalid');
 insert into auth.users (id, email, raw_user_meta_data)
 values ('f4f4f4f4-0034-0034-0034-000000000034'::uuid, 'doc-member@example.invalid',
@@ -136,5 +139,7 @@ select case when pg_get_functiondef(p.oid) = (select def from t34_new)
   as "T10 applying 063 a second time changes nothing (idempotent)"
 from pg_proc p where p.proname = 'enforce_listing_statements' and p.pronamespace = 'public'::regnamespace;
 
--- Leave the suite as it expects: no fixtures of this file behind.
+-- Leave the suite as it expects: 064 applied again, no fixtures of this file behind.
+\i sql/064_dated_statements.sql
+
 delete from public.listings where reference_number in ('BUY-DOC-1','SELL-DOC-1','SELL-DOC-3');

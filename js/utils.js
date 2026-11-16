@@ -378,6 +378,11 @@ function staleListingCutoff() {
   return new Date(Date.now() - STALE_LISTING_DAYS * 24 * 60 * 60 * 1000).toISOString();
 }
 
+/** True when the poster's statements were last confirmed more than STALE_LISTING_DAYS ago. */
+function isStatementDateOld(iso) {
+  return iso < staleListingCutoff();
+}
+
 function isStaleListing(listing) {
   return listing.status === 'available' && listing.updated_at < staleListingCutoff();
 }

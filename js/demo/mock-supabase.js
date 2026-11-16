@@ -427,7 +427,7 @@ const myplatform = (function () {
     },
     renew_listing(a) {
       const l = db.listings.find((x) => x.id === a.p_listing_id);
-      if (l) l.updated_at = nowIso();
+      if (l) { l.updated_at = nowIso(); if (l.truth_confirmed_at) l.truth_confirmed_at = nowIso(); }
       return null;
     },
     accept_terms() { return null; },
@@ -446,6 +446,7 @@ const myplatform = (function () {
         has_documents: db.document_checklist.some((d) => d.listing_id === l.id && d.indicated),
         created_at: l.created_at, updated_at: l.updated_at,
         poster_role: l.poster_role, docs_seen: l.docs_seen, principal_kind: l.principal_kind,
+        truth_confirmed_at: l.truth_confirmed_at ?? null,
       }));
     },
     deal_analytics(a) {
