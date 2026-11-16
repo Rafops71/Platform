@@ -29,3 +29,10 @@ SOP wording, T8 code protection, T11, T12, films redo, application-review clause
 - After ticks: JOB 2 "Please reconcile" (mockup first? it is a NEW screen: show him a mockup), then the walkthrough.
 - The builder reports to the supervisor session id it was told; Supervisor 2 must tell it its own session id first.
 - Apply recipe: gh api -X POST repos/Rafops71/Platform/actions/workflows/apply-sql.yml/dispatches -f ref=<branch> -f 'inputs[files]=NNN_name.sql'; wait (lane queue up to ~30 min); read back with Supabase MCP execute_sql on project coarclhafggkakmpggfh.
+
+## Parked / references (added 16 Nov)
+1. Fable review: docs/FABLE-REVIEW-2026-11-12.md on branch fable-review; the owner's yes/no on its 12 ideas is in docs/IDEAS-2026-11-12.md (most DROPPED: do not rebuild them).
+2. PR #89 platformdemo is unmerged: remove .github/workflows/tradedemo-now.yml before any merge; tradedemo.pages.dev publishes from that branch.
+3. Pitch docs/PITCH-5-MIN.md (branch pitch-script) and the stress brief (branch stress-test-brief) are OUT OF DATE; refresh only after the walkthrough.
+4. The "Videos" session is the owner's private, non-platform work: never touch it.
+5. Owner wording rules: never "serious"; never "ready, willing and able"; "the Operator" always singular.
