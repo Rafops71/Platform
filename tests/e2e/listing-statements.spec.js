@@ -46,7 +46,7 @@ test.describe.serial('listing statements', () => {
   test('Item67 an offer more than two steps from the principal is refused on the form', async ({ page }) => {
     await signIn(page, poster, 'app.html');
     await fillOffer(page);
-    await page.check('#role-broker');
+    await page.selectOption('#poster_role', 'broker');
     await page.selectOption('#broker_via', 'further');
     await page.selectOption('#docs_seen', 'no');
     await page.check('#truth-confirm');
@@ -60,10 +60,10 @@ test.describe.serial('listing statements', () => {
   test('Item66 the form will not publish without the truth box ticked', async ({ page }) => {
     await signIn(page, poster, 'app.html');
     await fillOffer(page);
-    await page.check('#role-principal');
+    await page.selectOption('#poster_role', 'principal');
     // A principal's Sell offer also answers Producer or Trader (sql/043); the
     // question under test here is the missing truth tick, so answer that one.
-    await page.check('#kind-producer');
+    await page.selectOption('#principal_kind', 'producer');
     await page.selectOption('#docs_seen', 'yes');
     await page.click('#listing-submit-btn');
 
@@ -74,7 +74,7 @@ test.describe.serial('listing statements', () => {
   test('Item68 Browse shows the role and documents line; only the Operator sees the chain', async ({ page }) => {
     await signIn(page, poster, 'app.html');
     await fillOffer(page);
-    await page.check('#role-broker');
+    await page.selectOption('#poster_role', 'broker');
     await page.selectOption('#broker_via', 'one_broker');
     await page.selectOption('#docs_seen', 'source_says');
     await submitListing(page);
@@ -107,7 +107,7 @@ test.describe.serial('listing statements', () => {
     const before = await postedBy(poster);
     await signIn(page, poster, 'app.html');
     await fillOffer(page);
-    await page.check('#role-principal');
+    await page.selectOption('#poster_role', 'principal');
     await expect(page.locator('#kind-row')).toBeVisible();
     await page.selectOption('#docs_seen', 'yes');
     await page.check('#truth-confirm');
@@ -115,7 +115,7 @@ test.describe.serial('listing statements', () => {
     await expect(page.locator('.toast-error').last()).toContainText('Please say whether you are a producer or a trader.');
     expect(await postedBy(poster), 'a Sell offer was saved with no Producer or Trader answer').toBe(before);
 
-    await page.check('#kind-trader');
+    await page.selectOption('#principal_kind', 'trader');
     await submitListing(page);
     await expect.poll(() => postedBy(poster), { timeout: 20_000 }).toBe(before + 1);
     const { rows } = await query(
@@ -127,7 +127,7 @@ test.describe.serial('listing statements', () => {
 
     await openScreen(page, 'new-listing');
     await page.check('input[name="type"][value="buy"]');
-    await page.check('#role-principal');
+    await page.selectOption('#poster_role', 'principal');
     await expect(page.locator('#kind-row'), 'Buy requests must not ask Producer or Trader').toBeHidden();
     await page.check('input[name="type"][value="sell"]');
     await expect(page.locator('#kind-row')).toBeVisible();
@@ -160,5 +160,86 @@ test.describe.serial('listing statements', () => {
     await expect(page.locator('.list-row', { hasText: sellRef }).locator('[data-docs-line]'))
       .toHaveText('Documents: after the introduction, subject to agreement between the parties.');
     await expect(page.locator('.list-row', { hasText: buy[0].reference_number }).locator('[data-docs-line]')).toHaveCount(0);
+  });
+  // Readiness ticks (sql/066): optional, Principal only, for the Operator's eyes only.
+  test('Item66 readiness ticks: only a Principal is offered them; the Operator sees them; no other member does', async ({ page }) => {
+    const before = await postedBy(poster);
+    await signIn(page, poster, 'app.html');
+    await fillOffer(page);
+
+    // Not a principal: nothing to tick.
+    await page.selectOption('#poster_role', 'broker');
+    await expect(page.locator('#readiness-row')).toBeHidden();
+    await page.selectOption('#poster_role', 'mandated');
+    await expect(page.locator('#readiness-row')).toBeHidden();
+
+    // A producer sees the two producer ticks and none of the trader's.
+    await page.selectOption('#poster_role', 'principal');
+    await expect(page.locator('#readiness-row')).toBeHidden();  // until Producer or Trader is chosen
+    await page.selectOption('#principal_kind', 'producer');
+    await expect(page.locator('#readiness-intro')).toHaveText('Optional. You may indicate the current status of your supply.');
+    await expect(page.locator('#readiness-row input[value="own_available"]')).toBeVisible();
+    await expect(page.locator('#readiness-row input[value="own_scheduled"]')).toBeVisible();
+    await expect(page.locator('#readiness-row input[value="ex_stock"]')).toBeHidden();
+    await expect(page.locator('#readiness-row input[value="buy_ready"]')).toBeHidden();
+    await page.check('#readiness-row input[value="own_available"]');
+
+    // A trader sees the trader's two; the producer tick is cleared, not carried over.
+    await page.selectOption('#principal_kind', 'trader');
+    await expect(page.locator('#readiness-row input[value="ex_stock"]')).toBeVisible();
+    await expect(page.locator('#readiness-row input[value="own_available"]')).toBeHidden();
+    await expect(page.locator('#readiness-row input[value="own_available"]')).not.toBeChecked();
+    await page.check('#readiness-row input[value="back_to_back"]');
+
+    await page.selectOption('#docs_seen', 'yes');
+    await page.check('#truth-confirm');
+    await submitListing(page);
+    await expect.poll(() => postedBy(poster), { timeout: 20_000 }).toBe(before + 1);
+    const { rows } = await query(
+      `select id, reference_number, readiness from public.listings
+        where user_id = (select id from public.profiles where email = $1)
+        order by created_at desc limit 1`, [poster.email]);
+    expect(rows[0].readiness).toEqual(['back_to_back']);
+    const sellRef = rows[0].reference_number;
+    const sellId = rows[0].id;
+
+    // A Buy request: the buyer's Principal wording, the buyer intro and the one tick.
+    await openScreen(page, 'new-listing');
+    await page.check('input[name="type"][value="buy"]');
+    await expect(page.locator('#poster_role option[value="principal"]')).toHaveText('Principal - I purchase as the contracting party');
+    await page.selectOption('#poster_role', 'principal');
+    await expect(page.locator('#kind-row')).toBeHidden();
+    await expect(page.locator('#readiness-intro')).toHaveText('Optional. You may indicate the current status of your purchase.');
+    await expect(page.locator('#readiness-row input[value="buy_ready"]')).toBeVisible();
+    await expect(page.locator('#readiness-row input')).toHaveCount(5);
+    await page.check('input[name="type"][value="sell"]');
+    await expect(page.locator('#poster_role option[value="principal"]'),
+      'the seller keeps today\'s Principal wording').toHaveText(
+      'Principal - I produce the goods or hold legal title to them / I purchase as the contracting party');
+    await signOut(page);
+
+    // PROHIBITION: another member never sees a tick, in Browse or anywhere else they can reach.
+    await signIn(page, reader, 'app.html');
+    await openScreen(page, 'browse');
+    const row = page.locator('.list-row', { hasText: sellRef });
+    await expect(row.locator('[data-statements]')).toBeVisible({ timeout: 15_000 });
+    await expect(row).not.toContainText('Back-to-back');
+    // The whole Browse screen (not <main>, which also holds the New Listing form and its own tick labels).
+    for (const sentence of ['Own production', 'Ex-stock', 'Back-to-back', 'supply contract in place', 'Prepared to proceed']) {
+      await expect(page.locator('#screen-browse'), `Browse shows another member's tick: ${sentence}`).not.toContainText(sentence);
+    }
+    const { data, error } = await page.evaluate(async (id) => {
+      const r = await myplatform.from('listings').select('readiness').eq('id', id);
+      return { data: r.data, error: r.error && r.error.message };
+    }, sellId).catch(() => ({ data: [], error: 'client not reachable' }));
+    expect(error ?? null).toBeNull();
+    expect(data, "another member's listing must return no row, so no tick").toEqual([]);
+    await signOut(page);
+
+    // The Operator sees it in the listing view, under the poster's statements.
+    await signIn(page, operator, 'operator.html');
+    await openScreen(page, 'listings');
+    await expect(page.locator(`[data-poster-for="${sellId}"]`))
+      .toContainText('ticked: Back-to-back: supply contract in place.', { timeout: 15_000 });
   });
 });
