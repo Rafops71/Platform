@@ -1,0 +1,6 @@
+What changed in Terms 3.8:
+- Section 8 now says, in plain words: introductions are made only after a commission agreement has been executed.
+- Wherever the Terms said "an Operator", they now say "the Operator", because there is one Operator.
+- Questions about your data (section 10) and notices (section 16) now go to info@myplatform.trade instead of rafael@myplatform.trade.
+- A small grammar correction in the Spanish text of section 1. The English text of that section is unchanged.
+Nothing else has changed.

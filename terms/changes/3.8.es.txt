@@ -1,0 +1,6 @@
+Qué ha cambiado en los Términos 3.8:
+- El apartado 8 dice ahora, con claridad: las presentaciones solo se realizan una vez firmado un acuerdo de comisión.
+- Donde los Términos decían «un Operador», ahora dicen «el Operador», porque hay un único Operador.
+- Las consultas sobre sus datos (apartado 10) y las notificaciones (apartado 16) se dirigen ahora a info@myplatform.trade en lugar de a rafael@myplatform.trade.
+- Una pequeña corrección gramatical en el texto en español del apartado 1. El texto en inglés de ese apartado no cambia.
+No ha cambiado nada más.
