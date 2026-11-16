@@ -224,7 +224,10 @@ test.describe.serial('listing statements', () => {
     const row = page.locator('.list-row', { hasText: sellRef });
     await expect(row.locator('[data-statements]')).toBeVisible({ timeout: 15_000 });
     await expect(row).not.toContainText('Back-to-back');
-    await expect(page.locator('#browse-results, main').first()).not.toContainText('supply contract in place');
+    // The whole Browse screen (not <main>, which also holds the New Listing form and its own tick labels).
+    for (const sentence of ['Own production', 'Ex-stock', 'Back-to-back', 'supply contract in place', 'Prepared to proceed']) {
+      await expect(page.locator('#screen-browse'), `Browse shows another member's tick: ${sentence}`).not.toContainText(sentence);
+    }
     const { data, error } = await page.evaluate(async (id) => {
       const r = await myplatform.from('listings').select('readiness').eq('id', id);
       return { data: r.data, error: r.error && r.error.message };
