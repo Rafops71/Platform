@@ -145,9 +145,42 @@ jobs:
   # waiting run per line), and the pictures were cancelled on PR 38.
   # A page with no approved picture fails, and its new picture is kept as
   # the "pictures" artifact to look at and commit.
+  #
+  # ONLY WHEN A PICTURE COULD MOVE (docs/FABLE-ORCHESTRATION-2026-11-16.md, fix 4).
+  # On a pull request the job below runs only if css/, a page's HTML, js/ other than
+  # js/i18n.js, tests/visual/ or its config changed (the rule is scripts/layout-changed.js,
+  # with its own self-test). A wording-only change to js/i18n.js, a migration or a test
+  # skips it - a skipped job reads "skipped", not red. The trade-off, plainly: a new
+  # English phrase can make a screen a few pixels different, and the pictures notice it
+  # at the nightly run instead of on the pull request. Pushes, the nightly schedule and
+  # manual runs always take the pictures.
+  layout:
+    runs-on: ubuntu-latest
+    outputs:
+      pictures: ${{ steps.decide.outputs.pictures }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Did anything that can move a picture change?
+        id: decide
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [ "$EVENT" != "pull_request" ]; then
+            echo "pictures=true" >> "$GITHUB_OUTPUT"
+            echo "Not a pull request: the pictures always run."
+            exit 0
+          fi
+          git fetch --no-tags --depth=1 origin "$BASE_REF"
+          git diff --name-only "origin/$BASE_REF" HEAD > changed.txt
+          echo "Changed files:"; cat changed.txt
+          result=$(node scripts/layout-changed.js < changed.txt)
+          echo "pictures=$result" >> "$GITHUB_OUTPUT"
+          echo "The pictures run: $result"
+
   pictures:
-    needs: grid
-    if: always()
+    needs: [grid, layout]
+    if: always() && needs.layout.outputs.pictures == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

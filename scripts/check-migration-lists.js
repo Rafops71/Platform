@@ -75,4 +75,51 @@ if (deployOrder !== testOrder) {
   process.exit(1);
 }
 
+// ---------------------------------------------------------------------------
+// Numbers: no repeat, no skip, and sql/NEXT is exactly one more than the highest.
+// (docs/FABLE-ORCHESTRATION-2026-11-16.md, fix 1.) 050 was left free on purpose on
+// 8 Nov (docs/BATCH-2026-11-08.md) and never used; it is the one allowed gap.
+const KNOWN_GAPS = new Set(['050']);
+function checkNumbers(files, nextRaw) {
+  const problems = [];
+  const nums = files.map(f => f.slice(0, 3));
+  const seen = new Set();
+  for (const n of nums) { if (seen.has(n)) problems.push(`number ${n} is used by more than one migration`); seen.add(n); }
+  const ints = [...seen].map(Number).sort((a, b) => a - b);
+  for (let i = 1; i < ints.length; i++) {
+    for (let n = ints[i - 1] + 1; n < ints[i]; n++) {
+      const pad = String(n).padStart(3, '0');
+      if (!KNOWN_GAPS.has(pad)) problems.push(`number ${pad} is skipped (between ${ints[i - 1]} and ${ints[i]})`);
+    }
+  }
+  const highest = ints[ints.length - 1];
+  const want = String(highest + 1).padStart(3, '0');
+  if (nextRaw !== want) problems.push(`sql/NEXT says ${nextRaw}, but the highest migration is ${String(highest).padStart(3, '0')}, so it must say ${want} (use: npm run migration:next -- reserve <name>)`);
+  return problems;
+}
+
+if (process.argv.includes('--self-test')) {
+  const t = (files, next, expectProblems) => {
+    const got = checkNumbers(files, next).length > 0;
+    if (got !== expectProblems) { console.error(`self-test FAILED for ${files.join(',')} next=${next}`); process.exit(1); }
+  };
+  t(['002_a.sql', '003_b.sql'], '004', false);
+  t(['002_a.sql', '003_b.sql', '003_c.sql'], '004', true);   // repeated
+  t(['002_a.sql', '004_b.sql'], '005', true);                // skipped
+  t(['049_a.sql', '051_b.sql'], '052', false);               // the one allowed gap
+  t(['002_a.sql', '003_b.sql'], '003', true);                // NEXT behind
+  t(['002_a.sql', '003_b.sql'], '009', true);                // NEXT ahead
+  console.log('Migration number checks: 6 self-tests pass.');
+  process.exit(0);
+}
+
+const numbered = fs.readdirSync('sql').filter(f => /^\d{3}_.*\.sql$/.test(f)).sort();
+const numberProblems = checkNumbers(numbered, fs.readFileSync('sql/NEXT', 'utf8').trim());
+if (numberProblems.length) {
+  console.error('\nMigration number check FAILED\n');
+  numberProblems.forEach(p => console.error(`  • ${p}`));
+  console.error('');
+  process.exit(1);
+}
+
 console.log(`Migration lists: ${deploy.length} migrations, deploy and tests agree. OK.`);
