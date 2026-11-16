@@ -36,3 +36,8 @@ SOP wording, T8 code protection, T11, T12, films redo, application-review clause
 3. Pitch docs/PITCH-5-MIN.md (branch pitch-script) and the stress brief (branch stress-test-brief) are OUT OF DATE; refresh only after the walkthrough.
 4. The "Videos" session is the owner's private, non-platform work: never touch it.
 5. Owner wording rules: never "serious"; never "ready, willing and able"; "the Operator" always singular.
+
+## Update 16 Nov (Supervisor 2)
+- #114 readiness ticks MERGED and live (066 applied). All checks green on head d6fffed; second-opinion points checked, none acted on.
+- Owner confirmed by button 16 Nov: JOB 2 = ONE tooling PR first (Fable fixes #1 #2 #3 #4 #6 + the 12 Rules of the road into CLAUDE.md; decisions file docs/AGREED-2026-11-16-tooling.md). Then #5 staging change-tests (check staging schema vs live first, report before switching). Then Please reconcile (mockup first), then walkthrough.
+- Tell the owner in one line when the tooling PR is open.
