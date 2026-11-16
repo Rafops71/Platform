@@ -39,7 +39,11 @@
     "test:demo": "playwright test -c playwright.demo.config.js",
     "test:demo:operator": "playwright test -c playwright.operator-demo.config.js",
     "check:front-page": "node scripts/check-front-page.js",
-    "check:recommend-cap": "node scripts/recommendation-cap-test.js"
+    "check:recommend-cap": "node scripts/recommendation-cap-test.js",
+    "check:applied-live": "node scripts/check-applied-live.js",
+    "check:test-hidden": "node scripts/check-test-hidden.js",
+    "migration:next": "node scripts/next-migration.js",
+    "prepush": "node scripts/prepush.js"
   },
   "dependencies": {
     "pg": "^8.13.1"

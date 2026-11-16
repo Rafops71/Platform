@@ -104,6 +104,18 @@ jobs:
         run: npm run check:terms
       - name: The site is published only after every check passes
         run: npm run check:deploy
+      # A browser test written against an element the page hides when it loads
+      # can never pass (docs/FABLE-ORCHESTRATION-2026-11-16.md, fix 6). Found
+      # here in a second, with the self-tests of the three tooling scripts
+      # added the same day: migration numbers, applied-live probes, picture filter.
+      - name: No test asserts on a hidden element
+        run: npm run check:test-hidden
+      - name: Tooling self-tests
+        run: |
+          node scripts/check-test-hidden.js --self-test
+          node scripts/check-migration-lists.js --self-test
+          node scripts/check-applied-live.js --self-test
+          node scripts/layout-changed.js --self-test
       - name: Run sql/tests
         run: npm run test:sql
 
@@ -205,6 +217,18 @@ jobs:
             exit 1
           fi
           echo "All four secrets are present."
+
+      - name: Is every new migration applied live?
+        # Seconds, before the 15-minute browser suite (docs/FABLE-ORCHESTRATION-2026-11-16.md,
+        # fix 3). The suite runs against the LIVE project, so a pull request that adds a
+        # migration is red until it is applied there; this says so at once, by name,
+        # instead of after the browser run. Each new migration carries a read-only
+        # "-- applied-probe:" line, asked inside a READ ONLY transaction
+        # (scripts/check-applied-live.js). On a push to main there is nothing to compare.
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: node scripts/check-applied-live.js
 
       - name: Install the browser
         run: npx playwright install --with-deps chromium
