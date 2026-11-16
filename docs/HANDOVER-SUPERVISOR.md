@@ -22,3 +22,10 @@ Supervisor (me): session_01DzTmTBerFFsng54vi1snGx, branch claude/great-allen-5xl
 
 ## Parked
 SOP wording, T8 code protection, T11, T12, films redo, application-review clause, sanctions check, OpenCode/free-model trial (after walkthrough, one low-risk job). Comparison report (metals-hub) is a private Artifact claude.ai/artifact/UEa7L2biR71oQzuCRmS6d6.
+
+## Hand-off note (16 Nov, when Supervisor 2 took over)
+- Builder 2 (session_01DzTmTCw9oBmzhRrv8WRjEn) is building JOB 1 readiness ticks (branch readiness-ticks-2026-11-16, migration 066, wording and Operator-only visibility approved by the owner). When its PR is open and EVERY check on the head is green: read its report (every new EN+ES string, second-opinion points), merge, apply 066 via apply-sql.yml (ref = the branch BEFORE merge if the CI needs it, as with 063/064), read back, tell the owner in one line. A red Function checklist caused only by the unapplied migration is the usual cause: apply, then rerun failed jobs.
+- Pending question with the owner: none open. He is waiting for nothing from me except the next build report.
+- After ticks: JOB 2 "Please reconcile" (mockup first? it is a NEW screen: show him a mockup), then the walkthrough.
+- The builder reports to the supervisor session id it was told; Supervisor 2 must tell it its own session id first.
+- Apply recipe: gh api -X POST repos/Rafops71/Platform/actions/workflows/apply-sql.yml/dispatches -f ref=<branch> -f 'inputs[files]=NNN_name.sql'; wait (lane queue up to ~30 min); read back with Supabase MCP execute_sql on project coarclhafggkakmpggfh.
