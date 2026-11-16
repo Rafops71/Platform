@@ -193,6 +193,10 @@
           </div>
         </fieldset>
 
+        <!-- Sell offers only (a Buy request skips it, js/app.js showRoleQuestions). The old
+             "Can documents be shown during due diligence?" question is gone: every Sell
+             listing shows one fixed line instead (js/app.js, 'stmt.browse.docsLine'). -->
+        <div id="docs-seen-row">
         <label for="docs_seen"><span data-i18n="stmt.docsSeen.q">Have you personally seen documents for this offer?</span> *</label>
         <select id="docs_seen">
           <option value="" data-i18n="stmt.choose">Choose…</option>
@@ -200,14 +204,7 @@
           <option value="source_says" data-i18n="stmt.docsSeen.source_says">No, but my source says they exist</option>
           <option value="no" data-i18n="stmt.docsSeen.no">No</option>
         </select>
-
-        <label for="docs_showable"><span data-i18n="stmt.docsShowable.q">Can documents be shown during due diligence?</span> *</label>
-        <select id="docs_showable">
-          <option value="" data-i18n="stmt.choose">Choose…</option>
-          <option value="on_request" data-i18n="stmt.docsShowable.on_request">Yes, on request</option>
-          <option value="after_agreement" data-i18n="stmt.docsShowable.after_agreement">Only after an agreement is signed</option>
-          <option value="no" data-i18n="stmt.docsShowable.no">No</option>
-        </select>
+        </div>
 
         <div class="terms-accept">
           <label for="truth-confirm" class="checkbox-row">

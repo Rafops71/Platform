@@ -432,6 +432,8 @@ function wireListingForm() {
 function statementsLine(l) {
   let role = l.poster_role ? t(`stmt.browse.role.${l.poster_role}`) : t('stmt.notStated');
   if (l.poster_role === 'principal' && l.type === 'sell' && l.principal_kind) role += ` (${t(`stmt.browse.kind.${l.principal_kind}`)})`;
+  // A Buy request is never asked about documents, so it shows no documents part.
+  if (l.type === 'buy') return `${t('stmt.browse.role')}: ${role}`;
   const docs = l.docs_seen ? t(`stmt.browse.docs.${l.docs_seen}`) : t('stmt.notStated');
   return `${t('stmt.browse.role')}: ${role} · ${t('stmt.browse.docs')}: ${docs}`;
 }
@@ -444,6 +446,8 @@ function showRoleQuestions() {
   document.getElementById('kind-row').classList.toggle('hidden', !(role === 'principal' && isSell));
   document.getElementById('mandate-row').classList.toggle('hidden', role !== 'mandated');
   document.getElementById('broker-row').classList.toggle('hidden', role !== 'broker');
+  // The documents question is for a Sell offer only.
+  document.getElementById('docs-seen-row').classList.toggle('hidden', !isSell);
 }
 
 /** What the poster says about the offer. Returns { values } or { errorKey }.
@@ -457,14 +461,14 @@ function readListingStatements() {
   const mandateDate = document.getElementById('mandate_date').value;
   const via = document.getElementById('broker_via').value;
   const docsSeen = document.getElementById('docs_seen').value;
-  const docsShowable = document.getElementById('docs_showable').value;
+  const isSell = document.querySelector('input[name="type"]:checked')?.value === 'sell';
   if (!role) return { errorKey: 'stmt.err.role' };
   if (kindShown && !kind) return { errorKey: 'stmt.err.kind' };
   if (role === 'mandated' && mandate !== 'yes') return { errorKey: 'stmt.err.noMandate' };
   if (role === 'mandated' && !mandateDate) return { errorKey: 'stmt.err.mandateDate' };
   if (role === 'broker' && via === 'further') return { errorKey: 'stmt.err.tooFar' };
   if (role === 'broker' && !via) return { errorKey: 'stmt.err.via' };
-  if (!docsSeen || !docsShowable) return { errorKey: 'stmt.err.docs' };
+  if (isSell && !docsSeen) return { errorKey: 'stmt.err.docs' };
   if (!document.getElementById('truth-confirm').checked) return { errorKey: 'stmt.err.truth' };
   return { values: {
     poster_role: role,
@@ -472,8 +476,9 @@ function readListingStatements() {
     has_mandate: role === 'mandated' ? true : null,
     mandate_date: role === 'mandated' ? mandateDate : null,
     broker_via: role === 'broker' ? via : null,
-    docs_seen: docsSeen,
-    docs_showable: docsShowable,
+    // Only a Sell offer carries the documents answer. A Buy request sends none, and an
+    // answer already stored on an older listing is left exactly as it was.
+    ...(isSell ? { docs_seen: docsSeen } : {}),
     truth_confirmed: true,
   } };
 }
@@ -530,7 +535,6 @@ async function editListing(id) {
   document.getElementById('mandate_date').value = listing.mandate_date ?? '';
   document.getElementById('broker_via').value = listing.broker_via ?? '';
   document.getElementById('docs_seen').value = listing.docs_seen ?? '';
-  document.getElementById('docs_showable').value = listing.docs_showable ?? '';
   document.getElementById('truth-confirm').checked = false;
   showRoleQuestions();
   renderDocChecklist(selected);
@@ -655,6 +659,7 @@ async function loadBrowseListings() {
       ${l.price_conditions ? `<div class="list-row-meta">${escapeHtml(t('browse.price', { value: priceLine(l) }))}</div>` : ''}
       ${l.notes ? `<div class="list-row-meta">${escapeHtml(t('browse.notes', { value: l.notes }))}</div>` : ''}
       <div class="list-row-meta" data-statements>${escapeHtml(statementsLine(l))}</div>
+      ${l.type === 'sell' ? `<div class="list-row-meta" data-docs-line>${escapeHtml(t('stmt.browse.docsLine'))}</div>` : ''}
       <div class="list-row-meta">
         ${l.has_documents ? escapeHtml(t('listings.documentsIndicated')) : `<strong>${escapeHtml(t('listings.noDocsIndicated'))}</strong>`} · ${escapeHtml(t('listings.posted', { date: formatDate(l.created_at) }))}
       </div>

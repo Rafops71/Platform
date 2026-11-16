@@ -20,6 +20,10 @@
 \echo
 \echo '=========== THE LISTING-STATEMENTS ERROR SAYS MYPLATFORM ==========='
 
+-- This file proves the function as sql/060 left it. Migration 063 (documents questions) changed the
+-- function later, so it is stepped back to 060's state here and put forward again at the end.
+\i sql/revert/063_documents_questions_revert.sql
+
 create temp table t31_new as
 select pg_get_functiondef(p.oid) as def, p.provolatile, p.prosecdef, p.proconfig::text as cfg,
        p.proacl::text as acl, p.proowner::regrole::text as owner, p.prorettype::regtype::text as rt
@@ -74,3 +78,5 @@ from pg_proc p where p.proname = 'enforce_listing_statements' and p.pronamespace
 select case when count(*) = 1 then 'PASS' else 'FAIL got ' || count(*) end
   as "T8 the trigger is still in place after the re-apply"
 from pg_trigger t where t.tgname = 'trg_enforce_listing_statements' and not t.tgisinternal;
+
+\i sql/063_documents_questions.sql
