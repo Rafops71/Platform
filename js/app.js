@@ -438,6 +438,14 @@ function statementsLine(l) {
   return `${t('stmt.browse.role')}: ${role} · ${t('stmt.browse.docs')}: ${docs}`;
 }
 
+/** The poster's one statements date under Browse's statements line (sql/064). Older than 30 days
+ *  it reads "Not re-confirmed since"; a listing that never carried statements shows no date. */
+function statementsDateLine(l) {
+  if (!l.truth_confirmed_at) return '';
+  const date = formatDate(l.truth_confirmed_at);
+  return t(isStatementDateOld(l.truth_confirmed_at) ? 'stmt.browse.notReconfirmed' : 'stmt.browse.stated', { date });
+}
+
 /** The mandate question for a mandated intermediary, the chain question for
  *  a broker, Producer-or-Trader for a principal on a Sell offer only. */
 function showRoleQuestions() {
@@ -659,6 +667,7 @@ async function loadBrowseListings() {
       ${l.price_conditions ? `<div class="list-row-meta">${escapeHtml(t('browse.price', { value: priceLine(l) }))}</div>` : ''}
       ${l.notes ? `<div class="list-row-meta">${escapeHtml(t('browse.notes', { value: l.notes }))}</div>` : ''}
       <div class="list-row-meta" data-statements>${escapeHtml(statementsLine(l))}</div>
+      ${statementsDateLine(l) ? `<div class="list-row-meta" data-statements-date>${escapeHtml(statementsDateLine(l))}</div>` : ''}
       ${l.type === 'sell' ? `<div class="list-row-meta" data-docs-line>${escapeHtml(t('stmt.browse.docsLine'))}</div>` : ''}
       <div class="list-row-meta">
         ${l.has_documents ? escapeHtml(t('listings.documentsIndicated')) : `<strong>${escapeHtml(t('listings.noDocsIndicated'))}</strong>`} · ${escapeHtml(t('listings.posted', { date: formatDate(l.created_at) }))}
