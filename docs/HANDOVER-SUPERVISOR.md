@@ -41,3 +41,9 @@ SOP wording, T8 code protection, T11, T12, films redo, application-review clause
 - #114 readiness ticks MERGED and live (066 applied). All checks green on head d6fffed; second-opinion points checked, none acted on.
 - Owner confirmed by button 16 Nov: JOB 2 = ONE tooling PR first (Fable fixes #1 #2 #3 #4 #6 + the 12 Rules of the road into CLAUDE.md; decisions file docs/AGREED-2026-11-16-tooling.md). Then #5 staging change-tests (check staging schema vs live first, report before switching). Then Please reconcile (mockup first), then walkthrough.
 - Tell the owner in one line when the tooling PR is open.
+
+## Update 17 Nov (Supervisor 2)
+- MERGED: #116 tooling (Fable #1 #2 #3 #4 #6 + RULES-OF-THE-ROAD), #118 (067 staging email rule + test-key fix), #119 (staging-operator workflow), #120 (PR tests run on STAGING; grid and pictures chained after the checklist; guard). Acceptance: 88/88 on staging twice in a row, grid and pictures green.
+- Staging now holds: 1 standing Operator (staging-operator@example.invalid, via workflow staging-operator, teardown = same workflow, action teardown) and edge function operator-recovery-link (v1, verify_jwt true; delete only via dashboard). Staging redirect list has 2 localhost entries (left alone; owner told).
+- OPEN for owner: drop leftover live policy activity_log_insert (inert; needs his yes). Staging ledger has no content hash.
+- NEXT: JOB "Please reconcile" (mockup first), then the function-by-function walkthrough. Watch the first push-to-main CI run on live after #120.
