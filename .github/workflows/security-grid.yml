@@ -13,24 +13,16 @@ name: Security grid (staging)
 #
 # The staging URL and publishable key are not secret; the service role key
 # and database address are repository secrets.
+#
+# SINCE 17 NOV 2026 THIS WORKFLOW RUNS ONLY ON ITS NIGHTLY SCHEDULE AND BY HAND. On pull requests the
+# same grid and pictures are jobs of ci.yml, behind the browser suites, so nothing else writes to staging
+# while the privilege scan counts rows (PR 117). scripts/check-ci-targets.js fails the build if the two
+# copies of the grid steps drift apart.
 
 on:
   schedule:
     - cron: '17 2 * * *'
   workflow_dispatch: {}
-  pull_request:
-    paths:
-      - 'sql/**'
-      - 'scripts/security-grid.js'
-      - 'scripts/*-scan.js'
-      - 'scripts/browser-crawl.js'
-      - 'scripts/browser-leak-scan.js'
-      - '*.html'
-      - 'js/**'
-      - 'css/**'
-      - 'tests/visual/**'
-      - 'playwright.visual.config.js'
-      - '.github/workflows/security-grid.yml'
 
 permissions:
   contents: read
