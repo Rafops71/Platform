@@ -96,6 +96,7 @@ const DEFAULT_ORDER = [
   '064_dated_statements.sql',
   '065_terms_3_8.sql',
   '066_readiness_ticks.sql',
+  '067_receipt_test_marker.sql',
   'seed_commodities.sql',
 ];
 

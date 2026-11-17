@@ -183,9 +183,12 @@ async function canSignIn(email, password) {
     `${body.slice(0, 200)}. This is not evidence about the password.`);
 }
 
-// The publishable key is what a browser uses; read from the page's own config
-// so this test cannot drift from what the site actually ships.
-const SUPABASE_PUBLISHABLE_KEY_FOR_TEST = require('fs')
+// The publishable key is what a browser uses. It must belong to the SAME project as SUPABASE_URL,
+// which these calls go to: CI passes SUPABASE_PUBLISHABLE_KEY with that URL, so it wins. Only when it
+// is not set (a local run with just a .env) is it read from the page's own config, so the test still
+// cannot drift from what the site ships. Reading the file unconditionally sent the live key to
+// whichever project SUPABASE_URL named - a 401 "Invalid API key" on any other project (PR 117).
+const SUPABASE_PUBLISHABLE_KEY_FOR_TEST = process.env.SUPABASE_PUBLISHABLE_KEY || require('fs')
   .readFileSync(require('path').join(__dirname, '../../js/supabase-config.js'), 'utf8')
   .match(/SUPABASE_PUBLISHABLE_KEY\s*=\s*'([^']+)'/)[1];
 
