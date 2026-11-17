@@ -438,13 +438,10 @@ jobs:
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
 
-      # Last, so its 40 sign-ins come after the others' (staging allows 150
-      # token requests per 5 minutes): 40 members acting at the same instant
-      # through the real API. Every one answered, quickly, and stored once.
-      - name: Forty members at once
-        run: node scripts/crowd-scan.js
-        env:
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+      # NOT HERE: "Forty members at once" (scripts/crowd-scan.js) runs in the nightly security grid only
+      # (security-grid.yml). Owner decision 17 Nov 2026, docs/AGREED-2026-11-17-crowd-scan.md: it measures the
+      # speed of the small free staging server, not the code, so it does not block a pull request.
+      # scripts/check-ci-targets.js fails the build if it reappears in this job or leaves the nightly.
 
   # The picture check (playwright.visual.config.js): the public pages and
   # every dashboard tab, against the approved pictures. A job of this
