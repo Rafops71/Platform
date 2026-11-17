@@ -122,6 +122,9 @@ function check(text, gridText) {
   else {
     if (!/\bgrid\b/.test(needsOf(pics))) problems.push(`the pictures job must wait for "grid" (needs: ${needsOf(pics) || 'nothing'})`);
     if (!ifOf(pics).includes(PR)) problems.push('the pictures job must run on pull requests only');
+    // The visual tests read the staging address and key from the environment; without them they fail
+    // ("SUPABASE_URL ... are required", PR 120 run 1).
+    for (const v of ['SUPABASE_URL', 'SUPABASE_ANON_KEY']) if (!new RegExp(`^\\s+${v}: .+`, 'm').test(pics)) problems.push(`the pictures job must set ${v} to the staging project's value`);
   }
   // the nightly copy and this one must run the same commands, in the same order
   if (gridText != null && grid) {
@@ -160,6 +163,7 @@ if (process.argv.includes('--self-test')) {
     'the grid would run on a push too': (t) => t.replace(`    needs: [checklist, safari]\n    if: \${{ !cancelled() && github.event_name == 'pull_request' }}`, `    needs: [checklist, safari]\n    if: \${{ !cancelled() }}`),
     'the pictures stop waiting for the grid': (t) => t.replace('    needs: [grid, layout]', '    needs: [layout]'),
     'the grid is handed a live secret': (t) => t.replace('          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}\n\n      # Same staging world', '          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}\n\n      # Same staging world'),
+    'the pictures job loses its staging address': (t) => t.replace(/(  pictures:[\s\S]*?)      SUPABASE_URL: https:\/\/pqxlfgvjoowawzgoszna\.supabase\.co\n/, '$1'),
     'a grid step is changed in ci.yml only': (t) => t.replace('run: node scripts/identity-scan.js', 'run: node scripts/identity-scan.js --quick'),
     'the test server override stays set on a push': (t) => t.replace(`SERVE_SUPABASE_URL: \${{ github.event_name == 'pull_request' && env.TARGET_URL || '' }}`, `SERVE_SUPABASE_URL: \${{ env.TARGET_URL }}`),
   };
