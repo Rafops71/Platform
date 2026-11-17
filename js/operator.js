@@ -1340,10 +1340,16 @@ function reconcileDay(iso, lang) {
   return lang === 'es' ? `${d.getDate()} de ${MONTHS_FOR_RECONCILE.es[d.getMonth()]}` : `${d.getDate()} ${MONTHS_FOR_RECONCILE.en[d.getMonth()]}`;
 }
 
+/** Owner, 17 Nov: inside the quotes the statement loses its OWN final full stop (the text would otherwise end
+ *  ".'." ). Exactly one is removed; a statement without one is left untouched. */
+function stripFinalFullStop(s) {
+  return typeof s === 'string' && s.endsWith('.') ? s.slice(0, -1) : s;
+}
+
 function buildReconcileText(lang, pick, messageBody, messageCreatedAt) {
   const l = lang === 'es' ? 'es' : 'en';
   const statement = (l === 'es' ? READINESS_LABELS_ES : READINESS_LABELS)[pick.key] || READINESS_LABELS[pick.key];
-  return RECONCILE_TEXT[l](reconcileDay(pick.confirmedAt, l), statement, reconcileDay(messageCreatedAt, l), messageBody);
+  return RECONCILE_TEXT[l](reconcileDay(pick.confirmedAt, l), stripFinalFullStop(statement), reconcileDay(messageCreatedAt, l), messageBody);
 }
 
 let RECONCILE_PICKS = new Map();   // option value -> { listingId, ref, key, confirmedAt }

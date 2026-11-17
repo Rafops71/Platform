@@ -7,5 +7,6 @@ The owner approved the mockup (`mockups/reconcile/` on branch `mockup-reconcile-
 5. Labels kept: box heading "What this member stated earlier, on their own listing"; status "On hold".
 6. The member's message, the owner's chosen wording: "On 10 Nov you confirmed '<statement>'. Your message of 15 Nov says '<message text>'. Please tell the Operator which is correct, or change your statement." (the dates are the real last-confirmed date and the message date; the rest of the sentence word for word from his example; nothing reworded).
 7. The Operator ALSO sees the sender's real name in the box (Operator only; never in anything a member sees, nor in the text sent to the member; tested).
+8. Full stop (owner, 17 Nov, job 5): the label "Member:" stays. Inside the quotes the statement loses its own final full stop, EN and ES, so the text no longer ends ".'.". Nothing else changes.
 Also: the Operator console stays English (owner rule); only the member-facing text gets Spanish.
 Rule 13 (owner, 17 Nov): "Before any switch, setup or migration: list every precondition it needs and CHECK each one exists with a tool. Only then build." It is in docs/RULES-OF-THE-ROAD.md.
