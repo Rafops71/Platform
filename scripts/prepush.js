@@ -58,6 +58,8 @@ run('migration numbers: self-test', 'node', ['scripts/check-migration-lists.js',
 run('new migrations carry an applied-probe', 'node', ['scripts/check-applied-live.js', '--lint'], { env: { ...process.env, BASE_REF: BASE } });
 run('applied-probe: self-test', 'node', ['scripts/check-applied-live.js', '--self-test']);
 run('no test asserts on a hidden element', 'node', ['scripts/check-test-hidden.js']);
+run('CI database targets (PR=staging, push=live, staging takes turns)', 'node', ['scripts/check-ci-targets.js']);
+run('CI database targets: self-test', 'node', ['scripts/check-ci-targets.js', '--self-test']);
 run('hidden-element lint: self-test', 'node', ['scripts/check-test-hidden.js', '--self-test']);
 run('picture-job filter: self-test', 'node', ['scripts/layout-changed.js', '--self-test']);
 

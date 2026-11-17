@@ -41,7 +41,17 @@ concurrency:
   # cancel-in-progress is false: a run that is already talking to the
   # database should finish and clean up after itself, not be killed halfway
   # and leave its accounts behind. Later runs queue instead.
-  group: ci-live-database
+  #
+  # PULL REQUESTS RUN THEIR BROWSER SUITES ON STAGING (docs/AGREED-2026-11-16-tooling.md,
+  # item 4), so they no longer hold the live lane: a pull request's run queues in its own group,
+  # "ci-staging-database", and a push to main (or a manual run) keeps "ci-live-database", the
+  # group apply-sql.yml shares. The group is deliberately NOT security-grid.yml's
+  # "staging-database": two workflows in one group cancel each other's waiting runs (that is
+  # what happened to the pictures on PR 38). Everything that touches staging in a pull request
+  # is a job of THIS workflow, in a chain (checklist, safari, then the grid, then the pictures:
+  # see "needs" below), so nothing else writes to staging while the privilege scan counts rows.
+  # security-grid.yml now runs only on its nightly schedule and by hand.
+  group: ${{ github.event_name == 'pull_request' && 'ci-staging-database' || 'ci-live-database' }}
   cancel-in-progress: false
 
 jobs:
@@ -123,6 +133,14 @@ jobs:
       # secrets, and create / teardown work for real against a throwaway PostgreSQL.
       - name: The staging Operator tool works and refuses live
         run: node scripts/staging-operator.js --self-test
+      # Pull requests run the browser suites on STAGING, pushes to main on LIVE, and the staging jobs
+      # take turns. This reads this very file and fails if that rule could ever send a push to staging,
+      # a pull request to live, hand a publishing job a database secret, or let the grid run beside
+      # the checklist; its self-test breaks a copy several ways and needs a failure each time.
+      - name: Pull requests use staging, pushes to main use live, staging jobs take turns
+        run: |
+          npm run check:ci-targets
+          node scripts/check-ci-targets.js --self-test
 
   stress:
     name: Volume and concurrency
@@ -154,6 +172,17 @@ jobs:
   safari:
     name: Safari on an iPhone
     runs-on: ubuntu-latest
+    # WHICH DATABASE THE BROWSER SUITES USE (docs/AGREED-2026-11-16-tooling.md, item 4). One rule: a
+    # pull request uses the STAGING project, everything else (push to main, manual run) uses LIVE.
+    # Declared on the two jobs that run browser suites, and only on them, so no other job (the
+    # publishing ones included) is handed these secrets. scripts/check-ci-targets.js fails the build
+    # if either block differs from the rule or a browser-suite step names a live secret directly.
+    # The staging URL and publishable key are public, as in security-grid.yml.
+    env:
+      TARGET_URL: ${{ github.event_name == 'pull_request' && 'https://pqxlfgvjoowawzgoszna.supabase.co' || secrets.SUPABASE_URL }}
+      TARGET_ANON_KEY: ${{ github.event_name == 'pull_request' && 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxeGxmZ3Zqb293YXd6Z29zem5hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxMTUyNTMsImV4cCI6MjEwODY5MTI1M30.d-5Hk6gljO5IOgsLus3AtddsOD7g9xJ6ra4beHGFtEQ' || secrets.SUPABASE_ANON_KEY }}
+      TARGET_SERVICE_ROLE_KEY: ${{ github.event_name == 'pull_request' && secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY || secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      TARGET_DB_URL: ${{ github.event_name == 'pull_request' && secrets.STAGING_SUPABASE_DB_URL || secrets.SUPABASE_DB_URL }}
     # AFTER the checklist, never beside it. Both drive the live Supabase
     # project, and two live runs at once is a race nobody needs: the fixtures
     # are scoped per run, but an orphan sweep in one can land mid-test in the
@@ -175,11 +204,14 @@ jobs:
         run: npx playwright install --with-deps webkit
 
       - name: The member's journey on Safari
+        # Same target rule as the checklist (see TARGET_* above): staging on a pull request, live otherwise.
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_URL: ${{ env.TARGET_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ env.TARGET_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ env.TARGET_SERVICE_ROLE_KEY }}
+          SUPABASE_DB_URL: ${{ env.TARGET_DB_URL }}
+          SERVE_SUPABASE_URL: ${{ github.event_name == 'pull_request' && env.TARGET_URL || '' }}
+          SERVE_SUPABASE_KEY: ${{ github.event_name == 'pull_request' && env.TARGET_ANON_KEY || '' }}
           OPERATOR_EMAIL: ${{ secrets.OPERATOR_EMAIL }}
         run: npx playwright test --project=safari
 
@@ -195,6 +227,17 @@ jobs:
   checklist:
     name: Function checklist
     runs-on: ubuntu-latest
+    # WHICH DATABASE THE BROWSER SUITES USE (docs/AGREED-2026-11-16-tooling.md, item 4). One rule: a
+    # pull request uses the STAGING project, everything else (push to main, manual run) uses LIVE.
+    # Declared on the two jobs that run browser suites, and only on them, so no other job (the
+    # publishing ones included) is handed these secrets. scripts/check-ci-targets.js fails the build
+    # if either block differs from the rule or a browser-suite step names a live secret directly.
+    # The staging URL and publishable key are public, as in security-grid.yml.
+    env:
+      TARGET_URL: ${{ github.event_name == 'pull_request' && 'https://pqxlfgvjoowawzgoszna.supabase.co' || secrets.SUPABASE_URL }}
+      TARGET_ANON_KEY: ${{ github.event_name == 'pull_request' && 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxeGxmZ3Zqb293YXd6Z29zem5hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxMTUyNTMsImV4cCI6MjEwODY5MTI1M30.d-5Hk6gljO5IOgsLus3AtddsOD7g9xJ6ra4beHGFtEQ' || secrets.SUPABASE_ANON_KEY }}
+      TARGET_SERVICE_ROLE_KEY: ${{ github.event_name == 'pull_request' && secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY || secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      TARGET_DB_URL: ${{ github.event_name == 'pull_request' && secrets.STAGING_SUPABASE_DB_URL || secrets.SUPABASE_DB_URL }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -206,22 +249,26 @@ jobs:
       - name: Confirm the secrets this suite needs are present
         # Without this the suite fails deep inside a fixture with an unhelpful
         # auth error. Say plainly which secret is missing instead.
+        # Checks the values this run will actually use: the staging ones on a pull request,
+        # the live ones otherwise (TARGET_* above), and says which.
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_URL: ${{ env.TARGET_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ env.TARGET_SERVICE_ROLE_KEY }}
+          SUPABASE_DB_URL: ${{ env.TARGET_DB_URL }}
+          SUPABASE_ANON_KEY: ${{ env.TARGET_ANON_KEY }}
+          WHICH: ${{ github.event_name == 'pull_request' && 'STAGING (pull request)' || 'LIVE (push to main or manual run)' }}
         run: |
+          echo "This run's browser suites use: $WHICH"
           missing=
           for name in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY SUPABASE_DB_URL SUPABASE_ANON_KEY; do
             if [ -z "${!name}" ]; then missing="$missing $name"; fi
           done
           if [ -n "$missing" ]; then
-            echo "::error::Missing repository secret(s):$missing"
-            echo "Settings -> Secrets and variables -> Actions -> New repository secret"
+            echo "::error::Missing repository secret(s) for $WHICH:$missing"
+            echo "Settings -> Secrets and variables -> Actions -> New repository secret (staging ones are named STAGING_...)"
             exit 1
           fi
-          echo "All four secrets are present."
+          echo "All four values are present."
 
       - name: Is every new migration applied live?
         # Seconds, before the 15-minute browser suite (docs/FABLE-ORCHESTRATION-2026-11-16.md,
@@ -235,17 +282,33 @@ jobs:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: node scripts/check-applied-live.js
 
+      - name: Bring staging up to this commit's SQL
+        # Pull requests only. The suite below runs on staging, so staging must hold this commit's
+        # migrations first. --only-new skips what the staging ledger already records and applies the
+        # rest, one transaction per file. A push to main runs on live, which the supervisor has
+        # already brought up (the probe step above checks it).
+        if: github.event_name == 'pull_request'
+        env:
+          SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+        run: node scripts/apply-sql.js --only-new
+
       - name: Install the browser
         run: npx playwright install --with-deps chromium
 
       - name: Tick/cross table
         # scripts/serve.js is started by playwright.config.js — nothing to start
         # here. Exits non-zero if any function is crossed or unproven.
+        #
+        # WHICH DATABASE: staging on a pull request, live on a push to main or a manual run
+        # (TARGET_* at the top of this job). SERVE_* make the test server hand the pages the
+        # same project, since js/supabase-config.js names live; they are empty on a push.
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_URL: ${{ env.TARGET_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ env.TARGET_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ env.TARGET_SERVICE_ROLE_KEY }}
+          SUPABASE_DB_URL: ${{ env.TARGET_DB_URL }}
+          SERVE_SUPABASE_URL: ${{ github.event_name == 'pull_request' && env.TARGET_URL || '' }}
+          SERVE_SUPABASE_KEY: ${{ github.event_name == 'pull_request' && env.TARGET_ANON_KEY || '' }}
           OPERATOR_EMAIL: ${{ secrets.OPERATOR_EMAIL }}
         run: npm run checklist
 
@@ -278,6 +341,183 @@ jobs:
             test-results/
           retention-days: 5
           if-no-files-found: ignore
+
+  # THE SECURITY GRID, AFTER THE BROWSER SUITES, ON STAGING - pull requests only.
+  # The same steps as security-grid.yml (kept in step by scripts/check-ci-targets.js; that workflow now
+  # runs only nightly and by hand). They are jobs of THIS workflow, behind the checklist and Safari, because
+  # the privilege scan counts whole tables before and after its attempts: any other writer on staging in
+  # between turns a pass into "invitations changed from 5 to 6" (PR 117). "needs" is the turn-taking;
+  # !cancelled() so the grid still runs, and still reports, when an earlier job failed.
+  grid:
+    needs: [checklist, safari]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: https://pqxlfgvjoowawzgoszna.supabase.co
+      SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxeGxmZ3Zqb293YXd6Z29zem5hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxMTUyNTMsImV4cCI6MjEwODY5MTI1M30.d-5Hk6gljO5IOgsLus3AtddsOD7g9xJ6ra4beHGFtEQ
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+
+      - name: Bring staging up to this commit's SQL
+        run: node scripts/apply-sql.js --only-new
+        env:
+          SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+
+      - name: Every door, every caller
+        run: node scripts/security-grid.js
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+
+      # Same staging world, a different question: is any member ever SENT
+      # another member's name, email, phone, company or ids - through any
+      # table, any function, or any error message?
+      - name: Nobody is sent anybody else's identity
+        run: node scripts/identity-scan.js
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+
+      # And: can anybody make themselves more than they are? Self-promotion,
+      # forged tokens, Operator-only functions, the suspended acting active -
+      # then the database is read past every policy to prove nothing moved.
+      - name: Nobody rises above their station
+        run: node scripts/privilege-scan.js
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+
+      # Secret codes and sessions: invitation codes cannot be guessed or
+      # reused, signing out ends the refresh token, a member suspended or
+      # deleted mid-session is shut out with the token they still hold, and
+      # no token is ever stored where people read.
+      - name: No code can be guessed, reused or kept
+        run: node scripts/token-scan.js
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+
+      # Collisions: the same action by two hands at the same instant, fired
+      # truly in parallel, then the database read to see what stuck.
+      - name: Nothing happens twice that should happen once
+        run: node scripts/collision-scan.js
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+
+      # Every email, by the real triggers, in English and Spanish: each one
+      # matches its template in its reader's language, fully filled, linking
+      # only to the platform, naming no poster.
+      - name: Every email, both languages
+        run: node scripts/email-scan.js
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+
+      # The real pages, in a real browser, against staging: every page and
+      # every dashboard tab as a stranger, a member and an Operator, in both
+      # languages - no script errors, no dead tabs, nothing stuck loading, no
+      # critical accessibility fault (axe-core). Two engines: Chromium and
+      # Firefox (Safari's engine already runs in ci.yml).
+      - name: Install the browsers
+        run: npx playwright install --with-deps chromium firefox
+      - name: Every page, every tab (Chromium)
+        run: node scripts/browser-crawl.js
+        env:
+          BROWSER: chromium
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+      - name: Every page, every tab (Firefox)
+        run: node scripts/browser-crawl.js
+        env:
+          BROWSER: firefox
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+
+      # What the real pages pull down and keep, as members A and B: every
+      # download, localStorage, sessionStorage, cookies and the screen,
+      # searched for another member's name, company, phone or email.
+      - name: No member's browser gets another member's identity
+        run: node scripts/browser-leak-scan.js
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+
+      # Last, so its 40 sign-ins come after the others' (staging allows 150
+      # token requests per 5 minutes): 40 members acting at the same instant
+      # through the real API. Every one answered, quickly, and stored once.
+      - name: Forty members at once
+        run: node scripts/crowd-scan.js
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+
+  # The picture check (playwright.visual.config.js): the public pages and
+  # every dashboard tab, against the approved pictures. A job of this
+  # workflow, after the grid, and not a workflow of its own: two workflows
+  # in the one staging-database line threw each other out (GitHub keeps one
+  # waiting run per line), and the pictures were cancelled on PR 38.
+  # A page with no approved picture fails, and its new picture is kept as
+  # the "pictures" artifact to look at and commit.
+  #
+  # ONLY WHEN A PICTURE COULD MOVE (docs/FABLE-ORCHESTRATION-2026-11-16.md, fix 4).
+  # On a pull request the job below runs only if css/, a page's HTML, js/ other than
+  # js/i18n.js, tests/visual/ or its config changed (the rule is scripts/layout-changed.js,
+  # with its own self-test). A wording-only change to js/i18n.js, a migration or a test
+  # skips it - a skipped job reads "skipped", not red. The trade-off, plainly: a new
+  # English phrase can make a screen a few pixels different, and the pictures notice it
+  # at the nightly run instead of on the pull request. Pushes, the nightly schedule and
+  # manual runs always take the pictures.
+  layout:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      pictures: ${{ steps.decide.outputs.pictures }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Did anything that can move a picture change?
+        id: decide
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [ "$EVENT" != "pull_request" ]; then
+            echo "pictures=true" >> "$GITHUB_OUTPUT"
+            echo "Not a pull request: the pictures always run."
+            exit 0
+          fi
+          git fetch --no-tags --depth=1 origin "$BASE_REF"
+          git diff --name-only "origin/$BASE_REF" HEAD > changed.txt
+          echo "Changed files:"; cat changed.txt
+          result=$(node scripts/layout-changed.js < changed.txt)
+          echo "pictures=$result" >> "$GITHUB_OUTPUT"
+          echo "The pictures run: $result"
+
+  pictures:
+    needs: [grid, layout]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && needs.layout.outputs.pictures == 'true' }}
+    runs-on: ubuntu-latest
+    # The same staging address and publishable key as the grid job above, as security-grid.yml gives its
+    # pictures job at workflow level: the visual tests read SUPABASE_URL / SUPABASE_ANON_KEY (and the
+    # service key, set on the step) and failed without them on this PR's first run.
+    env:
+      SUPABASE_URL: https://pqxlfgvjoowawzgoszna.supabase.co
+      SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxeGxmZ3Zqb293YXd6Z29zem5hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxMTUyNTMsImV4cCI6MjEwODY5MTI1M30.d-5Hk6gljO5IOgsLus3AtddsOD7g9xJ6ra4beHGFtEQ
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - name: Install the browser
+        run: npx playwright install --with-deps chromium
+      - name: Every page and every tab looks as approved
+        run: npx playwright test -c playwright.visual.config.js
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+      - name: Keep the pictures
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pictures
+          path: |
+            test-results/
+            tests/visual/screenshots/
+          retention-days: 7
 
   package:
     name: Build artifact

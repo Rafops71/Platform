@@ -1,6 +1,6 @@
 # Plan: pull-request browser tests on staging (written 17 Nov 2026, NOTHING IN THIS FILE HAS BEEN RUN)
 
-Status: **postponed.** PR #117 tried the switch and went red (run 43980820131, head 8aed1a5, branch
+Status: **steps 1-3 done on 17 Nov (Operator created, function deployed, turn-taking built); step 4 is the PR that carries this edit.** (It was: postponed.) PR #117 tried the switch and went red (run 43980820131, head 8aed1a5, branch
 `staging-pr-tests-2026-11-16`). Staging passed 84 of 88 functions; the other four, and a grid failure,
 trace to the four gaps below. This file is the plan for closing them. Every step that changes staging
 needs the owner's approval first (docs/AGREED-2026-11-16-tooling.md, item 5). Nothing here touches live data.

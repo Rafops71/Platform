@@ -10,7 +10,8 @@
 // scripts/serve.js, waits for it to answer, and stops it again afterwards. Set
 // E2E_BASE_URL to point the suite at an already-running server instead.
 //
-// The suite talks to the LIVE Supabase project, because Supabase Auth is
+// The suite talks to a REAL Supabase project - STAGING for a pull request, LIVE for a push to main
+// (.github/workflows/ci.yml, TARGET_*; scripts/check-ci-targets.js guards the rule) - because Supabase Auth is
 // cloud-hosted and there is no local stand-in for it. Every account, listing
 // and message it creates is prefixed and torn down again — see
 // tests/e2e/helpers/fixtures.js. Never point this at a database whose
