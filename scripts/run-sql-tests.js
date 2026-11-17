@@ -85,6 +85,7 @@ const SUITES = [
   'sql/tests/36_terms_3_8.sql',
   'sql/tests/37_readiness_ticks.sql',
   'sql/tests/38_receipt_test_marker.sql',
+  'sql/tests/39_message_on_hold.sql',
 ];
 
 /** An assertion is any single-row result whose first column is named "Tn …"

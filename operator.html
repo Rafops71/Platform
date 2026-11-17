@@ -377,9 +377,18 @@
     <textarea id="forward-edit" rows="5" readonly style="width:100%;"></textarea>
     <div id="forward-flags" class="text-muted" style="margin:6px 0;"></div>
     <div id="forward-preview" class="text-muted" style="white-space:pre-wrap;margin-bottom:10px;border:1px solid #ddd;padding:6px;border-radius:4px;"></div>
+    <!-- "Please reconcile" (sql/068): shown only when the sender has at least one earlier dated statement
+         (a readiness tick on their own listing) and the message is still waiting. The Operator picks the
+         one statement the message appears to contradict; nothing is judged. -->
+    <div id="reconcile-box" class="hidden" style="margin-bottom:10px;border:1px solid #c9dff0;background:#f3f8fc;border-radius:8px;padding:8px 10px;">
+      <p class="mb-0"><strong>What this member stated earlier, on their own listing</strong></p>
+      <p class="mb-0" id="reconcile-sender"></p>
+      <div id="reconcile-options" class="stack"></div>
+    </div>
     <div class="row">
       <button class="btn btn-primary" id="forward-confirm-btn">Forward</button>
       <button class="btn btn-secondary hidden" id="forward-rewrite-btn">Ask member to rewrite</button>
+      <button class="btn btn-secondary hidden" id="forward-reconcile-btn" disabled>Please reconcile</button>
       <button class="btn btn-secondary" id="forward-cancel-btn">Cancel</button>
     </div>
   </div>

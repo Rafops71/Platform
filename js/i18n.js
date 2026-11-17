@@ -445,6 +445,7 @@ const STRINGS = {
     'status.forwarded': 'Forwarded',
     'status.replied': 'Replied',
     'status.ignored': 'Ignored',
+    'status.on_hold': 'On hold',
 
     // ---- Units ------------------------------------------------------------
     'unit.Grams': 'Grams',
@@ -967,6 +968,7 @@ const STRINGS = {
     'status.forwarded': 'Reenviado',
     'status.replied': 'Respondido',
     'status.ignored': 'Ignorado',
+    'status.on_hold': 'En espera',
 
     // ---- Units ------------------------------------------------------------
     // DMTU keeps its English acronym: it is the term used on Spanish-language

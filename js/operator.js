@@ -4,6 +4,7 @@ let CURRENT_PROFILE = null;
 let ALL_PROFILES_BY_ID = {}; // cache for owner-name lookups
 let FORWARD_TARGET = null;   // { messageId, listingId, toUserId, refLabel, originalBody }
 const FORWARD_BODIES = new Map(); // message id -> the body as it was written
+const FORWARD_DATES = new Map();  // message id -> when it was written (for "Please reconcile")
 let REPLY_TARGET = null;     // { originalMessage }
 // Set when the Listings screen was opened from the Overview's stale tile, so
 // the table shows the same rows the count promised. Any Search or Clear on the
@@ -1104,9 +1105,9 @@ async function loadOperatorMailbox() {
       </div>
       <div>${escapeHtml(m.body)}</div>
       <div class="list-row-meta">${formatDateTime(m.created_at)}</div>
-      ${m.status === 'pending_review' ? `
+      ${m.status === 'pending_review' || m.status === 'on_hold' ? `
         <div class="row" style="margin-top:4px;">
-          <button class="btn btn-primary btn-small" data-forward="${m.id}" data-listing="${m.listing_id || ''}" data-owner="${targetId || ''}" data-sender="${m.sender_id}" data-target-kind="${targetKind}" data-target-name="${escapeHtml(targetName || '')}" data-ref="${escapeHtml(refLabel)}">${targetKind === 'sender' ? 'Forward Reply' : 'Forward to Owner'}</button>
+          <button class="btn btn-primary btn-small" data-forward="${m.id}" data-listing="${m.listing_id || ''}" data-owner="${targetId || ''}" data-sender="${m.sender_id}" data-target-kind="${targetKind}" data-target-name="${escapeHtml(targetName || '')}" data-ref="${escapeHtml(refLabel)}" data-status="${m.status}">${targetKind === 'sender' ? 'Forward Reply' : 'Forward to Owner'}</button>
           <button class="btn btn-secondary btn-small" data-reply="${m.id}" data-sender="${m.sender_id}" data-listing2="${m.listing_id || ''}">Reply</button>
           <button class="btn btn-danger btn-small" data-ignore="${m.id}">Ignore</button>
         </div>` : ''}
@@ -1120,6 +1121,7 @@ async function loadOperatorMailbox() {
     // used to swallow a click silently when every iteration awaited.
     row.querySelectorAll('[data-forward]').forEach(b => {
       FORWARD_BODIES.set(b.dataset.forward, m.body);
+      FORWARD_DATES.set(b.dataset.forward, m.created_at);
       b.addEventListener('click', () => openForwardModal(b));
     });
     row.querySelectorAll('[data-reply]').forEach(b => b.addEventListener('click', () => openReplyModal(b)));
@@ -1135,6 +1137,7 @@ function wireForwardModal() {
   document.getElementById('forward-cancel-btn').addEventListener('click', () => document.getElementById('forward-modal').classList.add('hidden'));
   document.getElementById('forward-confirm-btn').addEventListener('click', confirmForward);
   document.getElementById('forward-rewrite-btn').addEventListener('click', askMemberToRewrite);
+  document.getElementById('forward-reconcile-btn').addEventListener('click', askMemberToReconcile);
 }
 
 function openForwardModal(btn) {
@@ -1157,6 +1160,8 @@ function openForwardModal(btn) {
     senderId: btn.dataset.sender,
     refLabel: btn.dataset.ref,
     originalBody: FORWARD_BODIES.get(btn.dataset.forward) || '',
+    createdAt: FORWARD_DATES.get(btn.dataset.forward) || null,
+    status: btn.dataset.status || 'pending_review',
   };
   document.getElementById('forward-edit').value = FORWARD_TARGET.originalBody;
   renderForwardEditor();
@@ -1167,6 +1172,7 @@ function openForwardModal(btn) {
       ? `Forwarding this reply to ${who}, who wrote the message it answers (${FORWARD_TARGET.refLabel}).`
       : `Forwarding to the owner of ${FORWARD_TARGET.refLabel}.`;
   document.getElementById('forward-modal').classList.remove('hidden');
+  loadReconcileOptions();
 }
 
 async function confirmForward() {
@@ -1292,6 +1298,160 @@ async function askMemberToRewriteNow() {
   });
   document.getElementById('forward-modal').classList.add('hidden');
   showSuccess('Reply sent.');
+  loadOperatorMailbox();
+}
+
+// ------------------------------------------------ PLEASE RECONCILE ----
+// Owner's idea 4 (mockup approved 17 Nov 2026), the mirror of "Ask member to rewrite" (item 78). When a message
+// seems to contradict something the sender stated earlier on their own listing, the Operator presses one button
+// and the member receives ONE fixed text quoting both sentences. Nothing is judged, nothing is flagged, no
+// account is touched; the message is put ON HOLD (sql/068), not forwarded, until the Operator decides by hand.
+//
+// Only a readiness tick is an "earlier statement" here (listings.readiness, sql/066), and its date is the one
+// date the system keeps, the day the member last confirmed that listing (listings.truth_confirmed_at, sql/064).
+
+/** The member's fixed text. The English is the owner's own sentence; "confirmed" and the order are his.
+ *  The Spanish is ours, in the site's formal style. Both are filled in with the two quoted sentences and
+ *  two dates; the Operator cannot change them. */
+const RECONCILE_TEXT = {
+  en: (statedOn, statement, writtenOn, message) =>
+    `On ${statedOn} you confirmed '${statement}'. Your message of ${writtenOn} says '${message}'. Please tell the Operator which is correct, or change your statement.`,
+  es: (statedOn, statement, writtenOn, message) =>
+    `El ${statedOn} confirmó '${statement}'. Su mensaje del ${writtenOn} dice '${message}'. Indique al Operador cuál es correcto, o cambie su declaración.`,
+};
+const MONTHS_FOR_RECONCILE = {
+  en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+  es: ['ene.', 'feb.', 'mar.', 'abr.', 'may.', 'jun.', 'jul.', 'ago.', 'sep.', 'oct.', 'nov.', 'dic.'],
+};
+// The same sentences as 'stmt.ready.*' in js/i18n.js (that file is deliberately not loaded on this page);
+// tests/e2e/item78-reconcile.spec.js fails if either list drifts from it.
+const READINESS_LABELS_ES = {
+  own_available: 'Producción propia: mercancía disponible.',
+  own_scheduled: 'Producción propia: disponible según un calendario de producción.',
+  ex_stock: 'Ex-stock: mercancía disponible, titularidad en mi poder.',
+  back_to_back: 'Back-to-back: contrato de suministro vigente.',
+  buy_ready: 'Listo para avanzar; la financiación está asegurada y puede emitirse cualquier instrumento de pago acordado cuando sea necesario.',
+};
+
+/** "10 Nov" / "10 de nov." from the stored time, in the same (local) day the Operator's screens show. */
+function reconcileDay(iso, lang) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return lang === 'es' ? `${d.getDate()} de ${MONTHS_FOR_RECONCILE.es[d.getMonth()]}` : `${d.getDate()} ${MONTHS_FOR_RECONCILE.en[d.getMonth()]}`;
+}
+
+function buildReconcileText(lang, pick, messageBody, messageCreatedAt) {
+  const l = lang === 'es' ? 'es' : 'en';
+  const statement = (l === 'es' ? READINESS_LABELS_ES : READINESS_LABELS)[pick.key] || READINESS_LABELS[pick.key];
+  return RECONCILE_TEXT[l](reconcileDay(pick.confirmedAt, l), statement, reconcileDay(messageCreatedAt, l), messageBody);
+}
+
+let RECONCILE_PICKS = new Map();   // option value -> { listingId, ref, key, confirmedAt }
+let RECONCILE_LANG = 'en';         // the sender's language (profiles.language)
+
+function resetReconcileUi() {
+  RECONCILE_PICKS = new Map(); RECONCILE_LANG = 'en';
+  document.getElementById('reconcile-box').classList.add('hidden');
+  document.getElementById('reconcile-options').innerHTML = '';
+  document.getElementById('reconcile-sender').textContent = '';
+  const btn = document.getElementById('forward-reconcile-btn');
+  btn.classList.add('hidden'); btn.disabled = true;
+}
+
+/** Offered ONLY when the message is still waiting AND the sender has at least one earlier statement (a ticked
+ *  readiness sentence on one of their own listings). Otherwise the button stays hidden. */
+async function loadReconcileOptions() {
+  resetReconcileUi();
+  const fresh = renderToken('op:loadReconcileOptions');
+  const target = FORWARD_TARGET;
+  if (!target || target.status !== 'pending_review' || !target.senderId) return;
+  const [{ data: listings, error }, { data: prof }] = await Promise.all([
+    myplatform.from('listings').select('id,reference_number,readiness,truth_confirmed_at')
+      .eq('user_id', target.senderId).order('truth_confirmed_at', { ascending: false }),
+    myplatform.from('profiles').select('language,first_name,last_name').eq('id', target.senderId).maybeSingle(),
+  ]);
+  if (!fresh() || FORWARD_TARGET !== target) return;   // the window was closed or reopened meanwhile
+  if (error) { console.error('Could not read the sender\'s statements:', error.message); return; }
+  const box = document.getElementById('reconcile-options');
+  let n = 0;
+  (listings || []).forEach(l => {
+    if (!l.truth_confirmed_at || !Array.isArray(l.readiness)) return;   // no tick, or a listing that never carried statements
+    l.readiness.forEach(key => {
+      if (!READINESS_LABELS[key]) return;
+      const value = `${l.id}|${key}`;
+      RECONCILE_PICKS.set(value, { listingId: l.id, ref: l.reference_number, key, confirmedAt: l.truth_confirmed_at });
+      const label = document.createElement('label');
+      label.className = 'checkbox-row';
+      const input = document.createElement('input');
+      input.type = 'radio'; input.name = 'reconcile-pick'; input.value = value;
+      input.addEventListener('change', () => { document.getElementById('forward-reconcile-btn').disabled = false; });
+      const span = document.createElement('span');
+      span.textContent = `${l.reference_number} · confirmed ${formatDate(l.truth_confirmed_at)} · ${READINESS_LABELS[key]}`;
+      label.append(input, ' ', span);
+      box.appendChild(label);
+      n++;
+    });
+  });
+  if (!n) return;                                    // no earlier statement: the button stays hidden
+  RECONCILE_LANG = prof && prof.language === 'es' ? 'es' : 'en';
+  // Owner decision 7: the Operator (only) sees the sender's real name here. It is never put in the text sent to the member.
+  document.getElementById('reconcile-sender').textContent = prof ? `Member: ${[prof.first_name, prof.last_name].filter(Boolean).join(' ')}` : '';
+  document.getElementById('reconcile-box').classList.remove('hidden');
+  document.getElementById('forward-reconcile-btn').classList.remove('hidden');
+}
+
+async function askMemberToReconcile() {
+  return withButtonBusy('forward-reconcile-btn', 'Sending…', askMemberToReconcileNow);
+}
+
+/** Mirrors askMemberToRewriteNow. The message is put ON HOLD first (nothing is sent to the member if that
+ *  cannot be recorded); if the reply or its forward log fails afterwards, the hold is taken back. The member
+ *  profile is not touched: no flag, no score, no status. */
+async function askMemberToReconcileNow() {
+  const original = FORWARD_TARGET;
+  const chosen = document.querySelector('input[name="reconcile-pick"]:checked');
+  const pick = chosen && RECONCILE_PICKS.get(chosen.value);
+  if (!pick) { showError('Choose the earlier statement first.'); return; }
+  const text = buildReconcileText(RECONCILE_LANG, pick, original.originalBody, original.createdAt);
+
+  const { error: e0 } = await myplatform.from('messages').update({ status: 'on_hold' }).eq('id', original.messageId);
+  if (e0) { showError(errorMessage(e0)); return; }
+  const undoHold = () => myplatform.from('messages').update({ status: 'pending_review' }).eq('id', original.messageId);
+
+  const { data: newMsg, error: e1 } = await myplatform.from('messages').insert({
+    sender_id: CURRENT_PROFILE.id, listing_id: original.listingId || null,
+    in_reply_to: original.messageId, body: text, status: 'pending_review'
+  }).select('id').single();
+  if (e1) { await undoHold(); showError(errorMessage(e1)); return; }
+
+  const { error: e2 } = await myplatform.from('message_forward_log').insert({
+    message_id: newMsg.id, operator_id: CURRENT_PROFILE.id, to_user_id: original.senderId
+  });
+  if (e2) { await undoHold(); showError(errorMessage(e2)); return; }
+
+  await myplatform.from('messages').update({ status: 'forwarded' }).eq('id', newMsg.id);
+
+  const { error: e4 } = await myplatform.rpc('record_activity', {
+    p_action: 'message_reconcile_requested',
+    p_details: {
+      original_message_id: original.messageId,
+      reply_message_id: newMsg.id,
+      to_user_id: original.senderId,
+      original_body: original.originalBody,
+      statement_listing_id: pick.listingId,
+      statement_key: pick.key,
+      statement_confirmed_at: pick.confirmedAt,
+      language: RECONCILE_LANG,
+      sent_text: text,
+    },
+  });
+  if (e4) console.error('The reconcile request was sent but not logged:', e4);
+
+  await myplatform.from('notifications').insert({
+    user_id: original.senderId, type: 'message_reply', message: 'An Operator replied to your message.'
+  });
+  document.getElementById('forward-modal').classList.add('hidden');
+  showSuccess('Reply sent. The message is on hold.');
   loadOperatorMailbox();
 }
 
