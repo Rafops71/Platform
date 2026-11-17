@@ -19,7 +19,9 @@
 //      must wait for BOTH the checklist and Safari, and the pictures must wait for the grid, because the
 //      grid's privilege scan counts whole tables and any other writer on staging in between breaks it
 //      (PR 117: "invitations changed from 5 to 6"); and the grid's steps must be the same commands as the
-//      ones in security-grid.yml (the nightly copy), so the two cannot drift apart.
+//      ones in security-grid.yml (the nightly copy), so the two cannot drift apart. ONE difference is
+//      required (owner, 17 Nov 2026, docs/AGREED-2026-11-17-crowd-scan.md): the crowd scan (a speed test
+//      of the small staging server) must be in the nightly copy and must NOT be in the pull-request grid.
 // It also evaluates the rule for both events and prints what each one resolves to.
 //   node scripts/check-ci-targets.js            check the real file
 //   node scripts/check-ci-targets.js --self-test   break a copy five ways and require a failure each time
@@ -58,6 +60,8 @@ function jobBlock(text, id) {
   return lines.slice(start, end).join('\n');
 }
 const runsOf = (block) => (block || '').split('\n').filter((l) => /^\s+run: /.test(l)).map((l) => l.trim());
+// The one command that runs in the nightly grid and never in a pull request's grid.
+const NIGHTLY_ONLY_RUN = 'run: node scripts/crowd-scan.js';
 const STAGING_ONLY_JOBS = new Set(['grid', 'pictures']);
 
 function check(text, gridText) {
@@ -128,9 +132,13 @@ function check(text, gridText) {
   }
   // the nightly copy and this one must run the same commands, in the same order
   if (gridText != null && grid) {
-    const a = JSON.stringify(runsOf(grid));
-    const b = JSON.stringify(runsOf(jobBlock(gridText, 'grid')));
-    if (a !== b) problems.push('the grid steps in ci.yml and in security-grid.yml have drifted apart (their run: commands differ)');
+    const ciRuns = runsOf(grid);
+    const nightlyRuns = runsOf(jobBlock(gridText, 'grid'));
+    if (ciRuns.includes(NIGHTLY_ONLY_RUN)) problems.push('the crowd scan (' + NIGHTLY_ONLY_RUN + ') is back in the pull-request grid in ci.yml: it is nightly only (owner, 17 Nov 2026)');
+    if (!nightlyRuns.includes(NIGHTLY_ONLY_RUN)) problems.push('the crowd scan is missing from the nightly grid in security-grid.yml: it must run there (owner, 17 Nov 2026)');
+    const a = JSON.stringify(ciRuns);
+    const b = JSON.stringify(nightlyRuns.filter((r) => r !== NIGHTLY_ONLY_RUN));
+    if (a !== b) problems.push('the grid steps in ci.yml and in security-grid.yml have drifted apart (their run: commands differ, apart from the nightly-only crowd scan)');
     const pa = JSON.stringify(runsOf(pics));
     const pb = JSON.stringify(runsOf(jobBlock(gridText, 'pictures')));
     if (pics && pa !== pb) problems.push('the pictures steps in ci.yml and in security-grid.yml have drifted apart');
@@ -165,6 +173,7 @@ if (process.argv.includes('--self-test')) {
     'the grid is handed a live secret': (t) => t.replace('          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}\n\n      # Same staging world', '          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}\n\n      # Same staging world'),
     'the pictures job loses its staging address': (t) => t.replace(/(  pictures:[\s\S]*?)      SUPABASE_URL: https:\/\/pqxlfgvjoowawzgoszna\.supabase\.co\n/, '$1'),
     'a grid step is changed in ci.yml only': (t) => t.replace('run: node scripts/identity-scan.js', 'run: node scripts/identity-scan.js --quick'),
+    'the crowd scan reappears in the pull-request grid': (t) => t.replace('      # NOT HERE: "Forty members at once"', '      - name: Forty members at once\n        run: node scripts/crowd-scan.js\n      # NOT HERE: "Forty members at once"'),
     'the test server override stays set on a push': (t) => t.replace(`SERVE_SUPABASE_URL: \${{ github.event_name == 'pull_request' && env.TARGET_URL || '' }}`, `SERVE_SUPABASE_URL: \${{ env.TARGET_URL }}`),
   };
   for (const [what, mutate] of Object.entries(mutations)) {
@@ -172,7 +181,11 @@ if (process.argv.includes('--self-test')) {
     if (mutated === real) { console.error(`self-test FAILED: the mutation "${what}" did not change the file`); process.exit(1); }
     if (!check(mutated, gridReal).length) { console.error(`self-test FAILED: "${what}" was not caught`); process.exit(1); }
   }
-  console.log(`CI target rule: the real file passes and all ${Object.keys(mutations).length} deliberate breaks are caught.`);
+  // the nightly copy is broken instead: the crowd scan is dropped from security-grid.yml
+  const noScan = gridReal.replace(/      - name: Forty members at once\n        run: node scripts\/crowd-scan\.js\n/, '');
+  if (noScan === gridReal) { console.error('self-test FAILED: the nightly mutation did not change security-grid.yml'); process.exit(1); }
+  if (!check(real, noScan).length) { console.error('self-test FAILED: "the crowd scan is missing from the nightly" was not caught'); process.exit(1); }
+  console.log(`CI target rule: the real file passes and all ${Object.keys(mutations).length + 1} deliberate breaks are caught.`);
   process.exit(0);
 }
 

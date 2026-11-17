@@ -17,7 +17,9 @@ name: Security grid (staging)
 # SINCE 17 NOV 2026 THIS WORKFLOW RUNS ONLY ON ITS NIGHTLY SCHEDULE AND BY HAND. On pull requests the
 # same grid and pictures are jobs of ci.yml, behind the browser suites, so nothing else writes to staging
 # while the privilege scan counts rows (PR 117). scripts/check-ci-targets.js fails the build if the two
-# copies of the grid steps drift apart.
+# copies of the grid steps drift apart. ONE allowed difference (owner, 17 Nov 2026,
+# docs/AGREED-2026-11-17-crowd-scan.md): the crowd scan ("Forty members at once", a speed test of the small
+# staging server) runs HERE, nightly and by hand, and not on pull requests.
 
 on:
   schedule:

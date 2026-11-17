@@ -32,8 +32,8 @@ const MESSAGE = 'give me 3 weeks to arrange financing';
 const MESSAGE_ES = 'let me have 3 weeks to organise the financing';   // not a substring of MESSAGE, nor MESSAGE of it
 const PLAIN = 'E2E reconcile: is the copper still available?';
 
-const EXPECT_EN = `On 10 Nov you confirmed '${TICK_EN}'. Your message of 15 Nov says '${MESSAGE}'. Please tell the Operator which is correct, or change your statement.`;
-const EXPECT_ES = `El 10 de nov. confirmó '${TICK_ES}'. Su mensaje del 15 de nov. dice '${MESSAGE_ES}'. Indique al Operador cuál es correcto, o cambie su declaración.`;
+const EXPECT_EN = `On 10 Nov you confirmed '${TICK_EN.replace(/\.$/, '')}'. Your message of 15 Nov says '${MESSAGE}'. Please tell the Operator which is correct, or change your statement.`;
+const EXPECT_ES = `El 10 de nov. confirmó '${TICK_ES.replace(/\.$/, '')}'. Su mensaje del 15 de nov. dice '${MESSAGE_ES}'. Indique al Operador cuál es correcto, o cambie su declaración.`;
 
 test.describe.configure({ mode: 'serial' });
 
@@ -220,4 +220,23 @@ test('Item78 reconcile: the member sees the Operator\'s reply and their own mess
   for (const f of ['app.html', 'js/app.js']) {
     expect(fs.readFileSync(path.join(ROOT, f), 'utf8'), f).not.toContain('reconcile-sender');
   }
+});
+
+test('Item78 reconcile: the quoted statement loses exactly its own final full stop, and a statement without one is left untouched', async ({ page }) => {
+  await signIn(page, operator, 'operator.html');
+  await expect(page.locator('#user-name')).not.toBeEmpty({ timeout: 20_000 });
+  const r = await page.evaluate(() => ({
+    one:  stripFinalFullStop('Financing is secured.'),
+    none: stripFinalFullStop('Financing is secured'),
+    two:  stripFinalFullStop('Financing is secured..'),
+    en:   buildReconcileText('en', { key: 'buy_ready', confirmedAt: '2026-11-10T09:00:00Z' }, 'msg', '2026-11-15T09:00:00Z'),
+    es:   buildReconcileText('es', { key: 'buy_ready', confirmedAt: '2026-11-10T09:00:00Z' }, 'msg', '2026-11-15T09:00:00Z'),
+  }));
+  expect(r.one).toBe('Financing is secured');          // one full stop removed
+  expect(r.none).toBe('Financing is secured');         // none to remove: untouched
+  expect(r.two).toBe('Financing is secured.');         // exactly one, not all
+  expect(r.en).toContain(`'${TICK_EN.slice(0, -1)}'.`);
+  expect(r.en).not.toContain(".'.");
+  expect(r.es).toContain(`'${TICK_ES.slice(0, -1)}'.`);
+  expect(r.es).not.toContain(".'.");
 });
