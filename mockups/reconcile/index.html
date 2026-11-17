@@ -1,0 +1,77 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MOCKUP - Please reconcile</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600&family=Source+Sans+3:wght@400;600&display=swap">
+<link rel="stylesheet" href="../../css/styles.css">
+<style>
+.mock-banner{background:#fff4c2;border-bottom:2px solid #d9b800;padding:8px 12px;font-size:14px;text-align:center}
+.draft{display:inline-block;background:#fde2e2;color:#a11;font-weight:600;font-size:12px;padding:1px 7px;border-radius:10px;margin-left:6px;vertical-align:middle}
+.owner{display:inline-block;background:#e0f3e6;color:#1a6b3a;font-weight:600;font-size:12px;padding:1px 7px;border-radius:10px;margin-left:6px;vertical-align:middle}
+.open-q{margin:14px 0 0;padding:10px 12px;border:1px dashed #d9b800;background:#fffbe6;border-radius:8px;font-size:14px}
+.variant-tag{font-size:13px;font-weight:600;color:#1a4a6e;text-transform:uppercase;letter-spacing:.4px;margin:0 0 6px}
+.earlier{background:#f3f8fc;border:1px solid #c9dff0;border-radius:8px;padding:8px 10px;margin:8px 0;font-size:15px}
+.side{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0}
+.side>div{border:1px solid #d9d9d9;border-radius:8px;padding:8px 10px;font-size:15px}
+@media (max-width:560px){.side{grid-template-columns:1fr}}
+.fixed{border:1px solid #c9dff0;background:#f3f8fc;border-radius:8px;padding:10px 12px;font-size:16px;margin:8px 0}
+.dim{opacity:.55}
+</style></head><body>
+<div class="mock-banner"><strong>MOCKUP - not the live site, nothing here is built.</strong> "Please reconcile" (the owner's idea 4, 15 Nov). <strong>Nothing is judged and no account is closed.</strong> The Operator reads both sentences and presses one button; the member answers.</div>
+<header class="site-header"><div class="container"><h1>MyPlatform</h1><div class="user-info"><span>Operator</span> · <a href="#" style="color:#fff;">Sign out</a></div></div></header>
+<nav class="tabs"><div class="container"><button>Overview</button><button>Approvals</button><button>All Listings</button><button>Invitations</button><button>Users</button><button>Commodities</button><button class="active">Mailbox</button><button>Matches</button><button>Deals</button></div></nav>
+<main class="container" style="padding-top:12px">
+
+<p class="variant-tag">Screen 1: the Operator's Mailbox, one message waiting</p>
+<div class="list-row">
+ <div class="list-row-top"><span class="list-row-title">Re: B-0412</span><span class="badge badge-grey">Pending review</span></div>
+ <div>give me 3 weeks to arrange financing <span class="owner">owner's example message</span></div>
+ <div class="list-row-meta">15 Nov 2026 14:20 <span class="draft">example date</span></div>
+ <div class="row" style="margin-top:4px;"><button class="btn btn-primary btn-small">Forward to Owner</button> <button class="btn btn-secondary btn-small">Reply</button> <button class="btn btn-danger btn-small">Ignore</button></div>
+</div>
+<p class="list-row-meta">Unchanged from today. The new button is inside the Forward window (screen 2), next to "Ask member to rewrite", as in item 78.</p>
+
+<p class="variant-tag" style="margin-top:22px">Screen 2: the Forward window, with the new button</p>
+<div class="card" style="max-width:520px">
+ <h2 class="mt-0">Forward Message</h2>
+ <p class="text-muted">Sends this message to the owner of the listing it references, identified only by their reference number.</p>
+ <div class="text-muted" style="margin-bottom:10px;">B-0412 · to the listing owner</div>
+ <label class="text-muted">Message to forward</label>
+ <textarea rows="2" readonly style="width:100%;">give me 3 weeks to arrange financing</textarea>
+ <div class="earlier"><strong>What this member stated earlier, on their own listing B-0388</strong> <span class="draft">DRAFT label</span><br>
+   3 Nov 2026: <em>'financing is secured'</em> <span class="owner">owner's example</span><br>
+   <span class="text-muted" style="font-size:14px;">Seen by the Operator only. B-0388 is the sender's own listing (the message is about another member's listing, B-0412). The date is the one shown with that listing's statements.</span></div>
+ <div class="row">
+  <button class="btn btn-primary">Forward</button>
+  <button class="btn btn-secondary dim" disabled title="Appears only when the message holds contact details, as today">Ask member to rewrite</button>
+  <button class="btn btn-secondary">Please reconcile</button> <span class="owner">name from the owner's notes</span>
+  <button class="btn btn-secondary">Cancel</button>
+ </div>
+ <p class="list-row-meta" style="margin-top:6px">"Ask member to rewrite" is shown greyed only to show where it sits: today it appears only when contact details are found. "Please reconcile" is always offered, because the Operator is the one who reads both sentences and decides. <span class="draft">DRAFT - owner decides when it shows</span></p>
+</div>
+
+<p class="variant-tag" style="margin-top:22px">Screen 3: what "Please reconcile" sends, as the member sees it in their Mailbox</p>
+<div class="list-row">
+ <div class="list-row-top"><span class="list-row-title">Reply from the Operator · Re: B-0412</span></div>
+ <div class="fixed">On 3 Nov you stated 'financing is secured'. Your message of 15 Nov says 'give me 3 weeks to arrange financing'. Please tell the Operator which is correct, or change your statement.</div>
+ <div class="list-row-meta">The owner's own example text, word for word <span class="owner">owner's example</span>. Fixed: the Operator cannot change it (like the rewrite request). Dates and the two quoted sentences are filled in by the system.</div>
+
+</div>
+
+<p class="variant-tag" style="margin-top:22px">Screen 4: the same message in the Operator's Mailbox afterwards</p>
+<div class="list-row">
+ <div class="list-row-top"><span class="list-row-title">Re: B-0412</span><span class="badge badge-grey">On hold <span class="draft">DRAFT label</span></span></div>
+ <div>give me 3 weeks to arrange financing</div>
+ <div class="list-row-meta">15 Nov 2026 14:20 · Not forwarded. Waiting for the member's answer. The text sent to the member is in the Operator-only activity log.</div>
+</div>
+
+<div class="open-q"><strong>What this mockup shows, in one line each</strong><br>
+ - The owner's design: one button, a fixed text quoting both sentences, the message is NOT forwarded until the member answers.<br>
+ - Nothing is judged and no account is closed: no flag on the member, no score, no count, no closure.<br>
+ - The existing "Ask member to rewrite" (item 78) is untouched.</div>
+<div class="open-q"><strong>Questions for the owner (not decided, my recommendation in brackets)</strong><br>
+ 1. After the member answers, the Operator forwards or ignores the message by hand, as today. (Recommended: yes, nothing automatic.)<br>
+ 2. The member answers with the normal Reply button, as after "Ask member to rewrite". (Recommended: yes.)<br>
+ 3. The member's text is English-only, like the existing rewrite request (which has no Spanish today). Do you want a Spanish text for Spanish-speaking members? (Spanish would be ours to write.)<br>
+ 4. Which earlier statement is quoted? The message is about ANOTHER member's listing, so the statement is on the SENDER's own listing(s), and a member can have several listings and two ticks on one. (Recommended: the Operator chooses from the sender's ticks shown; with none, the button is not offered.)<br>
+ 5. The date: the system holds ONE date per listing, the day the member last confirmed the whole listing, not the day each sentence was first stated. If the member edited anything later, "On 3 Nov" would be that later day. Is that acceptable, or must the real date of each sentence be kept?<br>
+ 6. The labels marked DRAFT (the box heading, "On hold", when the button shows).</div>
+</main></body></html>
