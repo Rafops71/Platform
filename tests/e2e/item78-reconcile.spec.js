@@ -101,6 +101,8 @@ test('Item78 reconcile: the button is offered only when the sender has an earlie
   await expect(page.locator('#reconcile-box')).toBeVisible({ timeout: 15_000 });
   await expect(page.locator('#reconcile-box')).toContainText('What this member stated earlier, on their own listing');
   await expect(page.locator('#reconcile-options label')).toHaveCount(1);
+  // Owner decision 7: the Operator sees the sender's real name in the box.
+  await expect(page.locator('#reconcile-box')).toContainText('Item78r Sender');
   await expect(page.locator('#reconcile-options')).toContainText('10/11/2026');
   await expect(page.locator('#reconcile-options')).toContainText(TICK_EN);
   await expect(page.locator('#forward-reconcile-btn')).toBeVisible();
@@ -147,6 +149,11 @@ test('Item78 reconcile: the member gets the owner\'s sentence, the message is on
     `select details from public.activity_log where action = 'message_reconcile_requested' and details->>'original_body' = $1`, [MESSAGE]);
   expect(logged.length).toBe(1);
   expect(logged[0].details.sent_text).toBe(EXPECT_EN);
+  // PROHIBITION (decision 7): the real name is Operator-only. It is not in the text sent to the member.
+  expect(logged[0].details.sent_text).not.toContain('Sender');
+  const { rows: sentRows } = await query(`select body from public.messages where in_reply_to = (select id from public.messages where body = $1)`, [MESSAGE]);
+  expect(sentRows.length).toBe(1);
+  expect(sentRows[0].body).not.toMatch(/Item78r|Sender/);
 
   // The Operator's Mailbox: "On hold", with the buttons still there (nothing is automatic).
   await page.reload();
@@ -209,4 +216,8 @@ test('Item78 reconcile: the member sees the Operator\'s reply and their own mess
   const mine = page.locator('#mailbox-list .list-row', { hasText: MESSAGE_ES }).filter({ hasNot: page.locator('text=Indique al Operador') });
   // "On hold" in English, "En espera" in Spanish: the page shows the member's own language.
   await expect(mine.first().locator('.badge')).toHaveText(/^(On hold|En espera)$/);
+  // Decision 7: nothing a member can load carries the Operator box for the sender's name.
+  for (const f of ['app.html', 'js/app.js']) {
+    expect(fs.readFileSync(path.join(ROOT, f), 'utf8'), f).not.toContain('reconcile-sender');
+  }
 });

@@ -1353,6 +1353,7 @@ function resetReconcileUi() {
   RECONCILE_PICKS = new Map(); RECONCILE_LANG = 'en';
   document.getElementById('reconcile-box').classList.add('hidden');
   document.getElementById('reconcile-options').innerHTML = '';
+  document.getElementById('reconcile-sender').textContent = '';
   const btn = document.getElementById('forward-reconcile-btn');
   btn.classList.add('hidden'); btn.disabled = true;
 }
@@ -1367,7 +1368,7 @@ async function loadReconcileOptions() {
   const [{ data: listings, error }, { data: prof }] = await Promise.all([
     myplatform.from('listings').select('id,reference_number,readiness,truth_confirmed_at')
       .eq('user_id', target.senderId).order('truth_confirmed_at', { ascending: false }),
-    myplatform.from('profiles').select('language').eq('id', target.senderId).maybeSingle(),
+    myplatform.from('profiles').select('language,first_name,last_name').eq('id', target.senderId).maybeSingle(),
   ]);
   if (!fresh() || FORWARD_TARGET !== target) return;   // the window was closed or reopened meanwhile
   if (error) { console.error('Could not read the sender\'s statements:', error.message); return; }
@@ -1393,6 +1394,8 @@ async function loadReconcileOptions() {
   });
   if (!n) return;                                    // no earlier statement: the button stays hidden
   RECONCILE_LANG = prof && prof.language === 'es' ? 'es' : 'en';
+  // Owner decision 7: the Operator (only) sees the sender's real name here. It is never put in the text sent to the member.
+  document.getElementById('reconcile-sender').textContent = prof ? `Member: ${[prof.first_name, prof.last_name].filter(Boolean).join(' ')}` : '';
   document.getElementById('reconcile-box').classList.remove('hidden');
   document.getElementById('forward-reconcile-btn').classList.remove('hidden');
 }
