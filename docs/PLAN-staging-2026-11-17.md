@@ -34,6 +34,12 @@ Purpose: be the "first approved Operator" the fixtures name as inviter. It never
 - Cost to watch: every fixture listing notifies each Operator, including this one; `cleanup()` already removes those notifications
   (that is what it was written for after the 4,776-entry incident), so they should not accumulate. Check the count after the first run.
 
+**Built (PR for 17 Nov):** `scripts/staging-operator.js` (`status` / `create` / `teardown`) and the manual workflow
+`.github/workflows/staging-operator.yml` (workflow_dispatch only; staging secrets only; the script refuses any address that is not
+staging's). `node scripts/staging-operator.js --self-test` proves create, idempotence, teardown, the refusals and the workflow's
+secrets against a throwaway PostgreSQL with a local stand-in for the Auth admin API (15 checks). The real Auth HTTP calls are first
+exercised when the workflow is dispatched.
+
 ## Step 2. Deploy `operator-recovery-link` to staging (needs the owner's yes)
 - **Source:** `supabase/functions/operator-recovery-link/index.ts` from the repository, `verify_jwt: true` (as on live). I read the
   live copy on 17 Nov and it matches the repository file in structure (same header, same checks, same `log_activity` call);

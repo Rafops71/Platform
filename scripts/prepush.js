@@ -73,6 +73,12 @@ if (skipSql) {
   run('npm run test:sql', 'npm', ['run', '-s', 'test:sql']);
 }
 
+// The staging-Operator tool proves itself against a throwaway PostgreSQL too (non-root, like test:sql).
+if (!skipSql) {
+  if (typeof process.getuid === 'function' && process.getuid() === 0) run('staging Operator tool: self-test (as user pgtest)', 'su', ['pgtest', '-c', `cd ${ROOT} && node scripts/staging-operator.js --self-test`]);
+  else run('staging Operator tool: self-test', 'node', ['scripts/staging-operator.js', '--self-test']);
+}
+
 // ---- 4. strings this branch changes ---------------------------------------
 function git(...a) { try { return execFileSync('git', a, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }); } catch (e) { return null; } }
 
