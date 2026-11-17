@@ -105,8 +105,8 @@ something fluent said it.
 
 ## Rules of the road
 
-Twelve rules for how work moves from decision to merge, written by Fable on 16 Nov 2026 and
-copied word for word into `docs/RULES-OF-THE-ROAD.md`. Read that file at the start of a
+Thirteen rules for how work moves from decision to merge (twelve written by Fable on 16 Nov 2026, the
+thirteenth added by the owner on 17 Nov 2026), copied word for word into `docs/RULES-OF-THE-ROAD.md`. Read that file at the start of a
 session and after every compaction. In short: one job, one branch, one PR, one migration number
 in series; the number comes from `sql/NEXT`; nothing is pushed red; `npm run prepush` output goes
 in the pull request.

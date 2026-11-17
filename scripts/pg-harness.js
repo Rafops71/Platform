@@ -100,6 +100,7 @@ const SETUP = [
   'sql/065_terms_3_8.sql',
   'sql/066_readiness_ticks.sql',
   'sql/067_receipt_test_marker.sql',
+  'sql/068_message_on_hold.sql',
   'sql/seed_commodities.sql',
 ];
 

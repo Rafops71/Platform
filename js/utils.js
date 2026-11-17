@@ -518,7 +518,8 @@ const STATUS_LABELS = {
   pending: 'Pending', approved: 'Approved', rejected: 'Rejected', suspended: 'Suspended',
   requested: 'Requested', confirmed: 'Confirmed', unavailable: 'Unavailable',
   new: 'New', reviewed: 'Reviewed', dismissed: 'Dismissed',
-  pending_review: 'Pending Review', forwarded: 'Forwarded', replied: 'Replied', ignored: 'Ignored'
+  pending_review: 'Pending Review', forwarded: 'Forwarded', replied: 'Replied', ignored: 'Ignored',
+  on_hold: 'On hold'
 };
 
 /** Human label for a status. On participant pages this goes through the
