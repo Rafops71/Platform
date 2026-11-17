@@ -47,3 +47,9 @@ SOP wording, T8 code protection, T11, T12, films redo, application-review clause
 - Staging now holds: 1 standing Operator (staging-operator@example.invalid, via workflow staging-operator, teardown = same workflow, action teardown) and edge function operator-recovery-link (v1, verify_jwt true; delete only via dashboard). Staging redirect list has 2 localhost entries (left alone; owner told).
 - OPEN for owner: drop leftover live policy activity_log_insert (inert; needs his yes). Staging ledger has no content hash.
 - NEXT: JOB "Please reconcile" (mockup first), then the function-by-function walkthrough. Watch the first push-to-main CI run on live after #120.
+
+## Update 17 Nov, later (Supervisor 2)
+- MERGED: #121 Please reconcile (068 live; decisions 1-8 in docs/AGREED-2026-11-17-reconcile.md; Operator sees "Member:" name), #122 full-stop fix + the crowd scan ("Forty members at once", speed test) moved to NIGHTLY only (owner's decision, docs/AGREED-2026-11-17-crowd-scan.md; 5000 ms limit unchanged; guard enforces it).
+- Rule 13 is in docs/RULES-OF-THE-ROAD.md. Staging was cleaned of ~92k old test rows (owner yes). Staging sits on a small free-plan server whose speed drifts.
+- Builder 3 = session_01DzTmTDNn9jiMo1pJqbe5VV (Builder 2 archived). Builder 3 refuses to weaken a gate on a relayed message alone: the owner must confirm in ITS window in his own words (he did, once).
+- NEXT: function-by-function walkthrough with the owner (build only after, one batch). Open for owner: drop live policy activity_log_insert (inert).
