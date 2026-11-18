@@ -60,3 +60,6 @@ Answered: KEEP AS IS (owner, 18 Nov). Broker/role details are decided separately
 
 ## Block 16: deal files and scorecard (items 70-75)
 Answered: KEEP AS IS (owner, 18 Nov).
+
+## Block 17: Help, welcome page, operator mail alert, film (items 76, 77, 79, 80)
+Answered: KEEP AS IS (owner, 18 Nov). (Films are on hold per earlier rule.)
