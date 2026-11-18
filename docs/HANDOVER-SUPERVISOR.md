@@ -53,3 +53,8 @@ SOP wording, T8 code protection, T11, T12, films redo, application-review clause
 - Rule 13 is in docs/RULES-OF-THE-ROAD.md. Staging was cleaned of ~92k old test rows (owner yes). Staging sits on a small free-plan server whose speed drifts.
 - Builder 3 = session_01DzTmTDNn9jiMo1pJqbe5VV (Builder 2 archived). Builder 3 refuses to weaken a gate on a relayed message alone: the owner must confirm in ITS window in his own words (he did, once).
 - NEXT: function-by-function walkthrough with the owner (build only after, one batch). Open for owner: drop live policy activity_log_insert (inert).
+
+## Update 18 Nov (Supervisor 2)
+- Walkthrough DONE with the owner (docs/WALKTHROUGH-2026-11-18.md, blocks 1-19, summary at the end). BATCH GO given; #125 MERGED: rejected/suspended sign-in messages, Terms on the register page with the tick at the bottom, Browse sort drop-down (Newest/Oldest/Commodity A-Z), two Spanish language-switch bugs fixed, Browse baselines updated after the supervisor looked at them.
+- NOT built yet: Operator Translate button. Owner chose: Operator-only, outside machine translation. I researched DeepL / Google Cloud Translation / Azure Translator data handling (official pages; no prices or language lists checked). The owner has NOT yet picked the service (his question was interrupted); ask again, then research prices and languages for his pick, show him, then build.
+- Open: broker design B1-B4 (Opus); the owner's trader-as-broker question; pending/reset sign-in notices do not switch language when the language is switched (left, outside the batch).
