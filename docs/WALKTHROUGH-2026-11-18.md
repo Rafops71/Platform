@@ -21,3 +21,6 @@ Block 3 tick sentence, owner's own words (typed 18 Nov): "I have read and agree 
 
 ## Block 4: a member's own details (items 9-13)
 Answered: KEEP AS IS (owner, 18 Nov).
+
+## Block 5: posting and managing own listings (items 14-16)
+Answered: KEEP AS IS (owner, 18 Nov).
