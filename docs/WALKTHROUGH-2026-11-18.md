@@ -70,3 +70,12 @@ Answered: KEEP AS IS (owner, 18 Nov).
 ## Block 19: messages with contact details, rewrite request (item 78)
 Answered: KEEP AS IS, PLUS A NEW WISH (owner's words, 18 Nov): "we need a Translate button if counterparties don't speak English/Spanish or I have to mediate between a Spanish-speaking member and an English-speaking member". Details open: who translates, languages, who sees it (next block). Privacy note: sending a message's text to an outside translation service discloses it to that service.
 Translate decision (owner, 18 Nov): Operator-only Translate button, using an outside machine-translation service. The Operator alone sees the translation (private aid in the mailbox); the original message is never replaced; members do not see it. To do BEFORE building: research which service is safe, cheap, and acceptable for confidential text (data handling, no training on inputs, region), show the owner the options; the SERVICE CHOICE IS THE OWNER'S. Also decide languages beyond EN/ES, and how a translated reply is sent to a member (owner to decide).
+
+## SUMMARY: walkthrough finished (owner, 18 Nov). All 88 listed functions shown; nothing else missing.
+Keep as is: items 1-3, 4-6 (apart from message change), 9-13, 14-16, 17-25 (apart from sort), 26-30, 31-36, 37-39, 40-44, 45-49, 50-52, 53-57, 58-65, 66-69, 70-75, 76-77, 79-80, 81-88, 78.
+CHANGES TO BUILD (one batch, after the owner's BATCH GO):
+ 1. Sign-in messages (EN+ES): rejected -> "Your registration was not approved."; suspended -> "This account has been suspended." (owner's words; Spanish ours).
+ 2. Register page shows the Terms on the page, tick box at the bottom: "I have read and agree to the terms and conditions" (owner's words; Spanish ours). Item 7/8 behaviour unchanged.
+ 3. Browse sort drop-down: Newest first (default) / Oldest first / Commodity A to Z (labels ours to propose, owner to see). Saved-search counts unchanged.
+ 4. Operator-only Translate button (outside machine translation; service choice is the owner's after research; EN/ES plus others to decide).
+OPEN, separate: broker design B1-B4 (Opus); the owner's question about a trader acting as broker on one deal / a salesman who went independent; whether the Operator is told when a member edits company/job title (owner did not ask for it).
