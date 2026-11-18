@@ -335,6 +335,10 @@ table.data-table th { color: var(--text-muted); font-size: var(--text-sm); text-
 .flex-between { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
 .stack { display: flex; flex-direction: column; gap: 10px; }
 .row { display: flex; gap: 10px; flex-wrap: wrap; }
+/* Browse: "Sort by" and its drop-down stay together on one line when the filter row wraps. */
+.sort-control { display: inline-flex; align-items: center; gap: 8px; flex-wrap: nowrap; white-space: nowrap; }
+.sort-control label { margin: 0; }
+.sort-control select { width: auto; max-width: 200px; }
 .hidden { display: none !important; }
 .auth-shell { max-width: 420px; margin: 40px auto; padding: 0 16px; }
 .auth-shell .card { padding: 24px 20px; }

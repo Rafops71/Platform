@@ -658,7 +658,19 @@ function fillBrowseCountryFilter() {
 function wireBrowse() {
   fillBrowseCountryFilter();
   document.getElementById('browse-refresh-btn').addEventListener('click', loadBrowseListings);
+  document.getElementById('browse-sort').addEventListener('change', loadBrowseListings);
   document.getElementById('browse-save-search-btn').addEventListener('click', saveCurrentSearch);
+}
+
+/** The order Browse shows (owner, 18 Nov 2026): newest first (the default), oldest
+ *  first, or commodity A to Z. Commodity uses the same alphabetical rule as item
+ *  17 (compareCommodityNames, "Other" last); equal commodities keep newest first.
+ *  This only orders what the filters already chose: it never adds or removes a row. */
+function browseSortComparator(mode) {
+  const byNewest = (a, b) => new Date(b.created_at) - new Date(a.created_at);
+  if (mode === 'oldest') return (a, b) => new Date(a.created_at) - new Date(b.created_at);
+  if (mode === 'commodity') return (a, b) => compareCommodityNames(a.commodity || '', b.commodity || '') || byNewest(a, b);
+  return byNewest;
 }
 
 async function loadBrowseListings() {
@@ -674,7 +686,7 @@ async function loadBrowseListings() {
   // reporting three matches shows those same three when it is opened.
   const criteria = browseFilterCriteria();
   const listings = (data || []).filter(l => listingMatches(l, criteria));
-  listings.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  listings.sort(browseSortComparator(document.getElementById('browse-sort').value));
 
   if (!listings.length) { container.innerHTML = `<p class="empty-state">${t('browse.noMatch')}</p>`; return; }
 

@@ -1,0 +1,7 @@
+# Agreed 18 Nov 2026: three small changes from the owner's walkthrough
+
+Source: `docs/WALKTHROUGH-2026-11-18.md` (branch `claude/great-allen-5xl0gm`), the owner's answers in the function-by-function walkthrough; the owner released the batch with BATCH GO on 18 Nov 2026. Everything else in the walkthrough was "KEEP AS IS". The Translate button is NOT in this batch (research first; the service choice is his).
+
+1. **Sign-in messages (Blocks 2; items 4-6).** A rejected person must be told: "Your registration was not approved." A suspended member who tries to sign in must see: "This account has been suspended." (the owner's exact words). The pending message is unchanged. Spanish: the builder's, formal style, shown in the pull request. What is refused does not change, only the message.
+2. **Terms on the register page (Block 3; items 7-8).** The owner: "The terms and conditions should be on the page and the tick box should be at the bottom so they confirmed that they have read the page and the terms and conditions and agree with it and agree to it." His tick sentence, typed 18 Nov: "I have read and agree to the terms and conditions". Spanish: the builder's. Items 7 and 8 behaviour stays: refused without the tick; version and language recorded.
+3. **Browse sort (Block 6; items 17-21, 23).** A drop-down on Browse, labelled "Sort by", with: Newest first (default), Oldest first, Commodity A to Z. Everything else on Browse unchanged. Saved searches must still report the same count Browse shows (item 23): sorting must not change counts.

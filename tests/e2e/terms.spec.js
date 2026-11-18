@@ -268,7 +268,7 @@ test.describe.serial('Terms & Conditions', () => {
     for (const item of bracketed) expect(item).toContain('PLACEHOLDER');
   });
 
-  test('the registration page requires acceptance and links to the terms', async ({ page }) => {
+  test('Item07 the registration page shows the Terms on the page itself, with the tick box at the bottom of them', async ({ page }) => {
     const invite = await createInvitation('en');
     await page.goto(invite.link);
     await expect(page.locator('#register-card')).toBeVisible();
@@ -277,9 +277,34 @@ test.describe.serial('Terms & Conditions', () => {
     await expect(box).toBeVisible();
     await expect(box).not.toBeChecked();
 
-    const link = page.locator('#terms-link');
-    await expect(link).toHaveAttribute('href', 'terms.html');
-    await expect(link).toHaveAttribute('target', '_blank');
+    // The Terms are ON this page: the same version and the same 17 sections as terms.html.
+    await expect(page.locator('#register-terms-version')).toHaveText(`Version ${TERMS_VERSION}`);
+    await expect(page.locator('#register-terms-body .terms-section')).toHaveCount(17);
+    const registerText = await page.locator('#register-terms-body').innerText();
+    const termsPage = await page.context().newPage();
+    await termsPage.goto('/terms.html');
+    await expect(termsPage.locator('#terms-body .terms-section')).toHaveCount(17);
+    expect(registerText, 'the register page and terms.html show different Terms text')
+      .toBe(await termsPage.locator('#terms-body').innerText());
+    await termsPage.close();
+
+    // The owner's sentence, and the box sits BELOW the last section of the Terms.
+    await expect(page.locator('label[for="accept-terms"]')).toHaveText('I have read and agree to the terms and conditions');
+    const lastSection = await page.locator('#register-terms-body .terms-section').last().boundingBox();
+    const tick = await box.boundingBox();
+    expect(tick.y, 'the tick box is not below the Terms').toBeGreaterThan(lastSection.y + lastSection.height - 1);
+    // The separate link is gone: the Terms are on the page, so a link to the same text is not needed.
+    await expect(page.locator('#terms-link')).toHaveCount(0);
+  });
+
+  test('Item07 the register page shows the Terms and the tick sentence in Spanish', async ({ page }) => {
+    const invite = await createInvitation('es');
+    await page.goto(invite.link);
+    await expect(page.locator('#register-card')).toBeVisible();
+    await page.locator('.lang-btn', { hasText: 'ES' }).click();
+    await expect(page.locator('label[for="accept-terms"]')).toHaveText('He leído y acepto los términos y condiciones');
+    await expect(page.locator('#register-terms-body .terms-section')).toHaveCount(17);
+    await expect(page.locator('#register-terms-version')).toHaveText(`Versión ${TERMS_VERSION}`);
   });
 
   test('Item07 registration is refused while the box is unticked', async ({ page }) => {
