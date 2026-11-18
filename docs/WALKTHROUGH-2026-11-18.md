@@ -32,3 +32,6 @@ Answered (CHANGE): ADD a sort choice on Browse (drop-down): Newest first (defaul
 
 ## Block 7: saved searches and watchlist (items 22-25)
 Answered: KEEP AS IS (owner, 18 Nov).
+
+## Block 8: enquiries and replies through the Operator (items 26-30)
+Answered: KEEP AS IS (owner, 18 Nov).
