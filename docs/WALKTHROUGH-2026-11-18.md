@@ -38,3 +38,6 @@ Answered: KEEP AS IS (owner, 18 Nov).
 
 ## Block 9: documents declared, activity download (items 31-36)
 Answered: KEEP AS IS (owner, 18 Nov).
+
+## Block 10: stale listings (items 37-39)
+Answered: KEEP AS IS (owner, 18 Nov). (30 days; "Is it still available?"; one-press renew by the owner only.)
