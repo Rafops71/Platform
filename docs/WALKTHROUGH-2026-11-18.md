@@ -15,3 +15,6 @@ Asked: today a tick box "I have read and accept the Terms & Conditions" with a l
 Answered (CHANGE, owner's words): "The terms and conditions should be on the page and the tick box should be at the bottom so they confirmed that they have read the page and the terms and conditions and agree with it and agree to it."
 To build later: the Terms text shown ON the register page (not only a link), the tick box at the bottom of it, confirming they read the page and the Terms and agree. Exact tick sentence: owner to choose (options offered). Item 7/8 behaviour (refused without tick; version + language recorded) stays.
 Block 3 tick sentence, owner's own words (typed 18 Nov): "I have read and agree to the terms and conditions". Spanish: ours to write.
+
+## Question raised by the owner during block 4 (for the broker design B1-B4, not decided)
+"What if a trader has access to material for another producer and he functions for this particular deal as a broker, or he quit his former employment and works to own title?" Today (read in code 18 Nov): the role (Principal / Mandated intermediary / Broker; Producer or Trader for a seller) is chosen PER LISTING (listings.poster_role), not once per member. Not yet checked: whether the profile stores a member type too, and what stops a wrong role being ticked. To settle together with the broker decisions.
