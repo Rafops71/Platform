@@ -35,3 +35,6 @@ Answered: KEEP AS IS (owner, 18 Nov).
 
 ## Block 8: enquiries and replies through the Operator (items 26-30)
 Answered: KEEP AS IS (owner, 18 Nov).
+
+## Block 9: documents declared, activity download (items 31-36)
+Answered: KEEP AS IS (owner, 18 Nov).
