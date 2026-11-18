@@ -18,3 +18,6 @@ Block 3 tick sentence, owner's own words (typed 18 Nov): "I have read and agree 
 
 ## Question raised by the owner during block 4 (for the broker design B1-B4, not decided)
 "What if a trader has access to material for another producer and he functions for this particular deal as a broker, or he quit his former employment and works to own title?" Today (read in code 18 Nov): the role (Principal / Mandated intermediary / Broker; Producer or Trader for a seller) is chosen PER LISTING (listings.poster_role), not once per member. Not yet checked: whether the profile stores a member type too, and what stops a wrong role being ticked. To settle together with the broker decisions.
+
+## Block 4: a member's own details (items 9-13)
+Answered: KEEP AS IS (owner, 18 Nov).
