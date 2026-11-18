@@ -41,3 +41,6 @@ Answered: KEEP AS IS (owner, 18 Nov).
 
 ## Block 10: stale listings (items 37-39)
 Answered: KEEP AS IS (owner, 18 Nov). (30 days; "Is it still available?"; one-press renew by the owner only.)
+
+## Block 11: the Operator's console (items 40-44)
+Answered: KEEP AS IS (owner, 18 Nov). Tabs today: Overview, Approvals, All Listings, Invitations, Users, Commodities, Mailbox, Matches, Deals, Scorecard, Analytics, Activity Log, Help.
