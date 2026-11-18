@@ -14,3 +14,4 @@ To build later: login.html messages for status rejected and suspended (EN + ES);
 Asked: today a tick box "I have read and accept the Terms & Conditions" with a link to terms.html; refused without the tick; version and language saved.
 Answered (CHANGE, owner's words): "The terms and conditions should be on the page and the tick box should be at the bottom so they confirmed that they have read the page and the terms and conditions and agree with it and agree to it."
 To build later: the Terms text shown ON the register page (not only a link), the tick box at the bottom of it, confirming they read the page and the Terms and agree. Exact tick sentence: owner to choose (options offered). Item 7/8 behaviour (refused without tick; version + language recorded) stays.
+Block 3 tick sentence, owner's own words (typed 18 Nov): "I have read and agree to the terms and conditions". Spanish: ours to write.
