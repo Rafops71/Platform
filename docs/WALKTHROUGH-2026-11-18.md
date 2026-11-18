@@ -66,3 +66,6 @@ Answered: KEEP AS IS (owner, 18 Nov). (Films are on hold per earlier rule.)
 
 ## Block 18: Terms receipts, Terms-change emails, recommendations (items 62, 81-88)
 Answered: KEEP AS IS (owner, 18 Nov).
+
+## Block 19: messages with contact details, rewrite request (item 78)
+Answered: KEEP AS IS, PLUS A NEW WISH (owner's words, 18 Nov): "we need a Translate button if counterparties don't speak English/Spanish or I have to mediate between a Spanish-speaking member and an English-speaking member". Details open: who translates, languages, who sees it (next block). Privacy note: sending a message's text to an outside translation service discloses it to that service.
