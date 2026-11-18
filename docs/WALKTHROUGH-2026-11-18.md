@@ -57,3 +57,6 @@ Answered: KEEP ALL AS IS (owner, 18 Nov).
 
 ## Block 15: statements on every listing (items 66-69)
 Answered: KEEP AS IS (owner, 18 Nov). Broker/role details are decided separately (B1-B4 with Opus).
+
+## Block 16: deal files and scorecard (items 70-75)
+Answered: KEEP AS IS (owner, 18 Nov).
