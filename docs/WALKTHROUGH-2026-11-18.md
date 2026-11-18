@@ -47,3 +47,7 @@ Answered: KEEP AS IS (owner, 18 Nov). Tabs today: Overview, Approvals, All Listi
 
 ## Block 12: introductions, flood limit, language, emails (items 45-49)
 Answered: KEEP AS IS (owner, 18 Nov).
+
+## Block 13: forgotten password, deleting a member, invitation-only (items 53-57)
+Answered: KEEP AS IS (owner, 18 Nov).
+(Items 50-52 privacy/audit prohibitions and 58-61 safety rules are invisible to members; covered next as one block.)
