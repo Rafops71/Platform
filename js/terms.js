@@ -2,8 +2,9 @@
 //
 // Deliberately standalone: it loads no Supabase client and requires no
 // session, because someone has to be able to read the terms *before* they
-// have an account. register.html links here in a new tab, and app.html links
-// here from its footer so a participant can re-read them later.
+// have an account. register.html shows the same text on the page itself
+// (renderTermsSections in utils.js), and app.html links here from its footer
+// so a participant can re-read them later.
 //
 // The text itself lives in the terms.* keys in i18n.js, so it is translated
 // through the same dictionary as the rest of the participant interface and a
@@ -17,33 +18,7 @@ function renderTerms() {
   document.getElementById('terms-version').textContent =
     t('terms.version', { version: TERMS_VERSION });
 
-  const body = document.getElementById('terms-body');
-  body.innerHTML = '';
-
-  for (const n of TERMS_SECTIONS) {
-    const section = document.createElement('section');
-    section.className = 'terms-section';
-
-    const h = document.createElement('h3');
-    h.textContent = t(`terms.s${n}.title`);
-    section.appendChild(h);
-
-    // Most sections are a title and one paragraph. The ones listed in
-    // TERMS_SECTION_PARAGRAPHS - currently only the Privacy Notice - are
-    // split across terms.sN.p1 … pN instead.
-    const paragraphs = TERMS_SECTION_PARAGRAPHS[n];
-    const keys = paragraphs
-      ? Array.from({ length: paragraphs }, (_, i) => `terms.s${n}.p${i + 1}`)
-      : [`terms.s${n}.body`];
-
-    for (const key of keys) {
-      const p = document.createElement('p');
-      p.textContent = t(key);
-      section.appendChild(p);
-    }
-
-    body.appendChild(section);
-  }
+  renderTermsSections(document.getElementById('terms-body'));
 }
 
 // The back link returns to wherever the reader came from. Opened in a new tab

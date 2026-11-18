@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
 /** Re-render what applyTranslations() cannot reach: the country dropdown,
  *  whose labels are translated while its stored values stay English. */
 window.onLanguageChange = function () {
+  renderRegisterTerms();
   if (document.getElementById('country')) {
     const select = document.getElementById('country');
     const chosen = select.value;
@@ -38,8 +39,12 @@ async function initLoginPage() {
   if (getQueryParam('pending') === '1') {
     notice.textContent = t('login.pending');
     notice.classList.remove('hidden');
-  } else if (getQueryParam('blocked') === '1') {
-    notice.textContent = t('login.blocked');
+  } else if (getQueryParam('blocked')) {
+    // Rejected and suspended have their own sentence (owner, 18 Nov 2026);
+    // anything else keeps the general one. Only these two words are looked up,
+    // so the address cannot be used to make the page print anything else.
+    const why = getQueryParam('blocked');
+    notice.textContent = t(why === 'rejected' || why === 'suspended' ? `login.blocked.${why}` : 'login.blocked');
     notice.classList.remove('hidden');
   } else if (getQueryParam('reset') === '1') {
     // reset.html sends them back here after signing them out, so the last
@@ -87,7 +92,7 @@ async function initLoginPage() {
     }
     if (prof.status !== 'approved') {
       await myplatform.auth.signOut();
-      window.location.href = 'index.html?blocked=1';
+      window.location.href = blockedPage(prof.status);
       return;
     }
     window.location.href = prof.role === 'operator' ? 'operator.html' : 'app.html';
@@ -110,6 +115,16 @@ async function logActivity(action, details = null) {
 
 // ------------------------------------------------------------ REGISTER ----
 let invitationToken = null;
+
+/** The Terms, shown on the register page itself (owner, 18 Nov 2026), above the
+ *  tick box. Same text and version as terms.html: renderTermsSections() and
+ *  TERMS_VERSION are shared, nothing is copied. */
+function renderRegisterTerms() {
+  const body = document.getElementById('register-terms-body');
+  if (!body) return;
+  document.getElementById('register-terms-version').textContent = t('terms.version', { version: TERMS_VERSION });
+  renderTermsSections(body);
+}
 
 /** The walkthrough film, in whichever language the page is set to.
  *
@@ -178,6 +193,7 @@ async function initRegisterPage() {
   renderSigningFields(document.getElementById('signing-fields'), '');
   document.getElementById('signing-name').innerHTML = signedNameHtml('');
   applyTranslations(document.getElementById('signing-name'));
+  renderRegisterTerms();
 
   if (!invitationToken) {
     checking.classList.add('hidden');

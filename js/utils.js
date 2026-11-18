@@ -220,6 +220,14 @@ async function getCurrentProfile() {
   return data;
 }
 
+/** Where a profile that is not approved is sent. Only a rejected or a suspended
+ *  profile gets its own message (owner, 18 Nov 2026); any other status keeps the
+ *  general one. It is reached only after a correct sign-in. */
+function blockedPage(status) {
+  return status === 'rejected' || status === 'suspended'
+    ? `index.html?blocked=${status}` : 'index.html?blocked=1';
+}
+
 /** Guard a page: redirect to index.html if not logged in, or if logged in
  *  but not approved, or if role doesn't match what the page requires.
  *  requiredRole: 'operator' | 'participant' | null (any approved user). */
@@ -235,7 +243,7 @@ async function requireAuth(requiredRole = null) {
   }
   if (profile.status !== 'approved') {
     await myplatform.auth.signOut();
-    window.location.href = 'index.html?blocked=1';
+    window.location.href = blockedPage(profile.status);
     return null;
   }
   if (requiredRole && profile.role !== requiredRole) {
@@ -470,7 +478,10 @@ function populateSelect(id, values, withBlank = false, labelFn = null) {
   if (previous && values.includes(previous)) el.value = previous;
 }
 
-/** Sort commodity rows alphabetically by name, with "Other" pinned last.
+/** The one alphabetical order for commodity names (item 17), shared by the
+ *  lists above and Browse's "Commodity A to Z" so the two can never differ.
+ *
+ *  Sort commodity rows alphabetically by name, with "Other" pinned last.
  *
  *  Sorting client-side rather than in the query keeps the list alphabetical
  *  even when sort_order has not caught up — a commodity an Operator adds
@@ -478,13 +489,41 @@ function populateSelect(id, values, withBlank = false, labelFn = null) {
  *  that column alone would drop it at the bottom instead of under its own
  *  letter. localeCompare is case-insensitive and accent-aware, so "LNG" files
  *  under L with "Lead" rather than ahead of every lowercase name. */
+/** The Terms sections, rendered into `body`. One renderer for terms.html and
+ *  for the register page, so the Terms text exists once (in the terms.* keys)
+ *  and the two pages cannot differ. */
+function renderTermsSections(body) {
+  body.innerHTML = '';
+  for (const n of TERMS_SECTIONS) {
+    const section = document.createElement('section');
+    section.className = 'terms-section';
+    const h = document.createElement('h3');
+    h.textContent = t(`terms.s${n}.title`);
+    section.appendChild(h);
+    // Most sections are a title and one paragraph; those listed in
+    // TERMS_SECTION_PARAGRAPHS are split across terms.sN.p1 ... pN.
+    const paragraphs = TERMS_SECTION_PARAGRAPHS[n];
+    const keys = paragraphs
+      ? Array.from({ length: paragraphs }, (_, i) => `terms.s${n}.p${i + 1}`)
+      : [`terms.s${n}.body`];
+    for (const key of keys) {
+      const p = document.createElement('p');
+      p.textContent = t(key);
+      section.appendChild(p);
+    }
+    body.appendChild(section);
+  }
+}
+
+function compareCommodityNames(aName, bName) {
+  const aOther = aName.toLowerCase() === 'other';
+  const bOther = bName.toLowerCase() === 'other';
+  if (aOther !== bOther) return aOther ? 1 : -1;
+  return aName.localeCompare(bName, undefined, { sensitivity: 'base' });
+}
+
 function sortCommodities(rows) {
-  return [...(rows || [])].sort((a, b) => {
-    const aOther = a.name.toLowerCase() === 'other';
-    const bOther = b.name.toLowerCase() === 'other';
-    if (aOther !== bOther) return aOther ? 1 : -1;
-    return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
-  });
+  return [...(rows || [])].sort((a, b) => compareCommodityNames(a.name, b.name));
 }
 
 /** Set a <select> to `value`, keeping values that predate the dropdown.

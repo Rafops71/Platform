@@ -150,6 +150,8 @@ const STRINGS = {
     'login.resetOk': 'Your password has been changed. Sign in with the new one.',
     'login.pending': 'Your registration is awaiting Operator approval. You will be able to sign in once approved.',
     'login.blocked': 'This account is not currently active. Contact an Operator.',
+    'login.blocked.rejected': 'Your registration was not approved.',
+    'login.blocked.suspended': 'This account has been suspended.',
     'login.noProfile': 'Could not load your profile. Contact an Operator.',
 
     // ---- Registration --------------------------------------------------
@@ -247,6 +249,10 @@ const STRINGS = {
     'browse.sellOffers': 'Sell Offers',
     'browse.buyRequests': 'Buy Requests',
     'browse.allCommodities': 'All commodities',
+    'browse.sort.label': 'Sort by',
+    'browse.sort.newest': 'Newest first',
+    'browse.sort.oldest': 'Oldest first',
+    'browse.sort.commodity': 'Commodity A to Z',
     'browse.originDestination': 'Origin / Destination',
     'browse.anyCountry': 'Any origin / destination',
     'a11y.commodity': 'Commodity',
@@ -548,9 +554,7 @@ const STRINGS = {
     'terms.s17.body': 'A Participant who suggests a candidate gives only their honest opinion, formed to the best of their knowledge and experience. A suggestion is not a guarantee or warranty of the candidate\'s conduct, and the Participant making it is not responsible for what the candidate says or does. The Operator decides independently whether to invite anyone.',
 
     // ---- Acceptance at registration -------------------------------------
-    'register.terms.accept': 'I have read and accept the',
-    'register.terms.link': 'Terms & Conditions',
-    'register.terms.suffix': '.',
+    'register.terms.agree': 'I have read and agree to the terms and conditions',
     'register.terms.required': 'You must read and accept the Terms & Conditions before registering.',
     'sign.capacity': 'I sign',
     'sign.capacity.individual': 'Individual capacity',
@@ -673,6 +677,8 @@ const STRINGS = {
     'login.resetOk': 'Su contraseña se ha actualizado. Acceda con la nueva.',
     'login.pending': 'Su registro está pendiente de aprobación por parte de un Operador. Podrá iniciar sesión una vez aprobado.',
     'login.blocked': 'Esta cuenta no está activa actualmente. Póngase en contacto con un Operador.',
+    'login.blocked.rejected': 'Su registro no fue aprobado.',
+    'login.blocked.suspended': 'Esta cuenta ha sido suspendida.',
     'login.noProfile': 'No se ha podido cargar su perfil. Póngase en contacto con un Operador.',
 
     // ---- Registration --------------------------------------------------
@@ -770,6 +776,10 @@ const STRINGS = {
     'browse.sellOffers': 'Ofertas de venta',
     'browse.buyRequests': 'Solicitudes de compra',
     'browse.allCommodities': 'Todas las materias primas',
+    'browse.sort.label': 'Ordenar por',
+    'browse.sort.newest': 'Más recientes primero',
+    'browse.sort.oldest': 'Más antiguos primero',
+    'browse.sort.commodity': 'Materia prima de la A a la Z',
     'browse.originDestination': 'Origen / Destino',
     'browse.anyCountry': 'Cualquier origen / destino',
     'a11y.commodity': 'Materia prima',
@@ -1065,9 +1075,7 @@ const STRINGS = {
     'terms.s17.body': 'Un Participante que propone a un candidato solo aporta su opinión sincera, formada según su mejor saber y entender y su experiencia. Una propuesta no es una garantía de la conducta del candidato, y el Participante que la hace no responde de lo que el candidato diga o haga. El Operador decide de forma independiente si invita a alguien.',
 
     // ---- Aceptación en el registro --------------------------------------
-    'register.terms.accept': 'He leído y acepto los',
-    'register.terms.link': 'Términos y Condiciones',
-    'register.terms.suffix': '.',
+    'register.terms.agree': 'He leído y acepto los términos y condiciones',
     'register.terms.required': 'Debe leer y aceptar los Términos y Condiciones antes de registrarse.',
     'sign.capacity': 'Firmo',
     'sign.capacity.individual': 'A título personal',

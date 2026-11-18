@@ -77,13 +77,21 @@
            accepted so the consent is provable afterwards. -->
       <div id="signing-name"></div>
 
+      <!-- The Terms themselves, on this page (owner, 18 Nov 2026), then the tick
+           box at the bottom of them. The text comes from the same terms.* keys
+           and renderTermsSections() as terms.html, so it exists once. -->
+      <section class="register-terms" aria-labelledby="register-terms-heading">
+        <h3 id="register-terms-heading" data-i18n="terms.heading">Terms &amp; Conditions, Disclaimer and Privacy Notice</h3>
+        <p class="terms-placeholder-notice" data-i18n="terms.placeholderNotice"></p>
+        <p class="text-muted" id="register-terms-version"></p>
+        <p data-i18n="terms.intro"></p>
+        <div id="register-terms-body"></div>
+      </section>
+
       <div class="terms-accept">
         <label for="accept-terms" class="checkbox-row">
           <input type="checkbox" id="accept-terms" required>
-          <span>
-            <span data-i18n="register.terms.accept">I have read and accept the</span>
-            <a href="terms.html" target="_blank" rel="noopener" id="terms-link" data-i18n="register.terms.link">Terms &amp; Conditions</a><span data-i18n="register.terms.suffix">.</span>
-          </span>
+          <span data-i18n="register.terms.agree">I have read and agree to the terms and conditions</span>
         </label>
       </div>
 
