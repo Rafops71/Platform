@@ -51,3 +51,6 @@ Answered: KEEP AS IS (owner, 18 Nov).
 ## Block 13: forgotten password, deleting a member, invitation-only (items 53-57)
 Answered: KEEP AS IS (owner, 18 Nov).
 (Items 50-52 privacy/audit prohibitions and 58-61 safety rules are invisible to members; covered next as one block.)
+
+## Block 14: safety rules members never see (items 50-52, 58-61, 63-65)
+Answered: KEEP ALL AS IS (owner, 18 Nov).
