@@ -1,0 +1,46 @@
+name: Staging Operator (manual)
+
+# Creates, checks or removes the ONE standing Operator account on the STAGING project, so the browser suite
+# has somebody to name as the inviter of its fixture accounts (docs/PLAN-staging-2026-11-17.md, step 1;
+# owner approved 17 Nov 2026). Nothing runs on merge, push or pull request: it starts only when a person
+# presses "Run workflow" and chooses an action.
+#
+# It is handed the STAGING secrets and NO live ones (scripts/staging-operator.js --self-test reads this file
+# and fails if any other secret is named), and the script itself refuses any address that is not the staging
+# project's. "status" only reads. "teardown" removes what "create" made.
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'status (read only), create, or teardown'
+        required: true
+        default: status
+        type: choice
+        options: [status, create, teardown]
+
+permissions:
+  contents: read
+
+# One at a time on the one staging database.
+concurrency:
+  group: staging-database
+  cancel-in-progress: false
+
+jobs:
+  operator:
+    name: Staging Operator - ${{ inputs.action }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Run it
+        env:
+          SUPABASE_URL: https://pqxlfgvjoowawzgoszna.supabase.co
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
+        run: node scripts/staging-operator.js ${{ inputs.action }}

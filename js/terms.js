@@ -1,4 +1,4 @@
-// Jericho Platform — the Terms & Conditions page.
+// MyPlatform — the Terms & Conditions page.
 //
 // Deliberately standalone: it loads no Supabase client and requires no
 // session, because someone has to be able to read the terms *before* they

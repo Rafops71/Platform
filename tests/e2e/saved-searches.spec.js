@@ -182,7 +182,7 @@ test.describe.serial('saved searches and watchlist', () => {
     // Asked of the database directly, as a tampered page would: RLS is what
     // makes this true, not the query the dashboard happens to send.
     const visible = await page.evaluate(async () => {
-      const { data } = await jericho.from('saved_searches').select('*');
+      const { data } = await myplatform.from('saved_searches').select('*');
       return (data || []).length;
     });
     expect(visible).toBe(0);

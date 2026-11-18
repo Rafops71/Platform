@@ -103,7 +103,23 @@ something fluent said it.
 - When a failure turns out to be a real bug: fix it, and say plainly that the
   checklist caught it.
 
+## Rules of the road
+
+Thirteen rules for how work moves from decision to merge (twelve written by Fable on 16 Nov 2026, the
+thirteenth added by the owner on 17 Nov 2026), copied word for word into `docs/RULES-OF-THE-ROAD.md`. Read that file at the start of a
+session and after every compaction. In short: one job, one branch, one PR, one migration number
+in series; the number comes from `sql/NEXT`; nothing is pushed red; `npm run prepush` output goes
+in the pull request.
+
 ## Running things
+
+- `npm run prepush` — everything checkable before a push: conflict-marker search, all offline
+  checks, `test:sql` (it makes the `pgtest` user itself when run as root), and the list of
+  changed English and Spanish strings. Paste its output in the pull request. It does not run
+  the browser suites and says so.
+- `npm run migration:next -- reserve <name>` — hands out the next migration number from
+  `sql/NEXT`. Every new migration also needs a `-- applied-probe: select ...` header line
+  (see `scripts/check-applied-live.js`).
 
 - `npm run serve` — static server. Playwright starts it itself; nothing needs
   to be open beforehand.

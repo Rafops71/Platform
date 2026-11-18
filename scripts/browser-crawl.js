@@ -35,7 +35,7 @@ const AXE = 'https://cdn.jsdelivr.net/npm/axe-core@4.10.2/axe.min.js';
 const STAGING_CONFIG = `
 const SUPABASE_URL = ${JSON.stringify(process.env.SUPABASE_URL)};
 const SUPABASE_PUBLISHABLE_KEY = ${JSON.stringify(process.env.SUPABASE_ANON_KEY)};
-const jericho = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+const myplatform = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 `;
 
 const findings = [];
@@ -69,7 +69,7 @@ async function newPage(browser, label) {
     // The app logs a refused request deliberately (js/utils.js errorMessage)
     // and the browser reports 4xx answers it was expected to get; neither is
     // a fault. Anything else is.
-    if (/^\[jericho\]|Failed to load resource: the server responded with a status of 4\d\d/.test(text)) return;
+    if (/^\[myplatform\]|Failed to load resource: the server responded with a status of 4\d\d/.test(text)) return;
     // Firefox reports a font download it cancelled itself (NS_BINDING_ABORTED,
     // 2152398850) when a signed-out visitor is sent away mid-load. Not a fault.
     if (/downloadable font: download failed .*status=2152398850/.test(text)) return;

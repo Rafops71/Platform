@@ -61,8 +61,12 @@
   const enterAs = {
     'member-a': { profileId: IDS.memberA, page: 'app.html' },
     'member-b': { profileId: IDS.memberB, page: 'app.html' },
-    'operator': { profileId: IDS.operator, page: 'operator.html' },
   };
+  // Only the Operator demo (window.DEMO_KIND, set by scripts/build-demo.js) has
+  // an Operator entry. The member demo has no way in as the Operator.
+  if (typeof window !== 'undefined' && window.DEMO_KIND === 'operator') {
+    enterAs.operator = { profileId: IDS.operator, page: 'operator.html' };
+  }
 
   // -------------------------------------------------------------- listings --
   // Owner A posts odd numbers, owner B even ones. origin is used for sell
@@ -191,11 +195,6 @@
       status: 'new', created_at: ago(5), reviewed_at: null },
   ];
 
-  const document_requests = [
-    { id: uid(6001), listing_id: listings[2].id, requester_id: IDS.operator, participant_id: IDS.memberB,
-      doc_type: 'Certificate of Origin', status: 'requested', requested_at: ago(1), responded_at: null },
-  ];
-
   const invitations = [
     { id: uid(7001), token: 'DEMO-INVITE-0001', email: 'new.member@example.com', created_by: IDS.operator,
       created_at: ago(1), expires_at: new Date(NOW + 4 * DAY).toISOString(), used_at: null, used_by: null },
@@ -206,8 +205,6 @@
       message: 'A message was forwarded to you regarding ' + listings[0].reference_number + '.', related_id: listings[0].id },
     { id: uid(8002), user_id: IDS.memberA, type: 'listing_status', is_read: true, created_at: ago(5),
       message: 'Your listing ' + listings[8].reference_number + ' was marked closed.', related_id: listings[8].id },
-    { id: uid(8003), user_id: IDS.memberB, type: 'document_requested', is_read: false, created_at: ago(1),
-      message: 'An Operator requested: Certificate of Origin', related_id: listings[2].id },
     { id: uid(8004), user_id: IDS.memberB, type: 'message_reply', is_read: true, created_at: ago(4),
       message: 'The Operator replied to your message.', related_id: null },
   ];
@@ -226,7 +223,7 @@
 
   const commodityNames = [
     'Aluminum Ingots — A7/A8', 'Antimony', 'Chrome Concentrate', 'Chrome Ore', 'Copper Cathodes — Grade A',
-    'Copper Concentrate', 'Crude Oil', 'EN590 Diesel', 'Ferrochrome', 'HMS 1&2 Scrap',
+    'Copper Concentrate', 'Crude Oil', 'EN590 Diesel', 'Ferrochrome', 'HMS 1&2 (80:20)',
     'Hot Briquetted Iron (HBI)', 'Iron Ore', 'Jet A-1', 'Lead Concentrate', 'Lead Ingots', 'LNG',
     'Manganese Concentrate', 'Manganese Ore', 'Petroleum Coke', 'Soybeans', 'Steel Billets', 'Sugar',
     'Thermal Coal', 'Urea', 'Wheat', 'Zinc Concentrate', 'Zinc Ingots',
@@ -238,9 +235,9 @@
   // The Terms the members have already signed. The text itself lives in
   // js/i18n.js; these rows only tell the page which version is current.
   const terms_versions = [
-    { version: '3.4', language: 'en', text: 'Demo copy. The Terms text is in js/i18n.js.', sha256: 'demo',
+    { version: '3.5', language: 'en', text: 'Demo copy. The Terms text is in js/i18n.js.', sha256: 'demo',
       published_at: ago(60) },
-    { version: '3.4', language: 'es', text: 'Copia de demostración. El texto de las condiciones está en js/i18n.js.',
+    { version: '3.5', language: 'es', text: 'Copia de demostración. El texto de las condiciones está en js/i18n.js.',
       sha256: 'demo', published_at: ago(60) },
   ];
 
@@ -248,7 +245,7 @@
     IDS,
     enterAs,
     tables: {
-      profiles, listings, document_checklist, document_requests, messages, message_forward_log,
+      profiles, listings, document_checklist, messages, message_forward_log,
       activity_log, matches, notifications, invitations, commodities, reference_counters,
       saved_searches, deals, deal_history, terms_versions, email_outbox: [],
     },

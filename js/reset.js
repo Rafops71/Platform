@@ -81,7 +81,7 @@ async function checkLinkAndWireForm() {
   // The client reads the fragment on load, but the event can land before or
   // after this listener depending on timing, so BOTH paths are handled: the
   // event below, and the explicit check after it.
-  jericho.auth.onAuthStateChange((event) => {
+  myplatform.auth.onAuthStateChange((event) => {
     if (event === 'PASSWORD_RECOVERY') showForm();
   });
 
@@ -90,7 +90,7 @@ async function checkLinkAndWireForm() {
   // slow one should not fail.
   const deadline = Date.now() + 8000;
   while (Date.now() < deadline && !RECOVERY_READY) {
-    const { data } = await jericho.auth.getSession();
+    const { data } = await myplatform.auth.getSession();
     if (data && data.session) { showForm(); break; }
     await new Promise(r => setTimeout(r, 150));
   }
@@ -130,7 +130,7 @@ async function saveNewPassword(e) {
   btn.disabled = true;
   btn.textContent = t('reset.saving');
 
-  const { error } = await jericho.auth.updateUser({ password: pw });
+  const { error } = await myplatform.auth.updateUser({ password: pw });
   if (error) {
     showError(errorMessage(error));
     btn.disabled = false;
@@ -139,7 +139,7 @@ async function saveNewPassword(e) {
   }
 
   // Out, deliberately. See the note at the top of this file.
-  await jericho.auth.signOut();
+  await myplatform.auth.signOut();
 
   showSuccess(t('reset.done'));
   setTimeout(() => { window.location.href = 'index.html?reset=1'; }, 1200);

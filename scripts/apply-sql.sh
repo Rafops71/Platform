@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Apply the Jericho Platform SQL scripts to the live Supabase database, in order.
+# Apply the MyPlatform SQL scripts to the live Supabase database, in order.
 #
 #   ./scripts/apply-sql.sh            # apply everything
 #   ./scripts/apply-sql.sh 002_updates.sql seed_commodities.sql   # or a subset

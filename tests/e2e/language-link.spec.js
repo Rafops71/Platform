@@ -26,7 +26,7 @@ test.describe('the language travels in the link', () => {
     await page.goto('/index.html?lang=es');
     await page.goto('/reset.html');
     await expect(page.locator('html')).toHaveAttribute('lang', 'es');
-    expect(await page.evaluate(() => localStorage.getItem('jericho.language'))).toBe('es');
+    expect(await page.evaluate(() => localStorage.getItem('myplatform.language'))).toBe('es');
   });
 
   test('?lang=en overrides an earlier Spanish choice', async ({ page }) => {
@@ -38,7 +38,7 @@ test.describe('the language travels in the link', () => {
   test('an unsupported language is ignored', async ({ page }) => {
     await page.goto('/index.html?lang=xx');
     await expect(page.locator('#login-btn')).toHaveText('Sign In');
-    expect(await page.evaluate(() => localStorage.getItem('jericho.language'))).toBeNull();
+    expect(await page.evaluate(() => localStorage.getItem('myplatform.language'))).toBeNull();
   });
 
   test('the front page button carries the language chosen on the front page', async ({ page }) => {

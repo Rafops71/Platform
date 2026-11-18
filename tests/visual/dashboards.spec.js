@@ -17,7 +17,7 @@ const { buildWorld, cleanup, guardNotLive } = require('../../scripts/security-gr
 const STAGING = `
 const SUPABASE_URL = ${JSON.stringify(process.env.SUPABASE_URL)};
 const SUPABASE_PUBLISHABLE_KEY = ${JSON.stringify(process.env.SUPABASE_ANON_KEY)};
-const jericho = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+const myplatform = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 `;
 const STEADY = path.join(__dirname, 'steady.css');
 const DATA = '#user-name, input, textarea, select, .stat-value, .badge, [id$="-list"], [id$="-table"], [id$="-count"], [id$="-updated"], tbody, #doc-checklist, time';
@@ -27,8 +27,8 @@ test.beforeAll(async () => { guardNotLive(); world = await buildWorld(); });
 test.afterAll(async () => { await cleanup(); });
 
 const DASHBOARDS = [
-  { who: 'operator', file: 'operator.html', tabs: ['overview', 'approvals', 'users', 'invitations', 'listings', 'matches', 'deals', 'mailbox', 'doc-requests', 'commodities', 'analytics', 'scorecard', 'activity', 'help'] },
-  { who: 'A', file: 'app.html', tabs: ['browse', 'new-listing', 'my-listings', 'mailbox', 'notifications', 'doc-requests', 'profile', 'help'] },
+  { who: 'operator', file: 'operator.html', tabs: ['overview', 'approvals', 'users', 'invitations', 'listings', 'matches', 'deals', 'mailbox', 'commodities', 'analytics', 'scorecard', 'activity', 'help'] },
+  { who: 'A', file: 'app.html', tabs: ['browse', 'new-listing', 'my-listings', 'mailbox', 'notifications', 'profile', 'help'] },
 ];
 
 for (const d of DASHBOARDS) {
@@ -37,7 +37,7 @@ for (const d of DASHBOARDS) {
     const who = world[d.who];
     await page.route('**/js/supabase-config.js', (r) =>
       r.fulfill({ status: 200, contentType: 'application/javascript', body: STAGING }));
-    await page.addInitScript(() => { try { localStorage.setItem('jericho.language', 'en'); } catch { /* none */ } });
+    await page.addInitScript(() => { try { localStorage.setItem('myplatform.language', 'en'); } catch { /* none */ } });
     await page.goto('/index.html');
     await page.fill('#email', who.email);
     await page.fill('#password', who.password);

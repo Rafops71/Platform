@@ -30,7 +30,6 @@
     <button data-screen="my-listings" class="active" data-i18n="nav.myListings">My Listings</button>
     <button data-screen="new-listing" data-i18n="nav.newListing">New Listing</button>
     <button data-screen="browse" data-i18n="nav.browse">Browse</button>
-    <button data-screen="doc-requests"><span data-i18n="nav.documents">Documents</span><span id="docreq-dot" class="notification-dot hidden"></span></button>
     <button data-screen="mailbox" data-i18n="nav.mailbox">Mailbox</button>
     <button data-screen="notifications"><span data-i18n="nav.notifications">Notifications</span><span id="notif-dot" class="notification-dot hidden"></span></button>
     <button data-screen="profile" data-i18n="nav.profile">Profile</button>
@@ -59,7 +58,7 @@
   <div class="card">
     <h2 data-i18n="welcome.title">Welcome to MyPlatform</h2>
     <p><strong data-i18n="welcome.do.h">What we do:</strong> <span data-i18n="welcome.do.p">MyPlatform is a private, invitation-only place where buyers and sellers of physical commodities meet confidentially.</span></p>
-    <p><strong data-i18n="welcome.role.h">Our role:</strong> <span data-i18n="welcome.role.p">we are facilitators. All communication passes through the Operator, and introductions happen only once price, procedure and document order are agreed.</span></p>
+    <p><strong data-i18n="welcome.role.h">Our role:</strong> <span data-i18n="welcome.role.p">we are facilitators. All communication passes through the Operator. Introductions are made only after a commission agreement has been executed.</span></p>
     <p><strong data-i18n="welcome.yours.h">Your role:</strong> <span data-i18n="welcome.yours.p">offers reflect what members state and declare. Confirming the details, documents and counterparty remains with the parties themselves.</span></p>
     <p><strong data-i18n="welcome.trust.h">Trust:</strong> <span data-i18n="welcome.trust.p">membership is built on honesty and mutual trust. Each member stands behind their own posts and statements.</span></p>
     <p><strong data-i18n="welcome.conseq.h">Consequences:</strong> <span data-i18n="welcome.conseq.p">misleading offers or conduct can lead to suspension or cancellation of membership.</span></p>
@@ -161,17 +160,31 @@
              answer again; js/app.js readListingStatements() checks first). -->
         <fieldset>
           <legend><span data-i18n="stmt.role">What is your role in this offer?</span> *</legend>
-          <label class="checkbox-row"><input type="radio" name="poster_role" id="role-principal" value="principal">
-            <span data-i18n="stmt.role.principal">Principal - I produce the goods or hold legal title to them / I purchase as the contracting party</span></label>
-          <label class="checkbox-row"><input type="radio" name="poster_role" id="role-mandated" value="mandated">
-            <span data-i18n="stmt.role.mandated">Mandated intermediary - I act directly for the principal, with their written authority</span></label>
-          <label class="checkbox-row"><input type="radio" name="poster_role" id="role-broker" value="broker">
-            <span data-i18n="stmt.role.broker">Broker</span></label>
+          <label for="poster_role" class="sr-only" data-i18n="stmt.role">What is your role in this offer?</label>
+          <select id="poster_role" name="poster_role">
+            <option value="" data-i18n="stmt.choose">Choose…</option>
+            <option value="principal" data-i18n="stmt.role.principal">Principal - I produce the goods or hold legal title to them / I purchase as the contracting party</option>
+            <option value="mandated" data-i18n="stmt.role.mandated">Mandated intermediary - I act directly for the principal, with their written authority</option>
+            <option value="broker" data-i18n="stmt.role.broker">Broker</option>
+          </select>
 
           <div id="kind-row" class="hidden">
-            <p class="mb-0" data-i18n="stmt.kind.q">Which describes you?</p>
-            <label class="checkbox-row"><input type="radio" name="principal_kind" id="kind-producer" value="producer"> <span data-i18n="stmt.kind.producer">Producer</span></label>
-            <label class="checkbox-row"><input type="radio" name="principal_kind" id="kind-trader" value="trader"> <span data-i18n="stmt.kind.trader">Trader</span></label>
+            <label for="principal_kind" data-i18n="stmt.kind.q">Which describes you?</label>
+            <select id="principal_kind" name="principal_kind">
+              <option value="" data-i18n="stmt.choose">Choose…</option>
+              <option value="producer" data-i18n="stmt.kind.producer">Producer</option>
+              <option value="trader" data-i18n="stmt.kind.trader">Trader</option>
+            </select>
+          </div>
+
+          <!-- Readiness ticks (sql/066): Principal only, optional, shown to the Operator only. -->
+          <div id="readiness-row" class="hidden">
+            <p class="mb-0" id="readiness-intro" data-i18n="stmt.ready.sellIntro">Optional. You may indicate the current status of your supply.</p>
+            <label class="checkbox-row rd-producer"><input type="checkbox" name="readiness" value="own_available"> <span data-i18n="stmt.ready.own_available">Own production: goods available.</span></label>
+            <label class="checkbox-row rd-producer"><input type="checkbox" name="readiness" value="own_scheduled"> <span data-i18n="stmt.ready.own_scheduled">Own production: available on a production schedule.</span></label>
+            <label class="checkbox-row rd-trader"><input type="checkbox" name="readiness" value="ex_stock"> <span data-i18n="stmt.ready.ex_stock">Ex-stock: goods available, title held.</span></label>
+            <label class="checkbox-row rd-trader"><input type="checkbox" name="readiness" value="back_to_back"> <span data-i18n="stmt.ready.back_to_back">Back-to-back: supply contract in place.</span></label>
+            <label class="checkbox-row rd-buyer"><input type="checkbox" name="readiness" value="buy_ready"> <span data-i18n="stmt.ready.buy_ready">Prepared to proceed; financing is secured and any agreed payment instrument can be issued when required.</span></label>
           </div>
 
           <div id="mandate-row" class="hidden">
@@ -194,6 +207,10 @@
           </div>
         </fieldset>
 
+        <!-- Sell offers only (a Buy request skips it, js/app.js showRoleQuestions). The old
+             "Can documents be shown during due diligence?" question is gone: every Sell
+             listing shows one fixed line instead (js/app.js, 'stmt.browse.docsLine'). -->
+        <div id="docs-seen-row">
         <label for="docs_seen"><span data-i18n="stmt.docsSeen.q">Have you personally seen documents for this offer?</span> *</label>
         <select id="docs_seen">
           <option value="" data-i18n="stmt.choose">Choose…</option>
@@ -201,14 +218,7 @@
           <option value="source_says" data-i18n="stmt.docsSeen.source_says">No, but my source says they exist</option>
           <option value="no" data-i18n="stmt.docsSeen.no">No</option>
         </select>
-
-        <label for="docs_showable"><span data-i18n="stmt.docsShowable.q">Can documents be shown during due diligence?</span> *</label>
-        <select id="docs_showable">
-          <option value="" data-i18n="stmt.choose">Choose…</option>
-          <option value="on_request" data-i18n="stmt.docsShowable.on_request">Yes, on request</option>
-          <option value="after_agreement" data-i18n="stmt.docsShowable.after_agreement">Only after an agreement is signed</option>
-          <option value="no" data-i18n="stmt.docsShowable.no">No</option>
-        </select>
+        </div>
 
         <div class="terms-accept">
           <label for="truth-confirm" class="checkbox-row">
@@ -254,20 +264,12 @@
     </div>
   </section>
 
-  <!-- DOCUMENT REQUESTS (participant response) -->
-  <section id="screen-doc-requests" class="screen">
-    <div class="card">
-      <h2 class="mt-0" data-i18n="docreq.title">Document Requests</h2>
-      <p class="text-muted" style="font-size:var(--text-base);" data-i18n="docreq.intro">Operators may ask you to confirm a specific document. No upload is required — confirm whether you have it.</p>
-      <div id="doc-requests-list" class="stack"><p class="empty-state">Loading…</p></div>
-    </div>
-  </section>
 
   <!-- MAILBOX -->
   <section id="screen-mailbox" class="screen">
     <div class="card">
       <h2 class="mt-0" data-i18n="mailbox.title">Mailbox</h2>
-      <p class="text-muted" style="font-size:var(--text-base);" data-i18n="mailbox.intro">All messages go through the Operators — no direct contact between participants.</p>
+      <p class="text-muted" style="font-size:var(--text-base);" data-i18n="mailbox.intro">All messages go through the Operator — no direct contact between participants.</p>
       <div id="mailbox-list" class="stack"><p class="empty-state">Loading…</p></div>
     </div>
   </section>
@@ -290,6 +292,37 @@
   </section>
 
   <!-- PROFILE -->
+  <!-- RECOMMEND A CANDIDATE (sql/054). A recommendation goes to the Operators
+       only. The page has no tab of its own: showScreen() keeps Profile lit. -->
+  <section id="screen-recommend" class="screen">
+    <div class="card">
+      <h2 class="mt-0" data-i18n="recommend.title">Recommend a candidate</h2>
+      <form id="recommend-form">
+        <label for="r_name" data-i18n="recommend.name">Candidate's name</label>
+        <input type="text" id="r_name" required>
+        <label for="r_company" data-i18n="recommend.company">Candidate's company</label>
+        <input type="text" id="r_company" required>
+        <label for="r_email" data-i18n="recommend.email">Candidate's email</label>
+        <input type="email" id="r_email" required>
+        <label for="r_how" data-i18n="recommend.howKnown">How do you know the candidate?</label>
+        <textarea id="r_how" required></textarea>
+        <label for="r_commodities" data-i18n="recommend.commodities">Commodities the candidate trades</label>
+        <input type="text" id="r_commodities" required>
+        <fieldset>
+          <legend data-i18n="recommend.agreed">Did the candidate agree to be contacted?</legend>
+          <label><input type="radio" name="r_agreed" value="yes" required> <span data-i18n="recommend.yes">Yes</span></label>
+          <label><input type="radio" name="r_agreed" value="no"> <span data-i18n="recommend.no">No</span></label>
+        </fieldset>
+        <label for="r_experience" data-i18n="recommend.experience">Your own experience dealing with the candidate</label>
+        <textarea id="r_experience" required></textarea>
+        <div class="field-hint" data-i18n="recommend.limitHint">You can have up to 5 open recommendations at a time.</div>
+        <p style="margin:16px 0 8px;" data-i18n="recommend.confirm">I confirm that, to the best of my knowledge and experience, this person would be a valuable addition to MyPlatform, based on their reputation and experience. Responsibility for their actions remains with the individual.</p>
+        <p style="margin:0 0 12px;" data-i18n="recommend.informed">In the event the Operator invites this person, they will be informed of your recommendation.</p>
+        <button type="submit" class="btn btn-primary" id="recommend-btn" data-i18n="recommend.send">Send recommendation</button>
+      </form>
+    </div>
+  </section>
+
   <section id="screen-profile" class="screen">
     <div class="card">
       <h2 class="mt-0" data-i18n="profile.title">Profile</h2>
@@ -351,6 +384,12 @@
       <div class="field-hint" data-i18n="profile.roleLocked">Your role and status are set by an Operator and cannot be changed here.</div>
     </div>
 
+    <!-- Opens the Recommend a candidate page. No menu item: the page is reached
+         from here only. Its position on this page is the owner's to confirm. -->
+    <div class="card">
+      <button type="button" class="btn btn-secondary" id="recommend-open-btn" data-i18n="profile.recommend">Recommend a candidate</button>
+    </div>
+
     <!-- Email and password are Auth's, not the profile's, so they are their own
          forms: each needs the current password, and neither should be carried
          along by a Save on the details above. -->
@@ -401,7 +440,7 @@
 <div id="contact-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:900;">
   <div class="card" style="max-width:420px;margin:60px auto;">
     <h2 class="mt-0">Contact <span id="contact-ref"></span></h2>
-    <p class="text-muted" style="font-size:var(--text-base);" data-i18n="contact.intro">Your message goes to the Operators, who will forward it anonymously if appropriate.</p>
+    <p class="text-muted" style="font-size:var(--text-base);" data-i18n="contact.intro">Your message goes to the Operator, who will forward it anonymously if appropriate.</p>
     <label for="contact-body" data-i18n="common.message">Message</label>
     <textarea id="contact-body" required></textarea>
     <div class="row" style="margin-top:14px;">

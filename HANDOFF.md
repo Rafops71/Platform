@@ -1,12 +1,12 @@
 # Handoff — picking this project up
 
-This file is for whoever works on the Jericho Platform next, in a local session
+This file is for whoever works on the MyPlatform next, in a local session
 with access to the live Supabase project. It records what is done, what is
 verified, what is deliberately not built, and what is still open.
 
 For setup and deployment steps, see `README.md`. For a description of the
-product in business terms, see `JERICHO_PLATFORM_PRODUCT_REVIEW.md`; for a
-standalone technical description, `JERICHO_PLATFORM_AI_REVIEW.md`.
+product in business terms, see `myplatform_platform_PRODUCT_REVIEW.md`; for a
+standalone technical description, `myplatform_platform_AI_REVIEW.md`.
 
 ## Getting set up
 
@@ -241,7 +241,7 @@ and every one of them needs them.
 Two things learned getting there, both worth keeping:
 
 - **One live database cannot serve two test runs.** Teardown deleted every
-  `jericho-e2e-` account it could see, so overlapping runs deleted each
+  `myplatform-e2e-` account it could see, so overlapping runs deleted each
   other's fixtures mid-test. CI now serialises on a single
   `ci-live-database` concurrency group, and each run tags its own accounts
   and deletes only those. Symptoms were eleven failures that moved between
@@ -859,9 +859,9 @@ Decisions behind each are in `docs/AGREED-2026-10-25.md`.
     STILLS, all three runs succeeded (GitHub Actions, no voice used). Download
     from the run page, artifact name in brackets, kept 14 days (the first
     expires about 13 Nov):
-    Member film, English  https://github.com/Rafops71/Platform/actions/runs/40994751352  (jericho-member-en-stills)
-    Member film, Spanish  https://github.com/Rafops71/Platform/actions/runs/41265275754  (jericho-member-es-stills)
-    Operator film, English https://github.com/Rafops71/Platform/actions/runs/41267308958 (jericho-operator-en-stills)
+    Member film, English  https://github.com/Rafops71/Platform/actions/runs/40994751352  (myplatform-member-en-stills)
+    Member film, Spanish  https://github.com/Rafops71/Platform/actions/runs/41265275754  (myplatform-member-es-stills)
+    Operator film, English https://github.com/Rafops71/Platform/actions/runs/41267308958 (myplatform-operator-en-stills)
     NOT DONE, and why: the owner has not seen or approved the stills (one answer
     per film); no film is recorded. The real recordings need about 69 spoken
     lines and Gemini's free tier allows 10 requests a day per project (Google's
@@ -967,6 +967,66 @@ Decisions behind each are in `docs/AGREED-2026-10-25.md`.
     change); Spanish film render (voice lines exist; needs OpenMontage set
     up); native-speaker listen to the Spanish voice.
 
+**Demo site on Cloudflare Pages - PLANNED 2026-11-03, NOT SET UP.**
+The demo (PR #76, merged as 630789f) is to be published to its own Pages
+project `myplatform-demo` (address myplatform-demo.pages.dev), separate from
+`platform` and `platform-www`. Owner's decision, relayed by the supervisor.
+Record of the method used for the other two: docs/AGREED-2026-10-28-cloudflare.md.
+
+Setup steps (NOT yet done - see the teardown first):
+1. Prove the teardown on a throwaway project named `deletetest-demo`:
+   create it, delete it, and confirm the project list no longer shows it.
+   Only then create `myplatform-demo`. Nothing has been created yet.
+2. Create the project explicitly. The docs read on 2026-11-03 do not say
+   whether `wrangler pages deploy` creates a missing project, so the
+   deploy job must not rely on it. Create with either:
+   - `npx wrangler pages project create myplatform-demo --production-branch=main`
+   - `POST /accounts/<account_id>/pages/projects` with body
+     `{"name":"myplatform-demo","production_branch":"main"}`
+3. The repository secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are
+   the ones already used for `platform` and `platform-www`. The publish job
+   fails when either is missing.
+
+TEARDOWN - delete the demo project (verified against the Cloudflare docs
+read 2026-11-03; the project and its deployments are removed permanently):
+- `npx wrangler pages project delete myplatform-demo --yes`
+- or `DELETE /accounts/<account_id>/pages/projects/myplatform-demo`
+  (success: HTTP 200, `"success": true`).
+Not yet checked: whether deleting the project also removes its custom
+domains. The demo has none, so this changes nothing today.
+Status: teardown NOT yet proven on a live project. The token used for
+`platform` is with the owner, and this session has no Cloudflare token, so
+step 1 has to be done by someone holding it before setup.
+
+**Operator demo site on Cloudflare Pages - PLANNED 2026-11-04, NOT SET UP (item 42).**
+The Operator demo is the Operator console on fake data, with one sign-in button
+("Enter as Operator", no password). It is published to its own Pages project
+`myplatform-operator-demo`, separate from the member demo (`myplatform-demo`),
+`platform` and `platform-www`. It is not linked from the member demo or from any
+public page. Build: `DEMO_KIND=operator node scripts/build-demo.js` writes
+`dist-demo-operator/`. Workflow: `.github/workflows/operator-demo-pages.yml`.
+
+Setup steps (NOT yet done - the teardown is proven first, on a throwaway project):
+1. `.github/workflows/operator-demo-cloudflare-setup.yml` (workflow_dispatch only)
+   runs `scripts/operator-demo-cloudflare-setup.sh`. It creates
+   `deletetest-operator-demo`, confirms it is listed, deletes it, confirms it is
+   gone, and only then creates `myplatform-operator-demo`. It stops if the test
+   project is still listed after the delete. It refuses `platform`,
+   `platform-www` and `myplatform-demo` by name.
+2. The publish job (`publish-operator-demo` in operator-demo-pages.yml) runs only
+   on main, after the Operator demo's browser tests pass, and fails when a
+   Cloudflare secret is missing. It deploys `dist-demo-operator` to
+   `myplatform-operator-demo` on main.
+3. The repository secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are
+   the ones already used for the other projects.
+
+TEARDOWN - delete the Operator demo project (the same two ways as the member demo):
+- `npx wrangler pages project delete myplatform-operator-demo --yes`
+- or `DELETE /accounts/<account_id>/pages/projects/myplatform-operator-demo`
+  (success: HTTP 200, `"success": true`).
+Status: teardown NOT yet proven on a live project. Setup runs only after that
+proof, in the same workflow run, and it creates nothing before the proof.
+
 -4. ~~**The Privacy Notice does not yet mention outcome records or the
     scorecard.**~~ RESOLVED 2026-10-28: Terms 3.4 (sql/042), live. The research says members must be told. A new Terms version
     is the owner's decision; nothing has been published.
@@ -1014,13 +1074,16 @@ Decisions behind each are in `docs/AGREED-2026-10-25.md`.
     taste. CI passed, Safari on an iPhone included, so no touch target was
     narrowed. Verified live: the site serves `--bg: #ffffff`.
 
--0b. **The films exist.** Four of them, in `films/`, each shipped beside the
-    narration timings it was checked against:
+-0b. **The films exist.** Four were made, each shipped beside the narration
+    timings it was checked against. Two of them are NO LONGER in `films/`:
+    `operator-en` and `overview-en` were removed from the public site (PR #90,
+    owner-approved), together with their timings files. Only the member films
+    remain there:
 
       member-en     3m36s   the member's side, 22 beats
       member-es     3m11s   the same in Spanish (voice ef_dora)
-      operator-en   3m02s   the Operator's desk, 13 beats
-      overview-en   2m41s   both sides in one, for a new Operator
+      operator-en   3m02s   the Operator's desk, 13 beats   (removed, PR #90)
+      overview-en   2m41s   both sides in one, for a new Operator   (removed, PR #90)
 
     The member film is embedded on `register.html`, shown only once an
     invitation has been accepted and in whichever language the page is set
@@ -1163,4 +1226,4 @@ Decisions behind each are in `docs/AGREED-2026-10-25.md`.
    supports one (the insert policy lets a participant record a later version,
    and the uniqueness constraint is on `(profile_id, version)` so an earlier row
    would survive), but nothing drives it.
-   See `JERICHO_PLATFORM_PRODUCT_REVIEW.md` for the wider list.
+   See `myplatform_platform_PRODUCT_REVIEW.md` for the wider list.

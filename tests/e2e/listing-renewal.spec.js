@@ -159,7 +159,7 @@ test.describe.serial('stale listing renewal', () => {
     // Sent the way a tampered page would send it: the id is not secret, so the
     // refusal has to be the database's and not the button's.
     const result = await page.evaluate(async (id) => {
-      const { error } = await jericho.rpc('renew_listing', { p_listing_id: id });
+      const { error } = await myplatform.rpc('renew_listing', { p_listing_id: id });
       return error ? error.message : 'no error';
     }, before.id);
 

@@ -42,6 +42,11 @@ const EXPECTED = {
   // Any signed-in caller may read the commodity names (policy: auth.uid() is
   // not null) - pending and suspended included. It is the public product list.
   commodities:         { operator: ['read', 'write'], member: ['read'], pending: ['read'], suspended: ['read'] },
+  // Member recommendations of a candidate (sql/054). RLS on,
+  // one policy: an Operator may read. Every write goes through a function.
+  // anon has no grant; a member holds the select grant but the policy returns
+  // them no rows. Nobody else may touch it.
+  candidate_recommendations: { operator: ['read'] },
   deal_history:        { operator: ['read'] },
   deals:               { operator: ['read', 'change'] },
   document_checklist:  { operator: ['read', 'write'] },   // moderation
@@ -59,6 +64,9 @@ const EXPECTED = {
   reference_counters:  {},
   saved_searches:      {},
   terms_acceptances:   { operator: ['read'] },
+  // Who the Terms-changed emails were sent to (sql/056). Written only by the
+  // trigger; RLS on, no grant to anon or authenticated. Nobody may touch it.
+  terms_change_emails: {},
   terms_versions:      { anon: ['read'], pending: ['read'], suspended: ['read'], member: ['read'], operator: ['read'] },
 };
 const DOC = 'Assay Report';
@@ -99,8 +107,11 @@ async function must(label, p) {
 
 const made = { users: [], rows: [] };
 
-async function account(label, { role = 'participant', status = 'approved', inviter, language = 'en' } = {}) {
-  const email = `${TAG}-${label}@example.invalid`;
+// domain: test accounts use example.invalid, which the email triggers skip on
+// purpose (sql/047, 048, 056). The email scan passes another reserved .invalid
+// domain for the few accounts that must receive a real trigger's email.
+async function account(label, { role = 'participant', status = 'approved', inviter, language = 'en', domain = 'example.invalid' } = {}) {
+  const email = `${TAG}-${label}@${domain}`;
   const password = crypto.randomBytes(18).toString('base64url') + 'aA1!';
   if (inviter) {
     await must(`invite ${label}`, http('/rest/v1/invitations', {

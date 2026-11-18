@@ -1,4 +1,4 @@
-// Jericho Platform — Supabase client configuration
+// MyPlatform — Supabase client configuration
 //
 // This is the PUBLISHABLE key, meant to be visible in client-side code —
 // it identifies the project but grants nothing by itself. All real access
@@ -14,4 +14,4 @@
 const SUPABASE_URL = 'https://coarclhafggkakmpggfh.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_gDvKmt06iRiRYmDSYXv7Mg_XARxm2o0';
 
-const jericho = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+const myplatform = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);

@@ -175,7 +175,7 @@ test.describe.serial('notification emails follow the recipient language', () => 
     const { rows } = await query(
       'select subject, body_text from public.email_outbox where to_email = $1', [invited]
     );
-    expect(rows[0].subject).toBe('Le han invitado a la Plataforma Jericho');
+    expect(rows[0].subject).toBe('Le han invitado a MyPlatform');
     expect(rows[0].body_text).toContain('Utilice este enlace para crear su cuenta');
     expect(rows[0].body_text).toContain('register.html?token=');
 

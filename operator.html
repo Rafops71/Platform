@@ -32,7 +32,6 @@
     <button data-screen="invitations">Invitations</button>
     <button data-screen="users">Users</button>
     <button data-screen="commodities">Commodities</button>
-    <button data-screen="doc-requests">Document Requests</button>
     <button data-screen="mailbox">Mailbox</button>
     <button data-screen="matches">Matches</button>
     <button data-screen="deals">Deals</button>
@@ -63,10 +62,6 @@
         <button class="stat-tile" id="stat-messages" data-goto="mailbox">
           <span class="stat-value" id="stat-messages-value">—</span>
           <span class="stat-label">Messages awaiting review</span>
-        </button>
-        <button class="stat-tile" id="stat-doc-requests" data-goto="doc-requests">
-          <span class="stat-value" id="stat-doc-requests-value">—</span>
-          <span class="stat-label">Document requests outstanding</span>
         </button>
         <button class="stat-tile" id="stat-matches" data-goto="matches">
           <span class="stat-value" id="stat-matches-value">—</span>
@@ -116,17 +111,12 @@
           <option value="broker">Broker</option>
           <option value="none">Not stated (older listings)</option>
         </select>
-        <select id="listing-filter-docs" aria-label="Filter by documents" style="max-width:200px;">
-          <option value="">Documents: any</option>
-          <option value="yes">Documents indicated</option>
-          <option value="no">No documents indicated</option>
-        </select>
         <button class="btn btn-secondary btn-small" id="listing-search-btn">Search</button>
         <button class="btn btn-secondary btn-small" id="listing-clear-btn">Clear</button>
       </div>
       <div style="overflow-x:auto;">
         <table class="data-table" id="listings-table">
-          <thead><tr><th>Ref</th><th>Owner</th><th>Poster</th><th>Type</th><th>Commodity</th><th>Qty</th><th>Incoterm</th><th>Docs</th><th>Status</th><th>Updated</th><th><span class="sr-only">Actions</span></th></tr></thead>
+          <thead><tr><th>Ref</th><th>Owner</th><th>Poster</th><th>Type</th><th>Commodity</th><th>Qty</th><th>Incoterm</th><th>Status</th><th>Updated</th><th><span class="sr-only">Actions</span></th></tr></thead>
           <tbody><tr><td colspan="10" class="empty-state">Loading…</td></tr></tbody>
         </table>
       </div>
@@ -135,6 +125,44 @@
 
   <!-- INVITATIONS -->
   <section id="screen-invitations" class="screen">
+    <!-- Candidate recommendations (sql/054). Only Operators see these. -->
+    <div class="card" id="recommendations-card">
+      <h2 class="mt-0">Candidate recommendations</h2>
+      <div style="overflow-x:auto;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Suggested by</th>
+              <th>Candidate name</th>
+              <th>Company</th>
+              <th>Commodities</th>
+              <th>Date</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="recommendations-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Opened from Invite on a recommendation. Nothing here is editable but
+         the message is shown exactly as the candidate will receive it. -->
+    <div class="card hidden" id="invite-from-rec-card">
+      <form id="invite-from-rec-form">
+        <label for="ir-candidate-name">Candidate name</label>
+        <input type="text" id="ir-candidate-name" readonly>
+        <label for="ir-candidate-email">Candidate email</label>
+        <input type="email" id="ir-candidate-email" readonly>
+        <label for="ir-referrer">Referrer name</label>
+        <input type="text" id="ir-referrer" readonly>
+        <label>Message preview</label>
+        <div id="ir-preview" style="white-space:pre-wrap;border:1px solid var(--border);border-radius:var(--radius);padding:12px;background:var(--blue-tint);"></div>
+        <div style="margin-top:14px;">
+          <button type="submit" class="btn btn-primary" id="ir-send-btn">Send</button>
+        </div>
+      </form>
+    </div>
+
     <div class="card">
       <h2 class="mt-0">Create Invitation</h2>
       <label for="invite-email">Email (optional, for your own reference)</label>
@@ -184,21 +212,6 @@
     </div>
   </section>
 
-  <!-- DOCUMENT REQUESTS -->
-  <section id="screen-doc-requests" class="screen">
-    <div class="card">
-      <h2 class="mt-0">Request a Document</h2>
-      <label for="dr-listing">Listing</label>
-      <select id="dr-listing"><option value="">Select a listing…</option></select>
-      <label for="dr-doctype">Document type</label>
-      <select id="dr-doctype"></select>
-      <button class="btn btn-primary" id="create-doc-request-btn" style="margin-top:12px;">Send Request</button>
-    </div>
-    <div class="card">
-      <h2 class="mt-0">All Document Requests</h2>
-      <div id="doc-requests-list" class="stack"><p class="empty-state">Loading…</p></div>
-    </div>
-  </section>
 
   <!-- MAILBOX -->
   <section id="screen-mailbox" class="screen">
@@ -232,11 +245,11 @@
   <section id="screen-scorecard" class="screen">
     <div class="card">
       <h2 class="mt-0">Scorecard</h2>
-      <p class="text-muted">Counts of what Operators recorded in deal files, split by the side the member was on. Facts, not a verdict: you decide what they mean. A member may ask to see what is held on them.</p>
+      <p class="text-muted">Counts of what the Operator recorded in deal files, split by the side the member was on. Facts, not a verdict: you decide what they mean. A member may ask to see what is held on them.</p>
       <div class="table-wrap">
         <table class="table">
-          <thead><tr><th>Member</th><th>Deals (posted / other side)</th><th>Introduced</th><th>Closed / fell through</th><th>Docs matched / not / never arrived</th><th>Docs faulty / false</th><th>Offer real / didn't happen / not genuine</th><th>Last change</th></tr></thead>
-          <tbody id="scorecard-tbody"><tr><td colspan="8" class="empty-state">Loading…</td></tr></tbody>
+          <thead><tr><th>Member</th><th>Deals (posted / other side)</th><th>Introduced</th><th>Closed / fell through</th><th>Offer real / didn't happen / not genuine</th><th>Last change</th></tr></thead>
+          <tbody id="scorecard-tbody"><tr><td colspan="6" class="empty-state">Loading…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -306,15 +319,14 @@
   <section id="screen-help" class="screen">
     <div class="card">
       <h2 class="mt-0">Help and questions</h2>
-      <p class="text-muted">Answers to the questions Operators ask most. Tap a question to open it.</p>
+      <p class="text-muted">Answers to the questions the Operator asks most. Tap a question to open it.</p>
       <div id="operator-help" class="stack">
         <details class="help-item"><summary>How do I invite somebody?</summary><p>Invitations: choose the language of the invitation email (their email is optional, for your own reference) and create it. You get a link to send them; it is valid 5 days and works once. If it expires, you can send a new one or change the expiry date in the list.</p></details>
         <details class="help-item"><summary>A registration is waiting. What do I do?</summary><p>Approvals: check the person's details and approve or reject. They are emailed either way, in their language. Only approved members can sign in.</p></details>
-        <details class="help-item"><summary>How do messages reach the other member?</summary><p>Every enquiry and reply arrives in your Mailbox first. Read it, then Forward it, Reply to the sender, or leave it. A message is forwarded exactly as written, so if it names the sender, reply and ask them to send it again without. Members never see who wrote to them.</p></details>
+        <details class="help-item"><summary>How do messages reach the other member?</summary><p>Every enquiry and reply arrives in your Mailbox first. Read it, then Forward it, Reply to the sender, or leave it. A message is forwarded exactly as written. If it contains contact details, they show in red and the message cannot be forwarded: press Ask member to rewrite. Members never see who wrote to them.</p></details>
         <details class="help-item"><summary>What is a deal file?</summary><p>Deals: a file opens by itself the first time you forward a negotiation between two members about a listing, one per pair. Move it through its stages and record the outcome. Every change is kept, with who and when.</p></details>
-        <details class="help-item"><summary>What is the Scorecard?</summary><p>Counts of the outcomes Operators recorded in deal files, per member and per side. Facts, not a verdict: you decide what they mean. Members never see it; a member may ask to see what is held on them.</p></details>
-        <details class="help-item"><summary>How do I check whether a member holds a document?</summary><p>Document Requests: ask about a document for one of their listings. They answer "I have this document" or "Not available". Nothing is ever uploaded.</p></details>
-        <details class="help-item"><summary>Which listings need attention?</summary><p>Overview shows the workload: pending registrations, messages awaiting review, open document requests, unreviewed matches and listings not updated in 30 days.</p></details>
+        <details class="help-item"><summary>What is the Scorecard?</summary><p>Counts of the outcomes the Operator recorded in deal files, per member and per side. Facts, not a verdict: you decide what they mean. Members never see it; a member may ask to see what is held on them.</p></details>
+        <details class="help-item"><summary>Which listings need attention?</summary><p>Overview shows the workload: pending registrations, messages awaiting review, unreviewed matches and listings not updated in 30 days.</p></details>
         <details class="help-item"><summary>Where can I see what happened, and when?</summary><p>Activity Log lists sign-ins, approvals, invitations and other actions. Analytics shows the figures by period.</p></details>
         <details class="help-item"><summary>Something is not working.</summary><p>Write down what you pressed and what you saw, and email info@myplatform.trade.</p></details>
       </div>
@@ -361,8 +373,22 @@
     <h2 class="mt-0">Forward Message</h2>
     <p class="text-muted" style="font-size:var(--text-base);">Sends this message to the owner of the listing it references, identified only by their reference number.</p>
     <div id="forward-target-info" class="text-muted" style="margin-bottom:10px;"></div>
+    <label for="forward-edit" class="text-muted">Message to forward</label>
+    <textarea id="forward-edit" rows="5" readonly style="width:100%;"></textarea>
+    <div id="forward-flags" class="text-muted" style="margin:6px 0;"></div>
+    <div id="forward-preview" class="text-muted" style="white-space:pre-wrap;margin-bottom:10px;border:1px solid #ddd;padding:6px;border-radius:4px;"></div>
+    <!-- "Please reconcile" (sql/068): shown only when the sender has at least one earlier dated statement
+         (a readiness tick on their own listing) and the message is still waiting. The Operator picks the
+         one statement the message appears to contradict; nothing is judged. -->
+    <div id="reconcile-box" class="hidden" style="margin-bottom:10px;border:1px solid #c9dff0;background:#f3f8fc;border-radius:8px;padding:8px 10px;">
+      <p class="mb-0"><strong>What this member stated earlier, on their own listing</strong></p>
+      <p class="mb-0" id="reconcile-sender"></p>
+      <div id="reconcile-options" class="stack"></div>
+    </div>
     <div class="row">
       <button class="btn btn-primary" id="forward-confirm-btn">Forward</button>
+      <button class="btn btn-secondary hidden" id="forward-rewrite-btn">Ask member to rewrite</button>
+      <button class="btn btn-secondary hidden" id="forward-reconcile-btn" disabled>Please reconcile</button>
       <button class="btn btn-secondary" id="forward-cancel-btn">Cancel</button>
     </div>
   </div>

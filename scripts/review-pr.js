@@ -166,7 +166,7 @@ async function main() {
   const unread = [...new Set(parts.slice(MAX_PARTS).flatMap(fileOf))];
 
   const system = [
-    'You are reviewing a pull request for Jericho Platform, a private brokered',
+    'You are reviewing a pull request for MyPlatform, a private brokered',
     'trading platform. Members never contact each other directly and never learn',
     "each other's identity; every message passes through an Operator. That",
     'secrecy is the product, so anything that could leak one member to another',

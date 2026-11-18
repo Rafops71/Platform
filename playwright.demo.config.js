@@ -13,6 +13,7 @@ const fs = require('fs');
 const { defineConfig, devices } = require('@playwright/test');
 
 const PORT = Number(process.env.DEMO_PORT || 8100);
+const FRONT_PORT = Number(process.env.FRONT_PORT || 8210);
 
 // Some cloud containers ship one Chromium build at a fixed path and no copy of
 // the build this Playwright version expects. Use that build when it is there;
@@ -39,11 +40,21 @@ module.exports = defineConfig({
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'], launchOptions } },
   ],
-  webServer: {
-    command: 'node scripts/build-demo.js && node scripts/serve-demo.js',
-    url: `http://127.0.0.1:${PORT}/index.html`,
-    env: { PORT: String(PORT) },
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  webServer: [
+    {
+      command: 'node scripts/build-demo.js && node scripts/serve-demo.js',
+      url: `http://127.0.0.1:${PORT}/index.html`,
+      env: { PORT: String(PORT) },
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+    // The front page (www/), served on its own, for tests/demo/front-page.spec.js.
+    {
+      command: 'node scripts/serve-demo.js',
+      url: `http://127.0.0.1:${FRONT_PORT}/index.html`,
+      env: { PORT: String(FRONT_PORT), SERVE_DIR: 'www' },
+      reuseExistingServer: !process.env.CI,
+      timeout: 60_000,
+    },
+  ],
 });

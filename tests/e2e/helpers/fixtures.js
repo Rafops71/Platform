@@ -28,13 +28,17 @@ const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 // Shared by every account and every cleanup query. Changing it orphans
 // whatever the previous value created, so it is deliberately boring.
-const E2E_PREFIX = 'jericho-e2e-';
+const E2E_PREFIX = 'myplatform-e2e-';
+// Accounts created before the rename carry the old prefix. Teardown and every
+// cleanup query match BOTH, so old rows are still removed.
+const LEGACY_E2E_PREFIX = 'jericho-e2e-';
+const E2E_LIKE_PATTERNS = [`${E2E_PREFIX}%`, `${LEGACY_E2E_PREFIX}%`];
 
 // Every account also carries a run tag, and teardown only ever deletes
 // accounts carrying THIS run's tag.
 //
 // Why: the suite runs against one live Supabase project, and teardown used to
-// delete every jericho-e2e- account it could see. Two runs overlapping — CI
+// delete every myplatform-e2e- account it could see. Two runs overlapping — CI
 // and a laptop, or two CI runs — therefore deleted each other's fixtures
 // halfway through. On 2026-10-11 three CI runs overlapped and eleven
 // unrelated tests failed: the signed-in account had been removed underneath
@@ -262,8 +266,8 @@ async function cleanup() {
     const { rows: profiles } = await client.query(
       `select id, user_id from public.profiles
         where email like $1
-           or (email like $2 and created_at < now() - interval '${ORPHAN_AGE}')`,
-      [`${RUN_PREFIX}%`, `${E2E_PREFIX}%`]
+           or (email like any($2) and created_at < now() - interval '${ORPHAN_AGE}')`,
+      [`${RUN_PREFIX}%`, E2E_LIKE_PATTERNS]
     );
     const ids = profiles.map(p => p.id);
     const userIds = profiles.map(p => p.user_id);
@@ -323,8 +327,8 @@ async function cleanup() {
     // on the next flush of the outbox.
     await client.query(
       `delete from public.email_outbox
-        where related_listing_id in (${listings}) or to_email like $2`,
-      [ids, `${E2E_PREFIX}%`]
+        where related_listing_id in (${listings}) or to_email like any($2)`,
+      [ids, E2E_LIKE_PATTERNS]
     );
     await client.query(
       `delete from public.message_forward_log
@@ -353,8 +357,8 @@ async function cleanup() {
     // forever with no owner. Removed here, while they still have one.
     await client.query('delete from public.terms_acceptances where profile_id = any($1)', [ids]);
     await client.query(
-      'delete from public.invitations where created_by = any($1) or used_by = any($1) or email like $2',
-      [ids, `${E2E_PREFIX}%`]
+      'delete from public.invitations where created_by = any($1) or used_by = any($1) or email like any($2)',
+      [ids, E2E_LIKE_PATTERNS]
     );
     // Activity rows, matched on what they SAY and not only on who did it.
     //
@@ -376,8 +380,8 @@ async function cleanup() {
         where user_id = any($1)
            or (jsonb_exists(details, 'profile_id') and (details->>'profile_id')::uuid = any($1))
            or (jsonb_exists(details, 'listing_id') and (details->>'listing_id')::uuid = any($2))
-           or details->>'email' like $3`,
-      [ids, listingIds, `${E2E_PREFIX}%`]
+           or details->>'email' like any($3)`,
+      [ids, listingIds, E2E_LIKE_PATTERNS]
     );
     // Commodities are shared reference data — if a test operator added one,
     // orphan the authorship rather than deleting a row others may now use.
@@ -393,7 +397,7 @@ async function cleanup() {
       await admin(`/users/${id}`, { method: 'DELETE' });
     }
 
-    // Checks THIS run's tag only. Asserting on the whole jericho-e2e- prefix
+    // Checks THIS run's tag only. Asserting on the whole myplatform-e2e- prefix
     // would fail whenever another run is legitimately in flight, which is a
     // false alarm about someone else's accounts rather than a real leak.
     const { rows: left } = await client.query(

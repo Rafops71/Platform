@@ -1,8 +1,10 @@
-// Jericho Platform — operator dashboard logic.
+// MyPlatform — operator dashboard logic.
 
 let CURRENT_PROFILE = null;
 let ALL_PROFILES_BY_ID = {}; // cache for owner-name lookups
-let FORWARD_TARGET = null;   // { messageId, listingId, toUserId, refLabel }
+let FORWARD_TARGET = null;   // { messageId, listingId, toUserId, refLabel, originalBody }
+const FORWARD_BODIES = new Map(); // message id -> the body as it was written
+const FORWARD_DATES = new Map();  // message id -> when it was written (for "Please reconcile")
 let REPLY_TARGET = null;     // { originalMessage }
 // Set when the Listings screen was opened from the Overview's stale tile, so
 // the table shows the same rows the count promised. Any Search or Clear on the
@@ -35,7 +37,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   wireActivityLog();
   wireInvitations();
   wireCommodities();
-  wireDocRequests();
   wireForwardModal();
   wireReplyModal();
   populateStatusFilter();
@@ -60,10 +61,9 @@ function showScreen(name) {
   if (name === 'overview') loadOverview();
   if (name === 'approvals') loadApprovals();
   if (name === 'listings') { populateCommodityFilter(); loadListings(); }
-  if (name === 'invitations') loadInvitations();
+  if (name === 'invitations') { hideInviteFromRecommendation(); loadRecommendations(); loadInvitations(); }
   if (name === 'users') loadUsers();
   if (name === 'commodities') loadCommodities();
-  if (name === 'doc-requests') { loadListingsForDocRequest(); loadDocRequests(); }
   if (name === 'mailbox') loadOperatorMailbox();
   if (name === 'matches') loadMatches();
   if (name === 'deals') loadDeals();
@@ -76,8 +76,19 @@ function showScreen(name) {
 // the only way in, and it takes the actor from the session rather than from
 // here. An action this console starts logging must be added to the list in
 // that migration, or the call is refused and the line is silently lost.
+/** The activity log's details, one plain line per field, instead of raw JSON.
+ *  Text is shown as written; ids and other values are shown as they are. */
+function detailLinesHtml(details) {
+  if (typeof details !== 'object' || Array.isArray(details)) return escapeHtml(String(details));
+  return Object.entries(details).map(([key, value]) => {
+    const label = key.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
+    const shown = typeof value === 'string' ? value : JSON.stringify(value);
+    return `<div>${escapeHtml(label)}: ${escapeHtml(shown)}</div>`;
+  }).join('');
+}
+
 async function logOpActivity(action, details = null) {
-  try { await jericho.rpc('record_activity', { p_action: action, p_details: details }); }
+  try { await myplatform.rpc('record_activity', { p_action: action, p_details: details }); }
   catch (e) { console.warn('activity log failed (non-fatal):', e); }
 }
 
@@ -121,7 +132,7 @@ async function loadDealAnalytics(bucket, periods) {
   const tfoot = table.querySelector('tfoot');
   tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Loading…</td></tr>';
   tfoot.innerHTML = '';
-  const { data, error } = await jericho.rpc('deal_analytics', { p_bucket: bucket, p_periods: periods });
+  const { data, error } = await myplatform.rpc('deal_analytics', { p_bucket: bucket, p_periods: periods });
   if (!fresh()) return;
   if (error) { tbody.innerHTML = `<tr><td colspan="6" class="empty-state">${escapeHtml(errorMessage(error))}</td></tr>`; return; }
   const totals = Object.fromEntries(DEAL_ANALYTICS_COLUMNS.map(c => [c, 0]));
@@ -148,7 +159,7 @@ async function loadAnalytics() {
   const periods = Number(document.getElementById('analytics-periods').value);
 
   loadDealAnalytics(bucket, periods);
-  const { data, error } = await jericho.rpc('operator_analytics', {
+  const { data, error } = await myplatform.rpc('operator_analytics', {
     p_bucket: bucket, p_periods: periods,
   });
   if (!fresh()) return;
@@ -200,8 +211,6 @@ const OVERVIEW_TILES = [
     where: (q) => q.eq('status', 'pending') },
   { id: 'messages',     screen: 'mailbox',      table: 'messages',
     where: (q) => q.eq('status', 'pending_review') },
-  { id: 'doc-requests', screen: 'doc-requests', table: 'document_requests',
-    where: (q) => q.eq('status', 'requested') },
   { id: 'matches',      screen: 'matches',      table: 'matches',
     where: (q) => q.eq('status', 'new') },
   { id: 'stale',        screen: 'listings',     table: 'listings',
@@ -232,7 +241,7 @@ async function loadOverview() {
   const fresh = renderToken('op:loadOverview');
   const results = await Promise.all(OVERVIEW_TILES.map(async (tile) => {
     const { count, error } = await tile.where(
-      jericho.from(tile.table).select('id', { count: 'exact', head: true })
+      myplatform.from(tile.table).select('id', { count: 'exact', head: true })
     );
     return { tile, count, error };
   }));
@@ -265,7 +274,7 @@ async function loadApprovals() {
   const container = document.getElementById('approvals-list');
   container.innerHTML = '<p class="empty-state">Loading…</p>';
 
-  const { data, error } = await jericho.from('profiles').select('*').eq('status', 'pending').order('created_at');
+  const { data, error } = await myplatform.from('profiles').select('*').eq('status', 'pending').order('created_at');
   if (!fresh()) return;
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
 
@@ -299,7 +308,7 @@ async function loadApprovals() {
 }
 
 async function setUserStatus(profileId, status) {
-  const { error } = await jericho.from('profiles').update({ status }).eq('id', profileId);
+  const { error } = await myplatform.from('profiles').update({ status }).eq('id', profileId);
   if (error) { showError(errorMessage(error)); return; }
   // The audit entry and the "approved" notification are written by database
   // triggers (trg_log_profile_change / trg_notify_profile_approved), so they
@@ -335,7 +344,7 @@ function populateStatusFilter() {
     ['listing-filter-type','listing-filter-status','listing-filter-commodity',
      'listing-filter-incoterm','listing-filter-region','listing-filter-qty-min',
      'listing-filter-qty-max','listing-filter-date-from','listing-filter-date-to',
-     'listing-filter-docs','listing-filter-role'].forEach(id => { document.getElementById(id).value = ''; });
+     'listing-filter-role'].forEach(id => { document.getElementById(id).value = ''; });
     loadListings();
   });
 }
@@ -345,9 +354,15 @@ function populateStatusFilter() {
  *  chain - sql/033). Listings from before 033 say so rather than guess. */
 const POSTER_ROLE_LABELS = { principal: 'Principal', mandated: 'Mandated intermediary', broker: 'Broker' };
 const PRINCIPAL_KIND_LABELS = { producer: 'Producer', trader: 'Trader' };
+// The readiness ticks (sql/066), in the members' own words; shown to the Operator only.
+const READINESS_LABELS = {
+  own_available: 'Own production: goods available.',
+  own_scheduled: 'Own production: available on a production schedule.',
+  ex_stock: 'Ex-stock: goods available, title held.',
+  back_to_back: 'Back-to-back: supply contract in place.',
+  buy_ready: 'Prepared to proceed; financing is secured and any agreed payment instrument can be issued when required.',
+};
 const BROKER_VIA_LABELS = { principal: 'via the principal', mandate_holder: "via the principal's mandate holder", one_broker: 'via one other broker' };
-const DOCS_SEEN_LABELS = { yes: 'docs seen', source_says: 'docs not seen, source says they exist', no: 'docs not seen' };
-const DOCS_SHOWABLE_LABELS = { on_request: 'shown on request', after_agreement: 'shown after an agreement', no: 'not shown' };
 
 function posterDetail(l) {
   if (!l.poster_role) return 'Not stated';
@@ -355,8 +370,7 @@ function posterDetail(l) {
   if (l.poster_role === 'principal' && l.type === 'sell') parts[0] += ` (${l.principal_kind ? PRINCIPAL_KIND_LABELS[l.principal_kind] : 'producer or trader not stated'})`;
   if (l.poster_role === 'mandated') parts.push(`mandate signed ${l.mandate_date ? formatDate(l.mandate_date) : '(no date)'}`);
   if (l.poster_role === 'broker') parts.push(BROKER_VIA_LABELS[l.broker_via] || 'chain not stated');
-  if (l.docs_seen) parts.push(DOCS_SEEN_LABELS[l.docs_seen]);
-  if (l.docs_showable) parts.push(DOCS_SHOWABLE_LABELS[l.docs_showable]);
+  if (l.readiness && l.readiness.length) parts.push(`ticked: ${l.readiness.map(k => READINESS_LABELS[k] || k).join(' ')}`);
   if (l.truth_confirmed_at) parts.push(`confirmed true ${formatDateTime(l.truth_confirmed_at)}`);
   return parts.join(' · ');
 }
@@ -365,7 +379,7 @@ function posterDetail(l) {
 async function populateCommodityFilter() {
   const fresh = renderToken('op:populateCommodityFilter');
   const select = document.getElementById('listing-filter-commodity');
-  const { data } = await jericho.from('commodities').select('name');
+  const { data } = await myplatform.from('commodities').select('name');
   if (!fresh()) return;
   select.innerHTML = '<option value="">All commodities</option>';
   sortCommodities(data).forEach(c => {
@@ -378,9 +392,9 @@ async function populateCommodityFilter() {
 async function loadListings() {
   const fresh = renderToken('op:loadListings');
   const tbody = document.querySelector('#listings-table tbody');
-  tbody.innerHTML = '<tr><td colspan="11" class="empty-state">Loading…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="10" class="empty-state">Loading…</td></tr>';
 
-  let query = jericho.from('listings')
+  let query = myplatform.from('listings')
     .select('*, profiles!listings_user_id_fkey(first_name,last_name,company)')
     .order('created_at', { ascending: false });
 
@@ -403,7 +417,6 @@ async function loadListings() {
   const qtyMax = document.getElementById('listing-filter-qty-max').value;
   const dateFrom = document.getElementById('listing-filter-date-from').value;
   const dateTo = document.getElementById('listing-filter-date-to').value;
-  const docsFilter = document.getElementById('listing-filter-docs').value;
   const roleFilter = document.getElementById('listing-filter-role').value;
 
   if (type) query = query.eq('type', type);
@@ -428,35 +441,22 @@ async function loadListings() {
 
   const { data, error } = await query;
   if (!fresh()) return;   // a newer render started while this waited
-  if (error) { tbody.innerHTML = `<tr><td colspan="11" class="empty-state">${escapeHtml(errorMessage(error))}</td></tr>`; return; }
+  if (error) { tbody.innerHTML = `<tr><td colspan="10" class="empty-state">${escapeHtml(errorMessage(error))}</td></tr>`; return; }
 
-  // Which listings have at least one ticked document — fetched in one query
-  // rather than per row.
-  const withDocs = new Set();
-  if (data.length) {
-    const { data: checked } = await jericho
-      .from('document_checklist').select('listing_id')
-      .eq('indicated', true).in('listing_id', data.map(l => l.id));
-    (checked || []).forEach(c => withDocs.add(c.listing_id));
-    if (!fresh()) return;
-  }
 
   let rows = data;
-  if (docsFilter === 'yes') rows = rows.filter(l => withDocs.has(l.id));
-  if (docsFilter === 'no') rows = rows.filter(l => !withDocs.has(l.id));
 
   // The note belongs to the rows about to be written, not to whatever the flag
   // says now.
   document.getElementById('listing-stale-note').classList.toggle('hidden', !staleOnly);
 
-  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="11" class="empty-state">No listings match.</td></tr>'; return; }
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="10" class="empty-state">No listings match.</td></tr>'; return; }
 
   tbody.innerHTML = '';
   rows.forEach(l => {
     const owner = l.profiles
       ? `${personName(l.profiles)}${l.profiles.company ? ' (' + l.profiles.company + ')' : ''}`
       : 'Unknown';
-    const hasDocs = withDocs.has(l.id);
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td data-label="Ref">${escapeHtml(l.reference_number)}</td>
@@ -466,7 +466,6 @@ async function loadListings() {
       <td data-label="Commodity">${escapeHtml(l.commodity)}</td>
       <td data-label="Qty">${l.quantity ? escapeHtml(String(l.quantity)) + ' ' + escapeHtml(l.unit || '') : '—'}</td>
       <td data-label="Incoterm">${escapeHtml(l.incoterm)}</td>
-      <td data-label="Docs">${hasDocs ? 'Yes' : '<strong>None</strong>'}</td>
       <td data-label="Status">
         <select data-status-for="${l.id}" aria-label="Listing status">
           ${['available','under_review','negotiation','closed','archived'].map(st =>
@@ -484,7 +483,7 @@ async function loadListings() {
 
   tbody.querySelectorAll('[data-status-for]').forEach(sel =>
     sel.addEventListener('change', async () => {
-      const { error } = await jericho.from('listings').update({ status: sel.value }).eq('id', sel.dataset.statusFor);
+      const { error } = await myplatform.from('listings').update({ status: sel.value }).eq('id', sel.dataset.statusFor);
       if (error) { showError(errorMessage(error)); return; }
       // Logging + owner notification happen in the database.
       showSuccess('Status updated.');
@@ -495,7 +494,7 @@ async function loadListings() {
       // Guarded because this one QUEUES AN EMAIL. Two presses is two emails to
       // a member who has done nothing wrong, from a platform that has not yet
       // sent them a single wanted one.
-      const { error } = await jericho.rpc('send_manual_reminder', { p_listing_id: b.dataset.remind });
+      const { error } = await myplatform.rpc('send_manual_reminder', { p_listing_id: b.dataset.remind });
       if (error) { showError(errorMessage(error)); return; }
       showSuccess('Reminder sent to the listing owner.');
     })));
@@ -503,7 +502,7 @@ async function loadListings() {
   tbody.querySelectorAll('[data-remove-listing]').forEach(b =>
     b.addEventListener('click', async () => {
       if (!confirm('Remove this listing?')) return;
-      const { error } = await jericho.from('listings').delete().eq('id', b.dataset.removeListing);
+      const { error } = await myplatform.from('listings').delete().eq('id', b.dataset.removeListing);
       if (error) { showError(errorMessage(error)); return; }
       showSuccess('Listing removed.');
       loadListings();
@@ -513,6 +512,111 @@ async function loadListings() {
 // --------------------------------------------------------- INVITATIONS ----
 function wireInvitations() {
   document.getElementById('create-invite-btn').addEventListener('click', createInvitation);
+  document.getElementById('invite-from-rec-form').addEventListener('submit', sendInviteFromRecommendation);
+  document.getElementById('recommendations-body').addEventListener('click', (e) => {
+    const inv = e.target.closest('[data-rec-invite]');
+    const dec = e.target.closest('[data-rec-decline]');
+    if (inv) openInviteFromRecommendation(inv.dataset.recInvite);
+    if (dec) declineRecommendation(dec.dataset.recDecline);
+  });
+}
+
+// ------------------------------------------- CANDIDATE RECOMMENDATIONS ----
+// Member recommendations, open ones only (sql/054). Only an Operator can list,
+// invite or decline. A declined recommendation tells nobody: the referrer gets
+// no email and no message.
+
+/** The open recommendations as last listed, by id, for the invite form. */
+let RECOMMENDATIONS = {};
+
+/** The invitation message as the candidate will receive it. The link is shown
+ *  as a placeholder until Send builds the real one. The wording is the
+ *  owner-approved text, English only (Operator side is English). */
+function recommendationMessage(candidateName, referrerName) {
+  return `Dear ${candidateName},
+${referrerName} has recommended you as a prospective member of MyPlatform, a private, invitation-only marketplace for physical commodities. We are pleased to invite you to join.
+To register, please use your personal link below. It is valid for five days and can be used once.
+[personal link]
+Yours sincerely,
+The Operator, MyPlatform
+Privacy Notice: ${termsLink()}`;
+}
+
+async function loadRecommendations() {
+  const fresh = renderToken('op:loadRecommendations');
+  const body = document.getElementById('recommendations-body');
+  body.innerHTML = '<tr><td colspan="6">Loading…</td></tr>';
+
+  const { data, error } = await myplatform.rpc('operator_list_candidate_recommendations');
+  if (!fresh()) return;
+  if (error) { body.innerHTML = `<tr><td colspan="6">${escapeHtml(errorMessage(error))}</td></tr>`; return; }
+
+  RECOMMENDATIONS = {};
+  data.forEach(r => { RECOMMENDATIONS[r.id] = r; });
+  body.innerHTML = data.map(r => `
+    <tr>
+      <td data-label="Suggested by">${escapeHtml(r.referrer_name)}</td>
+      <td data-label="Candidate name">${escapeHtml(r.candidate_name)}</td>
+      <td data-label="Company">${escapeHtml(r.candidate_company)}</td>
+      <td data-label="Commodities">${escapeHtml(r.commodities)}</td>
+      <td data-label="Date">${escapeHtml(String(r.created_at).slice(0, 10))}</td>
+      <td>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-secondary btn-small" data-rec-invite="${escapeHtml(r.id)}">Invite</button>
+          <button class="btn btn-secondary btn-small" data-rec-decline="${escapeHtml(r.id)}">Decline</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+function hideInviteFromRecommendation() {
+  document.getElementById('invite-from-rec-card').classList.add('hidden');
+  document.getElementById('invite-from-rec-form').dataset.recId = '';
+}
+
+/** Opens the pre-filled invitation form for one recommendation. */
+function openInviteFromRecommendation(id) {
+  const r = RECOMMENDATIONS[id];
+  if (!r) { showError('That recommendation is no longer open. The list has been refreshed.'); loadRecommendations(); return; }
+  document.getElementById('ir-candidate-name').value = r.candidate_name;
+  document.getElementById('ir-candidate-email').value = r.candidate_email;
+  document.getElementById('ir-referrer').value = r.referrer_name;
+  document.getElementById('ir-preview').textContent = recommendationMessage(r.candidate_name, r.referrer_name);
+  document.getElementById('invite-from-rec-form').dataset.recId = id;
+  document.getElementById('invite-from-rec-card').classList.remove('hidden');
+  document.getElementById('invite-from-rec-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function sendInviteFromRecommendation(e) {
+  e.preventDefault();
+  const id = e.target.dataset.recId;
+  const r = RECOMMENDATIONS[id];
+  if (!r) return;
+  return withButtonBusy('ir-send-btn', 'Sending…', async () => {
+    // The same token shape and five-day, single-use invitation as Create
+    // Invitation; the database makes the row and queues the email in one step.
+    const token = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
+    const { error } = await myplatform.rpc('operator_invite_from_recommendation', {
+      p_id: id,
+      p_token: token,
+      p_link: invitationLink(token),
+      p_lang: 'en',
+      p_privacy_link: termsLink(),
+    });
+    if (error) { showError(errorMessage(error)); return; }
+    await logOpActivity('invitation_created', { email: r.candidate_email, language: 'en', recommendation_id: id });
+    showSuccess(`Invitation email queued to ${r.candidate_email}.`);
+    hideInviteFromRecommendation();
+    loadRecommendations();
+    loadInvitations();
+  });
+}
+
+async function declineRecommendation(id) {
+  const { error } = await myplatform.rpc('operator_decline_candidate_recommendation', { p_id: id });
+  if (error) { showError(errorMessage(error)); return; }
+  if (document.getElementById('invite-from-rec-form').dataset.recId === id) hideInviteFromRecommendation();
+  loadRecommendations();
 }
 
 /** Rebuild the registration link for an invitation token. */
@@ -520,12 +624,18 @@ function invitationLink(token) {
   return `${window.location.origin}${window.location.pathname.replace(/operator(\.html)?$/, 'register.html')}?token=${token}`;
 }
 
+/** The Terms page, which holds the Privacy Notice at section 10. Built from
+ *  the browser's origin, as invitationLink() is. */
+function termsLink() {
+  return `${window.location.origin}${window.location.pathname.replace(/operator(\.html)?$/, 'terms.html')}`;
+}
+
 /** Queue the invitation email. The outbox is not writable by any client
  *  session (RLS with no policies), so this goes through a security-definer
  *  RPC — see sql/005_invitation_emails.sql. The link is built here because
  *  only the browser knows the origin the platform is served from. */
 async function emailInvitation(email, token, lang) {
-  const { error } = await jericho.rpc('queue_invitation_email', {
+  const { error } = await myplatform.rpc('queue_invitation_email', {
     p_to_email: email,
     p_link: invitationLink(token),
     p_lang: lang,
@@ -544,7 +654,7 @@ async function createInvitationNow() {
   const language = document.getElementById('invite-language').value || 'en';
   const token = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
 
-  const { error } = await jericho.from('invitations').insert({ token, email, language, created_by: CURRENT_PROFILE.id });
+  const { error } = await myplatform.from('invitations').insert({ token, email, language, created_by: CURRENT_PROFILE.id });
   if (error) { showError(errorMessage(error)); return; }
   await logOpActivity('invitation_created', { email, language });
 
@@ -571,7 +681,7 @@ async function loadInvitations() {
   const container = document.getElementById('invitations-list');
   container.innerHTML = '<p class="empty-state">Loading…</p>';
 
-  const { data, error } = await jericho.from('invitations').select('*').order('created_at', { ascending: false });
+  const { data, error } = await myplatform.from('invitations').select('*').order('created_at', { ascending: false });
   if (!fresh()) return;
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
   if (!data.length) { container.innerHTML = '<p class="empty-state">No invitations yet.</p>'; return; }
@@ -651,7 +761,7 @@ function wireInvitationActions(container, invitations) {
       // invitation at the start of the chosen day rather than the end of it.
       const expires_at = new Date(`${expires}T23:59:59`).toISOString();
 
-      const { error } = await jericho.from('invitations').update({ email, expires_at }).eq('id', id);
+      const { error } = await myplatform.from('invitations').update({ email, expires_at }).eq('id', id);
       if (error) { showError(errorMessage(error)); return; }
       await logOpActivity('invitation_updated', { invitation_id: id, email });
       showSuccess('Invitation updated.');
@@ -674,7 +784,7 @@ function wireInvitationActions(container, invitations) {
       const who = inv.email || 'this invitation';
       if (!confirm(`Delete the invitation for ${who}? Its link stops working immediately and cannot be undone.`)) return;
 
-      const { error } = await jericho.from('invitations').delete().eq('id', inv.id);
+      const { error } = await myplatform.from('invitations').delete().eq('id', inv.id);
       if (error) { showError(errorMessage(error)); return; }
       await logOpActivity('invitation_deleted', { invitation_id: inv.id, email: inv.email });
       showSuccess('Invitation deleted — its link no longer works.');
@@ -688,7 +798,7 @@ async function loadUsers() {
   const container = document.getElementById('users-list');
   container.innerHTML = '<p class="empty-state">Loading…</p>';
 
-  const { data, error } = await jericho.from('profiles').select('*').order('created_at', { ascending: false });
+  const { data, error } = await myplatform.from('profiles').select('*').order('created_at', { ascending: false });
   if (!fresh()) return;
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
 
@@ -750,7 +860,7 @@ async function makeRecoveryLink(button, profileId) {
   button.textContent = 'Making…';
 
   try {
-    const { data: { session } } = await jericho.auth.getSession();
+    const { data: { session } } = await myplatform.auth.getSession();
     const res = await fetch(`${SUPABASE_URL}/functions/v1/operator-recovery-link`, {
       method: 'POST',
       headers: {
@@ -785,7 +895,7 @@ function userStatusBadge(status) {
 
 async function setUserRole(profileId, role) {
   if (!confirm(`Change this user's role to ${role}?`)) return;
-  const { error } = await jericho.from('profiles').update({ role }).eq('id', profileId);
+  const { error } = await myplatform.from('profiles').update({ role }).eq('id', profileId);
   if (error) { showError(errorMessage(error)); return; }
   showSuccess('Role updated.');
   loadUsers();
@@ -831,7 +941,7 @@ async function addCommodityNow() {
   // sort_order is left null: the list is alphabetised in the client by
   // sortCommodities(), and a hard 999 here would pin every new commodity to
   // the bottom for anything still ordering by the column.
-  const { error } = await jericho.from('commodities')
+  const { error } = await myplatform.from('commodities')
     .insert({ name, created_by: CURRENT_PROFILE.id, sort_order: null });
   if (error) { showError(errorMessage(error)); return; }
   await logOpActivity('commodity_added', { name });
@@ -845,7 +955,7 @@ async function loadCommodities() {
   const container = document.getElementById('commodities-list');
   container.innerHTML = '<p class="empty-state">Loading…</p>';
 
-  const { data, error } = await jericho.from('commodities').select('*');
+  const { data, error } = await myplatform.from('commodities').select('*');
   if (!fresh()) return;
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
 
@@ -853,7 +963,7 @@ async function loadCommodities() {
 
   // How many listings currently use each commodity name, so the Operator can
   // see what a deletion would leave behind.
-  const { data: listings } = await jericho.from('listings').select('commodity');
+  const { data: listings } = await myplatform.from('listings').select('commodity');
   if (!fresh()) return;
   const usage = {};
   (listings || []).forEach(l => {
@@ -909,94 +1019,11 @@ async function deleteCommodity(id, name, usage) {
     : `Remove "${name}" from the commodity list?`;
   if (!confirm(warning)) return;
 
-  const { error } = await jericho.from('commodities').delete().eq('id', id);
+  const { error } = await myplatform.from('commodities').delete().eq('id', id);
   if (error) { showError(errorMessage(error)); return; }
   await logOpActivity('commodity_removed', { name });
   showSuccess(`Removed "${name}".`);
   loadCommodities();
-}
-
-// ----------------------------------------------------- DOCUMENT REQUESTS ----
-function wireDocRequests() {
-  populateSelect('dr-doctype', DOCUMENT_REQUEST_TYPES);
-  document.getElementById('create-doc-request-btn').addEventListener('click', createDocRequest);
-}
-function populateSelect(id, values) {
-  const el = document.getElementById(id);
-  values.forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; el.appendChild(o); });
-}
-
-async function loadListingsForDocRequest() {
-  const fresh = renderToken('op:loadListingsForDocRequest');
-  const select = document.getElementById('dr-listing');
-  const { data, error } = await jericho.from('listings').select('id,reference_number,user_id,commodity').order('created_at', { ascending: false });
-  if (!fresh()) return;
-  if (error) return;
-  select.innerHTML = '<option value="">Select a listing…</option>';
-  data.forEach(l => {
-    const opt = document.createElement('option');
-    opt.value = l.id; opt.dataset.userId = l.user_id;
-    opt.textContent = `${l.reference_number} — ${l.commodity}`;
-    select.appendChild(opt);
-  });
-}
-
-async function createDocRequest() {
-  // One press at a time: this creates a row, and two presses created two.
-  return withButtonBusy('create-doc-request-btn', 'Requesting…', createDocRequestNow);
-}
-
-async function createDocRequestNow() {
-  const select = document.getElementById('dr-listing');
-  const listingId = select.value;
-  if (!listingId) { showError('Choose a listing.'); return; }
-  const participantId = select.selectedOptions[0].dataset.userId;
-  const docType = document.getElementById('dr-doctype').value;
-
-  const { error } = await jericho.from('document_requests').insert({
-    listing_id: listingId, requester_id: CURRENT_PROFILE.id, participant_id: participantId, doc_type: docType
-  });
-  if (error) { showError(errorMessage(error)); return; }
-  // Audit entry is written by trg_log_doc_request_change; the participant
-  // notification is written here because it is addressed to a specific user
-  // chosen by this Operator action.
-  await jericho.from('notifications').insert({
-    user_id: participantId, type: 'document_requested',
-    message: `An Operator requested: ${docType}`, related_id: listingId
-  });
-
-  showSuccess('Request sent.');
-  loadDocRequests();
-}
-
-async function loadDocRequests() {
-  const fresh = renderToken('op:loadDocRequests');
-  const container = document.getElementById('doc-requests-list');
-  container.innerHTML = '<p class="empty-state">Loading…</p>';
-  const { data, error } = await jericho.from('document_requests').select('*').order('requested_at', { ascending: false });
-  if (!fresh()) return;
-  if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
-  if (!data.length) { container.innerHTML = '<p class="empty-state">No document requests yet.</p>'; return; }
-
-  // Resolve reference numbers in one batched query rather than one per row.
-  const { refs: refByListing, error: refError } = await referenceNumbersFor(data.map(r => r.listing_id));
-  if (!fresh()) return;
-  if (refError) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(refError))}</p>`; return; }
-
-  container.innerHTML = '';
-  for (const r of data) {
-    const ref = refByListing.get(r.listing_id);
-    const row = document.createElement('div');
-    row.className = 'list-row';
-    row.innerHTML = `
-      <div class="list-row-top">
-        <span class="list-row-title">${escapeHtml(r.doc_type)} — ${ref ? escapeHtml(ref) : 'listing removed'}</span>
-        <span class="badge ${r.status === 'confirmed' ? 'badge-green' : r.status === 'unavailable' ? 'badge-red' : 'badge-amber'}">${statusLabel(r.status)}</span>
-      </div>
-      <div class="list-row-meta">Requested ${formatDateTime(r.requested_at)}${r.responded_at ? ' · Responded ' + formatDateTime(r.responded_at) : ''}</div>
-    `;
-    container.appendChild(row);
-  }
 }
 
 // ------------------------------------------------------------- MAILBOX ----
@@ -1013,7 +1040,7 @@ async function loadOperatorMailbox() {
   // so it is left alone deliberately rather than half-done here. The same is
   // true of loadMailbox() in js/app.js and loadActivityLog() below, which at
   // least caps itself at 200.
-  const { data, error } = await jericho.from('messages').select('*').order('created_at', { ascending: false });
+  const { data, error } = await myplatform.from('messages').select('*').order('created_at', { ascending: false });
   if (!fresh()) return;
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
   if (!data.length) { container.innerHTML = '<p class="empty-state">No messages yet.</p>'; return; }
@@ -1027,7 +1054,7 @@ async function loadOperatorMailbox() {
   const targetIds = new Set();
   for (const m of data) if (m.in_reply_to && senderOf.has(m.in_reply_to)) targetIds.add(senderOf.get(m.in_reply_to));
   if (targetIds.size) {
-    const { data: profs } = await jericho.from('profiles')
+    const { data: profs } = await myplatform.from('profiles')
       .select('id,first_name,last_name').in('id', [...targetIds]);
     if (!fresh()) return;
     (profs || []).forEach(p => ALL_PROFILES_BY_ID[p.id] = p);
@@ -1040,7 +1067,7 @@ async function loadOperatorMailbox() {
   const listingById = new Map();
   const listingIds = [...new Set(data.map(m => m.listing_id).filter(Boolean))];
   for (const part of chunked(listingIds)) {
-    const { data: ls, error: lErr } = await jericho
+    const { data: ls, error: lErr } = await myplatform
       .from('listings').select('id,reference_number,user_id').in('id', part);
     if (!fresh()) return;
     if (lErr) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(lErr))}</p>`; return; }
@@ -1078,9 +1105,9 @@ async function loadOperatorMailbox() {
       </div>
       <div>${escapeHtml(m.body)}</div>
       <div class="list-row-meta">${formatDateTime(m.created_at)}</div>
-      ${m.status === 'pending_review' ? `
+      ${m.status === 'pending_review' || m.status === 'on_hold' ? `
         <div class="row" style="margin-top:4px;">
-          <button class="btn btn-primary btn-small" data-forward="${m.id}" data-listing="${m.listing_id || ''}" data-owner="${targetId || ''}" data-sender="${m.sender_id}" data-target-kind="${targetKind}" data-target-name="${escapeHtml(targetName || '')}" data-ref="${escapeHtml(refLabel)}">${targetKind === 'sender' ? 'Forward Reply' : 'Forward to Owner'}</button>
+          <button class="btn btn-primary btn-small" data-forward="${m.id}" data-listing="${m.listing_id || ''}" data-owner="${targetId || ''}" data-sender="${m.sender_id}" data-target-kind="${targetKind}" data-target-name="${escapeHtml(targetName || '')}" data-ref="${escapeHtml(refLabel)}" data-status="${m.status}">${targetKind === 'sender' ? 'Forward Reply' : 'Forward to Owner'}</button>
           <button class="btn btn-secondary btn-small" data-reply="${m.id}" data-sender="${m.sender_id}" data-listing2="${m.listing_id || ''}">Reply</button>
           <button class="btn btn-danger btn-small" data-ignore="${m.id}">Ignore</button>
         </div>` : ''}
@@ -1092,10 +1119,14 @@ async function loadOperatorMailbox() {
     // as well run after it; keeping it per-row means a row is never on screen
     // with its buttons enabled and not yet listening, which is the state that
     // used to swallow a click silently when every iteration awaited.
-    row.querySelectorAll('[data-forward]').forEach(b => b.addEventListener('click', () => openForwardModal(b)));
+    row.querySelectorAll('[data-forward]').forEach(b => {
+      FORWARD_BODIES.set(b.dataset.forward, m.body);
+      FORWARD_DATES.set(b.dataset.forward, m.created_at);
+      b.addEventListener('click', () => openForwardModal(b));
+    });
     row.querySelectorAll('[data-reply]').forEach(b => b.addEventListener('click', () => openReplyModal(b)));
     row.querySelectorAll('[data-ignore]').forEach(b => b.addEventListener('click', async () => {
-      const { error } = await jericho.from('messages').update({ status: 'ignored' }).eq('id', b.dataset.ignore);
+      const { error } = await myplatform.from('messages').update({ status: 'ignored' }).eq('id', b.dataset.ignore);
       if (error) { showError(errorMessage(error)); return; }
       loadOperatorMailbox();
     }));
@@ -1105,6 +1136,8 @@ async function loadOperatorMailbox() {
 function wireForwardModal() {
   document.getElementById('forward-cancel-btn').addEventListener('click', () => document.getElementById('forward-modal').classList.add('hidden'));
   document.getElementById('forward-confirm-btn').addEventListener('click', confirmForward);
+  document.getElementById('forward-rewrite-btn').addEventListener('click', askMemberToRewrite);
+  document.getElementById('forward-reconcile-btn').addEventListener('click', askMemberToReconcile);
 }
 
 function openForwardModal(btn) {
@@ -1124,8 +1157,14 @@ function openForwardModal(btn) {
     messageId: btn.dataset.forward,
     listingId: btn.dataset.listing,
     toUserId: btn.dataset.owner,
+    senderId: btn.dataset.sender,
     refLabel: btn.dataset.ref,
+    originalBody: FORWARD_BODIES.get(btn.dataset.forward) || '',
+    createdAt: FORWARD_DATES.get(btn.dataset.forward) || null,
+    status: btn.dataset.status || 'pending_review',
   };
+  document.getElementById('forward-edit').value = FORWARD_TARGET.originalBody;
+  renderForwardEditor();
 
   const who = btn.dataset.targetName || 'the recipient';
   document.getElementById('forward-target-info').textContent =
@@ -1133,26 +1172,292 @@ function openForwardModal(btn) {
       ? `Forwarding this reply to ${who}, who wrote the message it answers (${FORWARD_TARGET.refLabel}).`
       : `Forwarding to the owner of ${FORWARD_TARGET.refLabel}.`;
   document.getElementById('forward-modal').classList.remove('hidden');
+  loadReconcileOptions();
 }
 
 async function confirmForward() {
-  // One press at a time: this creates a row, and two presses created two.
+  // The message box is read-only: the Operator forwards exactly what the member
+  // wrote, or does not forward it. A message with contact details is refused
+  // here too, but its Forward button is already disabled (see renderForwardEditor).
+  const text = document.getElementById('forward-edit').value.trim();
+  if (!text) { showError('The message is empty. Write something to forward.'); return; }
+  if (findContacts(text).length) return;
+  // One press at a time: each path creates a row, and two presses created two.
   return withButtonBusy('forward-confirm-btn', 'Forwarding…', confirmForwardNow);
 }
 
+// Contact details a member must not see from another member: email addresses,
+// web addresses and phone numbers. Used only to highlight them for the Operator
+// and to refuse a forward that still carries one. The Operator's judgement still
+// decides what else to remove.
+const CONTACT_PATTERNS = [
+  /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g,            // email
+  /(?:https?:\/\/|www\.)\S+/gi,                                // web address
+  /(?:\+|\b00)?\d[\d\s().-]{6,}\d/g,                          // phone number (checked below)
+];
+const PHONE_PATTERN_INDEX = 2;
+const MIN_PHONE_DIGITS = 10; // 2026-11-04 and 1 000 000 have fewer; a phone number has more
+
+function findContacts(text) {
+  const hits = [];
+  CONTACT_PATTERNS.forEach((re, i) => {
+    re.lastIndex = 0;
+    let m;
+    while ((m = re.exec(text)) !== null) {
+      if (i === PHONE_PATTERN_INDEX && m[0].replace(/\D/g, '').length < MIN_PHONE_DIGITS) continue;
+      hits.push({ start: m.index, end: m.index + m[0].length });
+    }
+  });
+  return hits.sort((a, b) => a.start - b.start);
+}
+
+/** Shows the edited text with every contact detail in red, and says how many. */
+function renderForwardEditor() {
+  const text = document.getElementById('forward-edit').value;
+  const hits = findContacts(text);
+  let html = '', at = 0;
+  hits.forEach(h => {
+    if (h.start < at) return; // overlapping match: already shown in red
+    html += escapeHtml(text.slice(at, h.start))
+      + `<mark class="contact-flag" style="background:#fee2e2;color:#b91c1c;font-weight:600;">${escapeHtml(text.slice(h.start, h.end))}</mark>`;
+    at = h.end;
+  });
+  html += escapeHtml(text.slice(at));
+  document.getElementById('forward-preview').innerHTML = html;
+  document.getElementById('forward-flags').textContent = hits.length
+    ? `${hits.length} contact detail(s) highlighted in red. This message cannot be forwarded.`
+    : '';
+  // A message with contact details cannot be forwarded: Forward is disabled and
+  // the rewrite request is offered instead.
+  document.getElementById('forward-confirm-btn').disabled = hits.length > 0;
+  document.getElementById('forward-rewrite-btn').classList.toggle('hidden', hits.length === 0);
+}
+
 async function confirmForwardNow() {
-  const { error: e1 } = await jericho.from('message_forward_log').insert({
+  const { error: e1 } = await myplatform.from('message_forward_log').insert({
     message_id: FORWARD_TARGET.messageId, operator_id: CURRENT_PROFILE.id, to_user_id: FORWARD_TARGET.toUserId
   });
   if (e1) { showError(errorMessage(e1)); return; }
-  const { error: e2 } = await jericho.from('messages').update({ status: 'forwarded' }).eq('id', FORWARD_TARGET.messageId);
+  const { error: e2 } = await myplatform.from('messages').update({ status: 'forwarded' }).eq('id', FORWARD_TARGET.messageId);
   if (e2) { showError(errorMessage(e2)); return; }
-  await jericho.from('notifications').insert({
+  await myplatform.from('notifications').insert({
     user_id: FORWARD_TARGET.toUserId, type: 'message_forwarded',
     message: `A message was forwarded to you regarding ${FORWARD_TARGET.refLabel}.`, related_id: FORWARD_TARGET.listingId
   });
   document.getElementById('forward-modal').classList.add('hidden');
   showSuccess('Message forwarded.');
+  loadOperatorMailbox();
+}
+
+// The text a member receives when a message is not forwarded because it holds
+// contact details. Fixed wording: the Operator cannot change it.
+const REWRITE_REQUEST_TEXT = 'Your message could not be forwarded because it contains contact details. Please send it again without them. All communication stays within MyPlatform until an introduction is made.';
+
+async function askMemberToRewrite() {
+  return withButtonBusy('forward-rewrite-btn', 'Sending…', askMemberToRewriteNow);
+}
+
+/** The message is not forwarded. The member gets a reply with the fixed text,
+ *  the original is marked 'denied' so it is never delivered, and the activity
+ *  log keeps the original body (sql/051). */
+async function askMemberToRewriteNow() {
+  const original = FORWARD_TARGET;
+  // The denial is recorded FIRST. If it cannot be recorded (for example the
+  // database refuses the status), nothing is sent to the member at all. If the
+  // reply or its forward log fails after that, the denial is taken back.
+  const { error: e0 } = await myplatform.from('messages').update({ status: 'denied' }).eq('id', original.messageId);
+  if (e0) { showError(errorMessage(e0)); return; }
+  const undoDenial = () => myplatform.from('messages').update({ status: 'pending_review' }).eq('id', original.messageId);
+
+  const { data: newMsg, error: e1 } = await myplatform.from('messages').insert({
+    sender_id: CURRENT_PROFILE.id, listing_id: original.listingId || null,
+    in_reply_to: original.messageId, body: REWRITE_REQUEST_TEXT, status: 'pending_review'
+  }).select('id').single();
+  if (e1) { await undoDenial(); showError(errorMessage(e1)); return; }
+
+  const { error: e2 } = await myplatform.from('message_forward_log').insert({
+    message_id: newMsg.id, operator_id: CURRENT_PROFILE.id, to_user_id: original.senderId
+  });
+  if (e2) { await undoDenial(); showError(errorMessage(e2)); return; }
+
+  await myplatform.from('messages').update({ status: 'forwarded' }).eq('id', newMsg.id);
+
+  const { error: e4 } = await myplatform.rpc('record_activity', {
+    p_action: 'message_rewrite_requested',
+    p_details: {
+      original_message_id: original.messageId,
+      reply_message_id: newMsg.id,
+      to_user_id: original.senderId,
+      original_body: original.originalBody,
+    },
+  });
+  if (e4) console.error('Rewrite request was sent but not logged:', e4);
+
+  await myplatform.from('notifications').insert({
+    user_id: original.senderId, type: 'message_reply', message: 'An Operator replied to your message.'
+  });
+  document.getElementById('forward-modal').classList.add('hidden');
+  showSuccess('Reply sent.');
+  loadOperatorMailbox();
+}
+
+// ------------------------------------------------ PLEASE RECONCILE ----
+// Owner's idea 4 (mockup approved 17 Nov 2026), the mirror of "Ask member to rewrite" (item 78). When a message
+// seems to contradict something the sender stated earlier on their own listing, the Operator presses one button
+// and the member receives ONE fixed text quoting both sentences. Nothing is judged, nothing is flagged, no
+// account is touched; the message is put ON HOLD (sql/068), not forwarded, until the Operator decides by hand.
+//
+// Only a readiness tick is an "earlier statement" here (listings.readiness, sql/066), and its date is the one
+// date the system keeps, the day the member last confirmed that listing (listings.truth_confirmed_at, sql/064).
+
+/** The member's fixed text. The English is the owner's own sentence; "confirmed" and the order are his.
+ *  The Spanish is ours, in the site's formal style. Both are filled in with the two quoted sentences and
+ *  two dates; the Operator cannot change them. */
+const RECONCILE_TEXT = {
+  en: (statedOn, statement, writtenOn, message) =>
+    `On ${statedOn} you confirmed '${statement}'. Your message of ${writtenOn} says '${message}'. Please tell the Operator which is correct, or change your statement.`,
+  es: (statedOn, statement, writtenOn, message) =>
+    `El ${statedOn} confirmó '${statement}'. Su mensaje del ${writtenOn} dice '${message}'. Indique al Operador cuál es correcto, o cambie su declaración.`,
+};
+const MONTHS_FOR_RECONCILE = {
+  en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+  es: ['ene.', 'feb.', 'mar.', 'abr.', 'may.', 'jun.', 'jul.', 'ago.', 'sep.', 'oct.', 'nov.', 'dic.'],
+};
+// The same sentences as 'stmt.ready.*' in js/i18n.js (that file is deliberately not loaded on this page);
+// tests/e2e/item78-reconcile.spec.js fails if either list drifts from it.
+const READINESS_LABELS_ES = {
+  own_available: 'Producción propia: mercancía disponible.',
+  own_scheduled: 'Producción propia: disponible según un calendario de producción.',
+  ex_stock: 'Ex-stock: mercancía disponible, titularidad en mi poder.',
+  back_to_back: 'Back-to-back: contrato de suministro vigente.',
+  buy_ready: 'Listo para avanzar; la financiación está asegurada y puede emitirse cualquier instrumento de pago acordado cuando sea necesario.',
+};
+
+/** "10 Nov" / "10 de nov." from the stored time, in the same (local) day the Operator's screens show. */
+function reconcileDay(iso, lang) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return lang === 'es' ? `${d.getDate()} de ${MONTHS_FOR_RECONCILE.es[d.getMonth()]}` : `${d.getDate()} ${MONTHS_FOR_RECONCILE.en[d.getMonth()]}`;
+}
+
+/** Owner, 17 Nov: inside the quotes the statement loses its OWN final full stop (the text would otherwise end
+ *  ".'." ). Exactly one is removed; a statement without one is left untouched. */
+function stripFinalFullStop(s) {
+  return typeof s === 'string' && s.endsWith('.') ? s.slice(0, -1) : s;
+}
+
+function buildReconcileText(lang, pick, messageBody, messageCreatedAt) {
+  const l = lang === 'es' ? 'es' : 'en';
+  const statement = (l === 'es' ? READINESS_LABELS_ES : READINESS_LABELS)[pick.key] || READINESS_LABELS[pick.key];
+  return RECONCILE_TEXT[l](reconcileDay(pick.confirmedAt, l), stripFinalFullStop(statement), reconcileDay(messageCreatedAt, l), messageBody);
+}
+
+let RECONCILE_PICKS = new Map();   // option value -> { listingId, ref, key, confirmedAt }
+let RECONCILE_LANG = 'en';         // the sender's language (profiles.language)
+
+function resetReconcileUi() {
+  RECONCILE_PICKS = new Map(); RECONCILE_LANG = 'en';
+  document.getElementById('reconcile-box').classList.add('hidden');
+  document.getElementById('reconcile-options').innerHTML = '';
+  document.getElementById('reconcile-sender').textContent = '';
+  const btn = document.getElementById('forward-reconcile-btn');
+  btn.classList.add('hidden'); btn.disabled = true;
+}
+
+/** Offered ONLY when the message is still waiting AND the sender has at least one earlier statement (a ticked
+ *  readiness sentence on one of their own listings). Otherwise the button stays hidden. */
+async function loadReconcileOptions() {
+  resetReconcileUi();
+  const fresh = renderToken('op:loadReconcileOptions');
+  const target = FORWARD_TARGET;
+  if (!target || target.status !== 'pending_review' || !target.senderId) return;
+  const [{ data: listings, error }, { data: prof }] = await Promise.all([
+    myplatform.from('listings').select('id,reference_number,readiness,truth_confirmed_at')
+      .eq('user_id', target.senderId).order('truth_confirmed_at', { ascending: false }),
+    myplatform.from('profiles').select('language,first_name,last_name').eq('id', target.senderId).maybeSingle(),
+  ]);
+  if (!fresh() || FORWARD_TARGET !== target) return;   // the window was closed or reopened meanwhile
+  if (error) { console.error('Could not read the sender\'s statements:', error.message); return; }
+  const box = document.getElementById('reconcile-options');
+  let n = 0;
+  (listings || []).forEach(l => {
+    if (!l.truth_confirmed_at || !Array.isArray(l.readiness)) return;   // no tick, or a listing that never carried statements
+    l.readiness.forEach(key => {
+      if (!READINESS_LABELS[key]) return;
+      const value = `${l.id}|${key}`;
+      RECONCILE_PICKS.set(value, { listingId: l.id, ref: l.reference_number, key, confirmedAt: l.truth_confirmed_at });
+      const label = document.createElement('label');
+      label.className = 'checkbox-row';
+      const input = document.createElement('input');
+      input.type = 'radio'; input.name = 'reconcile-pick'; input.value = value;
+      input.addEventListener('change', () => { document.getElementById('forward-reconcile-btn').disabled = false; });
+      const span = document.createElement('span');
+      span.textContent = `${l.reference_number} · confirmed ${formatDate(l.truth_confirmed_at)} · ${READINESS_LABELS[key]}`;
+      label.append(input, ' ', span);
+      box.appendChild(label);
+      n++;
+    });
+  });
+  if (!n) return;                                    // no earlier statement: the button stays hidden
+  RECONCILE_LANG = prof && prof.language === 'es' ? 'es' : 'en';
+  // Owner decision 7: the Operator (only) sees the sender's real name here. It is never put in the text sent to the member.
+  document.getElementById('reconcile-sender').textContent = prof ? `Member: ${[prof.first_name, prof.last_name].filter(Boolean).join(' ')}` : '';
+  document.getElementById('reconcile-box').classList.remove('hidden');
+  document.getElementById('forward-reconcile-btn').classList.remove('hidden');
+}
+
+async function askMemberToReconcile() {
+  return withButtonBusy('forward-reconcile-btn', 'Sending…', askMemberToReconcileNow);
+}
+
+/** Mirrors askMemberToRewriteNow. The message is put ON HOLD first (nothing is sent to the member if that
+ *  cannot be recorded); if the reply or its forward log fails afterwards, the hold is taken back. The member
+ *  profile is not touched: no flag, no score, no status. */
+async function askMemberToReconcileNow() {
+  const original = FORWARD_TARGET;
+  const chosen = document.querySelector('input[name="reconcile-pick"]:checked');
+  const pick = chosen && RECONCILE_PICKS.get(chosen.value);
+  if (!pick) { showError('Choose the earlier statement first.'); return; }
+  const text = buildReconcileText(RECONCILE_LANG, pick, original.originalBody, original.createdAt);
+
+  const { error: e0 } = await myplatform.from('messages').update({ status: 'on_hold' }).eq('id', original.messageId);
+  if (e0) { showError(errorMessage(e0)); return; }
+  const undoHold = () => myplatform.from('messages').update({ status: 'pending_review' }).eq('id', original.messageId);
+
+  const { data: newMsg, error: e1 } = await myplatform.from('messages').insert({
+    sender_id: CURRENT_PROFILE.id, listing_id: original.listingId || null,
+    in_reply_to: original.messageId, body: text, status: 'pending_review'
+  }).select('id').single();
+  if (e1) { await undoHold(); showError(errorMessage(e1)); return; }
+
+  const { error: e2 } = await myplatform.from('message_forward_log').insert({
+    message_id: newMsg.id, operator_id: CURRENT_PROFILE.id, to_user_id: original.senderId
+  });
+  if (e2) { await undoHold(); showError(errorMessage(e2)); return; }
+
+  await myplatform.from('messages').update({ status: 'forwarded' }).eq('id', newMsg.id);
+
+  const { error: e4 } = await myplatform.rpc('record_activity', {
+    p_action: 'message_reconcile_requested',
+    p_details: {
+      original_message_id: original.messageId,
+      reply_message_id: newMsg.id,
+      to_user_id: original.senderId,
+      original_body: original.originalBody,
+      statement_listing_id: pick.listingId,
+      statement_key: pick.key,
+      statement_confirmed_at: pick.confirmedAt,
+      language: RECONCILE_LANG,
+      sent_text: text,
+    },
+  });
+  if (e4) console.error('The reconcile request was sent but not logged:', e4);
+
+  await myplatform.from('notifications').insert({
+    user_id: original.senderId, type: 'message_reply', message: 'An Operator replied to your message.'
+  });
+  document.getElementById('forward-modal').classList.add('hidden');
+  showSuccess('Reply sent. The message is on hold.');
   loadOperatorMailbox();
 }
 
@@ -1181,14 +1486,14 @@ async function confirmReplyNow() {
   // listing-derived target coming back through a different door: the reply
   // would land in this very mailbox offering "Forward to Owner", and the owner
   // is not who it was written for. See sql/009.
-  const { data: newMsg, error: e1 } = await jericho.from('messages').insert({
+  const { data: newMsg, error: e1 } = await myplatform.from('messages').insert({
     sender_id: CURRENT_PROFILE.id, listing_id: REPLY_TARGET.listingId || null,
     in_reply_to: REPLY_TARGET.originalMessageId || null,
     body, status: 'pending_review'
   }).select('id').single();
   if (e1) { showError(errorMessage(e1)); return; }
 
-  const { error: e2 } = await jericho.from('message_forward_log').insert({
+  const { error: e2 } = await myplatform.from('message_forward_log').insert({
     message_id: newMsg.id, operator_id: CURRENT_PROFILE.id, to_user_id: REPLY_TARGET.senderId
   });
   if (e2) { showError(errorMessage(e2)); return; }
@@ -1196,9 +1501,9 @@ async function confirmReplyNow() {
   // Delivered in the same action, so it is not pending anything. Marked only
   // after the forward log succeeded, the way confirmForward does it, so a
   // failed log never leaves a message claiming to have been forwarded.
-  await jericho.from('messages').update({ status: 'forwarded' }).eq('id', newMsg.id);
-  await jericho.from('messages').update({ status: 'replied' }).eq('id', REPLY_TARGET.originalMessageId);
-  await jericho.from('notifications').insert({
+  await myplatform.from('messages').update({ status: 'forwarded' }).eq('id', newMsg.id);
+  await myplatform.from('messages').update({ status: 'replied' }).eq('id', REPLY_TARGET.originalMessageId);
+  await myplatform.from('notifications').insert({
     user_id: REPLY_TARGET.senderId, type: 'message_reply', message: 'An Operator replied to your message.'
   });
   document.getElementById('reply-modal').classList.add('hidden');
@@ -1211,8 +1516,6 @@ async function confirmReplyNow() {
 // the stage and the answers, and every change it saves lands in deal_history.
 const DEAL_STAGES = { negotiating: 'Negotiating', agreed: 'Agreed', introduced: 'Introduced', closed: 'Closed' };
 const DEAL_ANSWERS = {
-  docs_match:   { label: 'Documents', options: { matched: 'Matched what was claimed', not_matched: "Didn't match", never_arrived: 'Never arrived' } },
-  docs_genuine: { label: 'Documents genuine?', options: { genuine: 'Genuine', faulty: 'Faulty', false: 'False' } },
   offer_real:   { label: 'Offer / client', options: { real: 'Real', did_not_happen: "Didn't materialise", not_genuine: 'Not genuine' } },
   deal_result:  { label: 'Deal', options: { closed: 'Closed', fell_through: 'Fell through', open: 'Still open' } },
 };
@@ -1228,7 +1531,7 @@ async function loadDeals() {
   const fresh = renderToken('op:loadDeals');
   const container = document.getElementById('deals-list');
   container.innerHTML = '<p class="empty-state">Loading…</p>';
-  const { data, error } = await jericho.from('deals').select('*').order('opened_at', { ascending: false });
+  const { data, error } = await myplatform.from('deals').select('*').order('opened_at', { ascending: false });
   if (!fresh()) return;
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
   if (!data.length) { container.innerHTML = '<p class="empty-state">No deal files yet. One opens when you first forward a member\'s message about a listing.</p>'; return; }
@@ -1236,7 +1539,7 @@ async function loadDeals() {
   const ids = [...new Set(data.flatMap(d => [d.owner_id, d.counterparty_id]).filter(Boolean))];
   const names = new Map();
   for (const part of chunked(ids)) {
-    const { data: ps } = await jericho.from('profiles').select('id,first_name,last_name,company').in('id', part);
+    const { data: ps } = await myplatform.from('profiles').select('id,first_name,last_name,company').in('id', part);
     if (!fresh()) return;
     (ps || []).forEach(p => names.set(p.id, personName(p) + (p.company ? ` (${p.company})` : '')));
   }
@@ -1285,7 +1588,7 @@ async function saveDeal(id) {
     patch[el.dataset.dealField] = v === '' ? null : v;
   });
   if (!patch.stage) delete patch.stage;
-  const { error } = await jericho.from('deals').update(patch).eq('id', id);
+  const { error } = await myplatform.from('deals').update(patch).eq('id', id);
   if (error) { showError(errorMessage(error)); return; }
   showSuccess('Deal file saved.');
   loadDeals();
@@ -1294,12 +1597,12 @@ async function saveDeal(id) {
 async function showDealHistory(id) {
   const box = document.querySelector(`[data-history-for="${id}"]`);
   if (!box.classList.contains('hidden')) { box.classList.add('hidden'); return; }
-  const { data, error } = await jericho.from('deal_history').select('*').eq('deal_id', id).order('changed_at', { ascending: false });
+  const { data, error } = await myplatform.from('deal_history').select('*').eq('deal_id', id).order('changed_at', { ascending: false });
   if (error) { box.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; box.classList.remove('hidden'); return; }
   const who = new Map();
   const ids = [...new Set((data || []).map(h => h.changed_by).filter(Boolean))];
   if (ids.length) {
-    const { data: ps } = await jericho.from('profiles').select('id,first_name,last_name').in('id', ids);
+    const { data: ps } = await myplatform.from('profiles').select('id,first_name,last_name').in('id', ids);
     (ps || []).forEach(p => who.set(p.id, personName(p)));
   }
   box.innerHTML = (data && data.length)
@@ -1313,15 +1616,15 @@ async function showDealHistory(id) {
 async function loadScorecard() {
   const fresh = renderToken('op:loadScorecard');
   const tbody = document.getElementById('scorecard-tbody');
-  tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Loading…</td></tr>';
-  const { data, error } = await jericho.rpc('member_scorecard', { p_profile_id: null });
+  tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Loading…</td></tr>';
+  const { data, error } = await myplatform.rpc('member_scorecard', { p_profile_id: null });
   if (!fresh()) return;
-  if (error) { tbody.innerHTML = `<tr><td colspan="8" class="empty-state">${escapeHtml(errorMessage(error))}</td></tr>`; return; }
-  if (!data || !data.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Nothing recorded yet. Figures appear once deal files have outcomes.</td></tr>'; return; }
+  if (error) { tbody.innerHTML = `<tr><td colspan="6" class="empty-state">${escapeHtml(errorMessage(error))}</td></tr>`; return; }
+  if (!data || !data.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Nothing recorded yet. Figures appear once deal files have outcomes.</td></tr>'; return; }
 
   const names = new Map();
   for (const part of chunked(data.map(r => r.profile_id))) {
-    const { data: ps } = await jericho.from('profiles').select('id,first_name,last_name,company').in('id', part);
+    const { data: ps } = await myplatform.from('profiles').select('id,first_name,last_name,company').in('id', part);
     if (!fresh()) return;
     (ps || []).forEach(p => names.set(p.id, personName(p) + (p.company ? ` (${p.company})` : '')));
   }
@@ -1331,8 +1634,6 @@ async function loadScorecard() {
       <td data-label="Deals">${r.deals_as_poster} / ${r.deals_as_other}</td>
       <td data-label="Introduced">${r.introduced}</td>
       <td data-label="Closed / fell through">${r.closed_done} / ${r.fell_through}</td>
-      <td data-label="Docs">${r.docs_matched} / ${r.docs_not_matched} / ${r.docs_never_arrived}</td>
-      <td data-label="Faulty / false">${r.docs_faulty} / ${r.docs_false}</td>
       <td data-label="Offer">${r.offer_real} / ${r.offer_did_not_happen} / ${r.offer_not_genuine}</td>
       <td data-label="Last change">${r.last_activity ? formatDate(r.last_activity) : '—'}</td>
     </tr>`).join('');
@@ -1343,7 +1644,7 @@ async function loadMatches() {
   const fresh = renderToken('op:loadMatches');
   const container = document.getElementById('matches-list');
   container.innerHTML = '<p class="empty-state">Loading…</p>';
-  const { data, error } = await jericho.from('matches').select('*').neq('status', 'dismissed').order('created_at', { ascending: false });
+  const { data, error } = await myplatform.from('matches').select('*').neq('status', 'dismissed').order('created_at', { ascending: false });
   if (!fresh()) return;
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
   if (!data.length) { container.innerHTML = '<p class="empty-state">No match suggestions.</p>'; return; }
@@ -1352,7 +1653,7 @@ async function loadMatches() {
   const sideById = new Map();
   const sideIds = [...new Set(data.flatMap(m => [m.listing_a_id, m.listing_b_id]).filter(Boolean))];
   for (const part of chunked(sideIds)) {
-    const { data: ls, error: sErr } = await jericho
+    const { data: ls, error: sErr } = await myplatform
       .from('listings').select('id,reference_number,commodity,type').in('id', part);
     if (!fresh()) return;
     if (sErr) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(sErr))}</p>`; return; }
@@ -1396,7 +1697,7 @@ async function loadMatches() {
 }
 
 async function updateMatchStatus(id, status) {
-  const { error } = await jericho.from('matches').update({ status }).eq('id', id);
+  const { error } = await myplatform.from('matches').update({ status }).eq('id', id);
   if (error) { showError(errorMessage(error)); return; }
   await logOpActivity('match_' + status, { match_id: id });
   loadMatches();
@@ -1422,7 +1723,7 @@ async function loadActivityLog() {
   const days = Number(document.getElementById('activity-since').value);
   const windowDays = Number.isFinite(days) && days > 0 ? days : null;
 
-  let query = jericho.from('activity_log').select('*').order('created_at', { ascending: false }).limit(200);
+  let query = myplatform.from('activity_log').select('*').order('created_at', { ascending: false }).limit(200);
   if (windowDays) {
     const since = new Date(Date.now() - windowDays * 86400000).toISOString();
     query = query.gte('created_at', since);
@@ -1445,7 +1746,7 @@ async function loadActivityLog() {
 
   const missingIds = data.map(a => a.user_id).filter(id => id && !ALL_PROFILES_BY_ID[id]);
   if (missingIds.length) {
-    const { data: profs } = await jericho.from('profiles').select('id,first_name,last_name').in('id', missingIds);
+    const { data: profs } = await myplatform.from('profiles').select('id,first_name,last_name').in('id', missingIds);
     if (!fresh()) return;
     (profs || []).forEach(p => ALL_PROFILES_BY_ID[p.id] = p);
   }
@@ -1461,7 +1762,8 @@ async function loadActivityLog() {
         <span class="list-row-title">${escapeHtml(a.action)}</span>
         <span class="list-row-meta">${formatDateTime(a.created_at)}</span>
       </div>
-      <div class="list-row-meta">${escapeHtml(actor)}${a.details ? ' · ' + escapeHtml(JSON.stringify(a.details)) : ''}</div>
+      <div class="list-row-meta">${escapeHtml(actor)}</div>
+      ${a.details ? `<div class="list-row-meta">${detailLinesHtml(a.details)}</div>` : ''}
     `;
     container.appendChild(row);
   });
@@ -1495,7 +1797,7 @@ async function purgeOldActivity() {
   const label = btn.textContent;
   btn.textContent = 'Cleaning up…';
   try {
-    const { data, error } = await jericho.rpc('purge_orphaned_activity');
+    const { data, error } = await myplatform.rpc('purge_orphaned_activity');
     if (error) { showError(errorMessage(error)); return; }
     showSuccess(data === 0
       ? 'Nothing to clean up — the log holds no stale entries.'

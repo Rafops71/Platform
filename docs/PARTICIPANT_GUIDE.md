@@ -6,7 +6,7 @@
 
 ## Before anything else: how this platform works
 
-Two things are unusual about the Jericho Platform, and everything else makes
+Two things are unusual about the MyPlatform, and everything else makes
 more sense once they are clear.
 
 1. **Listings are anonymous.** When you post a Sell Offer or a Buy Request,
@@ -15,14 +15,14 @@ more sense once they are clear.
    phone number.** The same is true in reverse: you never see who posted the
    listings you browse.
 
-2. **Nobody contacts anybody directly.** Every message goes to the Operators
-   first. They read it and forward it on if appropriate. There is no way to
-   message another participant directly, by design. The Operators broker every
+2. **Nobody contacts anybody directly.** Every message goes to the Operator
+   first. The Operator reads it and forwards it on if appropriate. There is no way to
+   message another participant directly, by design. The Operator brokers every
    introduction.
 
 So the platform is not a marketplace where you find a counterparty and email
 them. It is a place where you describe what you have or want, and the
-Operators put the right two parties in touch when it is worth doing.
+Operator puts the right two parties in touch when it is worth doing.
 
 ---
 
@@ -30,8 +30,8 @@ Operators put the right two parties in touch when it is worth doing.
 
 You cannot sign up on your own. An Operator invites you.
 
-- You will receive an email titled **"You have been invited to the Jericho
-  Platform"** containing a registration link.
+- You will receive an email titled **"You have been invited to MyPlatform"**
+  containing a registration link.
 - **The link is valid for 5 days and works only once.** After that, or after
   someone has used it, it stops working and you need a new one.
 - If the link has expired, reply to the Operator who invited you and ask them
@@ -72,7 +72,7 @@ Mailbox · Notifications · Profile**.
 - **Quantity and unit** — the unit list is standard (metric tons, barrels,
   troy ounces and so on).
 - **Specification / grade** — free text. Be precise; this is what tells a
-  serious counterparty whether your material is relevant to them.
+  counterparty whether your material is relevant to them.
 - **Incoterm** — FOB, CIF, and the rest.
 - **Origin** (for a Sell Offer) or **Destination** (for a Buy Request) —
   a country, from the dropdown.
@@ -85,7 +85,7 @@ Mailbox · Notifications · Profile**.
   not which ones.
 
 Save, and the platform assigns a reference like `SELL-26-001`. That reference
-is how everyone — you, the Operators, other participants — will refer to this
+is how everyone — you, the Operator, other participants — will refer to this
 listing from now on.
 
 **Your identity is not attached to the listing.** Anyone browsing sees the
@@ -95,9 +95,8 @@ content and the reference, and nothing about you.
 
 If a listing goes 30 days without being updated, a notice appears on it asking
 whether it is still available, with two buttons: **Still available** (which
-refreshes it) and **Close it**. The Operators can see which listings have gone
-stale, so keeping yours current is the difference between being taken seriously
-and being chased.
+refreshes it) and **Close it**. The Operator can see which listings have gone
+stale, so keeping yours current makes it easier for others to act on, and saves you being chased.
 
 You can **Edit** or **Remove** any of your own listings at any time from
 **My Listings**.
@@ -117,16 +116,16 @@ On any listing in Browse, press **Contact**.
 
 Write your message and send it. What happens then:
 
-1. Your message goes to **the Operators**, not to the listing owner.
+1. Your message goes to **the Operator**, not to the listing owner.
 2. An Operator reads it.
-3. If it is appropriate, they forward it to the owner — **without telling them
+3. If it is appropriate, the Operator forwards it to the owner — **without telling them
    who you are.**
-4. If the owner replies, that reply comes back through the Operators to you —
+4. If the owner replies, that reply comes back through the Operator to you —
    again anonymously.
 
-Neither side learns the other's identity unless and until the Operators
-formally introduce you. That is a deliberate step they take when a conversation
-is serious enough to justify it.
+Neither side learns the other's identity unless and until the Operator
+formally introduces you. That is a deliberate step the Operator takes when a conversation
+has gone far enough to justify it.
 
 **Do not put your name, company, email or phone number in the message body.**
 It defeats the anonymity the platform exists to provide, and an Operator may
@@ -136,12 +135,12 @@ decline to forward it.
 
 **Mailbox** holds all your correspondence. Each entry is marked:
 
-- **You → Operators** — something you sent.
+- **You → the Operator** — something you sent.
 - **Forwarded to you** — something an Operator passed on to you.
 
 Each message shows the listing reference it concerns, so you can tell which
 conversation is which. Where a reply is possible, there is a **Reply** button;
-your reply travels the same brokered path, back through the Operators.
+your reply travels the same brokered path, back through the Operator.
 
 There is no direct-message feature and there is no way to see who you are
 talking to. If you are wondering whether the platform is hiding a "contact
@@ -192,7 +191,7 @@ it. Until then you keep signing in with the old address.
 
 ## Antes de nada: cómo funciona esta plataforma
 
-Dos cosas distinguen a la Plataforma Jericho, y todo lo demás se entiende mejor
+Dos cosas distinguen a la Plataforma MyPlatform, y todo lo demás se entiende mejor
 una vez claras.
 
 1. **Las publicaciones son anónimas.** Cuando publica una Oferta de venta o una
@@ -202,13 +201,13 @@ una vez claras.
    inversa ocurre lo mismo: usted nunca ve quién publicó lo que explora.
 
 2. **Nadie contacta directamente con nadie.** Todos los mensajes pasan primero
-   por los Operadores, que los leen y los reenvían si procede. No existe forma
-   de escribir directamente a otro participante, y es intencionado. Los
-   Operadores intermedian en cada presentación.
+   por el Operador, que los lee y los reenvía si procede. No existe forma
+   de escribir directamente a otro participante, y es intencionado. El
+   Operador intermedia en cada presentación.
 
 La plataforma no es un mercado donde uno encuentra una contraparte y le escribe.
-Es un lugar donde usted describe lo que tiene o lo que busca, y los Operadores
-ponen en contacto a las dos partes adecuadas cuando merece la pena.
+Es un lugar donde usted describe lo que tiene o lo que busca, y el Operador
+pone en contacto a las dos partes adecuadas cuando merece la pena.
 
 ---
 
@@ -216,7 +215,7 @@ ponen en contacto a las dos partes adecuadas cuando merece la pena.
 
 No puede registrarse por su cuenta. Un Operador le invita.
 
-- Recibirá un correo titulado **«Le han invitado a la Plataforma Jericho»** con
+- Recibirá un correo titulado **«Le han invitado a MyPlatform»** con
   un enlace de registro.
 - **El enlace es válido durante 5 días y solo puede utilizarse una vez.**
   Después deja de funcionar y necesitará uno nuevo.
@@ -259,7 +258,7 @@ complete:
 - **Cantidad y unidad** — unidades estándar (toneladas métricas, barriles,
   onzas troy, etc.).
 - **Especificación / grado** — texto libre. Sea preciso: es lo que permite a
-  una contraparte seria saber si su material le interesa.
+  una contraparte saber si su material le interesa.
 - **Incoterm** — FOB, CIF y los demás.
 - **Origen** (venta) o **Destino** (compra) — un país, de la lista.
 - **Precio / condiciones** y **moneda** — opcionales, aunque una publicación
@@ -271,7 +270,7 @@ complete:
   disponible, no cuál.
 
 Al guardar, la plataforma asigna una referencia como `SELL-26-001`. Esa
-referencia es como todos — usted, los Operadores, los demás participantes — se
+referencia es como todos — usted, el Operador, los demás participantes — se
 referirán a la publicación en adelante.
 
 **Su identidad no se adjunta a la publicación.**
@@ -280,7 +279,7 @@ referirán a la publicación en adelante.
 
 Si una publicación pasa 30 días sin actualizarse, aparece un aviso preguntando
 si sigue disponible, con dos botones: **Sigue disponible** (que la actualiza) y
-**Cerrarla**. Los Operadores ven qué publicaciones se han quedado obsoletas.
+**Cerrarla**. El Operador ve qué publicaciones se han quedado obsoletas.
 
 Puede **Editar** o **Eliminar** sus propias publicaciones cuando quiera desde
 **Mis publicaciones**.
@@ -299,15 +298,15 @@ En cualquier publicación, pulse **Contactar**.
 
 Escriba su mensaje y envíelo. Lo que ocurre después:
 
-1. Su mensaje llega **a los Operadores**, no al titular de la publicación.
+1. Su mensaje llega **al Operador**, no al titular de la publicación.
 2. Un Operador lo lee.
 3. Si procede, lo reenvía al titular **sin decirle quién es usted.**
-4. Si el titular responde, la respuesta vuelve a usted a través de los
-   Operadores, también de forma anónima.
+4. Si el titular responde, la respuesta vuelve a usted a través del
+   Operador, también de forma anónima.
 
-Ninguna de las dos partes conoce la identidad de la otra hasta que los
-Operadores les presenten formalmente, algo que hacen cuando la conversación es
-lo bastante seria como para justificarlo.
+Ninguna de las dos partes conoce la identidad de la otra hasta que el
+Operador les presente formalmente, algo que hace cuando la conversación ha
+avanzado lo bastante como para justificarlo.
 
 **No incluya su nombre, empresa, correo ni teléfono en el texto del mensaje.**
 Anula el anonimato que da sentido a la plataforma, y un Operador puede negarse
@@ -317,7 +316,7 @@ a reenviarlo.
 
 **Buzón** reúne toda su correspondencia. Cada entrada se marca como:
 
-- **Usted → Operadores** — algo que usted envió.
+- **Usted → el Operador** — algo que usted envió.
 - **Reenviado a usted** — algo que un Operador le hizo llegar.
 
 Cada mensaje indica la referencia de la publicación a la que se refiere. Donde

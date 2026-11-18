@@ -90,7 +90,7 @@ test.describe.serial('activity export', () => {
     await signIn(page, me);
     const { name, text } = await downloadExport(page);
 
-    expect(name).toMatch(/^jericho-activity-\d{4}-\d{2}-\d{2}\.csv$/);
+    expect(name).toMatch(/^myplatform-activity-\d{4}-\d{2}-\d{2}\.csv$/);
     // A BOM, because this is opened in Excel and UTF-8 without one is read as
     // the local codepage - which turns every accented character in a Spanish
     // message body into mojibake.

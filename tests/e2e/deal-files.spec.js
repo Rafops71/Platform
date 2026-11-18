@@ -46,18 +46,18 @@ test('Item70 a forwarded negotiation appears as a deal file the Operator can mov
   await expect(row).toContainText(listingRef, { timeout: 15_000 });
 
   await row.locator('select[data-deal-field="stage"]').selectOption('agreed');
-  await row.locator('select[data-deal-field="docs_match"]').selectOption('never_arrived');
+  await row.locator('select[data-deal-field="offer_real"]').selectOption('did_not_happen');
   await row.locator('textarea[data-deal-field="note"]').fill('B/L promised, not sent');
   await row.locator('[data-save-deal]').click();
 
   await expect.poll(async () => {
-    const { rows: [d] } = await query('select stage, agreed_at, docs_match, note from public.deals where id = $1', [deal.id]);
-    return d && d.stage === 'agreed' && d.agreed_at !== null && d.docs_match === 'never_arrived' && d.note === 'B/L promised, not sent';
+    const { rows: [d] } = await query('select stage, agreed_at, offer_real, note from public.deals where id = $1', [deal.id]);
+    return d && d.stage === 'agreed' && d.agreed_at !== null && d.offer_real === 'did_not_happen' && d.note === 'B/L promised, not sent';
   }, { timeout: 20_000 }).toBe(true);
 
   const fresh = page.locator(`[data-deal-row="${deal.id}"]`);
   await fresh.locator('[data-deal-history]').click();
-  await expect(page.locator(`[data-history-for="${deal.id}"]`)).toContainText('docs_match — → never_arrived');
+  await expect(page.locator(`[data-history-for="${deal.id}"]`)).toContainText('offer_real — → did_not_happen');
 });
 
 test('Item74 the scorecard shows the counts recorded in the deal file, by side', async ({ page }) => {
@@ -67,7 +67,12 @@ test('Item74 the scorecard shows the counts recorded in the deal file, by side',
   // "never arrived" for its documents.
   const row = page.locator(`[data-scorecard-for="${owner.profileId}"]`);
   await expect(row.locator('[data-label="Deals"]')).toHaveText('1 / 0', { timeout: 15_000 });
-  await expect(row.locator('[data-label="Docs"]')).toHaveText('0 / 0 / 1');
+  // Item 36: the Docs column went with the document requests. The scorecard
+  // carries no document column at all; the offer answer is what the Item70
+  // test recorded (did not happen), so it reads "0 / 1 / 0".
+  await expect(row.locator('[data-label="Docs"]')).toHaveCount(0);
+  await expect(page.locator('#screen-scorecard th', { hasText: /Docs|Documentos/ })).toHaveCount(0);
+  await expect(row.locator('[data-label="Offer"]')).toHaveText('0 / 1 / 0');
 });
 
 test('Item75 Analytics counts deal files by stage, beside the message counts', async ({ page }) => {

@@ -216,7 +216,7 @@ async function main() {
     const hygiene = (
       await client.query(`
         select 'test accounts left behind' as check, count(*)::int as rows
-          from public.profiles where email like 'jericho-e2e-%'
+          from public.profiles where (email like 'myplatform-e2e-%' or email like 'jericho-e2e-%')
         union all
         select 'listings owned by nobody', count(*)::int
           from public.listings l
@@ -241,7 +241,7 @@ async function main() {
         union all
         select 'mail queued to a test address', count(*)::int
           from public.email_outbox
-         where sent_at is null and (to_email like 'jericho-e2e-%'
+         where sent_at is null and (to_email like 'myplatform-e2e-%' or to_email like 'jericho-e2e-%'
                                  or to_email like '%@example.invalid')
         union all
         select 'mail stuck in the queue over a day', count(*)::int

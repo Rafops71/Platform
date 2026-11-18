@@ -37,12 +37,14 @@ h1 { font-family: var(--font-head); font-weight: 600; color: var(--blue-dark); f
 .lang-btn { background: transparent; border: 1px solid currentColor; color: inherit; font: 600 13px/1 var(--font-body); letter-spacing: 0.5px; padding: 6px 10px; min-height: 34px; border-radius: 3px; cursor: pointer; }
 .lang-btn:hover { opacity: 0.9; }
 .lang-btn-active { background: rgba(128, 128, 128, 0.3); }
+.trailer{display:block;width:100%;max-width:720px;margin:0 auto 1.5rem;border-radius:8px}
 </style>
 </head>
 <body>
 <div id="lang-toggle" class="lang-toggle" role="group" aria-label="Language"></div>
 <main>
   <p class="title">MyPlatform</p>
+  <video class="trailer" controls playsinline preload="metadata" src="films/trailer-en.mp4" poster="films/trailer-en-poster.jpg" aria-label="MyPlatform trailer"></video>
   <h1 data-i18n="headline">Where opportunity meets discretion.</h1>
   <p class="sub" data-i18n="sub">By invitation only.</p>
 
@@ -97,6 +99,14 @@ function apply(lang) {
   document.documentElement.lang = lang;
   // The app opens in the language chosen here (js/i18n.js adoptLanguageFromLink).
   document.getElementById('signin').href = 'https://app.myplatform.trade/?lang=' + lang;
+  // The trailer follows the language: the English or Spanish film and its poster.
+  // Set only when it changes, so switching again does not restart a film.
+  var trailer = document.querySelector('video.trailer');
+  var next = 'films/trailer-' + lang + '.mp4';
+  if (trailer.getAttribute('src') !== next) {
+    trailer.setAttribute('poster', 'films/trailer-' + lang + '-poster.jpg');
+    trailer.setAttribute('src', next);
+  }
   document.querySelectorAll('[data-i18n]').forEach(function (el) {
     el.textContent = STRINGS[lang][el.getAttribute('data-i18n')];
   });

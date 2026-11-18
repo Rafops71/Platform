@@ -71,6 +71,21 @@ const SUITES = [
   'sql/tests/23_email_unit_as_typed.sql',
   'sql/tests/24_door_inventory.sql',
   'sql/tests/25_welcome_seen.sql',
+  'sql/tests/26_operator_mail.sql',
+  'sql/tests/27_terms_receipt.sql',
+  'sql/tests/27_candidate_recommendations.sql',
+  'sql/tests/28_recommendation_retention.sql',
+  'sql/tests/29_terms_change_email.sql',
+  'sql/tests/30_email_templates_myplatform.sql',
+  'sql/tests/31_listing_error_myplatform.sql',
+  'sql/tests/32_schedule_candidate_purge.sql',
+  'sql/tests/33_rename_hms_commodity.sql',
+  'sql/tests/34_documents_questions.sql',
+  'sql/tests/35_dated_statements.sql',
+  'sql/tests/36_terms_3_8.sql',
+  'sql/tests/37_readiness_ticks.sql',
+  'sql/tests/38_receipt_test_marker.sql',
+  'sql/tests/39_message_on_hold.sql',
 ];
 
 /** An assertion is any single-row result whose first column is named "Tn …"

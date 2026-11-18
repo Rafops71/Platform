@@ -35,10 +35,10 @@ const { query } = require('../../scripts/db');
 // quoted value, a javascript: URL, and a closing tag that ends the element
 // early.
 const PAYLOADS = [
-  '<img src=x onerror="window.__jerichoPwned=1">',
-  '" onmouseover="window.__jerichoPwned=1" x="',
-  '<a href="javascript:window.__jerichoPwned=1">click</a>',
-  '</td></tr><script>window.__jerichoPwned=1</script>',
+  '<img src=x onerror="window.__myplatformPwned=1">',
+  '" onmouseover="window.__myplatformPwned=1" x="',
+  '<a href="javascript:window.__myplatformPwned=1">click</a>',
+  '</td></tr><script>window.__myplatformPwned=1</script>',
 ];
 
 // Fifty thousand characters in one field. Not an attack - just somebody
@@ -89,7 +89,7 @@ test.afterAll(async () => { await cleanup(); });
 
 /** Did anything on this page manage to execute? */
 async function wasPwned(page) {
-  return page.evaluate(() => Boolean(window.__jerichoPwned));
+  return page.evaluate(() => Boolean(window.__myplatformPwned));
 }
 
 /** Elements that only exist if markup was built out of somebody's text. */

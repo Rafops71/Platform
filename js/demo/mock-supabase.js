@@ -1,7 +1,7 @@
 // DEMO BUILD ONLY - never loaded by the real site.
 //
 // scripts/build-demo.js puts this file in place of js/supabase-config.js in
-// dist-demo/, and removes the Supabase script tag. What remains is `jericho`,
+// dist-demo/, and removes the Supabase script tag. What remains is `myplatform`,
 // the same name the real client uses, with the same surface the app calls
 // (every .from(), .rpc() and .auth.* call in js/ and the HTML pages).
 //
@@ -15,7 +15,7 @@
 // so a member's screens show only that member's rows. The sign-in step does
 // not check a password: the demo accounts are a demonstration, not a secret.
 
-const jericho = (function () {
+const myplatform = (function () {
   'use strict';
 
   const SEED = window.DEMO_SEED;
@@ -427,7 +427,7 @@ const jericho = (function () {
     },
     renew_listing(a) {
       const l = db.listings.find((x) => x.id === a.p_listing_id);
-      if (l) l.updated_at = nowIso();
+      if (l) { l.updated_at = nowIso(); if (l.truth_confirmed_at) l.truth_confirmed_at = nowIso(); }
       return null;
     },
     accept_terms() { return null; },
@@ -446,6 +446,7 @@ const jericho = (function () {
         has_documents: db.document_checklist.some((d) => d.listing_id === l.id && d.indicated),
         created_at: l.created_at, updated_at: l.updated_at,
         poster_role: l.poster_role, docs_seen: l.docs_seen, principal_kind: l.principal_kind,
+        truth_confirmed_at: l.truth_confirmed_at ?? null,
       }));
     },
     deal_analytics(a) {
@@ -546,7 +547,8 @@ const jericho = (function () {
     async signInWithPassword(credentials) {
       const email = String((credentials && credentials.email) || '').toLowerCase();
       const p = db.profiles.find((x) => x.email.toLowerCase() === email);
-      if (!p) return { data: { user: null, session: null }, error: err('Invalid login credentials', 'invalid_credentials') };
+      // The demo has members only. The Operator account is data, not a way in.
+      if (!p || p.role === 'operator') return { data: { user: null, session: null }, error: err('Invalid login credentials', 'invalid_credentials') };
       setSession(p.user_id);
       const user = authUserFor(p.user_id);
       return { data: { user, session: { access_token: 'demo', token_type: 'bearer', user } }, error: null };

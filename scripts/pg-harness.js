@@ -78,11 +78,35 @@ const SETUP = [
   'sql/042_terms_3_4.sql',
   'sql/043_principal_kind.sql',
   'sql/044_welcome_seen.sql',
+  'sql/045_terms_3_5.sql',
+  'sql/046_forward_edit_activity.sql',
+  'sql/047_operator_mail_on_member_message.sql',
+  'sql/048_terms_receipt_email.sql',
+  'sql/049_terms_3_6.sql',
+  'sql/051_message_rewrite_activity.sql',
+  'sql/052_message_denied_status.sql',
+  'sql/053_test_prefix_cleanup_both.sql',
+  'sql/054_candidate_recommendations.sql',
+  'sql/055_recommendation_retention.sql',
+  'sql/056_terms_change_email.sql',
+  'sql/057_terms_gate_signed_once.sql',
+  'sql/058_terms_3_7.sql',
+  'sql/059_email_templates_myplatform.sql',
+  'sql/060_listing_error_myplatform.sql',
+  'sql/061_schedule_candidate_purge.sql',
+  'sql/062_rename_hms_commodity.sql',
+  'sql/063_documents_questions.sql',
+  'sql/064_dated_statements.sql',
+  'sql/065_terms_3_8.sql',
+  'sql/066_readiness_ticks.sql',
+  'sql/067_receipt_test_marker.sql',
+  'sql/068_message_on_hold.sql',
   'sql/seed_commodities.sql',
 ];
 
 /** Turn psql meta-commands into something a plain connection can run.
  *  \echo 'text' becomes a select whose single column carries the heading;
+ *  \i sql/FILE.sql is replaced by that file's text;
  *  other backslash lines are psql display settings and are dropped. */
 function translateMetaCommands(sql) {
   return sql
@@ -94,6 +118,10 @@ function translateMetaCommands(sql) {
       const echo = trimmed.match(/^\\echo\s+'(.*)'$/);
       if (echo) return `select '${echo[1].replace(/'/g, "''")}' as "__echo";`;
       if (/^\\echo\s*$/.test(trimmed)) return `select '' as "__echo";`;
+      // \i sql/....sql - the file's own text, so a test can run a migration or its
+      // revert from the real file instead of a copy that could drift from it.
+      const inc = trimmed.match(/^\\i\s+(sql\/[A-Za-z0-9_\/.-]+\.sql)$/);
+      if (inc) return fs.readFileSync(path.join(ROOT, inc[1]), 'utf8');
       return '';
     })
     .join('\n');
@@ -193,7 +221,7 @@ function sweepStaleDataDirs() {
     return; // an unreadable temp dir is not this script's problem
   }
   for (const name of entries) {
-    if (!name.startsWith('jericho-pgtest-')) continue;
+    if (!name.startsWith('myplatform-pgtest-')) continue;
     try {
       fs.rmSync(path.join(tmp, name), { recursive: true, force: true });
       swept++;
@@ -262,7 +290,7 @@ async function choosePort() {
 async function start({ applySetup = true, quiet = false } = {}) {
   const port = await choosePort();
   sweepStaleDataDirs();
-  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'jericho-pgtest-'));
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'myplatform-pgtest-'));
 
   const pg = new EmbeddedPostgres({
     databaseDir: dataDir,
@@ -285,10 +313,10 @@ async function start({ applySetup = true, quiet = false } = {}) {
   if (!quiet) console.log(`Starting PostgreSQL on port ${port} …`);
   await pg.initialise();
   await pg.start();
-  await pg.createDatabase('jericho');
+  await pg.createDatabase('myplatform');
 
   const connection = {
-    host: 'localhost', port, user: 'postgres', password: 'postgres', database: 'jericho',
+    host: 'localhost', port, user: 'postgres', password: 'postgres', database: 'myplatform',
   };
   const extras = [];
 

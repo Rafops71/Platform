@@ -1,4 +1,4 @@
-# Jericho Platform
+# MyPlatform
 
 A private, invitation-only listing and matching-facilitation platform for physical
 commodity brokers. Participants publish anonymous Sell Offers and Buy Requests;
@@ -6,8 +6,8 @@ Operators privately match counterparties behind the scenes. Not a trading exchan
 no trades are executed here.
 
 For a functional description aimed at a non-technical reader, see
-`JERICHO_PLATFORM_PRODUCT_REVIEW.md`. For a full technical description written to
-stand alone, see `JERICHO_PLATFORM_AI_REVIEW.md`. This README covers setup and
+`myplatform_platform_PRODUCT_REVIEW.md`. For a full technical description written to
+stand alone, see `myplatform_platform_AI_REVIEW.md`. This README covers setup and
 deployment only.
 
 ## Stack
@@ -189,8 +189,8 @@ hand.
 ├── register.html                     invitation-only registration
 ├── app.html                          participant dashboard
 ├── operator.html                     operator dashboard
-├── JERICHO_PLATFORM_AI_REVIEW.md     standalone technical description
-└── JERICHO_PLATFORM_PRODUCT_REVIEW.md  standalone product description
+├── myplatform_platform_AI_REVIEW.md     standalone technical description
+└── myplatform_platform_PRODUCT_REVIEW.md  standalone product description
 ```
 
 ## Testing
@@ -222,7 +222,7 @@ table so forwarded messages never arrived.
 
 `tests/e2e/` drives a real browser against the **live** Supabase project,
 because Supabase Auth is cloud-hosted and has no local stand-in. Every account,
-listing, and message it creates is prefixed `jericho-e2e-<run tag>-` and torn
+listing, and message it creates is prefixed `myplatform-e2e-<run tag>-` and torn
 down again, and a test asserts the teardown actually happened. The run tag
 matters: teardown deletes only accounts carrying its own tag, so two runs
 sharing the one live project — CI and a laptop, say — cannot delete each

@@ -147,7 +147,7 @@ test.describe.serial('participant profile', () => {
     // Sent the way a tampered page would send it, since the point is that the
     // database refuses it and not that the form omits the fields.
     const result = await page.evaluate(async () => {
-      const { error } = await jericho.from('profiles')
+      const { error } = await myplatform.from('profiles')
         .update({ role: 'operator', status: 'suspended' })
         .eq('id', CURRENT_PROFILE.id);
       return error ? error.message : 'no error';

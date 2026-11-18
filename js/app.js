@@ -1,4 +1,4 @@
-// Jericho Platform — participant dashboard logic.
+// MyPlatform — participant dashboard logic.
 
 let CURRENT_PROFILE = null;
 let COMMODITIES = [];
@@ -46,7 +46,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadMyListings();
   await loadSavedSearches();
   await refreshNotificationDot();
-  await refreshDocRequestDot();
 });
 
 /** The welcome page, once. A member who has never pressed continue sees it
@@ -66,7 +65,7 @@ async function showWelcomeOnce() {
   await new Promise(release => {
     document.getElementById('welcome-continue').addEventListener('click', async () => {
       await withButtonBusy('welcome-continue', t('common.saving'), async () => {
-        const { error } = await jericho.from('profiles')
+        const { error } = await myplatform.from('profiles')
           .update({ welcome_seen_at: new Date().toISOString() }).eq('id', CURRENT_PROFILE.id);
         if (error) console.error('welcome_seen_at not saved (the page will show again):', error);
       });
@@ -106,7 +105,7 @@ function adoptProfileLanguage() {
     if (profileLang !== currentLang()) setLang(profileLang);
   } else if (stored !== profileLang) {
     CURRENT_PROFILE.language = stored;
-    jericho.from('profiles').update({ language: stored }).eq('id', CURRENT_PROFILE.id)
+    myplatform.from('profiles').update({ language: stored }).eq('id', CURRENT_PROFILE.id)
       .then(({ error }) => { if (error) console.warn('Could not save language preference:', error.message); });
   }
 }
@@ -124,13 +123,14 @@ window.onLanguageChange = function (lang) {
   // toggle will try again.
   if (CURRENT_PROFILE && lang && lang !== CURRENT_PROFILE.language) {
     CURRENT_PROFILE.language = lang;
-    jericho.from('profiles').update({ language: lang }).eq('id', CURRENT_PROFILE.id)
+    myplatform.from('profiles').update({ language: lang }).eq('id', CURRENT_PROFILE.id)
       .then(({ error }) => { if (error) console.warn('Could not save language preference:', error.message); });
   }
 
   populateSelect('unit', UNITS, true, unitLabel);
   populateSelect('price_unit', UNITS, true, unitLabel);
   populateSelect('location', COUNTRIES, true, countryLabel);
+  showRoleQuestions();  // the buyer's Principal wording and the ticks' intro follow the language
   // The Profile country dropdown carries translated labels over canonical
   // English values, so it repopulates like the others - and its own selection
   // has to survive that, or switching language would silently blank the
@@ -166,7 +166,6 @@ window.onLanguageChange = function (lang) {
   // first drawn in.
   if (screen === 'my-listings') { loadMyListings(); loadSavedSearches(); }
   if (screen === 'browse') loadBrowseListings();
-  if (screen === 'doc-requests') loadDocRequests();
   if (screen === 'mailbox') loadMailbox();
   if (screen === 'notifications') loadNotifications();
   if (screen === 'help') renderHelp(document.getElementById('help-list'));
@@ -189,12 +188,12 @@ function showScreen(name) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('active'));
   document.getElementById(`screen-${name}`).classList.add('active');
-  const tabBtn = document.querySelector(`nav.tabs button[data-screen="${name}"]`);
+  // The Recommend a candidate page has no tab of its own; it belongs to Profile.
+  const tabBtn = document.querySelector(`nav.tabs button[data-screen="${name === 'recommend' ? 'profile' : name}"]`);
   if (tabBtn) tabBtn.classList.add('active');
 
   if (name === 'my-listings') { loadMyListings(); loadSavedSearches(); }
   if (name === 'browse') loadBrowseListings();
-  if (name === 'doc-requests') loadDocRequests();
   if (name === 'mailbox') loadMailbox();
   if (name === 'notifications') loadNotifications();
   if (name === 'new-listing' && !EDITING_LISTING_ID) resetListingForm();
@@ -208,7 +207,7 @@ async function loadMyListings() {
   const container = document.getElementById('my-listings-list');
   container.innerHTML = `<p class="empty-state">${t('common.loading')}</p>`;
 
-  const { data, error } = await jericho
+  const { data, error } = await myplatform
     .from('listings')
     .select('*')
     .eq('user_id', CURRENT_PROFILE.id)
@@ -232,7 +231,7 @@ async function loadMyListings() {
   const DOC_CHUNK = 50;
   const docCounts = new Map();
   for (const part of chunked(data.map(l => l.id), DOC_CHUNK)) {
-    const { data: ticked, error: docError } = await jericho
+    const { data: ticked, error: docError } = await myplatform
       .from('document_checklist')
       .select('listing_id')
       .eq('indicated', true)
@@ -308,7 +307,7 @@ function statusBadgeClass(status) {
 
 async function removeListing(id) {
   if (!confirm(t('listings.confirmRemove'))) return;
-  const { error } = await jericho.from('listings').delete().eq('id', id);
+  const { error } = await myplatform.from('listings').delete().eq('id', id);
   if (error) { showError(errorMessage(error)); return; }
   // Activity logging happens in the database (trg_log_listing_change).
   showSuccess(t('listings.removed'));
@@ -323,7 +322,7 @@ async function removeListing(id) {
  *  the listing renews it too, through the same trigger - this is for the case
  *  where there is nothing to edit. */
 async function renewListing(id) {
-  const { error } = await jericho.rpc('renew_listing', { p_listing_id: id });
+  const { error } = await myplatform.rpc('renew_listing', { p_listing_id: id });
   if (error) { showError(errorMessage(error)); return; }
   showSuccess(t('listings.renewed'));
   loadMyListings();
@@ -334,7 +333,7 @@ async function renewListing(id) {
  *  - a counterparty who was talking to this listing should still be able to see
  *  what it was. */
 async function closeListing(id) {
-  const { error } = await jericho.from('listings').update({ status: 'closed' }).eq('id', id);
+  const { error } = await myplatform.from('listings').update({ status: 'closed' }).eq('id', id);
   if (error) { showError(errorMessage(error)); return; }
   showSuccess(t('listings.closed'));
   loadMyListings();
@@ -362,7 +361,7 @@ function renderDocChecklist(selected = {}) {
 
 async function loadCommodities() {
   const fresh = renderToken('app:loadCommodities');
-  const { data, error } = await jericho.from('commodities').select('*');
+  const { data, error } = await myplatform.from('commodities').select('*');
   if (!fresh()) return;
   const select = document.getElementById('commodity-select');
   if (error) { console.error(error); return; }
@@ -423,8 +422,8 @@ function wireListingForm() {
     showScreen('my-listings');
   });
 
-  document.querySelectorAll('input[name="poster_role"]').forEach(r =>
-    r.addEventListener('change', showRoleQuestions));
+  document.getElementById('poster_role').addEventListener('change', showRoleQuestions);
+  document.getElementById('principal_kind').addEventListener('change', showRoleQuestions);
 
   document.getElementById('listing-form').addEventListener('submit', submitListingForm);
 }
@@ -434,48 +433,87 @@ function wireListingForm() {
 function statementsLine(l) {
   let role = l.poster_role ? t(`stmt.browse.role.${l.poster_role}`) : t('stmt.notStated');
   if (l.poster_role === 'principal' && l.type === 'sell' && l.principal_kind) role += ` (${t(`stmt.browse.kind.${l.principal_kind}`)})`;
+  // A Buy request is never asked about documents, so it shows no documents part.
+  if (l.type === 'buy') return `${t('stmt.browse.role')}: ${role}`;
   const docs = l.docs_seen ? t(`stmt.browse.docs.${l.docs_seen}`) : t('stmt.notStated');
   return `${t('stmt.browse.role')}: ${role} · ${t('stmt.browse.docs')}: ${docs}`;
+}
+
+/** The poster's one statements date under Browse's statements line (sql/064). Older than 30 days
+ *  it reads "Not re-confirmed since"; a listing that never carried statements shows no date. */
+function statementsDateLine(l) {
+  if (!l.truth_confirmed_at) return '';
+  const date = formatDate(l.truth_confirmed_at);
+  return t(isStatementDateOld(l.truth_confirmed_at) ? 'stmt.browse.notReconfirmed' : 'stmt.browse.stated', { date });
 }
 
 /** The mandate question for a mandated intermediary, the chain question for
  *  a broker, Producer-or-Trader for a principal on a Sell offer only. */
 function showRoleQuestions() {
-  const role = document.querySelector('input[name="poster_role"]:checked')?.value;
+  const role = document.getElementById('poster_role').value;
   const isSell = document.querySelector('input[name="type"]:checked')?.value === 'sell';
+  // The Principal option reads differently for a buyer (the seller's wording is unchanged).
+  document.querySelector('#poster_role option[value="principal"]').textContent =
+    t(document.querySelector('input[name="type"]:checked')?.value === 'buy' ? 'stmt.role.principalBuy' : 'stmt.role.principal');
   document.getElementById('kind-row').classList.toggle('hidden', !(role === 'principal' && isSell));
+  showReadinessTicks(role, isSell);
   document.getElementById('mandate-row').classList.toggle('hidden', role !== 'mandated');
   document.getElementById('broker-row').classList.toggle('hidden', role !== 'broker');
+  // The documents question is for a Sell offer only.
+  document.getElementById('docs-seen-row').classList.toggle('hidden', !isSell);
+}
+
+/** Readiness ticks (sql/066): optional, Principal only, for the Operator's eyes only. A seller sees
+ *  the two ticks that fit Producer or Trader once chosen; a buyer sees the one buyer tick. A tick
+ *  that stops applying is cleared here as well as on the server, so nothing stale is sent. */
+function showReadinessTicks(role, isSell) {
+  const type = document.querySelector('input[name="type"]:checked')?.value;
+  const kind = document.getElementById('principal_kind').value;
+  const show = { 'rd-producer': role === 'principal' && type === 'sell' && kind === 'producer',
+                 'rd-trader': role === 'principal' && type === 'sell' && kind === 'trader',
+                 'rd-buyer': role === 'principal' && type === 'buy' };
+  document.getElementById('readiness-row').classList.toggle('hidden', !Object.values(show).some(Boolean));
+  document.getElementById('readiness-intro').textContent = t(type === 'buy' ? 'stmt.ready.buyIntro' : 'stmt.ready.sellIntro');
+  Object.entries(show).forEach(([cls, on]) => {
+    document.querySelectorAll(`#readiness-row .${cls}`).forEach(row => {
+      row.classList.toggle('hidden', !on);
+      if (!on) row.querySelector('input').checked = false;
+    });
+  });
 }
 
 /** What the poster says about the offer. Returns { values } or { errorKey }.
  *  sql/033 makes every one of these checks again; these exist so the member
  *  reads the reason before pressing, in their own language. */
 function readListingStatements() {
-  const role = document.querySelector('input[name="poster_role"]:checked')?.value;
+  const role = document.getElementById('poster_role').value;
   const kindShown = role === 'principal' && document.querySelector('input[name="type"]:checked')?.value === 'sell';
-  const kind = document.querySelector('input[name="principal_kind"]:checked')?.value;
+  const kind = document.getElementById('principal_kind').value;
   const mandate = document.querySelector('input[name="has_mandate"]:checked')?.value;
   const mandateDate = document.getElementById('mandate_date').value;
   const via = document.getElementById('broker_via').value;
   const docsSeen = document.getElementById('docs_seen').value;
-  const docsShowable = document.getElementById('docs_showable').value;
+  const isSell = document.querySelector('input[name="type"]:checked')?.value === 'sell';
   if (!role) return { errorKey: 'stmt.err.role' };
   if (kindShown && !kind) return { errorKey: 'stmt.err.kind' };
   if (role === 'mandated' && mandate !== 'yes') return { errorKey: 'stmt.err.noMandate' };
   if (role === 'mandated' && !mandateDate) return { errorKey: 'stmt.err.mandateDate' };
   if (role === 'broker' && via === 'further') return { errorKey: 'stmt.err.tooFar' };
   if (role === 'broker' && !via) return { errorKey: 'stmt.err.via' };
-  if (!docsSeen || !docsShowable) return { errorKey: 'stmt.err.docs' };
+  if (isSell && !docsSeen) return { errorKey: 'stmt.err.docs' };
   if (!document.getElementById('truth-confirm').checked) return { errorKey: 'stmt.err.truth' };
+  const ticked = [...document.querySelectorAll('#readiness-row input[name="readiness"]:checked')].map(i => i.value);
   return { values: {
     poster_role: role,
     principal_kind: kindShown ? kind : null,
+    // Only the ticks still shown are sent; none ticked is stored as nothing stated (sql/066).
+    readiness: ticked.length ? ticked : null,
     has_mandate: role === 'mandated' ? true : null,
     mandate_date: role === 'mandated' ? mandateDate : null,
     broker_via: role === 'broker' ? via : null,
-    docs_seen: docsSeen,
-    docs_showable: docsShowable,
+    // Only a Sell offer carries the documents answer. A Buy request sends none, and an
+    // answer already stored on an older listing is left exactly as it was.
+    ...(isSell ? { docs_seen: docsSeen } : {}),
     truth_confirmed: true,
   } };
 }
@@ -496,10 +534,10 @@ function resetListingForm() {
 }
 
 async function editListing(id) {
-  const { data: listing, error } = await jericho.from('listings').select('*').eq('id', id).maybeSingle();
+  const { data: listing, error } = await myplatform.from('listings').select('*').eq('id', id).maybeSingle();
   if (error || !listing) { showError(t('listings.loadFailed')); return; }
 
-  const { data: checklist } = await jericho.from('document_checklist').select('*').eq('listing_id', id);
+  const { data: checklist } = await myplatform.from('document_checklist').select('*').eq('listing_id', id);
   const selected = {};
   (checklist || []).forEach(c => { if (c.indicated) selected[c.doc_type] = true; });
 
@@ -524,17 +562,19 @@ async function editListing(id) {
   document.getElementById('notes').value = listing.notes ?? '';
   // The statements are filled back in; the truth box never is. Saving an edit
   // is a new statement and has to be ticked again (sql/033).
-  const roleInput = listing.poster_role && document.querySelector(`input[name="poster_role"][value="${listing.poster_role}"]`);
-  if (roleInput) roleInput.checked = true;
-  const kindInput = listing.principal_kind && document.querySelector(`input[name="principal_kind"][value="${listing.principal_kind}"]`);
-  if (kindInput) kindInput.checked = true;
+  document.getElementById('poster_role').value = listing.poster_role ?? '';
+  document.getElementById('principal_kind').value = listing.principal_kind ?? '';
   if (listing.has_mandate) document.getElementById('mandate-yes').checked = true;
   document.getElementById('mandate_date').value = listing.mandate_date ?? '';
   document.getElementById('broker_via').value = listing.broker_via ?? '';
   document.getElementById('docs_seen').value = listing.docs_seen ?? '';
-  document.getElementById('docs_showable').value = listing.docs_showable ?? '';
   document.getElementById('truth-confirm').checked = false;
   showRoleQuestions();
+  // The ticks are filled back in after the questions are shown (showRoleQuestions clears hidden ones).
+  (listing.readiness || []).forEach(v => {
+    const box = document.querySelector(`#readiness-row input[name="readiness"][value="${v}"]`);
+    if (box) box.checked = true;
+  });
   renderDocChecklist(selected);
 
   showScreen('new-listing');
@@ -578,13 +618,13 @@ async function submitListingForm(e) {
   let listingId = EDITING_LISTING_ID;
 
   if (listingId) {
-    const { error } = await jericho.from('listings').update(payload).eq('id', listingId);
+    const { error } = await myplatform.from('listings').update(payload).eq('id', listingId);
     if (error) { showError(errorMessage(error)); btn.disabled = false; btn.textContent = t('form.saveListing'); return; }
   } else {
-    const { data: refData, error: refError } = await jericho.rpc('next_reference', { p_type: type });
+    const { data: refData, error: refError } = await myplatform.rpc('next_reference', { p_type: type });
     if (refError) { showError(errorMessage(refError)); btn.disabled = false; btn.textContent = t('form.saveListing'); return; }
 
-    const { data: inserted, error } = await jericho
+    const { data: inserted, error } = await myplatform
       .from('listings')
       .insert({ ...payload, user_id: CURRENT_PROFILE.id, reference_number: refData })
       .select('id').single();
@@ -595,7 +635,7 @@ async function submitListingForm(e) {
   // Sync document checklist: upsert one row per doc type.
   const checked = new Set(Array.from(document.querySelectorAll('#doc-checklist input:checked')).map(i => i.value));
   const rows = DOCUMENT_TYPES.map(doc => ({ listing_id: listingId, doc_type: doc, indicated: checked.has(doc) }));
-  const { error: checklistError } = await jericho
+  const { error: checklistError } = await myplatform
     .from('document_checklist')
     .upsert(rows, { onConflict: 'listing_id,doc_type' });
   if (checklistError) console.error('Checklist save failed:', checklistError);
@@ -626,7 +666,7 @@ async function loadBrowseListings() {
   const container = document.getElementById('browse-list');
   container.innerHTML = `<p class="empty-state">${t('common.loading')}</p>`;
 
-  const { data, error } = await jericho.rpc('get_public_listings');
+  const { data, error } = await myplatform.rpc('get_public_listings');
   if (!fresh()) return;
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
 
@@ -657,6 +697,8 @@ async function loadBrowseListings() {
       ${l.price_conditions ? `<div class="list-row-meta">${escapeHtml(t('browse.price', { value: priceLine(l) }))}</div>` : ''}
       ${l.notes ? `<div class="list-row-meta">${escapeHtml(t('browse.notes', { value: l.notes }))}</div>` : ''}
       <div class="list-row-meta" data-statements>${escapeHtml(statementsLine(l))}</div>
+      ${statementsDateLine(l) ? `<div class="list-row-meta" data-statements-date>${escapeHtml(statementsDateLine(l))}</div>` : ''}
+      ${l.type === 'sell' ? `<div class="list-row-meta" data-docs-line>${escapeHtml(t('stmt.browse.docsLine'))}</div>` : ''}
       <div class="list-row-meta">
         ${l.has_documents ? escapeHtml(t('listings.documentsIndicated')) : `<strong>${escapeHtml(t('listings.noDocsIndicated'))}</strong>`} · ${escapeHtml(t('listings.posted', { date: formatDate(l.created_at) }))}
       </div>
@@ -716,7 +758,7 @@ async function exportMyActivity() {
   const button = document.getElementById('export-activity-btn');
   button.disabled = true;
   try {
-    const { data, error } = await jericho.rpc('my_activity_export');
+    const { data, error } = await myplatform.rpc('my_activity_export');
     if (error) { showError(errorMessage(error)); return; }
     if (!data || !data.length) { showError(t('export.empty')); return; }
 
@@ -733,7 +775,7 @@ async function exportMyActivity() {
     ]);
 
     const stamp = new Date().toISOString().slice(0, 10);
-    downloadFile(`jericho-activity-${stamp}.csv`, toCsv(headers, rows));
+    downloadFile(`myplatform-activity-${stamp}.csv`, toCsv(headers, rows));
     showSuccess(t('export.done'));
   } finally {
     button.disabled = false;
@@ -794,14 +836,14 @@ async function loadSavedSearches() {
   const container = document.getElementById('saved-searches-list');
   container.innerHTML = `<p class="empty-state">${t('common.loading')}</p>`;
 
-  const { data, error } = await jericho
+  const { data, error } = await myplatform
     .from('saved_searches').select('*').order('created_at', { ascending: false });
   if (!fresh()) return;
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
   if (!data.length) { container.innerHTML = `<p class="empty-state">${t('saved.none')}</p>`; return; }
 
   // One call for every count, against the same anonymised view Browse reads.
-  const { data: listings } = await jericho.rpc('get_public_listings');
+  const { data: listings } = await myplatform.rpc('get_public_listings');
   const all = listings || [];
 
   if (!fresh()) return;
@@ -847,7 +889,7 @@ async function saveCurrentSearch() {
 async function saveCurrentSearchNow() {
   const criteria = browseFilterCriteria();
 
-  const { error } = await jericho.from('saved_searches')
+  const { error } = await myplatform.from('saved_searches')
     .insert({ ...criteria, user_id: CURRENT_PROFILE.id });
 
   if (error) {
@@ -862,7 +904,7 @@ async function saveCurrentSearchNow() {
 }
 
 async function removeSavedSearch(id) {
-  const { error } = await jericho.from('saved_searches').delete().eq('id', id);
+  const { error } = await myplatform.from('saved_searches').delete().eq('id', id);
   if (error) { showError(errorMessage(error)); return; }
   showSuccess(t('saved.removed'));
   loadSavedSearches();
@@ -874,8 +916,8 @@ async function loadMailbox() {
   const container = document.getElementById('mailbox-list');
   container.innerHTML = `<p class="empty-state">${t('common.loading')}</p>`;
 
-  const { data: messages, error } = await jericho
-    .from('messages').select('*').order('created_at', { ascending: false });
+  const { data: messages, error } = await myplatform
+    .from('messages').select('*').neq('status', 'denied').order('created_at', { ascending: false });
   if (!fresh()) return;
   if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
 
@@ -936,7 +978,7 @@ async function sendContactMessage() {
 async function sendContactMessageNow() {
   const body = document.getElementById('contact-body').value.trim();
   if (!body) { showError(t('contact.empty')); return; }
-  const { error } = await jericho.from('messages').insert({
+  const { error } = await myplatform.from('messages').insert({
     sender_id: CURRENT_PROFILE.id,
     listing_id: CONTACT_TARGET.listingId || null,
     in_reply_to: CONTACT_TARGET.inReplyTo || null,
@@ -954,7 +996,7 @@ async function loadNotifications() {
   const container = document.getElementById('notifications-list');
   container.innerHTML = `<p class="empty-state">${t('common.loading')}</p>`;
 
-  const { data, error } = await jericho
+  const { data, error } = await myplatform
     .from('notifications').select('*')
     .eq('user_id', CURRENT_PROFILE.id)
     .order('created_at', { ascending: false });
@@ -976,7 +1018,7 @@ async function loadNotifications() {
     container.appendChild(row);
     if (!n.is_read) {
       row.addEventListener('click', async () => {
-        await jericho.from('notifications').update({ is_read: true }).eq('id', n.id);
+        await myplatform.from('notifications').update({ is_read: true }).eq('id', n.id);
         loadNotifications();
         refreshNotificationDot();
       });
@@ -989,7 +1031,7 @@ async function loadNotifications() {
 
 async function refreshNotificationDot() {
   const fresh = renderToken('app:refreshNotificationDot');
-  const { count } = await jericho
+  const { count } = await myplatform
     .from('notifications').select('id', { count: 'exact', head: true })
     .eq('user_id', CURRENT_PROFILE.id).eq('is_read', false);
   if (!fresh()) return;
@@ -1010,6 +1052,8 @@ function wireProfile() {
   fillProfileForm();
 
   document.getElementById('profile-form').addEventListener('submit', saveProfileDetails);
+  document.getElementById('recommend-open-btn').addEventListener('click', () => showScreen('recommend'));
+  document.getElementById('recommend-form').addEventListener('submit', submitRecommendation);
   document.getElementById('email-form').addEventListener('submit', changeEmail);
   document.getElementById('password-form').addEventListener('submit', changePassword);
   document.getElementById('export-activity-btn').addEventListener('click', exportMyActivity);
@@ -1038,6 +1082,34 @@ function fillProfileForm() {
   document.getElementById('p_status_value').textContent = statusLabel(CURRENT_PROFILE.status);
 }
 
+// ------------------------------------------------------- RECOMMENDATIONS ----
+// A member recommends a candidate. The row goes to the Operators only: the
+// database lets no member read it back (sql/054). The limit of five open
+// recommendations is enforced there too; this page only says it.
+async function submitRecommendation(e) {
+  e.preventDefault();
+  return withButtonBusy('recommend-btn', t('common.sending'), async () => {
+    const agreed = document.querySelector('input[name="r_agreed"]:checked');
+    if (!agreed) return;
+
+    const { error } = await myplatform.rpc('submit_candidate_recommendation', {
+      p_candidate_name: document.getElementById('r_name').value.trim(),
+      p_candidate_company: document.getElementById('r_company').value.trim(),
+      p_candidate_email: document.getElementById('r_email').value.trim(),
+      p_how_known: document.getElementById('r_how').value.trim(),
+      p_commodities: document.getElementById('r_commodities').value.trim(),
+      p_agreed_contact: agreed.value === 'yes',
+      p_own_experience: document.getElementById('r_experience').value.trim(),
+    });
+    // 53400 is the database's own five-open limit (sql/054): the page says it
+    // in the member's language rather than the database's English.
+    if (error) { showError(error.code === '53400' ? t('recommend.limitHint') : errorMessage(error)); return; }
+
+    e.target.reset();
+    showSuccess(t('contact.sent'));
+  });
+}
+
 async function saveProfileDetails(e) {
   e.preventDefault();
   const updates = {
@@ -1049,7 +1121,7 @@ async function saveProfileDetails(e) {
     phone: document.getElementById('p_phone').value.trim(),
   };
 
-  const { error } = await jericho.from('profiles').update(updates).eq('id', CURRENT_PROFILE.id);
+  const { error } = await myplatform.from('profiles').update(updates).eq('id', CURRENT_PROFILE.id);
   if (error) { showError(errorMessage(error)); return; }
 
   // Role, status and email are absent from `updates` on purpose: the database
@@ -1067,7 +1139,7 @@ async function saveProfileDetails(e) {
  *  session that is already open. A correct one issues a fresh session for the
  *  same user, which is what the updateUser() that follows then uses. */
 async function reauthenticate(password) {
-  const { error } = await jericho.auth.signInWithPassword({
+  const { error } = await myplatform.auth.signInWithPassword({
     email: CURRENT_PROFILE.email,
     password,
   });
@@ -1084,7 +1156,7 @@ async function changeEmail(e) {
   }
   if (!await reauthenticate(password)) { showError(t('profile.wrongPassword')); return; }
 
-  const { error } = await jericho.auth.updateUser({ email: newEmail });
+  const { error } = await myplatform.auth.updateUser({ email: newEmail });
   if (error) { showError(errorMessage(error)); return; }
 
   // Nothing has moved yet. This project requires an email change to be
@@ -1114,90 +1186,9 @@ async function changePassword(e) {
   if (next === current) { showError(t('profile.passwordSame')); return; }
   if (!await reauthenticate(current)) { showError(t('profile.wrongPassword')); return; }
 
-  const { error } = await jericho.auth.updateUser({ password: next });
+  const { error } = await myplatform.auth.updateUser({ password: next });
   if (error) { showError(errorMessage(error)); return; }
   document.getElementById('password-form').reset();
   showSuccess(t('profile.passwordUpdated'));
 }
 
-// ------------------------------------------------- DOCUMENT REQUESTS ----
-// Section 14: the participant responds by confirming they have the document
-// or marking it unavailable. No file upload at this stage.
-
-async function loadDocRequests() {
-  const fresh = renderToken('app:loadDocRequests');
-  const container = document.getElementById('doc-requests-list');
-  container.innerHTML = `<p class="empty-state">${t('common.loading')}</p>`;
-
-  const { data, error } = await jericho
-    .from('document_requests')
-    .select('*')
-    .eq('participant_id', CURRENT_PROFILE.id)
-    .order('requested_at', { ascending: false });
-  if (!fresh()) return;
-
-  if (error) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(error))}</p>`; return; }
-  if (!data.length) { container.innerHTML = `<p class="empty-state">${t('docreq.none')}</p>`; return; }
-
-  // Resolve reference numbers in one query rather than one per row.
-  const listingIds = [...new Set(data.map(r => r.listing_id).filter(Boolean))];
-  const refByListing = {};
-  if (listingIds.length) {
-    const { data: listings } = await jericho
-      .from('listings').select('id,reference_number').in('id', listingIds);
-    if (!fresh()) return;
-    (listings || []).forEach(l => { refByListing[l.id] = l.reference_number; });
-  }
-
-  container.innerHTML = '';
-  data.forEach(r => {
-    const badgeClass = r.status === 'confirmed' ? 'badge-green'
-      : r.status === 'unavailable' ? 'badge-red' : 'badge-amber';
-    const row = document.createElement('div');
-    row.className = 'list-row';
-    row.innerHTML = `
-      <div class="list-row-top">
-        <span class="list-row-title">${escapeHtml(docTypeLabel(r.doc_type))}</span>
-        <span class="badge ${badgeClass}">${escapeHtml(statusLabel(r.status))}</span>
-      </div>
-      <div class="list-row-meta">
-        ${r.listing_id && refByListing[r.listing_id] ? escapeHtml(refByListing[r.listing_id]) + ' · ' : ''}
-        ${escapeHtml(t('docreq.requested', { date: formatDateTime(r.requested_at) }))}
-        ${r.responded_at ? ' · ' + escapeHtml(t('docreq.responded', { date: formatDateTime(r.responded_at) })) : ''}
-      </div>
-      ${r.status === 'requested' ? `
-        <div class="row" style="margin-top:4px;">
-          <button class="btn btn-primary btn-small" data-confirm="${r.id}">${escapeHtml(t('docreq.haveIt'))}</button>
-          <button class="btn btn-secondary btn-small" data-unavailable="${r.id}">${escapeHtml(t('docreq.notAvailable'))}</button>
-        </div>` : ''}
-    `;
-    container.appendChild(row);
-  });
-
-  container.querySelectorAll('[data-confirm]').forEach(b =>
-    b.addEventListener('click', () => respondToDocRequest(b.dataset.confirm, 'confirmed')));
-  container.querySelectorAll('[data-unavailable]').forEach(b =>
-    b.addEventListener('click', () => respondToDocRequest(b.dataset.unavailable, 'unavailable')));
-}
-
-async function respondToDocRequest(requestId, status) {
-  const { error } = await jericho
-    .from('document_requests')
-    .update({ status, responded_at: new Date().toISOString() })
-    .eq('id', requestId);
-  if (error) { showError(errorMessage(error)); return; }
-  // The database notifies Operators and writes the audit entry
-  // (trg_notify_doc_request_response / trg_log_doc_request_change).
-  showSuccess(t('docreq.recorded'));
-  loadDocRequests();
-  refreshDocRequestDot();
-}
-
-async function refreshDocRequestDot() {
-  const fresh = renderToken('app:refreshDocRequestDot');
-  const { count } = await jericho
-    .from('document_requests').select('id', { count: 'exact', head: true })
-    .eq('participant_id', CURRENT_PROFILE.id).eq('status', 'requested');
-  if (!fresh()) return;
-  document.getElementById('docreq-dot').classList.toggle('hidden', !count);
-}

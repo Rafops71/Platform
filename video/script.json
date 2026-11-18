@@ -245,10 +245,10 @@
         },
         {
           "id": "form-role",
-          "do": "check:#role-principal && check:#kind-producer",
-          "zoom": "#role-principal",
+          "do": "select:#poster_role|principal && select:#principal_kind|producer",
+          "zoom": "#poster_role",
           "zoomScale": 1.6,
-          "highlight": "#role-principal",
+          "highlight": "#poster_role",
           "zoomOutAfter": true,
           "say": {
             "en": "Then your role in this offer: principal, mandated intermediary or broker. A principal selling also says whether they are a producer or a trader.",

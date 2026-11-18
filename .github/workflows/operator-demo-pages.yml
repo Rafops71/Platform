@@ -1,0 +1,91 @@
+name: Operator demo site
+
+# Publishes the OPERATOR demo (dist-demo-operator/, item 42): the Operator console
+# on fake data, with no connection to Supabase. It is its own site, in its own
+# Cloudflare Pages project, `myplatform-operator-demo`. It is not linked from the
+# member demo (myplatform-demo) or from any public page.
+#
+# The build refuses to finish if any real Supabase address or key is in the
+# output (scripts/build-demo.js), and the browser tests check that the Operator
+# demo makes no request to Supabase (tests/operator-demo). Both must pass before
+# anything is published. Setup and the teardown are in HANDOFF.md ("Operator
+# demo site on Cloudflare Pages"). It never touches the member demo, GitHub Pages,
+# `platform` or `platform-www`.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+# One group per branch, so runs for different branches never cancel each other.
+# A run on main is never cancelled, so a publish on main always finishes.
+concurrency:
+  group: operator-demo-pages-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  build:
+    name: Build and test the Operator demo
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Build the Operator demo
+        run: npm run build:demo:operator
+      - name: Install the browser for the Operator demo tests
+        run: npx playwright install --with-deps chromium
+      - name: Operator demo tests (no Supabase requests, every tab renders, no errors)
+        run: npm run test:demo:operator
+      - name: Keep the Operator demo build as a workflow artifact (not published)
+        uses: actions/upload-pages-artifact@v5
+        with:
+          name: operator-demo-site
+          path: dist-demo-operator
+
+  # --------------------------------------------------------------------------
+  # PUBLISH THE OPERATOR DEMO TO ITS OWN CLOUDFLARE PROJECT
+  # (myplatform-operator-demo). Same rules as demo-pages.yml's publish-demo:
+  # main only, no always() or other status function, fail on a missing secret,
+  # and it needs the build-and-test job.
+  # --------------------------------------------------------------------------
+  publish-operator-demo:
+    name: Publish the Operator demo to Cloudflare Pages
+    needs: [build]
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    concurrency:
+      group: cloudflare-operator-demo-deploy
+      cancel-in-progress: false
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Are the secrets configured?
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::Cloudflare publish cannot run: CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID must both be set."
+            exit 1
+          fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build the Operator demo from this commit
+        run: DEMO_KIND=operator node scripts/build-demo.js
+      - name: Publish
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist-demo-operator --project-name=myplatform-operator-demo --branch=main --commit-hash=${{ github.sha }}

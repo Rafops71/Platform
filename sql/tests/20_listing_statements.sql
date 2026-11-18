@@ -1,7 +1,8 @@
 -- 20_listing_statements.sql
 --
--- Proves sql/033: a member cannot publish without saying their role, both
--- document answers and the truth tick; the owner's two-degrees rule is
+-- Proves sql/033: a member cannot publish without saying their role, the
+-- documents answer (a Sell offer only since sql/063; both answers before it)
+-- and the truth tick; the owner's two-degrees rule is
 -- enforced; the tick's time is the server's; Browse shows the role and the
 -- documents line and never the mandate or the chain.
 
@@ -59,8 +60,8 @@ begin
 
   begin
     insert into public.listings (user_id, type, commodity, incoterm, origin, reference_number,
-                                 poster_role, principal_kind, docs_seen, truth_confirmed)
-    values (me, 'sell', 'Stmt Copper', 'FOB', 'Chile', 'SELL-STMT-5', 'principal', 'producer', 'yes', true);
+                                 poster_role, principal_kind, docs_showable, truth_confirmed)
+    values (me, 'sell', 'Stmt Copper', 'FOB', 'Chile', 'SELL-STMT-5', 'principal', 'producer', 'on_request', true);
     insert into t20 values ('one docs answer', 'ACCEPTED');
   exception when others then insert into t20 values ('one docs answer', sqlerrm); end;
 
@@ -93,7 +94,7 @@ select case when count(*) = 6 and bool_and(msg <> 'ACCEPTED') then 'PASS'
   as "T1 Item66 no role, chain, mandate, documents answer or tick: refused"
 from t20 where label in ('no role','broker no chain','no mandate','one docs answer','no tick','too far');
 
-select case when msg = 'Jericho accepts offers no more than two steps from the principal. Please post only offers within that distance.'
+select case when msg = 'MyPlatform accepts offers no more than two steps from the principal. Please post only offers within that distance.'
             then 'PASS' else 'FAIL got ' || msg end
   as "T2 Item67 an offer further than two steps is refused in the owner's words"
 from t20 where label = 'too far';
@@ -155,9 +156,13 @@ select case when
     (select count(*) from json_object_keys(to_json((select l from public.get_public_listings() l limit 1)))
       where json_object_keys in ('poster_role','docs_seen')) = 2
   and (select count(*) from json_object_keys(to_json((select l from public.get_public_listings() l limit 1)))
-      where json_object_keys in ('has_mandate','mandate_date','broker_via','docs_showable','truth_confirmed_at')) = 0
+      where json_object_keys in ('has_mandate','mandate_date','broker_via','docs_showable','truth_confirmed')) = 0
+  -- Since sql/064 (owner's "dated statements") Browse also carries the date the statements
+  -- were confirmed (truth_confirmed_at); the truth tick itself is still never exposed.
+  and (select count(*) from json_object_keys(to_json((select l from public.get_public_listings() l limit 1)))
+      where json_object_keys = 'truth_confirmed_at') = 1
   then 'PASS' else 'FAIL' end
-  as "T9 Item68 Browse shows role and documents, never mandate or chain";
+  as "T9 Item68 Browse shows role, documents and the statements date, never mandate or chain";
 
 select case when poster_role = 'mandated' and docs_seen = 'yes' then 'PASS' else 'FAIL' end
   as "T10 Browse carries the poster's stated role"

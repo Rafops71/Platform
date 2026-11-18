@@ -11,7 +11,7 @@
 //   RESEND_API_KEY        — from https://resend.com/api-keys (Rafael must
 //                            create the account; Claude cannot sign up for
 //                            third-party services on anyone's behalf)
-//   LISTING_EMAIL_FROM     — verified sender, e.g. "Jericho Platform
+//   LISTING_EMAIL_FROM     — verified sender, e.g. "MyPlatform
 //                            <notifications@yourdomain.com>". Until a domain
 //                            is verified with Resend, use their sandbox
 //                            sender "onboarding@resend.dev" — but Resend only
