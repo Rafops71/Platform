@@ -24,3 +24,8 @@ Answered: KEEP AS IS (owner, 18 Nov).
 
 ## Block 5: posting and managing own listings (items 14-16)
 Answered: KEEP AS IS (owner, 18 Nov).
+
+## Block 6: Browse (items 17-21)
+Asked: Browse shows other members' listings, newest first (read in code: listings.sort by created_at descending, no member choice); filters by type, commodity, region, status; never shows who posted.
+Owner asked: how is it ranked, can the member sort alphabetically or by date?
+Answered (CHANGE): ADD a sort choice on Browse (drop-down): Newest first (default), Oldest first, Commodity A to Z. Labels EN+ES: ours to write, shown to owner. Everything else on Browse unchanged. Saved searches must still report the same count Browse shows (item 23): sorting must not change counts.
