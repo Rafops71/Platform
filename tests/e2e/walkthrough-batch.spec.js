@@ -19,11 +19,11 @@ const { query } = require('../../scripts/db');
 const POSTER = { first_name: 'Wexbridge', last_name: 'Tallowmere', company: 'Tallowmere Metals NV', phone: '+32471558001' };
 const WATCHER = { first_name: 'Olwenna', last_name: 'Fairbourne', company: 'Fairbourne Trading', phone: '+32471558002' };
 
-// Posted in this order, so "newest first" is Iron Ore, Copper Cathode, Zinc Ingots.
-// Alphabetically that is Copper, Iron, Zinc, so the three orders are all different.
+// Posted in this order, so "newest first" is Iron Ore, Antimony, Zinc Ingots.
+// Alphabetically that is Antimony, Iron, Zinc, so the three orders are all different.
 const POSTS = [
   { commodity: 'Zinc Ingots',    notes: 'sort test one' },
-  { commodity: 'Copper Cathode', notes: 'sort test two' },
+  { commodity: 'Antimony', notes: 'sort test two' },
   { commodity: 'Iron Ore',       notes: 'sort test three' },
 ];
 
@@ -132,13 +132,13 @@ test.describe.serial('the walkthrough batch', () => {
       return titles.map((t) => POSTS.find((p) => t.includes(p.commodity))).filter(Boolean).map((p) => p.commodity);
     };
     await expect(page.locator('#browse-list .list-row').first()).toBeVisible({ timeout: 20_000 });
-    await expect.poll(mine, { timeout: 15_000 }).toEqual(['Iron Ore', 'Copper Cathode', 'Zinc Ingots']);
+    await expect.poll(mine, { timeout: 15_000 }).toEqual(['Iron Ore', 'Antimony', 'Zinc Ingots']);
 
     await page.selectOption('#browse-sort', 'oldest');
-    await expect.poll(mine, { timeout: 15_000 }).toEqual(['Zinc Ingots', 'Copper Cathode', 'Iron Ore']);
+    await expect.poll(mine, { timeout: 15_000 }).toEqual(['Zinc Ingots', 'Antimony', 'Iron Ore']);
 
     await page.selectOption('#browse-sort', 'commodity');
-    await expect.poll(mine, { timeout: 15_000 }).toEqual(['Copper Cathode', 'Iron Ore', 'Zinc Ingots']);
+    await expect.poll(mine, { timeout: 15_000 }).toEqual(['Antimony', 'Iron Ore', 'Zinc Ingots']);
     // The whole list is alphabetical by commodity, not only this test's rows (item 17's order).
     await expect.poll(async () => {
       const titles = await page.locator('#browse-list .list-row-title').allTextContents();
