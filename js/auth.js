@@ -44,7 +44,10 @@ async function initLoginPage() {
     // anything else keeps the general one. Only these two words are looked up,
     // so the address cannot be used to make the page print anything else.
     const why = getQueryParam('blocked');
-    notice.textContent = t(why === 'rejected' || why === 'suspended' ? `login.blocked.${why}` : 'login.blocked');
+    const key = why === 'rejected' || why === 'suspended' ? `login.blocked.${why}` : 'login.blocked';
+    // data-i18n so the sentence follows the language toggle (applyTranslations re-reads it).
+    notice.setAttribute('data-i18n', key);
+    notice.textContent = t(key);
     notice.classList.remove('hidden');
   } else if (getQueryParam('reset') === '1') {
     // reset.html sends them back here after signing them out, so the last
@@ -145,7 +148,8 @@ function showIntroVideo() {
 
   // setLang() calls this after it has re-translated the page, so the film
   // follows the EN/ES buttons like every other piece of text here.
-  window.onLanguageChange = () => setIntroVideoSource();
+  // This replaces the handler above once the invitation is valid, so the Terms on the page must be re-rendered here too.
+  window.onLanguageChange = () => { renderRegisterTerms(); setIntroVideoSource(); };
 }
 
 /** The member walkthrough under the sign-in box (owner's decision 41): English
