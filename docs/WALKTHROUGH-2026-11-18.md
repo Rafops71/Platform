@@ -54,3 +54,6 @@ Answered: KEEP AS IS (owner, 18 Nov).
 
 ## Block 14: safety rules members never see (items 50-52, 58-61, 63-65)
 Answered: KEEP ALL AS IS (owner, 18 Nov).
+
+## Block 15: statements on every listing (items 66-69)
+Answered: KEEP AS IS (owner, 18 Nov). Broker/role details are decided separately (B1-B4 with Opus).
