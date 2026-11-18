@@ -44,3 +44,6 @@ Answered: KEEP AS IS (owner, 18 Nov). (30 days; "Is it still available?"; one-pr
 
 ## Block 11: the Operator's console (items 40-44)
 Answered: KEEP AS IS (owner, 18 Nov). Tabs today: Overview, Approvals, All Listings, Invitations, Users, Commodities, Mailbox, Matches, Deals, Scorecard, Analytics, Activity Log, Help.
+
+## Block 12: introductions, flood limit, language, emails (items 45-49)
+Answered: KEEP AS IS (owner, 18 Nov).
