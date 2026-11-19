@@ -6,6 +6,10 @@ console only; the Operator presses it, never automatic; the original message is 
 translation; nothing about it in the Terms or Help; English and Spanish at least; route changed to Cloudflare Workers AI
 on 19 Nov because the DeepL free plan trains on submitted text.
 
+**Two uses, kept apart:** (1) the Operator translates a *message* (sections 1-9); (2) a member translates a *listing's free
+text* on Browse and My Listings (section 10, added the same day at the owner's request). They are separate Edge Functions
+on purpose: the member path can never carry free text and can never reach a message.
+
 Every fact below is marked **[checked]** (read with a tool in this session, source named), **[assumption]** (my
 arithmetic or inference, shown) or **[not checked]** (could not be checked from here, and what would settle it).
 
@@ -180,10 +184,133 @@ Check also: numbers, decimal comma vs point (5.000 vs 5,000), units, Incoterms (
 is the owner's judgement (section 5); the second is a manual run once the token exists. Until then the success path is
 "written, not yet run".
 
-## 9. What I need from the owner, in order
+## 9. What I need from the owner, in order (for the Operator button; section 10 has its own list)
 1. Section 0: leave the Terms as decided, or name Cloudflare there (his choice).
 2. Route A (Edge Function) or route B (Pages Function). I recommend A.
 3. Daily cap and per-call cap (my suggestion: 150 calls, 3,000 characters), and whether to log use (my suggestion: no).
 4. When he is ready: the Cloudflare account id and a token, entered by him into the Supabase secrets page (never in chat).
 5. A look at where the button sits (a mockup, as for "Please reconcile"), and the result of the quality test.
 How a translated **reply** is sent to a member is still **his decision** (open since 18 Nov) and is not part of this plan.
+
+## 10. Second use: a member translates a listing's free text (owner, 19 Nov)
+Owner's wish [`docs/WALKTHROUGH-2026-11-18.md`, end]: people post in Spanish and English; a member who finds a proposal in the
+other language can translate it. Which fields: the three free-text fields Browse shows today, `specification`,
+`price_conditions`, `notes` [checked: `js/app.js` lines 708-710 render them verbatim; `get_public_listings()` in
+`sql/064_dated_statements.sql` returns them]. Not translated: commodity, quantity, unit, Incoterm, region, status (they are
+already in the member's language or are codes), and the statements line.
+
+### 10a. Where a member's press calls: a SEPARATE function that takes a listing id and nothing else
+- **New Edge Function `translate-listing`** (`verify_jwt` true), **not** the Operator function. Request body: `{ "listing_id": "<uuid>", "target_lang": "en" | "es" }`.
+  It accepts **no text at all**: any other field is ignored, and a `text` field is rejected (400). So it cannot be used as a
+  free translator, and it cannot be pointed at a message (messages have a different table and the function never reads it).
+- **Who may use it:** the same people who may read Browse today. `get_public_listings()` refuses anyone who is not an
+  **approved** profile and, for members (not Operators), anyone who has **not accepted the current Terms** [checked:
+  `sql/064_dated_statements.sql` lines 194-208]. The new path must refuse the same people for the same reasons.
+- **How the function gets the text without a second copy of those rules:** a new SQL function
+  `get_listing_texts(p_listing_id uuid)` (security definer, executable by `authenticated` only) with **exactly the gates of
+  `get_public_listings()`** (approved; current Terms for members) and the same visibility (`status <> 'archived'`), returning
+  only `specification`, `price_conditions`, `notes` and `updated_at` for that one listing. The Edge Function calls it **with the
+  caller's own token** (so `auth.uid()` is the member), and so the database, not TypeScript, decides who may read what. Needed
+  because members cannot select other members' listings directly [checked: policy `listings_select` in
+  `sql/rls_policies.sql` allows only the owner or an Operator]. A member's **own** listing (My Listings) is readable by the
+  same function.
+- **Per-member limit:** a counter table `member_translate_usage(profile_id, hour, calls)` (count only; **never** which
+  listing), e.g. 30 uncached translations per member per hour (owner's number). Over it: **429**, a friendly line, no call.
+  Storing "which member asked for which listing" is deliberately avoided: it would record who was interested in what, which
+  is the kind of trail this platform exists not to leave. [design choice, owner may overrule]
+- **Input limits:** the three fields have **no length limit** today [checked: `app.html` textareas have no `maxlength`; no DB
+  check found for them in `sql/`]. The function would translate at most 2,000 characters per field and refuse longer text
+  with a clear line (owner's number; the arithmetic is in 10c).
+- **Source language:** not stored per listing and not reliably the poster's profile language (and showing the poster's
+  language on Browse would narrow who posted it, against "never shows who posted"). Options: (i) always translate **into
+  the viewer's language**, assuming the source is the other of English/Spanish; (ii) add a tiny word-list check in the
+  function ("does this look English or Spanish?") so a text already in the viewer's language is not sent at all. I recommend
+  (i)+(ii); the word-list is a guess that the quality test must try on real listing text [not checked].
+
+### 10b. Cache: one translation per listing, field and language
+- **Table** `listing_translations(listing_id uuid references public.listings(id) on delete cascade, field text, target_lang text,
+  source_hash text, translated_text text, created_at timestamptz, primary key (listing_id, field, target_lang))`. RLS on, **no
+  policy for members**; written only by the Edge Function (service role); read only through a security-definer function with
+  the same gates as `get_public_listings()` (or by the Edge Function itself after `get_listing_texts` has passed). A member
+  never selects the table.
+- **Stale translations cannot show:** the row keeps a hash of the source text it translated. If the poster edits the field, the
+  hash differs, the old row is ignored and overwritten on the next press (primary key = upsert; no orphan rows).
+- **When the listing goes away:** members delete a listing for real (`js/app.js` line 310 `listings ... delete()`), and the
+  foreign key `on delete cascade` removes its translations, as it already does for `document_checklist` [checked:
+  `sql/schema.sql` lines 110, 136, 193]. An archived listing: the read gate refuses it, so its cached text is not served.
+- **Who may read a cached translation:** exactly who may read the original: approved members with the current Terms, and
+  Operators. It is derived from text those people can already read, so it adds no new disclosure to members.
+- **The Operator can see them too** (for support). Members never see another member's request: the cache holds no requester.
+- A migration (number from `sql/NEXT` at build time, `applied-probe`, revert, SQL test) would add the two tables and
+  `get_listing_texts`. It is **additive only**.
+
+### 10c. Cost and the free allowance (shared with the Operator button)
+- Same pool: Workers AI's 10,000 Neurons per day [checked, section 6] is **one allowance for both uses**. Member use can use up
+  what the Operator button needs. I recommend **reserving** part of it: the member path stops at a daily cap of its own (e.g.
+  6,000 Neurons' worth of calls, kept in the counter table), so the Operator button always has headroom. The cap is the
+  owner's number.
+- Arithmetic [assumption, same 1.3 tokens per word as section 6; real tokenisation not checked]: one listing, three fields,
+  about 70 words in total = about 90 tokens in and 90 out = 180 tokens = **about 5.6 Neurons**. About **1,800 listings a day**
+  would fit in the free allowance, and **each listing and language is paid for once**, thanks to the cache. The worst case,
+  three fields of 2,000 characters (about 1,500 tokens each way) = about 9,000 tokens = about **280 Neurons** for one listing,
+  so a few such listings use up a day; that is why the per-field cap exists.
+- **When the allowance is used up:** on the Workers Free plan Cloudflare itself returns an error [checked, section 6]; the
+  function turns any Cloudflare error into **503** and the member sees a short line (owner's wording; option: "Translation is
+  not available right now. Please try again later."), the original text stays as it is, and **cached translations still work**
+  (no Cloudflare call). On a paid plan Cloudflare bills instead; our own daily cap is what keeps the cost bounded. **[not
+  checked]: which plan the owner's account is on.**
+
+### 10d. What the member sees, and how they get the original back
+Placement (owner chooses; the mockup comes first, as for "Please reconcile"): one small link or button on each listing that has
+free text, shown only when it is not already in the member's language where the check (ii) can tell. Text of the label
+options, **for the owner to choose, I am not choosing**:
+| Where | Option 1 | Option 2 | Option 3 |
+|---|---|---|---|
+| The button | Translate | Translate to English / Translate to Spanish (follows the viewer's language) | Show in English / Show in Spanish |
+| The label next to a translation | Machine translation | Machine translation, may contain errors | Automatically translated |
+| Back to the original | Show original | Show original text | Original |
+Spanish versions of whichever he picks are mine to write. **How the original comes back:** the translation is shown **beneath**
+the original, not instead of it, so the original is always visible; one press hides the translation again ("Show original" =
+hide the translation). I recommend beneath, because these fields carry trade terms (quality, price conditions) where a
+mistranslation must never silently replace what the poster wrote. If he prefers "replace in place", the link flips back.
+The translation is **never** stored on the listing and the poster does not see that anyone translated it.
+
+### 10e. Keeping the two uses apart (a member must never translate private messages)
+- Different functions, different inputs: the member function takes a **listing id** and reads the three fields itself; the
+  Operator function takes text but requires an approved **Operator** token. Neither function reads the `messages` table.
+- The member function has **no way to name a message**: no `message_id`, no free text. A test sends a message's text and a
+  message id and expects 400.
+- The cache table holds listing text only; there is no table or column for message translations at all (section 2: nothing stored).
+
+### 10f. Preconditions for the member use (rule 13)
+| # | Precondition | Checked how | Result |
+|---|---|---|---|
+| M1 | What Browse shows and who may call it | `sql/064_dated_statements.sql` `get_public_listings()` | The three fields are returned; the gates are "approved" and "current Terms (members)"; archived hidden. **Yes.** |
+| M2 | Members cannot read other listings directly | `listings_select` policy in `sql/rls_policies.sql` | **Right**: owner or Operator only, so a new definer function is needed. |
+| M3 | Field length limits | `app.html` textareas, grep of `sql/` | **None found**: a cap must be added in the function. |
+| M4 | A listing delete removes dependants | `js/app.js` line 310, FKs in `sql/schema.sql` | **Yes** (`on delete cascade` pattern exists). |
+| M5 | Per-member rate-limit pattern | `sql/016_rate_limits.sql` (messages, listings) | Exists for inserts; the counter table here is new. |
+| M6 | Operator and member functions can be kept separate | repo | Yes: a second Edge Function directory. Deploy to staging and live needs the owner's yes, as on 17 Nov. |
+| M7 | A migration number is free | `sql/NEXT` | reads `069`; reserve at build time. |
+| M8 | The quality of listing-text translation (abbreviations, trade shorthand, "FOB Callao") | needs the token | **Not checkable yet.** Section 5's sentences plus 5 real listing texts. |
+| M9 | The word-list language check works | not built | **Not checked.** |
+| M10 | Terms: the text is member-visible, but still goes to a provider not named in `terms.s10.p6` | same as section 0 | The owner's decision applies to this use too. |
+
+### 10g. Tests for the member use (what CI can and cannot prove)
+Without a Cloudflare token (checks come first): no token 401; a **pending / rejected / suspended** member 403; a member who
+has **not accepted the current Terms** 403 (same as Browse); an **archived** or unknown listing 404; a request with `text` or
+`message_id` 400; a language other than en/es 400; a member over the hourly limit 429, and **no upstream call** in any of
+these cases. **With** a staging token (a handful of calls, tens of Neurons per run): the first press calls Cloudflare and
+stores one row; a second press returns the same text and the call counter does not move; editing the listing's text makes the
+next press translate again; deleting the listing removes the cache rows; a second member gets the cached text; the poster's
+listing row and the Browse list are unchanged by it; no table holds the requesting member (scan for the member's id in the new
+tables finds nothing). And the separation: the member function cannot be made to translate a message's text. The quality of the
+translation is the owner's judgement, not a test.
+
+### 10h. What I need from the owner for this use
+1. Where the button sits (a mockup first) and the wording from 10d (button, label, back-to-original).
+2. Beneath the original (my recommendation) or in place of it.
+3. The numbers: per-member hourly limit (my suggestion 30), per-field length (2,000), and the share of the daily allowance the
+   member path may use (my suggestion 6,000 of 10,000 Neurons).
+4. The message shown when translation is unavailable (10c).
+5. Whether the Operator may also use the listing translation (my recommendation: yes, through the same function, no extra work).
