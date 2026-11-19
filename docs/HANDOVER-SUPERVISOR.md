@@ -77,3 +77,10 @@ SOP wording, T8 code protection, T11, T12, films redo, application-review clause
 - OWNER DECISION: the Operator's All Listings page (operator.html, js/operator.js loadListings) shows no free text (specification, price conditions, notes), while member Browse does. Owner: the Operator needs Read + Translate on listings; this is a GAP built by earlier sessions, not a decision (no document records one). DO NOT BUILD YET: owner wants to collect more points first, then one batch (he will pick which items). Proposed with it: a checklist test that the Operator sees every listing field members see. Offered, not yet accepted: a read-only audit of other Operator screens vs member views.
 - Owner cannot read Spanish: never ask him to judge Spanish; use English round-trips.
 - Batch list so far: (1) Operator Read + Translate on listings (+ parity test). Open decisions still on the to-do list: reply translation (note: members write to EACH OTHER, the Operator is only the conduit), broker design, trader-as-broker, activity_log_insert drop, pending/reset notice language, SOP/legal items.
+
+## Batch 2 list (owner answers, 19 Nov evening; DO NOT BUILD until he writes BATCH GO)
+1. Operator Read + Translate on listings, plus a parity test (Operator sees every listing field members see). Wording of the control: same as the messages control ("Translate", "to English / Spanish").
+2. Forwarded messages: the receiving member gets the ORIGINAL plus the translation BELOW it, marked as machine translation; the Operator presses Translate and approves before sending (owner chose this, block 1). Wording of the marker line: NOT yet chosen; owner must choose it (English and Spanish).
+3. Drop the live policy activity_log_insert (owner said yes, block 2). Verify unused with a tool first, prove the way back, tell him afterwards.
+4. Sign-in pending/reset notices must switch language with the language switch (owner yes, block 3). Spanish by Builder 3, shown to the owner before merge.
+Still to ask: broker design B1-B4, trader-as-broker, legal/wording parked items. Owner reads no Spanish: never ask him to judge Spanish.
