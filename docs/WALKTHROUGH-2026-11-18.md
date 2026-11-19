@@ -103,3 +103,6 @@ DECISION: leave translation OUT of the Terms. Terms section 10 stays as it is. R
 Earlier, still standing: translation is NOT mentioned in the Terms/Help; nothing stored for messages; Operator-only message translate; route = Cloudflare Workers AI (m2m100-1.2b).
 Not yet decided/asked: wording of the Operator's own message-translate control (console is English; mockup used "Translate" and a "to English / Spanish" drop-down).
 NEXT: the owner gives BATCH GO for this build, and provides the Cloudflare account ID and an API token (Workers AI) stored as Edge Function secrets. Builder 3's plan: docs/PLAN-translate-2026-11-19.md on branch plan-translate-2026-11-19.
+
+## Translate: abuse guard (owner, 19 Nov)
+Outside code review (the second opinion did not read the new server code) found: a member can edit their own listing text to miss the cache and burn the shared 6,000-unit members' daily share, switching Translate off for everyone until the next UTC day (nothing leaks). Offered: a per-member daily cap. Owner chose: LEAVE AS IS (only the 30-per-hour limit). Known and accepted risk.
