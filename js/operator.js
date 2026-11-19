@@ -375,6 +375,69 @@ function posterDetail(l) {
   return parts.join(' · ');
 }
 
+// ---------------------------------------------------------------- READ A LISTING ----
+// The Operator reads what a member reads in Browse (owner, 19 Nov 2026, docs/AGREED-2026-11-19-batch2.md point 1):
+// the same fields, the price line built the same way, and the same Translate control the Mailbox uses.
+// tests/e2e/operator-reads-listings.spec.js fails if Browse shows a listing field this panel does not.
+// Wording here is the Operator console's own (English only); the labels follow Browse's English ones.
+const READ_DOCS_LABELS = { yes: 'Seen by the poster', source_says: "Not seen; the poster's source says they exist", no: 'Not seen by the poster' };
+const LISTINGS_BY_ID = new Map();
+const READ_TEXT_CUT = 2000;   // the same cut members' translations use
+
+/** "13,850 USD per Metric tons": the price line as Browse builds it (the unit names are stored in English). */
+function operatorPriceLine(l) {
+  let out = formatNumber(l.price_conditions) || l.price_conditions || '';
+  if (l.currency) out += ` ${l.currency}`;
+  if (l.price_unit) out += ` per ${l.price_unit}`;
+  return out;
+}
+
+/** Only text that holds words is worth translating: a bare price such as 13850 is not. */
+function readHasWords(text) {
+  return typeof text === 'string' && /\p{L}/u.test(text);
+}
+
+function listingReadHtml(l) {
+  const qty = l.quantity ? `${escapeHtml(formatNumber(l.quantity))} ${escapeHtml(l.unit || '')}` : 'n/a';
+  const where = l.type === 'sell'
+    ? `Origin: ${escapeHtml(l.origin || 'n/a')}`
+    : `Destination: ${escapeHtml(l.destination || 'n/a')}`;
+  const field = (name, label, shown, raw) => `
+    <div class="list-row-meta" data-read-field="${name}">
+      <div>${escapeHtml(label)}: ${escapeHtml(shown)}</div>
+      ${readHasWords(raw) ? translateControlHtml() : ''}
+    </div>`;
+  const docs = l.docs_seen ? READ_DOCS_LABELS[l.docs_seen] || l.docs_seen : 'Not stated';
+  return `
+    <div class="list-row-meta">${l.type === 'sell' ? 'Sell offer' : 'Buy request'} · ${qty} · ${escapeHtml(l.incoterm || '')} · ${where}</div>
+    ${l.specification ? field('specification', 'Specification / Grade', l.specification, l.specification) : ''}
+    ${l.price_conditions ? field('price_conditions', 'Price', operatorPriceLine(l), l.price_conditions) : ''}
+    ${l.notes ? field('notes', 'Notes', l.notes, l.notes) : ''}
+    <div class="list-row-meta">Poster: ${escapeHtml(posterDetail(l))}${l.type === 'sell' ? ` · Documents: ${escapeHtml(docs)}` : ''}</div>
+    <div class="list-row-meta">${l.has_documents ? 'Documents indicated' : '<strong>No documents indicated</strong>'} · Posted ${escapeHtml(formatDate(l.created_at))}</div>`;
+}
+
+/** Opens or closes the reading row under one listing; each text field gets its own Translate control. */
+function toggleListingRead(btn) {
+  const tr = btn.closest('tr');
+  const open = tr.nextElementSibling && tr.nextElementSibling.classList.contains('listing-read');
+  if (open) { tr.nextElementSibling.remove(); btn.textContent = 'Read'; return; }
+  const l = LISTINGS_BY_ID.get(btn.dataset.readListing);
+  if (!l) return;
+  const detail = document.createElement('tr');
+  detail.className = 'listing-read';
+  detail.innerHTML = `<td colspan="10">${listingReadHtml(l)}</td>`;
+  tr.after(detail);
+  btn.textContent = 'Hide';
+  detail.querySelectorAll('[data-read-field]').forEach(box => {
+    const control = box.querySelector('[data-translate-btn]');
+    if (!control) return;
+    const name = box.dataset.readField;
+    wireTranslateControl(control, box.querySelector('[data-translate-to]'), box.querySelector('[data-translation]'),
+      () => String(l[name] || '').trim().slice(0, READ_TEXT_CUT));
+  });
+}
+
 /** Fill the commodity filter dropdown from the Operator-managed list. */
 async function populateCommodityFilter() {
   const fresh = renderToken('op:populateCommodityFilter');
@@ -395,7 +458,7 @@ async function loadListings() {
   tbody.innerHTML = '<tr><td colspan="10" class="empty-state">Loading…</td></tr>';
 
   let query = myplatform.from('listings')
-    .select('*, profiles!listings_user_id_fkey(first_name,last_name,company)')
+    .select('*, profiles!listings_user_id_fkey(first_name,last_name,company), document_checklist(indicated)')
     .order('created_at', { ascending: false });
 
   // Read once, here, and used again when the rows are written. Toggling the
@@ -453,7 +516,11 @@ async function loadListings() {
   if (!rows.length) { tbody.innerHTML = '<tr><td colspan="10" class="empty-state">No listings match.</td></tr>'; return; }
 
   tbody.innerHTML = '';
+  LISTINGS_BY_ID.clear();
   rows.forEach(l => {
+    // Browse's "documents indicated" is any ticked line of the listing's document checklist (sql/006).
+    l.has_documents = (l.document_checklist || []).some(d => d.indicated);
+    LISTINGS_BY_ID.set(l.id, l);
     const owner = l.profiles
       ? `${personName(l.profiles)}${l.profiles.company ? ' (' + l.profiles.company + ')' : ''}`
       : 'Unknown';
@@ -474,6 +541,7 @@ async function loadListings() {
       </td>
       <td data-label="Updated">${formatDate(l.updated_at)}</td>
       <td data-label="">
+        <button class="btn btn-secondary btn-small" data-read-listing="${l.id}">Read</button>
         <button class="btn btn-secondary btn-small" data-remind="${l.id}">Remind</button>
         <button class="btn btn-danger btn-small" data-remove-listing="${l.id}">Remove</button>
       </td>
@@ -488,6 +556,9 @@ async function loadListings() {
       // Logging + owner notification happen in the database.
       showSuccess('Status updated.');
     }));
+
+  tbody.querySelectorAll('[data-read-listing]').forEach(b =>
+    b.addEventListener('click', () => toggleListingRead(b)));
 
   tbody.querySelectorAll('[data-remind]').forEach(b =>
     b.addEventListener('click', () => withButtonBusy(b, 'Sending…', async () => {
