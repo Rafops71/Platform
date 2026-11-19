@@ -15,6 +15,8 @@
 //
 // FAILS CLOSED: no Cloudflare secret, a spent allowance or any Cloudflare error = 503 {error:'unavailable'}; the
 // page shows the owner's sentence. Cached translations are still served (no Cloudflare call is made for them).
+// A press in which SOME fields were translated and others failed returns what succeeded (200); the failed field
+// simply shows nothing. The hourly press is given back only if no call to Cloudflare was made at all.
 //
 // NO TEXT IS LOGGED: nothing here prints the text or its translation, only a status number.
 
@@ -41,12 +43,40 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const LANGS = ['en', 'es'];
 const MODEL = '@cf/meta/m2m100-1.2b';
 
-// An ESTIMATE of Cloudflare's units for one text: about 3.5 characters per token in, about 1.3 times that out,
-// 31,050 units per million tokens (Cloudflare's pricing page, 19 Nov 2026). Reserved before the call, so the
-// daily cap holds even if the estimate is a little low.
+// An ESTIMATE of Cloudflare's units for one text: a conservative 2.5 characters per token in (Spanish and symbols
+// cost more tokens than English prose), about 1.3 times that out, 31,050 units per million tokens (Cloudflare's
+// pricing page, 19 Nov 2026). Reserved before the call, so the daily cap holds even if the estimate is a little
+// low. NOTE: this function is a COPY of the one in operator-translate (an Edge Function is deployed as one file,
+// so sharing would need a shared folder in every deploy); tests/e2e/translate.spec.js fails if the two differ.
 function estimateUnits(chars: number): number {
-  const tokensIn = chars / 3.5;
+  const tokensIn = chars / 2.5;
   return Math.ceil((tokensIn + tokensIn * 1.3) * 0.03105 * 100) / 100;
+}
+
+// The request body is read with a ceiling, so a huge body is refused before it is parsed or held in memory.
+const MAX_BODY_BYTES = 16 * 1024;
+async function readLimitedJson(req: Request): Promise<{ status: 'ok'; value: unknown } | { status: 'too_big' | 'bad' }> {
+  const declared = Number(req.headers.get('content-length') ?? '');
+  if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) return { status: 'too_big' };
+  if (!req.body) return { status: 'bad' };
+  const reader = req.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > MAX_BODY_BYTES) { await reader.cancel(); return { status: 'too_big' }; }
+      chunks.push(value);
+    }
+  } catch {
+    return { status: 'bad' };
+  }
+  const merged = new Uint8Array(total);
+  let offset = 0;
+  for (const c of chunks) { merged.set(c, offset); offset += c.byteLength; }
+  try { return { status: 'ok', value: JSON.parse(new TextDecoder().decode(merged)) }; } catch { return { status: 'bad' }; }
 }
 
 async function sha256(text: string): Promise<string> {
@@ -77,10 +107,24 @@ async function cloudflareTranslate(
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return reply(405, { error: 'Use POST.' });
+  try {
+    return await handle(req);
+  } catch {
+    // Anything unexpected is a plain 503, never a stack trace and never the text.
+    console.error('translate-listing: unexpected error');
+    return reply(503, { error: 'unavailable' });
+  }
+});
 
-  const url = Deno.env.get('SUPABASE_URL')!;
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-  const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+async function handle(req: Request): Promise<Response> {
+  const url = Deno.env.get('SUPABASE_URL');
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+  // Fail closed if this function's own environment is incomplete (Supabase lists the anon key as a legacy key).
+  if (!url || !serviceKey || !anonKey) {
+    console.error('translate-listing: the function environment is incomplete');
+    return reply(503, { error: 'unavailable' });
+  }
   const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
 
   // WHO IS ASKING (verified, not decoded).
@@ -89,9 +133,11 @@ Deno.serve(async (req: Request) => {
   if (callerError || !caller?.user) return reply(401, { error: 'Not signed in.' });
 
   // WHAT THEY ASK: a listing and a language, and nothing else.
-  let body: Record<string, unknown> = {};
-  try { body = (await req.json()) ?? {}; } catch { /* checked below */ }
-  if (typeof body !== 'object' || Array.isArray(body)) return reply(400, { error: 'Bad request.' });
+  const read = await readLimitedJson(req);
+  if (read.status === 'too_big') return reply(413, { error: 'Request too large.' });
+  if (read.status !== 'ok') return reply(400, { error: 'Bad request.' });
+  const body = read.value as Record<string, unknown> | null;
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return reply(400, { error: 'Bad request.' });
   const keys = Object.keys(body);
   if (keys.some((k) => k !== 'listing_id' && k !== 'target_lang')) {
     return reply(400, { error: 'Only a listing and a language can be sent.' });
@@ -140,38 +186,56 @@ Deno.serve(async (req: Request) => {
   // THE HOURLY LIMIT: 30 listings per member per hour; counted only when Cloudflare is actually asked.
   const { data: profile } = await admin.from('profiles').select('id').eq('user_id', caller.user.id).maybeSingle();
   if (!profile) return reply(403, { error: 'Not allowed.' });
-  const { data: took } = await admin.rpc('translate_take_member_slot', { p_profile: profile.id, p_limit: HOURLY_LIMIT });
-  if (took !== true) return reply(429, { error: 'unavailable' });
-  const releaseSlot = () => admin.rpc('translate_release_member_slot', { p_profile: profile.id });
+  const { data: slotHour } = await admin.rpc('translate_take_slot', { p_profile: profile.id, p_limit: HOURLY_LIMIT });
+  if (!slotHour) return reply(429, { error: 'unavailable' });
 
-  // FAIL CLOSED without the Cloudflare secrets.
-  const account = Deno.env.get('CF_ACCOUNT_ID');
-  const cfToken = Deno.env.get('CF_AI_TOKEN');
-  if (!account || !cfToken) { await releaseSlot(); return reply(503, { error: 'unavailable' }); }
+  // From here every path ends in the finally block, which gives back what was not used. THE PRESS is given back
+  // only if NO call to Cloudflare was made (a refusal before any call); once a call has gone out the press stays
+  // counted, even if the call failed, so a field that always fails cannot be used to make unlimited calls.
+  let callsMade = 0;
+  let reservedUnits = 0;
+  let spentUnits = 0;
+  try {
+    // FAIL CLOSED without the Cloudflare secrets.
+    const account = Deno.env.get('CF_ACCOUNT_ID');
+    const cfToken = Deno.env.get('CF_AI_TOKEN');
+    if (!account || !cfToken) return reply(503, { error: 'unavailable' });
 
-  // THE DAILY UNITS: reserved before the call, so the members' share cannot be passed.
-  const perField = missing.map((m) => estimateUnits(m.text.length));
-  const total = perField.reduce((a, b) => a + b, 0);
-  const { data: reserved } = await admin.rpc('translate_reserve_budget', {
-    p_kind: 'member', p_units: total, p_cap: MEMBER_DAILY_UNITS,
-  });
-  if (reserved !== true) { await releaseSlot(); return reply(503, { error: 'unavailable' }); }
+    // THE DAILY UNITS: reserved before the call, so the members' share cannot be passed.
+    const perField = missing.map((m) => estimateUnits(m.text.length));
+    const total = perField.reduce((a, b) => a + b, 0);
+    const { data: reserved } = await admin.rpc('translate_reserve_budget', {
+      p_kind: 'member', p_units: total, p_cap: MEMBER_DAILY_UNITS,
+    });
+    if (reserved !== true) return reply(503, { error: 'unavailable' });
+    reservedUnits = total;
 
-  let failedUnits = 0;
-  const stored: { listing_id: string; field: string; target_lang: string; source_hash: string; translated_text: string }[] = [];
-  for (let i = 0; i < missing.length; i++) {
-    const out = await cloudflareTranslate(missing[i].text, source, target, account, cfToken);
-    if (out === null) { failedUnits += perField[i]; continue; }
-    translations[missing[i].field] = out;
-    stored.push({ listing_id: listingId, field: missing[i].field, target_lang: target, source_hash: missing[i].hash, translated_text: out });
+    const stored: { listing_id: string; field: string; target_lang: string; source_hash: string; translated_text: string }[] = [];
+    for (let i = 0; i < missing.length; i++) {
+      callsMade++;
+      const out = await cloudflareTranslate(missing[i].text, source, target, account, cfToken);
+      if (out === null) continue;            // this field shows nothing; the others may still succeed
+      spentUnits += perField[i];
+      translations[missing[i].field] = out;
+      stored.push({ listing_id: listingId, field: missing[i].field, target_lang: target, source_hash: missing[i].hash, translated_text: out });
+    }
+    if (stored.length > 0) {
+      const { error: cacheError } = await admin.from('listing_translations')
+        .upsert(stored, { onConflict: 'listing_id,field,target_lang' });
+      // The member still gets what was paid for; only the saving failed. Logged as a code, never the text.
+      if (cacheError) console.error('translate cache write failed', cacheError.code ?? '');
+    }
+    // Nothing succeeded: the unavailable answer. Something did: it is returned, the page shows what it got.
+    if (stored.length === 0) return reply(503, { error: 'unavailable' });
+    return reply(200, { target_lang: target, translations });
+  } finally {
+    try {
+      if (reservedUnits - spentUnits > 0) {
+        await admin.rpc('translate_release_budget', { p_kind: 'member', p_units: reservedUnits - spentUnits });
+      }
+      if (callsMade === 0) await admin.rpc('translate_release_slot', { p_profile: profile.id, p_hour: slotHour });
+    } catch {
+      console.error('translate-listing: could not give back what was not used');
+    }
   }
-  if (stored.length > 0) {
-    await admin.from('listing_translations').upsert(stored, { onConflict: 'listing_id,field,target_lang' });
-  }
-  if (failedUnits > 0) {
-    await admin.rpc('translate_release_budget', { p_kind: 'member', p_units: failedUnits });
-    await releaseSlot();
-    return reply(503, { error: 'unavailable' });
-  }
-  return reply(200, { target_lang: target, translations });
-});
+}

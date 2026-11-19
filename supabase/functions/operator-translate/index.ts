@@ -32,17 +32,60 @@ const OPERATOR_DAILY_UNITS = 4000;   // 10,000 free units a day, 6,000 of them r
 const LANGS = ['en', 'es'];
 const MODEL = '@cf/meta/m2m100-1.2b';
 
+// An ESTIMATE of Cloudflare's units for one text: a conservative 2.5 characters per token in (Spanish and symbols
+// cost more tokens than English prose), about 1.3 times that out, 31,050 units per million tokens (Cloudflare's
+// pricing page, 19 Nov 2026). NOTE: a COPY of the one in translate-listing (an Edge Function is deployed as one
+// file, so sharing would need a shared folder in every deploy); tests/e2e/translate.spec.js fails if they differ.
 function estimateUnits(chars: number): number {
-  const tokensIn = chars / 3.5;
+  const tokensIn = chars / 2.5;
   return Math.ceil((tokensIn + tokensIn * 1.3) * 0.03105 * 100) / 100;
+}
+
+// The request body is read with a ceiling, so a huge body is refused before it is parsed or held in memory.
+const MAX_BODY_BYTES = 16 * 1024;
+async function readLimitedJson(req: Request): Promise<{ status: 'ok'; value: unknown } | { status: 'too_big' | 'bad' }> {
+  const declared = Number(req.headers.get('content-length') ?? '');
+  if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) return { status: 'too_big' };
+  if (!req.body) return { status: 'bad' };
+  const reader = req.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > MAX_BODY_BYTES) { await reader.cancel(); return { status: 'too_big' }; }
+      chunks.push(value);
+    }
+  } catch {
+    return { status: 'bad' };
+  }
+  const merged = new Uint8Array(total);
+  let offset = 0;
+  for (const c of chunks) { merged.set(c, offset); offset += c.byteLength; }
+  try { return { status: 'ok', value: JSON.parse(new TextDecoder().decode(merged)) }; } catch { return { status: 'bad' }; }
 }
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return reply(405, { error: 'Use POST.' });
+  try {
+    return await handle(req);
+  } catch {
+    // Anything unexpected is a plain 503, never a stack trace and never the text.
+    console.error('operator-translate: unexpected error');
+    return reply(503, { error: 'unavailable' });
+  }
+});
 
-  const url = Deno.env.get('SUPABASE_URL')!;
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+async function handle(req: Request): Promise<Response> {
+  const url = Deno.env.get('SUPABASE_URL');
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (!url || !serviceKey) {
+    console.error('operator-translate: the function environment is incomplete');
+    return reply(503, { error: 'unavailable' });
+  }
   const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
 
   const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
@@ -56,9 +99,11 @@ Deno.serve(async (req: Request) => {
   }
 
   // The checks come BEFORE any call to Cloudflare: a bad request never costs anything.
-  let body: Record<string, unknown> = {};
-  try { body = (await req.json()) ?? {}; } catch { /* checked below */ }
-  if (typeof body !== 'object' || Array.isArray(body)) return reply(400, { error: 'Bad request.' });
+  const read = await readLimitedJson(req);
+  if (read.status === 'too_big') return reply(413, { error: 'Request too large.' });
+  if (read.status !== 'ok') return reply(400, { error: 'Bad request.' });
+  const body = read.value as Record<string, unknown> | null;
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return reply(400, { error: 'Bad request.' });
   if (Object.keys(body).some((k) => k !== 'text' && k !== 'source_lang' && k !== 'target_lang')) {
     return reply(400, { error: 'Only a text and two languages can be sent.' });
   }
@@ -81,6 +126,7 @@ Deno.serve(async (req: Request) => {
   });
   if (reserved !== true) return reply(503, { error: 'unavailable' });
 
+  // From here the reserved units are given back on every path that does not end in a translation.
   let out: string | null = null;
   try {
     const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${account}/ai/run/${MODEL}`, {
@@ -97,10 +143,12 @@ Deno.serve(async (req: Request) => {
     }
   } catch {
     console.error('translate upstream failed');
+  } finally {
+    if (out === null) {
+      try { await admin.rpc('translate_release_budget', { p_kind: 'operator', p_units: units }); }
+      catch { console.error('operator-translate: could not give back the reserved units'); }
+    }
   }
-  if (out === null) {
-    await admin.rpc('translate_release_budget', { p_kind: 'operator', p_units: units });
-    return reply(503, { error: 'unavailable' });
-  }
+  if (out === null) return reply(503, { error: 'unavailable' });
   return reply(200, { translated_text: out });
-});
+}

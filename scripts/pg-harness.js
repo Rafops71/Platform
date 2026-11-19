@@ -102,6 +102,7 @@ const SETUP = [
   'sql/067_receipt_test_marker.sql',
   'sql/068_message_on_hold.sql',
   'sql/069_translate.sql',
+  'sql/070_translate_counters.sql',
   'sql/seed_commodities.sql',
 ];
 

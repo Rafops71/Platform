@@ -129,6 +129,14 @@ test.describe('translate-listing: who may ask, and what may be asked', () => {
     expect((await query('select count(*)::int n from public.listing_translations')).rows[0].n).toBe(0);
   });
 
+  test('Item50 a huge request body is refused with 413 before it is parsed, and costs nothing', async () => {
+    const before = { usage: await usage(viewer.profileId), budget: await budget() };
+    const r = await call('translate-listing', await tokenFor(viewer), { listing_id: listingId, target_lang: 'en', pad: 'x'.repeat(40_000) });
+    expect(r.status).toBe(413);
+    expect(await usage(viewer.profileId)).toBe(before.usage);
+    expect(await budget()).toEqual(before.budget);
+  });
+
   test('Item18 an approved member who may read the listing passes every check (503 while the Cloudflare secret is missing, 200 once it exists)', async () => {
     const r = await call('translate-listing', await tokenFor(viewer), { listing_id: listingId, target_lang: 'en' });
     expect([200, 503]).toContain(r.status);
@@ -225,6 +233,24 @@ test.describe('operator-translate: Operators only, and nothing kept', () => {
       expect(r.status, JSON.stringify(Object.keys(bad))).toBe(400);
     }
     expect(await budget()).toEqual(before);
+  });
+
+  test('Item78 a huge request body from an Operator is refused with 413 before it is parsed, and costs nothing', async () => {
+    const before = await budget();
+    const r = await call('operator-translate', await tokenFor(operator), { text: 'x'.repeat(40_000), source_lang: 'es', target_lang: 'en' });
+    expect(r.status).toBe(413);
+    expect(await budget()).toEqual(before);
+  });
+
+  test('Item78 the two functions are copies in three places (unit estimate, body ceiling, body reader); a difference is a drift and fails here', async () => {
+    const read = (n) => fs.readFileSync(path.join(ROOT, 'supabase', 'functions', n, 'index.ts'), 'utf8');
+    const a = read('translate-listing'), b = read('operator-translate');
+    const grab = (src, re) => { const m = src.match(re); expect(m, `${re} not found`).not.toBeNull(); return m[0]; };
+    for (const re of [/function estimateUnits[\s\S]*?\n}\n/, /const MAX_BODY_BYTES[^\n]*\n/, /async function readLimitedJson[\s\S]*?\n}\n/]) {
+      expect(grab(a, re), String(re)).toBe(grab(b, re));
+    }
+    // The conservative estimate: 2.5 characters per token (Spanish and symbols cost more than English prose).
+    expect(grab(a, /function estimateUnits[\s\S]*?\n}\n/)).toContain('chars / 2.5');
   });
 
   test('Item78 a good request from an Operator passes every check (503 while the Cloudflare secret is missing, 200 once it exists), and keeps nothing', async () => {
