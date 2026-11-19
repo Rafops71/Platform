@@ -1,0 +1,5 @@
+# Operator film visual plan, owner-approved 04-11
+S1 (45s) Overview: workload numbers count up. Approvals: made-up registration, Approve pressed, turns green. Invitations: link created, copy button flashes. Users: list scrolls, cursor hovers Suspend (not pressed).
+S2 (60s) All Listings: table scrolls, commodity filter chosen. Commodities: list, one item highlighted. Mailbox: message arrives, zoom; Forward opens an EDITABLE box; made-up email + phone auto-highlight red; cursor deletes them; Forward. Reply and Set aside highlighted briefly. (Needs item 38 built.)
+S3 (40s) Matches: made-up buy/sell pair glow, thin line joins. Deals: one file opens, stage bar Talking -> Terms agreed. Commission line: subtle seal "Commission agreement" appears, then two member figures joined (introduction). NO document columns.
+S4 (35s) Scorecard: made-up table rows light up (no document columns). Analytics: charts draw. Activity Log: entries scroll, one highlighted. Help briefly. Closing frame: MyPlatform + "Discretion is the product."
