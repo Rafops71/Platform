@@ -130,6 +130,22 @@ test.describe('the glossary block', () => {
     expect(swap('surveyor')).toBe('surveyor');
   });
 
+  test('Item18 a term with regex characters in it is matched as plain text (the escape line is intact)', () => {
+    const h = load('translate-listing'), o = load('operator-translate');
+    for (const X of [h, o]) {
+      X.GLOSSARY.push({ en: 'lot (a+b) 5.0*', es: 'lote (a+b) 5,0*', g: 'm', plural: false });
+      expect(X.glossaryPrepare('the Lot (A+B) 5.0* arrives', 'en').text).toBe('the Zorvex1 arrives');
+      expect(X.glossaryPrepare('the lot aab 5x0 arrives', 'en').text).toBe('the lot aab 5x0 arrives');   // . and + are not wildcards
+      expect(X.glossaryPrepare('lote (a+b) 5,0*', 'es').text).toBe('Zorvex1');
+    }
+    // And the line itself: it once picked up a pasted comment through a "$&" in a shell step.
+    for (const fn of ['translate-listing', 'operator-translate']) {
+      const line = source(fn).split('\n').find((l) => l.includes('const escape = '));
+      expect(line, fn).toContain("'\\\\$&'");
+      expect(source(fn).split('The request body is read with a ceiling').length - 1, `${fn}: that comment appears once`).toBe(1);
+    }
+  });
+
   test('Item18 a text that already holds our made-up word is refused, because the two could not be told apart', () => {
     expect(G.glossaryPrepare('the bill of lading Zorvex1', 'en')).toBeNull();
     expect(G.glossaryPrepare('zorvex', 'en')).toBeNull();

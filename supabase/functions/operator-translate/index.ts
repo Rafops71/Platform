@@ -82,7 +82,7 @@ function glossaryPrepare(text: string, source: string): GlossaryPlan | null {
     .map((t) => ({ t, from: source === 'en' ? t.en : t.es, to: source === 'en' ? t.es : t.en }))
     .sort((a, b) => b.from.length - a.from.length);          // longest first: "no advance payment" beats "advance payment"
   const byForm = new Map<string, (typeof list)[number]>(list.map((e) => [glossaryNorm(e.from), e] as [string, (typeof list)[number]]));
-  const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\// The request body is read with a ceiling');
+  const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const pattern = list
     .map((e) => escape(e.from).replace(/,\s+/g, ',\\s*').replace(/ +/g, '\\s+'))
     .join('|');
