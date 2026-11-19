@@ -158,7 +158,10 @@ test.describe('translate-listing: who may ask, and what may be asked', () => {
   });
 
   test('Item18 a stored translation is served without a press being counted, and an edit makes it stale', async () => {
-    const hash = (s) => crypto.createHash('sha256').update(s).digest('hex');
+    // A stored translation records the text AND the glossary version it was made from (glossary job, 19 Nov).
+    const version = fs.readFileSync(path.join(ROOT, 'supabase', 'functions', 'translate-listing', 'index.ts'), 'utf8')
+      .match(/const GLOSSARY_VERSION = '([^']+)'/)[1];
+    const hash = (s) => crypto.createHash('sha256').update(`${version}\n${s}`).digest('hex');
     // Only the notes field is cached, and it is the only field with words that is not cached: the specification
     // is also words, so cache that too and the whole answer comes from the cache. (The price is a number: never sent.)
     await query(
@@ -242,11 +245,12 @@ test.describe('operator-translate: Operators only, and nothing kept', () => {
     expect(await budget()).toEqual(before);
   });
 
-  test('Item78 the two functions are copies in three places (unit estimate, body ceiling, body reader); a difference is a drift and fails here', async () => {
+  test('Item78 the two functions are copies in four places (unit estimate, body ceiling, body reader, glossary); a difference is a drift and fails here', async () => {
     const read = (n) => fs.readFileSync(path.join(ROOT, 'supabase', 'functions', n, 'index.ts'), 'utf8');
     const a = read('translate-listing'), b = read('operator-translate');
     const grab = (src, re) => { const m = src.match(re); expect(m, `${re} not found`).not.toBeNull(); return m[0]; };
-    for (const re of [/function estimateUnits[\s\S]*?\n}\n/, /const MAX_BODY_BYTES[^\n]*\n/, /async function readLimitedJson[\s\S]*?\n}\n/]) {
+    for (const re of [/function estimateUnits[\s\S]*?\n}\n/, /const MAX_BODY_BYTES[^\n]*\n/, /async function readLimitedJson[\s\S]*?\n}\n/,
+      /\/\/ ---- GLOSSARY-BEGIN[\s\S]*?\/\/ ---- GLOSSARY-END ----\n/]) {
       expect(grab(a, re), String(re)).toBe(grab(b, re));
     }
     // The conservative estimate: 2.5 characters per token (Spanish and symbols cost more than English prose).
