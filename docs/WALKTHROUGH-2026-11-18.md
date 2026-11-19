@@ -92,3 +92,14 @@ Owner: people write posts in Spanish and in English; a member who stumbles on a 
 
 ## Translate and the Terms (owner, 19 Nov, his words: "So leave the translation out of the terms, okay?")
 DECISION: leave translation OUT of the Terms. Terms section 10 stays as it is. Reason he gave earlier: the translated text carries no names, and messages go anonymously through the Operator. I told him (checked in GDPR Art. 13(1)(e), text only, no case law): the law asks for "recipients or categories of recipients", not every company name; Terms s.10 p5/p6 name Supabase, Resend, GitHub Actions and say data goes only to hosting, database and email providers. Caveat given: a typed message could itself contain a name or detail.
+
+## Translate: owner's answers to the mockup (19 Nov, mockup branch mockup-translate-2026-11-19, commit f6d9255)
+1. Member sees the translation BENEATH the original (not replacing it).
+2. Words (owner's own, typed): TWO buttons only, "Translate" and "Hide translation". NO label such as "Machine translation, may contain errors": "It's up to the member to check as well." Spanish of both: ours to write.
+3. Unavailable message when the free allowance is used up (option A): "Translation is not available right now. Please try again later." Spanish ours.
+4. The Operator may also use the member's Translate button on listings (his yes). The Operator's separate message Translate (Operator console, English) stays Operator-only.
+5. The button is shown on EVERY listing (no language guessing for now).
+6. Limits: 30 listings per member per hour; each text field cut at 2,000 characters; 6,000 of the 10,000 free daily units reserved for members.
+Earlier, still standing: translation is NOT mentioned in the Terms/Help; nothing stored for messages; Operator-only message translate; route = Cloudflare Workers AI (m2m100-1.2b).
+Not yet decided/asked: wording of the Operator's own message-translate control (console is English; mockup used "Translate" and a "to English / Spanish" drop-down).
+NEXT: the owner gives BATCH GO for this build, and provides the Cloudflare account ID and an API token (Workers AI) stored as Edge Function secrets. Builder 3's plan: docs/PLAN-translate-2026-11-19.md on branch plan-translate-2026-11-19.
