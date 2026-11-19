@@ -1,0 +1,179 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MOCKUP - Translate</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600&family=Source+Sans+3:wght@400;600&display=swap">
+<link rel="stylesheet" href="../../css/styles.css">
+<style>
+.mock-banner{background:#fff4c2;border-bottom:2px solid #d9b800;padding:8px 12px;font-size:14px;text-align:center}
+.draft{display:inline-block;background:#fde2e2;color:#a11;font-weight:600;font-size:12px;padding:1px 7px;border-radius:10px;margin-left:6px;vertical-align:middle}
+.owner{display:inline-block;background:#e0f3e6;color:#1a6b3a;font-weight:600;font-size:12px;padding:1px 7px;border-radius:10px;margin-left:6px;vertical-align:middle}
+.open-q{margin:14px 0 0;padding:10px 12px;border:1px dashed #d9b800;background:#fffbe6;border-radius:8px;font-size:14px}
+.variant-tag{font-size:13px;font-weight:600;color:#1a4a6e;text-transform:uppercase;letter-spacing:.4px;margin:0 0 6px}
+.opt{font-size:12px;font-weight:600;color:#1a4a6e;text-transform:uppercase;letter-spacing:.4px;margin:0 0 4px}
+.side{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0}
+.side3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:8px 0}
+.side>div,.side3>div{border:1px solid #d9d9d9;border-radius:8px;padding:8px 10px;font-size:15px}
+@media (max-width:640px){.side,.side3{grid-template-columns:1fr}}
+.tr{background:#f3f8fc;border:1px solid #c9dff0;border-radius:8px;padding:6px 10px;margin:6px 0;font-size:15px}
+.tr .lbl{font-size:12px;font-weight:600;color:#1a4a6e}
+.linkbtn{background:none;border:0;color:#1a4a6e;text-decoration:underline;font-size:14px;cursor:pointer;padding:0}
+.unavail{background:#f6f6f6;border:1px solid #ddd;border-radius:8px;padding:6px 10px;margin:6px 0;font-size:14px;color:#444}
+.opnote{background:#eef7ee;border:1px solid #b9dcb9;border-radius:8px;padding:6px 10px;margin:6px 0;font-size:15px}
+.dim{opacity:.55}
+.fake{display:inline-block;background:#fde2e2;color:#a11;font-size:11px;padding:0 6px;border-radius:8px;margin-left:4px}
+</style></head><body>
+<div class="mock-banner"><strong>MOCKUP - not the live site, nothing here is built, no translation service is connected.</strong> The Translate button, 19 Nov 2026.
+ <span class="owner">owner's words</span> = something the owner said &nbsp; <span class="draft">DRAFT</span> = invented by the builder, for the owner to choose or change.
+ All translated sentences below are <strong>made-up examples</strong>, not output of the real model <span class="draft">example text</span></div>
+
+<!-- ===================================================== SCREEN 1: MEMBER, BROWSE -->
+<header class="site-header"><div class="container"><h1>MyPlatform</h1><div class="user-info"><span>A member</span> · <span class="lang-toggle"><button class="lang-btn active">EN</button><button class="lang-btn">ES</button></span> · <a href="#" style="color:#fff;">Sign out</a></div></div></header>
+<nav class="tabs"><div class="container"><button>My Listings</button><button>New Listing</button><button class="active">Browse</button><button>Mailbox</button><button>Notifications</button><button>Profile</button><button>Help</button></div></nav>
+<main class="container" style="padding-top:12px">
+
+<p class="variant-tag">Screen 1a: Browse, a listing written in Spanish, seen by a member whose language is English</p>
+<p class="list-row-meta">The owner: members who "stumble on a proposal in the other language should be able to" translate it <span class="owner">owner's words</span>. Everything on the row is exactly as Browse is today; only the small button is new.</p>
+<div class="list-row">
+ <div class="list-row-top"><span class="list-row-title">S-0381 — Copper Concentrate</span><span class="badge badge-green">Available</span></div>
+ <div class="list-row-meta">Sell Offer · 5,000 Metric tons · CIF · Origin: Peru</div>
+ <div class="list-row-meta">Specification: Concentrado de cobre, 28% Cu mínimo, humedad máx. 9%</div>
+ <div class="list-row-meta">Price: Precio firme 48 horas, sujeto a confirmación final</div>
+ <div class="list-row-meta">Notes: Embarque en marzo, puerto de Callao. Se acepta inspección independiente.</div>
+ <div class="list-row-meta">Posted 12 Nov 2026</div>
+ <div class="row" style="margin-top:4px"><button class="btn btn-secondary btn-small">Translate</button> <span class="draft">DRAFT wording, see options below</span></div>
+</div>
+<p class="list-row-meta">One button for the whole row's free text (specification, price conditions, notes). Commodity, quantity, unit, Incoterm and region are not translated: they already follow the member's language. The button would appear only on a row that has free text, and (if the owner wants it) not when the text already looks like the member's own language.</p>
+
+<p class="variant-tag" style="margin-top:22px">Screen 1b: after pressing it. The translation sits BENEATH the original <span class="draft">my recommendation</span></p>
+<div class="list-row">
+ <div class="list-row-top"><span class="list-row-title">S-0381 — Copper Concentrate</span><span class="badge badge-green">Available</span></div>
+ <div class="list-row-meta">Sell Offer · 5,000 Metric tons · CIF · Origin: Peru</div>
+ <div class="list-row-meta">Specification: Concentrado de cobre, 28% Cu mínimo, humedad máx. 9%</div>
+ <div class="list-row-meta">Price: Precio firme 48 horas, sujeto a confirmación final</div>
+ <div class="list-row-meta">Notes: Embarque en marzo, puerto de Callao. Se acepta inspección independiente.</div>
+ <div class="tr"><span class="lbl">Machine translation <span class="draft">DRAFT label</span></span><br>
+  Specification: Copper concentrate, 28% Cu minimum, moisture max. 9%<br>
+  Price: Price firm for 48 hours, subject to final confirmation<br>
+  Notes: Shipment in March, port of Callao. Independent inspection accepted. <span class="fake">example text</span><br>
+  <button class="linkbtn">Hide translation</button> <span class="draft">DRAFT wording</span></div>
+ <div class="list-row-meta">Posted 12 Nov 2026</div>
+</div>
+
+<p class="variant-tag" style="margin-top:22px">Screen 1c: the same, side by side: BENEATH the original, or IN PLACE of it (the owner chooses)</p>
+<div class="side">
+ <div><p class="opt">Beneath (recommended)</p>
+  <div class="list-row-meta">Specification: Concentrado de cobre, 28% Cu mínimo…</div>
+  <div class="tr"><span class="lbl">Machine translation</span><br>Specification: Copper concentrate, 28% Cu minimum…<br><button class="linkbtn">Hide translation</button></div>
+  <p class="list-row-meta">The original is always on screen. A mistranslated price condition never silently replaces what the poster wrote.</p></div>
+ <div><p class="opt">In place</p>
+  <div class="list-row-meta">Specification: Copper concentrate, 28% Cu minimum… <span class="lbl" style="font-size:12px;font-weight:600;color:#1a4a6e">(Machine translation)</span></div>
+  <div class="list-row-meta"><button class="linkbtn">Show original</button></div>
+  <p class="list-row-meta">Shorter row, but the poster's own words are hidden until pressed.</p></div>
+</div>
+
+<p class="variant-tag" style="margin-top:22px">Screen 1d: the words, still open <span class="draft">three options each, I am not choosing</span></p>
+<div class="side3">
+ <div><p class="opt">Button</p>
+  1. Translate<br>2. Translate to English (follows the member's language: "Traducir al español" for a Spanish member)<br>3. Show in English
+ </div>
+ <div><p class="opt">Label beside a translation</p>
+  1. Machine translation<br>2. Machine translation, may contain errors<br>3. Automatically translated
+ </div>
+ <div><p class="opt">Way back</p>
+  1. Hide translation (beneath)<br>2. Show original (in place)<br>3. Original
+ </div>
+</div>
+<p class="list-row-meta">Spanish versions of whichever he picks are mine to write, in the site's formal style. Nothing about translation appears in the Terms or Help <span class="owner">owner's decision, 19 Nov</span>.</p>
+
+<p class="variant-tag" style="margin-top:22px">Screen 1e: when translation is not available (the free daily allowance is used up, or the service is down)</p>
+<div class="list-row">
+ <div class="list-row-top"><span class="list-row-title">S-0381 — Copper Concentrate</span></div>
+ <div class="list-row-meta">Notes: Embarque en marzo, puerto de Callao. Se acepta inspección independiente.</div>
+ <div class="unavail">Translation is not available right now. Please try again later. <span class="draft">DRAFT wording</span></div>
+</div>
+<div class="side">
+ <div><p class="opt">Message, option A</p>Translation is not available right now. Please try again later.</div>
+ <div><p class="opt">Message, option B</p>Translation is not available today. Translations already made can still be shown.</div>
+</div>
+<p class="list-row-meta">The original text stays exactly as it is. A translation that was already made for this listing still shows (nothing is asked of the service for it).</p>
+
+<hr style="margin:26px 0">
+
+<!-- ===================================================== SCREEN 2: OPERATOR -->
+</main>
+<header class="site-header"><div class="container"><h1>MyPlatform</h1><div class="user-info"><span>Operator</span> · <a href="#" style="color:#fff;">Sign out</a></div></div></header>
+<nav class="tabs"><div class="container"><button>Overview</button><button>Approvals</button><button>All Listings</button><button>Invitations</button><button>Users</button><button>Commodities</button><button class="active">Mailbox</button><button>Matches</button><button>Deals</button><button>Scorecard</button><button>Analytics</button><button>Activity Log</button><button>Help</button></div></nav>
+<main class="container" style="padding-top:12px">
+
+<p class="variant-tag">Screen 2a: the Operator's Mailbox, a message in Spanish, with the Operator's own Translate button <span class="owner">owner's words: "a Translate button"</span></p>
+<div class="list-row">
+ <div class="list-row-top"><span class="list-row-title">Re: S-0381</span><span class="badge badge-grey">Pending review</span></div>
+ <div>Podemos ofrecer 5.000 toneladas de concentrado de cobre, FOB Callao, con embarque en marzo.</div>
+ <div class="list-row-meta">19 Nov 2026 09:20</div>
+ <div class="row" style="margin-top:4px;align-items:center;gap:8px">
+  <button class="btn btn-primary btn-small">Forward to Owner</button> <button class="btn btn-secondary btn-small">Reply</button> <button class="btn btn-danger btn-small">Ignore</button>
+  <button class="btn btn-secondary btn-small">Translate</button>
+  <label class="text-muted" style="margin:0;white-space:nowrap">to <select style="width:auto;max-width:130px"><option>English</option><option>Spanish</option></select></label>
+  <span class="draft">DRAFT placement</span></div>
+</div>
+<p class="list-row-meta">The target starts as the opposite of the sender's language (a Spanish speaker's message offers English); one press of the drop-down flips it. Operator console stays English <span class="owner">owner's rule</span>. The Operator presses it; nothing is translated automatically <span class="owner">owner's words</span>.</p>
+
+<p class="variant-tag" style="margin-top:22px">Screen 2b: after pressing. The original is untouched; the translation is a private aid beneath it</p>
+<div class="list-row">
+ <div class="list-row-top"><span class="list-row-title">Re: S-0381</span><span class="badge badge-grey">Pending review</span></div>
+ <div>Podemos ofrecer 5.000 toneladas de concentrado de cobre, FOB Callao, con embarque en marzo.</div>
+ <div class="opnote"><span class="lbl" style="font-size:12px;font-weight:600;color:#1a5c1a">Machine translation to English. Only you see this. <span class="draft">DRAFT label</span></span><br>
+  We can offer 5,000 tons of copper concentrate, FOB Callao, shipment in March. <span class="fake">example text</span><br>
+  <button class="linkbtn">Hide translation</button></div>
+ <div class="list-row-meta">19 Nov 2026 09:20</div>
+ <div class="row" style="margin-top:4px;align-items:center;gap:8px"><button class="btn btn-primary btn-small">Forward to Owner</button> <button class="btn btn-secondary btn-small">Reply</button> <button class="btn btn-danger btn-small">Ignore</button> <button class="btn btn-secondary btn-small">Translate</button></div>
+</div>
+<p class="list-row-meta">The message text that is forwarded or replied to is never the translation: the original is never replaced <span class="owner">owner's words</span>. The translation is not saved anywhere; closing the page removes it. Whether the Operator can send a translated REPLY is not part of this mockup and is still the owner's open question <span class="owner">owner, 18 Nov</span>.</p>
+
+<p class="variant-tag" style="margin-top:22px">Screen 2c: the Forward window carries the same control, so the Operator can read the message in their language while deciding</p>
+<div class="card" style="max-width:520px">
+ <h2 class="mt-0">Forward Message</h2>
+ <label class="text-muted">Message to forward</label>
+ <textarea rows="2" readonly style="width:100%;">Podemos ofrecer 5.000 toneladas de concentrado de cobre, FOB Callao, con embarque en marzo.</textarea>
+ <div class="row" style="align-items:center;gap:8px;margin:6px 0"><button class="btn btn-secondary btn-small">Translate</button> <label class="text-muted" style="margin:0">to <select style="width:auto;max-width:130px"><option>English</option><option>Spanish</option></select></label> <span class="draft">DRAFT placement</span></div>
+ <div class="opnote"><span class="lbl" style="font-size:12px;font-weight:600;color:#1a5c1a">Machine translation to English. Only you see this.</span><br>We can offer 5,000 tons of copper concentrate, FOB Callao, shipment in March. <span class="fake">example text</span></div>
+ <div class="row"><button class="btn btn-primary">Forward</button> <button class="btn btn-secondary dim" disabled>Ask member to rewrite</button> <button class="btn btn-secondary">Cancel</button></div>
+</div>
+
+<p class="variant-tag" style="margin-top:22px">Screen 2d: the Operator may also use the member's Translate button on Browse and in All Listings <span class="draft">my recommendation: yes, same function, no extra work</span></p>
+<p class="list-row-meta">Same button and label as Screen 1. Listings are text the Operator can already read.</p>
+
+<hr style="margin:26px 0">
+
+<!-- ===================================================== SCREEN 3: MEMBER MAILBOX -->
+</main>
+<header class="site-header"><div class="container"><h1>MyPlatform</h1><div class="user-info"><span>A member</span> · <a href="#" style="color:#fff;">Sign out</a></div></div></header>
+<nav class="tabs"><div class="container"><button>My Listings</button><button>New Listing</button><button>Browse</button><button class="active">Mailbox</button><button>Notifications</button><button>Profile</button><button>Help</button></div></nav>
+<main class="container" style="padding-top:12px">
+<p class="variant-tag">Screen 3: a member's Mailbox. No member screen ever shows a translation of a message <span class="owner">owner's words: "members do not see it"</span></p>
+<div class="list-row">
+ <div class="list-row-top"><span class="list-row-title">Re: S-0381</span><span class="badge badge-blue">Forwarded</span></div>
+ <div>Hola, ¿el precio sigue vigente? Quisiera confirmar el volumen disponible.</div>
+ <div class="list-row-meta">19 Nov 2026 11:05</div>
+</div>
+<div class="list-row">
+ <div class="list-row-top"><span class="list-row-title">Reply from the Operator · Re: S-0381</span></div>
+ <div>The seller confirms the price is firm until Friday.</div>
+ <div class="list-row-meta">19 Nov 2026 12:40</div>
+</div>
+<p class="list-row-meta">There is no Translate button on this screen, no translation of either message, and no hint that the Operator used one. The member function that translates listing text accepts only a listing, never text and never a message, so even a member who tried could not translate a message through it.</p>
+
+<div class="open-q"><strong>What this mockup does NOT change</strong><br>
+ - Messages are never translated for members. The Operator's translation is private to the Operator and is never stored.<br>
+ - Listing translations are for text members can already read on Browse; they are saved once per listing and language so the free allowance is not used twice, and they hold no record of who asked.<br>
+ - Nothing is added to the Terms or Help <span class="owner">owner's decision, 19 Nov</span> (the one place to look at again is in the plan: section 0).</div>
+
+<div class="open-q"><strong>Questions for the owner (not decided; my recommendation in brackets)</strong><br>
+ 1. <strong>Placement.</strong> One small "Translate" button under a listing's free text on Browse and My Listings; for the Operator, in the Mailbox row and in the Forward window next to the message. (Recommended: exactly that.)<br>
+ 2. <strong>Beneath the original, or in place of it?</strong> (Recommended: beneath, so trade terms are never silently replaced; Screen 1c.)<br>
+ 3. <strong>The words:</strong> the button, the label beside a translation, and the way back (Screen 1d). (Recommended: "Translate", "Machine translation, may contain errors", "Hide translation".)<br>
+ 4. <strong>The unavailable message</strong> (Screen 1e, option A or B or your own). (Recommended: A, short and calm.)<br>
+ 5. <strong>May the Operator also use the member's button</strong> on listings? (Recommended: yes.)<br>
+ 6. <strong>Offer the button only when the text looks like the other language?</strong> A small word check, untested on real listings, would hide the button on text already in the member's language. (Recommended: yes, but only after a test on real listings; otherwise show it on every listing with free text.)<br>
+ 7. <strong>The numbers.</strong> Translations per member per hour (suggest 30); longest field translated (suggest 2,000 characters); how much of the free daily allowance members may use, so the Operator's button always has room (suggest 6,000 of 10,000 units a day).<br>
+ 8. <strong>The Terms.</strong> Section 10 names Supabase, Resend and GitHub Actions as the only providers that receive message content; listing text and messages would also go to Cloudflare's translation service. You decided on 19 Nov that the Terms say nothing about the button. Do you still want that, knowing this sentence? (Not mine to decide.)</div>
+</main></body></html>
