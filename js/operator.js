@@ -1104,6 +1104,7 @@ async function loadOperatorMailbox() {
         <span class="badge badge-grey">${statusLabel(m.status)}</span>
       </div>
       <div>${escapeHtml(m.body)}</div>
+      ${translateControlHtml()}
       <div class="list-row-meta">${formatDateTime(m.created_at)}</div>
       ${m.status === 'pending_review' || m.status === 'on_hold' ? `
         <div class="row" style="margin-top:4px;">
@@ -1113,6 +1114,8 @@ async function loadOperatorMailbox() {
         </div>` : ''}
     `;
     container.appendChild(row);
+    wireTranslateControl(row.querySelector('[data-translate-btn]'), row.querySelector('[data-translate-to]'),
+      row.querySelector('[data-translation]'), () => m.body);
 
     // Wire each row as it is built. The loop no longer awaits anything - the
     // listing lookup above is now a single batched query - so this could just
@@ -1138,6 +1141,72 @@ function wireForwardModal() {
   document.getElementById('forward-confirm-btn').addEventListener('click', confirmForward);
   document.getElementById('forward-rewrite-btn').addEventListener('click', askMemberToRewrite);
   document.getElementById('forward-reconcile-btn').addEventListener('click', askMemberToReconcile);
+  FORWARD_TRANSLATE_RESET = wireTranslateControl(document.getElementById('forward-translate-btn'),
+    document.getElementById('forward-translate-to'), document.getElementById('forward-translation'),
+    () => (FORWARD_TARGET ? FORWARD_TARGET.originalBody : ''));
+}
+
+// ----------------------------------------------------------- TRANSLATE ----
+// Owner, 19 Nov 2026 (docs/AGREED-2026-11-19-translate.md): an Operator-only Translate button for a message. It is
+// pressed, never automatic; the original message is never replaced; the translation is not stored anywhere and no
+// member sees it. The console is English only. The wording of this control ("Translate", "to English / Spanish",
+// "Hide translation") was taken from the mockup and is NOT yet confirmed by the owner.
+// The text goes to the operator-translate Edge Function, which accepts only an approved Operator.
+
+const TRANSLATE_UNAVAILABLE = 'Translation is not available right now. Please try again later.';
+let FORWARD_TRANSLATE_RESET = () => {};
+
+function translateControlHtml() {
+  return `
+      <div class="row" style="margin-top:4px;align-items:center;gap:8px;">
+        <button class="btn btn-secondary btn-small" data-translate-btn type="button">Translate</button>
+        <label class="text-muted" style="margin:0;white-space:nowrap;">to
+          <select data-translate-to style="width:auto;max-width:130px;"><option value="en">English</option><option value="es">Spanish</option></select></label>
+      </div>
+      <div data-translation hidden style="background:#eef7ee;border:1px solid #b9dcb9;border-radius:8px;padding:6px 10px;margin:6px 0;white-space:pre-wrap;"></div>`;
+}
+
+/** The translation, or null for any failure (no session, a refusal, the allowance used up, the service down). */
+async function operatorTranslateText(text, target) {
+  try {
+    const { data: { session } } = await myplatform.auth.getSession();
+    if (!session) return null;
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/operator-translate`, {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_PUBLISHABLE_KEY,
+        Authorization: `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ text, source_lang: target === 'en' ? 'es' : 'en', target_lang: target }),
+    });
+    if (!res.ok) return null;
+    const body = await res.json();
+    return typeof body.translated_text === 'string' && body.translated_text ? body.translated_text : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/** Wires one Translate button, its language drop-down and its result box. Pressing again hides the result;
+ *  changing the language hides it too. Returns a function that puts the control back as it was. */
+function wireTranslateControl(btn, select, box, getText) {
+  let shown = false;
+  const reset = () => { box.hidden = true; box.textContent = ''; shown = false; btn.textContent = 'Translate'; };
+  btn.addEventListener('click', async () => {
+    if (btn.disabled) return;
+    if (shown) { reset(); return; }
+    const text = getText();
+    if (!text) return;
+    btn.disabled = true; select.disabled = true;
+    const out = await operatorTranslateText(text, select.value);
+    btn.disabled = false; select.disabled = false;
+    box.textContent = out === null ? TRANSLATE_UNAVAILABLE : out;
+    box.hidden = false;
+    if (out !== null) { shown = true; btn.textContent = 'Hide translation'; }
+  });
+  select.addEventListener('change', reset);
+  return reset;
 }
 
 function openForwardModal(btn) {
@@ -1171,6 +1240,7 @@ function openForwardModal(btn) {
     btn.dataset.targetKind === 'sender'
       ? `Forwarding this reply to ${who}, who wrote the message it answers (${FORWARD_TARGET.refLabel}).`
       : `Forwarding to the owner of ${FORWARD_TARGET.refLabel}.`;
+  FORWARD_TRANSLATE_RESET();
   document.getElementById('forward-modal').classList.remove('hidden');
   loadReconcileOptions();
 }
