@@ -116,6 +116,7 @@ the suite: this platform's product is controlled disclosure, so proving a thing
 | 86 | Declining a recommendation does not tell the referrer | MUST NOT |
 | 87 | A member can never read, change or delete another member's recommendation | MUST NOT |
 | 88 | When new Terms are published, every approved member is emailed a summary of the changes and a link, once | does |
+| 89 | The Operator can read every listing field a member sees in Browse, and translate the free text | does |
 
 ## Open questions on this list
 
