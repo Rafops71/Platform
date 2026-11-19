@@ -84,3 +84,4 @@ SOP wording, T8 code protection, T11, T12, films redo, application-review clause
 3. Drop the live policy activity_log_insert (owner said yes, block 2). Verify unused with a tool first, prove the way back, tell him afterwards.
 4. Sign-in pending/reset notices must switch language with the language switch (owner yes, block 3). Spanish by Builder 3, shown to the owner before merge.
 Still to ask: broker design B1-B4, trader-as-broker, legal/wording parked items. Owner reads no Spanish: never ask him to judge Spanish.
+- Batch 2 update: item 2 has NO marker line (owner: "no need to write machine translation"). Item 5 (owner yes, block 4): notify the Operator when a member changes company or job title (activity line with old and new value; nothing blocked). Role is per listing (listings.poster_role); trader-as-broker-on-one-deal is already supported. Still unchecked: whether the profile stores a member type, and what stops a wrong role being ticked.
