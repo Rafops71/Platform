@@ -55,8 +55,12 @@ const EXPECTED = {
   email_phrases:       {},
   email_templates:     {},
   invitations:         { operator: ['read', 'write'] },
+  // Translate (sql/069): the cache, the hourly counts and the daily units. RLS on, no policy, no grant to anon or
+  // authenticated: only the Edge Functions (service role) touch them. Nobody else may.
+  listing_translations:   {},
   listings:            { operator: ['read', 'change', 'delete'] },   // an Operator may remove a listing
   matches:             { operator: ['read', 'change'] },
+  member_translate_usage: {},
   message_forward_log: { operator: ['read', 'add'] },
   messages:            { operator: ['read', 'change'] },
   notifications:       { operator: ['read', 'write'] },   // notifications_* policies: owner or Operator
@@ -68,6 +72,7 @@ const EXPECTED = {
   // trigger; RLS on, no grant to anon or authenticated. Nobody may touch it.
   terms_change_emails: {},
   terms_versions:      { anon: ['read'], pending: ['read'], suspended: ['read'], member: ['read'], operator: ['read'] },
+  translate_daily_budget: {},
 };
 const DOC = 'Assay Report';
 const ROLES = ['anon', 'pending', 'suspended', 'member', 'operator'];

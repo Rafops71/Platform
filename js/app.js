@@ -293,8 +293,8 @@ async function loadMyListings() {
 /** "13.850 USD por Toneladas métricas" / "13,850 USD per Metric tons".
  *  Assembled here rather than inline so the number formatting and the "per"
  *  join word both follow the active language. */
-function priceLine(l) {
-  let out = formatNumber(l.price_conditions) || l.price_conditions || '';
+function priceLine(l, text) {
+  let out = text !== undefined ? text : (formatNumber(l.price_conditions) || l.price_conditions || '');
   if (l.currency) out += ` ${l.currency}`;
   if (l.price_unit) out += currentLang() === 'es' ? ` por ${unitLabel(l.price_unit)}` : ` per ${unitLabel(l.price_unit)}`;
   return out;
@@ -673,6 +673,90 @@ function browseSortComparator(mode) {
   return byNewest;
 }
 
+// ------------------------------------------------- TRANSLATE A LISTING ----
+// Owner's decisions, 19 Nov 2026 (docs/AGREED-2026-11-19-translate.md): a member who finds a proposal in the other
+// language can translate it. One button, "Translate", then "Hide translation"; the translation sits BENEATH the
+// original, which stays on screen; no label about machine translation. The text is translated by the
+// translate-listing Edge Function, which takes only a listing id and a language, never text, and reads the
+// text itself under the same gates as Browse. Nothing about this is stored on the listing or shown to the poster.
+
+/** A field is worth sending only if it holds words: a price such as "13850" is a number, not text. */
+function isTranslatableText(s) { return typeof s === 'string' && /\p{L}/u.test(s); }
+function hasTranslatableText(l) {
+  return isTranslatableText(l.specification) || isTranslatableText(l.price_conditions) || isTranslatableText(l.notes);
+}
+
+/** The translations for one listing in the viewer's language, or null for ANY failure (no session, a refusal,
+ *  the allowance used up, the service down): the member sees one sentence for all of them. */
+async function requestListingTranslation(listingId) {
+  try {
+    const { data: { session } } = await myplatform.auth.getSession();
+    if (!session) return null;
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/translate-listing`, {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_PUBLISHABLE_KEY,
+        Authorization: `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ listing_id: listingId, target_lang: currentLang() }),
+    });
+    if (!res.ok) return null;
+    const body = await res.json();
+    return body && body.translations && Object.keys(body.translations).length ? body.translations : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function showTranslation(box, l, tr) {
+  box.replaceChildren();
+  const add = (text) => {
+    const d = document.createElement('div');
+    d.className = 'list-row-meta';
+    d.textContent = text;
+    box.appendChild(d);
+  };
+  if (tr.specification) add(t('browse.specification', { value: tr.specification }));
+  if (tr.price_conditions) add(t('browse.price', { value: priceLine(l, tr.price_conditions) }));
+  if (tr.notes) add(t('browse.notes', { value: tr.notes }));
+  box.hidden = false;
+}
+
+function wireTranslate(row, l) {
+  const btn = row.querySelector('[data-translate-btn]');
+  const box = row.querySelector('[data-translation]');
+  if (!btn || !box) return;
+  let translation = null;   // kept for this row, so hiding and showing again asks for nothing
+  let shown = false;
+  btn.addEventListener('click', async () => {
+    if (btn.disabled) return;
+    if (shown) {
+      box.hidden = true; shown = false;
+      btn.textContent = t('translate.button');
+      return;
+    }
+    if (!translation) {
+      btn.disabled = true;
+      translation = await requestListingTranslation(l.id);
+      btn.disabled = false;
+    }
+    if (!translation) {
+      box.replaceChildren();
+      const d = document.createElement('div');
+      d.className = 'list-row-meta';
+      d.setAttribute('role', 'status');
+      d.textContent = t('translate.unavailable');
+      box.appendChild(d);
+      box.hidden = false;
+      return;
+    }
+    showTranslation(box, l, translation);
+    shown = true;
+    btn.textContent = t('translate.hide');
+  });
+}
+
 async function loadBrowseListings() {
   const fresh = renderToken('app:loadBrowseListings');
   const container = document.getElementById('browse-list');
@@ -708,6 +792,8 @@ async function loadBrowseListings() {
       ${l.specification ? `<div class="list-row-meta">${escapeHtml(t('browse.specification', { value: l.specification }))}</div>` : ''}
       ${l.price_conditions ? `<div class="list-row-meta">${escapeHtml(t('browse.price', { value: priceLine(l) }))}</div>` : ''}
       ${l.notes ? `<div class="list-row-meta">${escapeHtml(t('browse.notes', { value: l.notes }))}</div>` : ''}
+      ${hasTranslatableText(l) ? `<div class="row" style="margin-top:4px;"><button class="btn btn-secondary btn-small" data-translate-btn>${escapeHtml(t('translate.button'))}</button></div>
+      <div data-translation hidden></div>` : ''}
       <div class="list-row-meta" data-statements>${escapeHtml(statementsLine(l))}</div>
       ${statementsDateLine(l) ? `<div class="list-row-meta" data-statements-date>${escapeHtml(statementsDateLine(l))}</div>` : ''}
       ${l.type === 'sell' ? `<div class="list-row-meta" data-docs-line>${escapeHtml(t('stmt.browse.docsLine'))}</div>` : ''}
@@ -719,6 +805,7 @@ async function loadBrowseListings() {
       </div>
     `;
     container.appendChild(row);
+    wireTranslate(row, l);
   });
 
   container.querySelectorAll('[data-contact]').forEach(b =>

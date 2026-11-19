@@ -375,6 +375,13 @@
     <div id="forward-target-info" class="text-muted" style="margin-bottom:10px;"></div>
     <label for="forward-edit" class="text-muted">Message to forward</label>
     <textarea id="forward-edit" rows="5" readonly style="width:100%;"></textarea>
+    <!-- Translate (owner, 19 Nov 2026): the Operator's private aid; the message above is never replaced. -->
+    <div class="row" style="align-items:center;gap:8px;margin:6px 0;">
+      <button class="btn btn-secondary btn-small" id="forward-translate-btn" type="button">Translate</button>
+      <label class="text-muted" style="margin:0;white-space:nowrap;">to
+        <select id="forward-translate-to" style="width:auto;max-width:130px;"><option value="en">English</option><option value="es">Spanish</option></select></label>
+    </div>
+    <div id="forward-translation" hidden style="background:#eef7ee;border:1px solid #b9dcb9;border-radius:8px;padding:6px 10px;margin:6px 0;white-space:pre-wrap;"></div>
     <div id="forward-flags" class="text-muted" style="margin:6px 0;"></div>
     <div id="forward-preview" class="text-muted" style="white-space:pre-wrap;margin-bottom:10px;border:1px solid #ddd;padding:6px;border-radius:4px;"></div>
     <!-- "Please reconcile" (sql/068): shown only when the sender has at least one earlier dated statement
