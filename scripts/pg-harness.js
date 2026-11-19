@@ -103,6 +103,8 @@ const SETUP = [
   'sql/068_message_on_hold.sql',
   'sql/069_translate.sql',
   'sql/070_translate_counters.sql',
+  'sql/071_drop_activity_log_insert_policy.sql',
+  'sql/072_profile_company_job_notice.sql',
   'sql/seed_commodities.sql',
 ];
 
