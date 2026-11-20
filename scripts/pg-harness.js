@@ -105,6 +105,7 @@ const SETUP = [
   'sql/070_translate_counters.sql',
   'sql/071_drop_activity_log_insert_policy.sql',
   'sql/072_profile_company_job_notice.sql',
+  'sql/073_forward_translation.sql',
   'sql/seed_commodities.sql',
 ];
 

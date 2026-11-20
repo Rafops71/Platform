@@ -1027,9 +1027,23 @@ async function loadMailbox() {
   if (!fresh()) return;
   if (refError) { container.innerHTML = `<p class="empty-state">${escapeHtml(errorMessage(refError))}</p>`; return; }
 
+  // A forwarded message may carry the Operator's translation, kept with the forward (sql/073). It is shown as a second
+  // block under the original, with no label and no marker (owner, 19 Nov 2026), and only on messages sent TO this
+  // member: the forward log rows are readable by the recipient alone. If they cannot be read, the original shows alone.
+  const translationByMessage = new Map();
+  const receivedIds = messages.filter(m => m.sender_id !== CURRENT_PROFILE.id).map(m => m.id);
+  for (const part of chunked(receivedIds)) {
+    const { data: forwards, error: forwardError } = await myplatform
+      .from('message_forward_log').select('message_id,translation,translation_lang').in('message_id', part);
+    if (!fresh()) return;
+    if (forwardError) { console.error('Could not read the translations of forwarded messages.'); break; }
+    (forwards || []).forEach(f => { if (f.translation) translationByMessage.set(f.message_id, f); });
+  }
+
   container.innerHTML = '';
   for (const m of messages) {
     const mine = m.sender_id === CURRENT_PROFILE.id;
+    const translation = translationByMessage.get(m.id);
     const refLabel = refByListing.get(m.listing_id) || '';
     const row = document.createElement('div');
     row.className = 'list-row';
@@ -1040,6 +1054,7 @@ async function loadMailbox() {
       </div>
       ${m.subject ? `<div class="list-row-meta"><em>${escapeHtml(m.subject)}</em></div>` : ''}
       <div>${escapeHtml(m.body)}</div>
+      ${translation ? `<div data-forward-translation lang="${escapeHtml(translation.translation_lang)}" style="margin-top:6px;">${escapeHtml(translation.translation)}</div>` : ''}
       <div class="list-row-meta">${formatDateTime(m.created_at)}</div>
       ${!mine ? `<div class="row" style="margin-top:4px;"><button class="btn btn-secondary btn-small" data-reply="${m.listing_id || ''}">${escapeHtml(t('common.reply'))}</button></div>` : ''}
     `;
