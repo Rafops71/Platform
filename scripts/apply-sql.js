@@ -100,6 +100,8 @@ const DEFAULT_ORDER = [
   '068_message_on_hold.sql',
   '069_translate.sql',
   '070_translate_counters.sql',
+  '071_drop_activity_log_insert_policy.sql',
+  '072_profile_company_job_notice.sql',
   'seed_commodities.sql',
 ];
 

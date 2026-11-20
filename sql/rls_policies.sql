@@ -685,9 +685,9 @@ drop policy if exists activity_log_select on public.activity_log;
 create policy activity_log_select on public.activity_log for select
   using (public.is_operator());
 
-drop policy if exists activity_log_insert on public.activity_log;
-create policy activity_log_insert on public.activity_log for insert
-  with check (user_id = public.current_profile_id() or public.is_operator());
+drop policy if exists activity_log_insert on public.activity_log;   -- a full re-apply also removes a leftover one
+-- There is deliberately NO insert policy: the log is written only through record_activity() and the definer triggers
+-- (sql/030). sql/071 dropped the policy this file used to create, so a full re-apply must not bring it back.
 
 -- ----------------------------------------------------------------------------
 -- MATCHES  (Operator-only; rows are actually written by the definer trigger)
@@ -737,6 +737,6 @@ grant select, insert, update, delete on public.document_checklist to authenticat
 grant select, insert, update on public.document_requests to authenticated;
 grant select, insert, update on public.messages to authenticated;
 grant select, insert on public.message_forward_log to authenticated;
-grant select, insert on public.activity_log to authenticated;
+grant select on public.activity_log to authenticated;   -- no INSERT (sql/030, sql/071)
 grant select, update on public.matches to authenticated;
 grant select, insert, update on public.notifications to authenticated;

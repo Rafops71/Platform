@@ -37,6 +37,8 @@ async function initLoginPage() {
 
   const notice = document.getElementById('notice');
   if (getQueryParam('pending') === '1') {
+    // data-i18n so the sentence follows the language toggle (applyTranslations re-reads it).
+    notice.setAttribute('data-i18n', 'login.pending');
     notice.textContent = t('login.pending');
     notice.classList.remove('hidden');
   } else if (getQueryParam('blocked')) {
@@ -53,6 +55,7 @@ async function initLoginPage() {
     // reset.html sends them back here after signing them out, so the last
     // thing they see is a confirmation and a form that proves the new
     // password works while they are still sitting in front of it.
+    notice.setAttribute('data-i18n', 'login.resetOk');
     notice.textContent = t('login.resetOk');
     notice.classList.remove('hidden');
   }

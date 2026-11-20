@@ -30,8 +30,11 @@ function fn(src, name) {
   expect(m, `function ${name} not found`).not.toBeNull();
   return m[0];
 }
-/** Every property of a listing row `l` that a piece of source reads: l.something */
-const fieldsRead = (code) => new Set([...code.matchAll(/\bl\.([a-z_]+)/g)].map((m) => m[1]));
+/** Source without its comments (block comments, whole-line comments and trailing comments), so a field named only in a
+ *  comment is not counted as read. */
+const stripComments = (code) => code.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '').replace(/(?<![:"'`\\])\/\/.*$/gm, '');
+/** Every property of a listing row `l` that a piece of source reads: l.something (in code, never in a comment) */
+const fieldsRead = (code) => new Set([...stripComments(code).matchAll(/\bl\.([a-z_]+)/g)].map((m) => m[1]));
 
 test.describe('parity: what Browse shows and what the Operator can read', () => {
 
@@ -56,6 +59,11 @@ test.describe('parity: what Browse shows and what the Operator can read', () => 
     const missing = [...browse].filter((f) => !ignored.has(f)
       && !(covers[f] ? covers[f].every((c) => operator.has(c)) : operator.has(f)));
     expect(missing, `Browse shows these listing fields to members but the Operator's panel never reads them: ${missing.join(', ')}`).toEqual([]);
+  });
+
+  test('Item89 a field named only in a comment does not count as read (the scan ignores comments)', () => {
+    const code = "// l.notes is shown elsewhere\n/* l.specification */\nconst a = l.price_conditions; // l.docs_seen\nconst b = l.created_at;//l.origin\nconst u = 'https://x.example/' + l.currency;\n";
+    expect([...fieldsRead(code)].sort()).toEqual(['created_at', 'currency', 'price_conditions']);
   });
 
   test('Item89 the Read panel builds the price the way Browse does, and offers Translate on text that has words and not on a bare number', () => {
