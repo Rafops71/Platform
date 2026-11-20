@@ -1214,7 +1214,17 @@ function wireForwardModal() {
   document.getElementById('forward-reconcile-btn').addEventListener('click', askMemberToReconcile);
   FORWARD_TRANSLATE_RESET = wireTranslateControl(document.getElementById('forward-translate-btn'),
     document.getElementById('forward-translate-to'), document.getElementById('forward-translation'),
-    () => (FORWARD_TARGET ? FORWARD_TARGET.originalBody : ''));
+    () => (FORWARD_TARGET ? FORWARD_TARGET.originalBody : ''),
+    // A translation going on or off screen changes whether Forward is allowed (it must hold no contact details).
+    () => renderForwardEditor());
+}
+
+/** The translation the Operator is looking at in the forward window, to be sent below the original, or null.
+ *  Only a real translation counts: hidden, or the "not available" sentence, means the original goes alone. */
+function forwardTranslationShown() {
+  if (!FORWARD_TRANSLATE_RESET.isShown || !FORWARD_TRANSLATE_RESET.isShown()) return null;
+  const text = FORWARD_TRANSLATE_RESET.shownText().trim();
+  return text ? { text, lang: FORWARD_TRANSLATE_RESET.lang() } : null;
 }
 
 // ----------------------------------------------------------- TRANSLATE ----
@@ -1260,10 +1270,16 @@ async function operatorTranslateText(text, target) {
 }
 
 /** Wires one Translate button, its language drop-down and its result box. Pressing again hides the result;
- *  changing the language hides it too. Returns a function that puts the control back as it was. */
-function wireTranslateControl(btn, select, box, getText) {
+ *  changing the language hides it too. Returns a function that puts the control back as it was; that function
+ *  also answers isShown() (a real translation is on show, not the "not available" sentence), shownText() and
+ *  lang(). onChange, when given, runs whenever a translation appears or goes away. */
+function wireTranslateControl(btn, select, box, getText, onChange) {
   let shown = false;
-  const reset = () => { box.hidden = true; box.textContent = ''; shown = false; btn.textContent = 'Translate'; };
+  const changed = () => { if (onChange) onChange(); };
+  const reset = () => { box.hidden = true; box.textContent = ''; shown = false; btn.textContent = 'Translate'; changed(); };
+  reset.isShown = () => shown;
+  reset.shownText = () => box.textContent;
+  reset.lang = () => select.value;
   btn.addEventListener('click', async () => {
     if (btn.disabled) return;
     if (shown) { reset(); return; }
@@ -1274,7 +1290,7 @@ function wireTranslateControl(btn, select, box, getText) {
     btn.disabled = false; select.disabled = false;
     box.textContent = out === null ? TRANSLATE_UNAVAILABLE : out;
     box.hidden = false;
-    if (out !== null) { shown = true; btn.textContent = 'Hide translation'; }
+    if (out !== null) { shown = true; btn.textContent = 'Hide translation'; changed(); }
   });
   select.addEventListener('change', reset);
   return reset;
@@ -1303,6 +1319,7 @@ function openForwardModal(btn) {
     createdAt: FORWARD_DATES.get(btn.dataset.forward) || null,
     status: btn.dataset.status || 'pending_review',
   };
+  FORWARD_TRANSLATE_RESET();   // before the check below: a translation left from another message must not count
   document.getElementById('forward-edit').value = FORWARD_TARGET.originalBody;
   renderForwardEditor();
 
@@ -1311,7 +1328,6 @@ function openForwardModal(btn) {
     btn.dataset.targetKind === 'sender'
       ? `Forwarding this reply to ${who}, who wrote the message it answers (${FORWARD_TARGET.refLabel}).`
       : `Forwarding to the owner of ${FORWARD_TARGET.refLabel}.`;
-  FORWARD_TRANSLATE_RESET();
   document.getElementById('forward-modal').classList.remove('hidden');
   loadReconcileOptions();
 }
@@ -1323,6 +1339,8 @@ async function confirmForward() {
   const text = document.getElementById('forward-edit').value.trim();
   if (!text) { showError('The message is empty. Write something to forward.'); return; }
   if (findContacts(text).length) return;
+  const shown = forwardTranslationShown();
+  if (shown && findContacts(shown.text).length) return;
   // One press at a time: each path creates a row, and two presses created two.
   return withButtonBusy('forward-confirm-btn', 'Forwarding…', confirmForwardNow);
 }
@@ -1365,19 +1383,28 @@ function renderForwardEditor() {
   });
   html += escapeHtml(text.slice(at));
   document.getElementById('forward-preview').innerHTML = html;
+  // The translation that would be sent below the message is checked the same way (batch 2 point 2): a translation must
+  // not carry a phone number or an address through. Hiding the translation lets the original go on its own.
+  const shown = forwardTranslationShown();
+  const translationHits = shown ? findContacts(shown.text) : [];
   document.getElementById('forward-flags').textContent = hits.length
     ? `${hits.length} contact detail(s) highlighted in red. This message cannot be forwarded.`
-    : '';
+    : translationHits.length
+      ? `${translationHits.length} contact detail(s) in the translation. It cannot be forwarded with them: hide the translation to forward the message alone.`
+      : '';
   // A message with contact details cannot be forwarded: Forward is disabled and
   // the rewrite request is offered instead.
-  document.getElementById('forward-confirm-btn').disabled = hits.length > 0;
+  document.getElementById('forward-confirm-btn').disabled = hits.length > 0 || translationHits.length > 0;
   document.getElementById('forward-rewrite-btn').classList.toggle('hidden', hits.length === 0);
 }
 
 async function confirmForwardNow() {
-  const { error: e1 } = await myplatform.from('message_forward_log').insert({
-    message_id: FORWARD_TARGET.messageId, operator_id: CURRENT_PROFILE.id, to_user_id: FORWARD_TARGET.toUserId
-  });
+  // The translation on screen, if there is a real one, is stored with the forward and shown to the recipient below the
+  // original (sql/073). The Operator cannot edit it; it is sent exactly as it was shown.
+  const shown = forwardTranslationShown();
+  const row = { message_id: FORWARD_TARGET.messageId, operator_id: CURRENT_PROFILE.id, to_user_id: FORWARD_TARGET.toUserId };
+  if (shown) { row.translation = shown.text; row.translation_lang = shown.lang; }
+  const { error: e1 } = await myplatform.from('message_forward_log').insert(row);
   if (e1) { showError(errorMessage(e1)); return; }
   const { error: e2 } = await myplatform.from('messages').update({ status: 'forwarded' }).eq('id', FORWARD_TARGET.messageId);
   if (e2) { showError(errorMessage(e2)); return; }
