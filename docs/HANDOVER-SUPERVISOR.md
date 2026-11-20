@@ -85,3 +85,9 @@ SOP wording, T8 code protection, T11, T12, films redo, application-review clause
 4. Sign-in pending/reset notices must switch language with the language switch (owner yes, block 3). Spanish by Builder 3, shown to the owner before merge.
 Still to ask: broker design B1-B4, trader-as-broker, legal/wording parked items. Owner reads no Spanish: never ask him to judge Spanish.
 - Batch 2 update: item 2 has NO marker line (owner: "no need to write machine translation"). Item 5 (owner yes, block 4): notify the Operator when a member changes company or job title (activity line with old and new value; nothing blocked). Role is per listing (listings.poster_role); trader-as-broker-on-one-deal is already supported. Still unchecked: whether the profile stores a member type, and what stops a wrong role being ticked.
+
+## Update 20 Nov (Supervisor 2): BATCH 2 DONE
+- MERGED: #127 glossary (8902164), #129 Operator Read + Translate on listings + parity test, checklist Item 89 (98b14d5), #130 drop activity_log_insert + sign-in notices language switch + profile company/job-title notice (f4afc59), #131 forwarded message carries the Operator's translation below the original, no label (3f14c50). Live: migrations 071, 072, 073 applied and read back. Edge functions unchanged since the glossary deploy.
+- Console words chosen by Builder 3 (owner told): "Read", "Hide", and the line "N contact detail(s) in the translation. It cannot be forwarded with them: hide the translation to forward the message alone."
+- NOT done / open: wider UPDATE/DELETE/TRUNCATE grants for anon and authenticated on activity_log (RLS blocks API; raise with owner after a proper check); broker design B1-B4 (questions need rebuilding from notes); legal/wording items; staging ledger content hash; PR #89 cleanup; pitch/stress brief out of date.
+- Owner has NOT yet pressed Read on a live listing or checked the forward-with-translation or the activity-list notice; ask him to.
