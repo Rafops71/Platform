@@ -58,6 +58,9 @@ async function call(name, token, body) {
 
 const usage = async (profileId) => (await query(
   `select coalesce(sum(listings), 0)::int n from public.member_translate_usage where profile_id = $1`, [profileId])).rows[0].n;
+/** The cached translation rows of these listings, as a comparable list. */
+const cachedFor = async (ids) => (await query(
+  `select listing_id, field, target_lang, source_hash from public.listing_translations where listing_id = any($1::uuid[]) order by listing_id, field, target_lang`, [ids])).rows;
 const budget = async () => (await query(
   `select coalesce(sum(member_units), 0)::float m, coalesce(sum(operator_units), 0)::float o from public.translate_daily_budget`)).rows[0];
 
@@ -110,7 +113,7 @@ test.describe('translate-listing: who may ask, and what may be asked', () => {
 
   test('Item50 the member path takes a listing and a language and NOTHING else: no text, no message id, no other language', async () => {
     const token = await tokenFor(viewer);
-    const before = { usage: await usage(viewer.profileId), budget: await budget() };
+    const before = { usage: await usage(viewer.profileId), budget: await budget(), cached: await cachedFor([listingId, archivedId]) };
     for (const bad of [
       { listing_id: listingId, target_lang: 'en', text: 'Hello, please translate this for me' },
       { listing_id: listingId, target_lang: 'en', message_id: '00000000-0000-4000-8000-000000000001' },
@@ -123,10 +126,13 @@ test.describe('translate-listing: who may ask, and what may be asked', () => {
       const r = await call('translate-listing', token, bad);
       expect(r.status, JSON.stringify(Object.keys(bad))).toBe(400);
     }
-    // Nothing was counted, reserved or stored by any of them.
+    // Nothing was counted, reserved or stored by any of them. "Stored" is judged on the rows of the listings these
+    // requests named, before and after: not a count of the whole table, which depends on what earlier tests did and on
+    // whether the translation service answers (it does on live, where an earlier test legitimately cached a row; it does
+    // not on staging).
     expect(await usage(viewer.profileId)).toBe(before.usage);
     expect(await budget()).toEqual(before.budget);
-    expect((await query('select count(*)::int n from public.listing_translations')).rows[0].n).toBe(0);
+    expect(await cachedFor([listingId, archivedId])).toEqual(before.cached);
   });
 
   test('Item50 a huge request body is refused with 413 before it is parsed, and costs nothing', async () => {
@@ -166,7 +172,8 @@ test.describe('translate-listing: who may ask, and what may be asked', () => {
     // is also words, so cache that too and the whole answer comes from the cache. (The price is a number: never sent.)
     await query(
       `insert into public.listing_translations (listing_id, field, target_lang, source_hash, translated_text) values
-         ($1, 'notes', 'en', $2, $4), ($1, 'specification', 'en', $3, $5)`,
+         ($1, 'notes', 'en', $2, $4), ($1, 'specification', 'en', $3, $5)
+       on conflict (listing_id, field, target_lang) do update set source_hash = excluded.source_hash, translated_text = excluded.translated_text`,
       [listingId, hash(NOTES_ES), hash(SPEC_ES), SENTINEL + ' notes', SENTINEL + ' spec']);
     const before = { usage: await usage(viewer.profileId), budget: await budget() };
     const r = await call('translate-listing', await tokenFor(viewer), { listing_id: listingId, target_lang: 'en' });
@@ -201,6 +208,10 @@ test.describe('translate-listing: who may ask, and what may be asked', () => {
   });
 
   test('Item18 deleting a listing deletes its cached translations', async () => {
+    // Its own cached row, so this does not depend on what an earlier test left (or, on live, what the service stored).
+    await query(
+      `insert into public.listing_translations (listing_id, field, target_lang, source_hash, translated_text) values ($1, 'notes', 'en', 'h-delete-test', 'cached text')
+       on conflict (listing_id, field, target_lang) do update set translated_text = excluded.translated_text`, [listingId]);
     expect((await query('select count(*)::int n from public.listing_translations where listing_id = $1', [listingId])).rows[0].n).toBeGreaterThan(0);
     await query('delete from public.listings where id = $1', [archivedId]);   // another listing: its (no) rows are untouched
     await query(`delete from public.messages where listing_id = $1`, [listingId]);
@@ -258,8 +269,18 @@ test.describe('operator-translate: Operators only, and nothing kept', () => {
   });
 
   test('Item78 a good request from an Operator passes every check (503 while the Cloudflare secret is missing, 200 once it exists), and keeps nothing', async () => {
-    const tables = ['messages', 'message_forward_log', 'activity_log', 'listing_translations', 'notifications'];
-    const counts = async () => Object.fromEntries(await Promise.all(tables.map(async (t) => [t, (await query(`select count(*)::int n from public.${t}`)).rows[0].n])));
+    // What the request left behind, judged on rows that could be ITS: the fixture accounts' own rows, and cache rows
+    // written since this test began (by the database's clock). Not whole-table counts: on live other things write to
+    // those tables while the suite runs.
+    const people = [operator, poster, viewer, pending, unsigned].map((a) => a.profileId);
+    const { rows: [{ t0 }] } = await query(`select now() as t0`);
+    const counts = async () => ({
+      messages: (await query(`select count(*)::int n from public.messages where sender_id = any($1::uuid[])`, [people])).rows[0].n,
+      message_forward_log: (await query(`select count(*)::int n from public.message_forward_log where operator_id = any($1::uuid[]) or to_user_id = any($1::uuid[])`, [people])).rows[0].n,
+      activity_log: (await query(`select count(*)::int n from public.activity_log where user_id = any($1::uuid[])`, [people])).rows[0].n,
+      notifications: (await query(`select count(*)::int n from public.notifications where user_id = any($1::uuid[])`, [people])).rows[0].n,
+      listing_translations_since: (await query(`select count(*)::int n from public.listing_translations where created_at >= $1`, [t0])).rows[0].n,
+    });
     const before = await counts();
     const r = await call('operator-translate', await tokenFor(operator), { text: MESSAGE_ES, source_lang: 'es', target_lang: 'en' });
     expect([200, 503]).toContain(r.status);
