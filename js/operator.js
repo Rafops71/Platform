@@ -406,8 +406,8 @@ function listingReadHtml(l) {
     : `Destination: ${escapeHtml(l.destination || 'n/a')}`;
   const field = (name, label, shown) => `
     <div class="list-row-meta" data-read-field="${name}">${escapeHtml(label)}: ${escapeHtml(shown)}</div>`;
-  // ONE Translate control for the whole offer, under the free text as Browse has its one button under the text
-  // (owner, 21 Nov: not one in the middle of every field). Only when some field holds words.
+  // ONE Translate control for the whole offer, at the very bottom of the panel, after the Poster / Documents / Posted
+  // lines (owner, 21 Nov: not one in the middle of every field, and not after Notes). Only when some field holds words.
   const anyWords = READ_TEXT_FIELDS.some(([name]) => readHasWords(l[name]));
   const docs = l.docs_seen ? READ_DOCS_LABELS[l.docs_seen] || l.docs_seen : 'Not stated';
   return `
@@ -415,9 +415,9 @@ function listingReadHtml(l) {
     ${l.specification ? field('specification', 'Specification / Grade', l.specification) : ''}
     ${l.price_conditions ? field('price_conditions', 'Price', operatorPriceLine(l)) : ''}
     ${l.notes ? field('notes', 'Notes', l.notes) : ''}
-    ${anyWords ? `<div data-read-translate>${translateControlHtml()}</div>` : ''}
     <div class="list-row-meta">Poster: ${escapeHtml(posterDetail(l))}${l.type === 'sell' ? ` · Documents: ${escapeHtml(docs)}` : ''}</div>
-    <div class="list-row-meta">${l.has_documents ? 'Documents indicated' : '<strong>No documents indicated</strong>'} · Posted ${escapeHtml(formatDate(l.created_at))}</div>`;
+    <div class="list-row-meta">${l.has_documents ? 'Documents indicated' : '<strong>No documents indicated</strong>'} · Posted ${escapeHtml(formatDate(l.created_at))}</div>
+    ${anyWords ? `<div data-read-translate>${translateControlHtml()}</div>` : ''}`;
 }
 
 /** The one Translate control of a Read panel. One press translates every free-text field that holds words (one call

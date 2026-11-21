@@ -7,8 +7,8 @@
 //      Operator's Read panel shows) and FAILS if Browse shows a listing field the Operator's code never touches.
 //      Add a field to Browse and forget the Operator's panel, and this goes red.
 //   2. Browser tests: the Operator opens All Listings, presses Read on a listing that has every field filled, and
-//      sees each one. There is ONE Translate control for the offer, under the free text (owner, 21 Nov: not one in the
-//      middle of each field); one press translates every field that holds words and shows one labelled block per field
+//      sees each one. There is ONE Translate control for the offer, at the very bottom of the panel after the Poster /
+//      Documents / Posted lines (owner, 21 Nov: not one in the middle of each field, and not after Notes); one press translates every field that holds words and shows one labelled block per field
 //      below it (operator-translate is stubbed here: this proves the screen, not the translation); the original is never
 //      replaced; a field that fails shows the unavailable sentence and the others stay; a listing whose only text is a
 //      bare price has no control at all.
@@ -78,10 +78,12 @@ test.describe('parity: what Browse shows and what the Operator can read', () => 
     expect(fn(op, 'readHasWords')).toContain('\\p{L}');
     const html = fn(op, 'listingReadHtml');
     expect((html.match(/translateControlHtml\(\)/g) || []).length, 'one Translate control per listing, not one per field').toBe(1);
-    // It sits after the free text (Notes) and before the poster lines, as Browse puts its one button under the text.
+    // It is the LAST thing in the panel: after the free text, after the Poster / Documents line, and after the Posted line
+    // (owner, 21 Nov).
     expect(html.indexOf("field('notes'")).toBeGreaterThan(-1);
     expect(html.indexOf('data-read-translate')).toBeGreaterThan(html.indexOf("field('notes'"));
-    expect(html.indexOf('data-read-translate')).toBeLessThan(html.indexOf('Poster:'));
+    expect(html.indexOf('data-read-translate')).toBeGreaterThan(html.indexOf('Poster:'));
+    expect(html.indexOf('data-read-translate')).toBeGreaterThan(html.indexOf('Posted '));
   });
 });
 
@@ -150,23 +152,25 @@ test.describe('the screen', () => {
     expect(rows[0]).toEqual({ specification: SPEC, notes: NOTES, price_conditions: '13850' });
   });
 
-  test('Item89 there is ONE Translate control, under the free text; one press translates every field with words, one labelled block each, below the control', async ({ page }) => {
+  test('Item89 there is ONE Translate control, at the very bottom of the panel; one press translates every field with words, one labelled block each, below the control', async ({ page }) => {
     await stubEcho(page);
     const { panel } = await openRead(page, refFull);
     // One control for the whole offer, not one per field, and none inside a field.
     await expect(panel.locator('[data-translate-btn]')).toHaveCount(1);
     await expect(panel.locator('[data-read-field] [data-translate-btn]')).toHaveCount(0);
-    // It sits after Notes (the end of the free text) and before the poster lines.
+    // It is at the very bottom: after Notes, after the Poster / Documents line and after the Posted line.
     const order = await panel.evaluate((el) => {
-      const text = (n) => el.innerText.indexOf(n);
       const btn = el.querySelector('[data-translate-btn]');
       const notes = el.querySelector('[data-read-field="notes"]');
-      const poster = [...el.querySelectorAll('.list-row-meta')].find((d) => d.innerText.startsWith('Poster:'));
+      const metas = [...el.querySelectorAll('.list-row-meta')];
+      const poster = metas.find((d) => d.innerText.startsWith('Poster:'));
+      const posted = metas.find((d) => d.innerText.includes('Posted '));
       const follows = (a, b) => !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
-      return { afterNotes: follows(notes, btn), beforePoster: follows(btn, poster), noteAt: text('Notes:') };
+      return { afterNotes: follows(notes, btn), afterPoster: follows(poster, btn), afterPosted: follows(posted, btn) };
     });
     expect(order.afterNotes).toBe(true);
-    expect(order.beforePoster).toBe(true);
+    expect(order.afterPoster).toBe(true);
+    expect(order.afterPosted).toBe(true);
 
     await panel.locator('[data-translate-btn]').click();
     const box = panel.locator('[data-translation]');
