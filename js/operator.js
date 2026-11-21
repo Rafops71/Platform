@@ -415,7 +415,7 @@ function listingReadHtml(l) {
     ${l.specification ? field('specification', 'Specification / Grade', l.specification) : ''}
     ${l.price_conditions ? field('price_conditions', 'Price', operatorPriceLine(l)) : ''}
     ${l.notes ? field('notes', 'Notes', l.notes) : ''}
-    <div class="list-row-meta">Poster: ${escapeHtml(posterDetail(l))}${l.type === 'sell' ? ` · Documents: ${escapeHtml(docs)}` : ''}</div>
+    <div class="list-row-meta">Poster: ${escapeHtml(posterDetail(l))}${l.type === 'sell' ? ` · Documents seen by poster: ${escapeHtml(docs)}` : ''}</div>
     <div class="list-row-meta">${l.has_documents ? 'Documents indicated' : '<strong>No documents indicated</strong>'} · Posted ${escapeHtml(formatDate(l.created_at))}</div>
     ${anyWords ? `<div data-read-translate>${translateControlHtml()}</div>` : ''}`;
 }
