@@ -38,6 +38,10 @@ test.describe.configure({ mode: 'serial' });
 
 let operator, poster, viewer, pending, unsigned;
 let listingId, archivedId, listingRef;
+// Learned once, in beforeAll: do the Edge Functions have the Cloudflare secrets in THIS environment? On live they do and
+// the translation service answers (200); on staging they do not and every request that passes its checks ends in 503.
+// Assertions that are true in only one of the two are made conditional on this, or are not made.
+let cloudflareAnswers = false;
 
 async function tokenFor(account) {
   const res = await fetch(`${process.env.SUPABASE_URL}/auth/v1/token?grant_type=password`, {
@@ -88,6 +92,10 @@ test.beforeAll(async () => {
   await query(
     `insert into public.messages (sender_id, listing_id, body, status) values ($1, $2, $3, 'pending_review')`,
     [viewer.profileId, listingId, MESSAGE_ES]);
+  // One tiny real request through the Operator's function (a few characters; nothing is stored, and on staging it is refused
+  // before any call), to learn whether the service answers here.
+  const probe = await call('operator-translate', await tokenFor(operator), { text: 'Hola', source_lang: 'es', target_lang: 'en' });
+  cloudflareAnswers = probe.status === 200 && typeof probe.body.translated_text === 'string';
 });
 
 test.afterAll(async () => { await cleanup(); });
@@ -146,20 +154,39 @@ test.describe('translate-listing: who may ask, and what may be asked', () => {
   test('Item18 an approved member who may read the listing passes every check (503 while the Cloudflare secret is missing, 200 once it exists)', async () => {
     const r = await call('translate-listing', await tokenFor(viewer), { listing_id: listingId, target_lang: 'en' });
     expect([200, 503]).toContain(r.status);
-    if (r.status === 503) expect(r.body.error).toBe('unavailable');
-    // A refusal costs the member nothing: with the secret missing the press is given back.
-    if (r.status === 503) expect(await usage(viewer.profileId)).toBe(0);
+    if (r.status === 503) {
+      expect(r.body.error).toBe('unavailable');
+      // A refusal costs the member nothing when no call went out: with the secret missing the press is given back.
+      // Where the service answers, a 503 can also be the service failing AFTER a call went out, and then the press stays
+      // counted (so a field that always fails cannot be used to make unlimited calls): 0 or 1 is right there.
+      expect(cloudflareAnswers ? [0, 1] : [0]).toContain(await usage(viewer.profileId));
+    } else {
+      // Where the service answers: both fields that hold words come back, one press is counted, and they are stored.
+      expect(typeof r.body.translations.specification).toBe('string');
+      expect(typeof r.body.translations.notes).toBe('string');
+      expect(await usage(viewer.profileId)).toBe(1);
+      expect((await cachedFor([listingId])).map((c) => c.field).sort()).toEqual(['notes', 'specification']);
+    }
   });
 
   test('Item18 the 31st listing in an hour is refused with 429, and costs nothing', async () => {
-    await query(
-      `insert into public.member_translate_usage (profile_id, hour_start, listings) values ($1, date_trunc('hour', now()), 30)
-       on conflict (profile_id, hour_start) do update set listings = 30`, [viewer.profileId]);
+    // The limit applies only when the translation service would be asked. A listing whose text is cached is served
+    // without a press, so this must start from a listing with NOTHING cached (on live an earlier test's real request
+    // cached it). The member then uses up the hour's 30 presses through the real counter, and the 31st is refused.
+    await query('delete from public.listing_translations where listing_id = $1', [listingId]);
+    await query('delete from public.member_translate_usage where profile_id = $1', [viewer.profileId]);
+    let last = null;
+    for (let i = 0; i < 30; i++) {
+      last = (await query('select public.translate_take_slot($1, 30) as h', [viewer.profileId])).rows[0].h;
+      expect(last, `press ${i + 1} of 30 should have been counted`).not.toBeNull();
+    }
+    expect(await usage(viewer.profileId)).toBe(30);
     const before = await budget();
     const r = await call('translate-listing', await tokenFor(viewer), { listing_id: listingId, target_lang: 'en' });
     expect(r.status).toBe(429);
-    expect(await usage(viewer.profileId)).toBe(30);
-    expect(await budget()).toEqual(before);
+    expect(await usage(viewer.profileId)).toBe(30);                 // the refused press took no slot
+    expect(await budget()).toEqual(before);                         // no units reserved, so no call to the service was made
+    expect(await cachedFor([listingId])).toEqual([]);               // and nothing was stored
     await query('delete from public.member_translate_usage where profile_id = $1', [viewer.profileId]);
   });
 
@@ -185,12 +212,25 @@ test.describe('translate-listing: who may ask, and what may be asked', () => {
     expect(await budget()).toEqual(before.budget);                   // no units reserved
 
     // The poster edits the notes: the old translation was made from different text and must not be served.
+    // Proved without asking the translation service, so it holds on live and on staging alike and spends nothing: with the
+    // member's hourly limit already used up, text that is still cached is served (200, no press needed) and the same listing
+    // after an edit is refused (429: the changed text would need a press, and there is none left).
+    await query(
+      `insert into public.member_translate_usage (profile_id, hour_start, listings) values ($1, date_trunc('hour', now()), 30)
+       on conflict (profile_id, hour_start) do update set listings = 30`, [viewer.profileId]);
+    const cachedBefore = await cachedFor([listingId]);
+    const budgetBefore = await budget();
+    const stillCached = await call('translate-listing', await tokenFor(viewer), { listing_id: listingId, target_lang: 'en' });
+    expect(stillCached.status).toBe(200);
+    expect(stillCached.body.translations.notes).toBe(SENTINEL + ' notes');
     await query(`update public.listings set notes = 'Embarque en abril, puerto de Callao' where id = $1`, [listingId]);
     const stale = await call('translate-listing', await tokenFor(viewer), { listing_id: listingId, target_lang: 'en' });
-    expect([200, 503]).toContain(stale.status);
-    if (stale.status === 200) expect(stale.body.translations.notes).not.toBe(SENTINEL + ' notes');
-    else expect(stale.body.translations).toBeUndefined();
+    expect(stale.status).toBe(429);
+    expect(stale.body.translations, 'a stale translation must not be served').toBeUndefined();
+    expect(await cachedFor([listingId])).toEqual(cachedBefore);
+    expect(await budget()).toEqual(budgetBefore);
     await query(`update public.listings set notes = $2 where id = $1`, [listingId, NOTES_ES]);
+    await query('delete from public.member_translate_usage where profile_id = $1', [viewer.profileId]);
   });
 
   test('Item50 nobody but the service role can read or change the cache, the counts or the units', async () => {
