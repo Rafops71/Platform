@@ -6,9 +6,12 @@
 //   1. A PARITY test with no database: it reads js/app.js (what Browse shows a member) and js/operator.js (what the
 //      Operator's Read panel shows) and FAILS if Browse shows a listing field the Operator's code never touches.
 //      Add a field to Browse and forget the Operator's panel, and this goes red.
-//   2. A browser test: the Operator opens All Listings, presses Read on a listing that has every field filled, and
-//      sees each one; the Translate control sends the field's own text to operator-translate (stubbed here: this
-//      proves the screen, not the translation) and the original is never replaced.
+//   2. Browser tests: the Operator opens All Listings, presses Read on a listing that has every field filled, and
+//      sees each one. There is ONE Translate control for the offer, at the very bottom of the panel after the Poster /
+//      Documents / Posted lines (owner, 21 Nov: not one in the middle of each field, and not after Notes); one press translates every field that holds words and shows one labelled block per field
+//      below it (operator-translate is stubbed here: this proves the screen, not the translation); the original is never
+//      replaced; a field that fails shows the unavailable sentence and the others stay; a listing whose only text is a
+//      bare price has no control at all.
 // What Operator RLS allows was read, not assumed: listings_select is "owner or Operator" and document_checklist_select
 // is "Operator or the listing's owner" (sql/rls_policies.sql, sql/002), so no migration is needed.
 
@@ -73,13 +76,20 @@ test.describe('parity: what Browse shows and what the Operator can read', () => 
     expect(price).toContain('l.currency');
     expect(price).toContain('l.price_unit');
     expect(fn(op, 'readHasWords')).toContain('\\p{L}');
-    expect(fn(op, 'listingReadHtml')).toContain('readHasWords(raw) ? translateControlHtml()');
+    const html = fn(op, 'listingReadHtml');
+    expect((html.match(/translateControlHtml\(\)/g) || []).length, 'one Translate control per listing, not one per field').toBe(1);
+    // It is the LAST thing in the panel: after the free text, after the Poster / Documents line, and after the Posted line
+    // (owner, 21 Nov).
+    expect(html.indexOf("field('notes'")).toBeGreaterThan(-1);
+    expect(html.indexOf('data-read-translate')).toBeGreaterThan(html.indexOf("field('notes'"));
+    expect(html.indexOf('data-read-translate')).toBeGreaterThan(html.indexOf('Poster:'));
+    expect(html.indexOf('data-read-translate')).toBeGreaterThan(html.indexOf('Posted '));
   });
 });
 
 test.describe('the screen', () => {
   test.describe.configure({ mode: 'serial' });
-  let operator, poster, listingId;
+  let operator, poster, listingId, refFull, refPriceOnly;
   const SPEC = 'Concentrado de cobre, 28% Cu mínimo';
   const NOTES = 'Embarque en marzo, puerto de Callao';
 
@@ -94,25 +104,37 @@ test.describe('the screen', () => {
          specification, price_conditions, currency, price_unit, notes, poster_role, principal_kind, docs_seen, truth_confirmed_at)
        values ($1, 'sell', 'Copper Concentrate', 100, 'Metric tons', 'FOB', 'Peru', 'available', public.next_reference('sell'),
          $2, '13850', 'USD', 'Metric tons', $3, 'principal', 'producer', 'yes', now())
-       returning id`, [poster.profileId, SPEC, NOTES]);
-    listingId = rows[0].id;
+       returning id, reference_number`, [poster.profileId, SPEC, NOTES]);
+    listingId = rows[0].id; refFull = rows[0].reference_number;
     await query(`insert into public.document_checklist (listing_id, doc_type, indicated) values ($1, 'Certificate of Origin', true)`, [listingId]);
+    // A listing whose only free text is a bare price: nothing to translate.
+    const b = await query(
+      `insert into public.listings (user_id, type, commodity, quantity, unit, incoterm, origin, status, reference_number, price_conditions, currency, price_unit)
+       values ($1, 'sell', 'Antimony', 5, 'Metric tons', 'FOB', 'Peru', 'available', public.next_reference('sell'), '9100', 'USD', 'Metric tons')
+       returning reference_number`, [poster.profileId]);
+    refPriceOnly = b.rows[0].reference_number;
   });
   test.afterAll(async () => { await cleanup(); });
 
-  test('Item89 the Operator presses Read on a listing and sees every field a member sees, translates a text field, and the original stays', async ({ page }) => {
-    await page.route('**/functions/v1/operator-translate', (route) => {
-      const sent = route.request().postDataJSON();
-      route.fulfill({ status: 200, contentType: 'application/json',
-        body: JSON.stringify({ translated_text: `[${sent.source_lang}>${sent.target_lang}] ${sent.text}` }) });
-    });
+  const stubEcho = (page) => page.route('**/functions/v1/operator-translate', (route) => {
+    const sent = route.request().postDataJSON();
+    route.fulfill({ status: 200, contentType: 'application/json',
+      body: JSON.stringify({ translated_text: `[${sent.source_lang}>${sent.target_lang}] ${sent.text}` }) });
+  });
+  const openRead = async (page, ref) => {
     await signIn(page, operator, 'operator.html');
     await openScreen(page, 'listings');
-    const row = page.locator('#listings-table tbody tr', { hasText: 'Readme Metals' }).first();
+    const row = page.locator('#listings-table tbody tr', { hasText: ref });
     await expect(row).toBeVisible({ timeout: 15_000 });
     await row.locator('[data-read-listing]').click();
     const panel = page.locator('#listings-table tr.listing-read');
     await expect(panel).toBeVisible();
+    return { row, panel };
+  };
+
+  test('Item89 the Operator presses Read on a listing and sees every field a member sees, and the original stays', async ({ page }) => {
+    await stubEcho(page);
+    const { row, panel } = await openRead(page, refFull);
     // Every field, as Browse words it in English.
     await expect(panel).toContainText('Sell offer');
     await expect(panel).toContainText('100 Metric tons');
@@ -123,26 +145,87 @@ test.describe('the screen', () => {
     await expect(panel).toContainText(`Notes: ${NOTES}`);
     await expect(panel).toContainText('Documents indicated');
     await expect(panel).toContainText('Documents: Seen by the poster');
-    // The price is a bare number: no Translate control on it. The two text fields each have one.
-    await expect(panel.locator('[data-read-field="price_conditions"] [data-translate-btn]')).toHaveCount(0);
-    await expect(panel.locator('[data-read-field="specification"] [data-translate-btn]')).toHaveCount(1);
-    await expect(panel.locator('[data-read-field="notes"] [data-translate-btn]')).toHaveCount(1);
-    // Translate the notes: the translation appears, the original stays, and it can be hidden.
-    const notes = panel.locator('[data-read-field="notes"]');
-    await notes.locator('[data-translate-btn]').click();
-    await expect(notes.locator('[data-translation]')).toHaveText(`[es>en] ${NOTES}`);
-    await expect(notes).toContainText(`Notes: ${NOTES}`);
-    await expect(notes.locator('[data-translate-btn]')).toHaveText('Hide translation');
-    await notes.locator('[data-translate-btn]').click();
-    await expect(notes.locator('[data-translation]')).toBeHidden();
-    // The other direction.
-    await notes.locator('[data-translate-to]').selectOption('es');
-    await notes.locator('[data-translate-btn]').click();
-    await expect(notes.locator('[data-translation]')).toContainText('[en>es]');
     // Read again closes the panel; nothing was changed in the database.
     await row.locator('[data-read-listing]').click();
     await expect(panel).toHaveCount(0);
     const { rows } = await query(`select specification, notes, price_conditions from public.listings where id = $1`, [listingId]);
     expect(rows[0]).toEqual({ specification: SPEC, notes: NOTES, price_conditions: '13850' });
+  });
+
+  test('Item89 there is ONE Translate control, at the very bottom of the panel; one press translates every field with words, one labelled block each, below the control', async ({ page }) => {
+    await stubEcho(page);
+    const { panel } = await openRead(page, refFull);
+    // One control for the whole offer, not one per field, and none inside a field.
+    await expect(panel.locator('[data-translate-btn]')).toHaveCount(1);
+    await expect(panel.locator('[data-read-field] [data-translate-btn]')).toHaveCount(0);
+    // It is at the very bottom: after Notes, after the Poster / Documents line and after the Posted line.
+    const order = await panel.evaluate((el) => {
+      const btn = el.querySelector('[data-translate-btn]');
+      const notes = el.querySelector('[data-read-field="notes"]');
+      const metas = [...el.querySelectorAll('.list-row-meta')];
+      const poster = metas.find((d) => d.innerText.startsWith('Poster:'));
+      const posted = metas.find((d) => d.innerText.includes('Posted '));
+      const follows = (a, b) => !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+      return { afterNotes: follows(notes, btn), afterPoster: follows(poster, btn), afterPosted: follows(posted, btn) };
+    });
+    expect(order.afterNotes).toBe(true);
+    expect(order.afterPoster).toBe(true);
+    expect(order.afterPosted).toBe(true);
+
+    await panel.locator('[data-translate-btn]').click();
+    const box = panel.locator('[data-translation]');
+    await expect(box.locator('[data-read-translation="specification"]')).toHaveText(`Specification / Grade: [es>en] ${SPEC}`);
+    await expect(box.locator('[data-read-translation="notes"]')).toHaveText(`Notes: [es>en] ${NOTES}`);
+    await expect(box.locator('[data-read-translation]')).toHaveCount(2);       // the bare price has no block
+    await expect(panel.locator('[data-translate-btn]')).toHaveText('Hide translation');
+    // The translation is BELOW the control, and the originals above are still there.
+    const below = await panel.evaluate((el) => {
+      const btn = el.querySelector('[data-translate-btn]'); const box = el.querySelector('[data-translation]');
+      return !!(btn.compareDocumentPosition(box) & Node.DOCUMENT_POSITION_FOLLOWING);
+    });
+    expect(below).toBe(true);
+    await expect(panel).toContainText(`Notes: ${NOTES}`);
+    // Pressing again hides all of it.
+    await panel.locator('[data-translate-btn]').click();
+    await expect(box).toBeHidden();
+    await expect(panel.locator('[data-translate-btn]')).toHaveText('Translate');
+    // The other language, and changing the language hides what is shown.
+    await panel.locator('[data-translate-to]').selectOption('es');
+    await panel.locator('[data-translate-btn]').click();
+    await expect(box.locator('[data-read-translation="notes"]')).toContainText('[en>es]');
+    await panel.locator('[data-translate-to]').selectOption('en');
+    await expect(box).toBeHidden();
+  });
+
+  test('Item89 a field that fails shows the console\'s unavailable sentence and the other fields stay', async ({ page }) => {
+    await page.route('**/functions/v1/operator-translate', (route) => {
+      const sent = route.request().postDataJSON();
+      if (sent.text === NOTES) return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'unavailable' }) });
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ translated_text: `[ok] ${sent.text}` }) });
+    });
+    const { panel } = await openRead(page, refFull);
+    await panel.locator('[data-translate-btn]').click();
+    const box = panel.locator('[data-translation]');
+    await expect(box.locator('[data-read-translation="specification"]')).toHaveText(`Specification / Grade: [ok] ${SPEC}`);
+    await expect(box.locator('[data-read-translation="notes"]')).toHaveText('Notes: Translation is not available right now. Please try again later.');
+    await expect(panel.locator('[data-translate-btn]')).toHaveText('Hide translation');   // something was translated
+  });
+
+  test('Item89 when every field fails, only the unavailable sentences show and the control stays "Translate"', async ({ page }) => {
+    await page.route('**/functions/v1/operator-translate', (route) => route.fulfill({
+      status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'unavailable' }) }));
+    const { panel } = await openRead(page, refFull);
+    await panel.locator('[data-translate-btn]').click();
+    const box = panel.locator('[data-translation]');
+    await expect(box.locator('[data-read-translation]')).toHaveCount(2);
+    await expect(box).toContainText('Translation is not available right now. Please try again later.');
+    await expect(panel.locator('[data-translate-btn]')).toHaveText('Translate');
+  });
+
+  test('Item89 a listing whose only text is a bare price has no Translate control at all', async ({ page }) => {
+    await stubEcho(page);
+    const { panel } = await openRead(page, refPriceOnly);
+    await expect(panel).toContainText('Price: 9,100 USD per Metric tons');
+    await expect(panel.locator('[data-translate-btn], [data-translate-to], [data-translation]')).toHaveCount(0);
   });
 });

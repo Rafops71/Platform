@@ -383,6 +383,8 @@ function posterDetail(l) {
 const READ_DOCS_LABELS = { yes: 'Seen by the poster', source_says: "Not seen; the poster's source says they exist", no: 'Not seen by the poster' };
 const LISTINGS_BY_ID = new Map();
 const READ_TEXT_CUT = 2000;   // the same cut members' translations use
+// The free-text fields, in the order Browse shows them, with the labels the panel gives them.
+const READ_TEXT_FIELDS = [['specification', 'Specification / Grade'], ['price_conditions', 'Price'], ['notes', 'Notes']];
 
 /** "13,850 USD per Metric tons": the price line as Browse builds it (the unit names are stored in English). */
 function operatorPriceLine(l) {
@@ -402,22 +404,57 @@ function listingReadHtml(l) {
   const where = l.type === 'sell'
     ? `Origin: ${escapeHtml(l.origin || 'n/a')}`
     : `Destination: ${escapeHtml(l.destination || 'n/a')}`;
-  const field = (name, label, shown, raw) => `
-    <div class="list-row-meta" data-read-field="${name}">
-      <div>${escapeHtml(label)}: ${escapeHtml(shown)}</div>
-      ${readHasWords(raw) ? translateControlHtml() : ''}
-    </div>`;
+  const field = (name, label, shown) => `
+    <div class="list-row-meta" data-read-field="${name}">${escapeHtml(label)}: ${escapeHtml(shown)}</div>`;
+  // ONE Translate control for the whole offer, at the very bottom of the panel, after the Poster / Documents / Posted
+  // lines (owner, 21 Nov: not one in the middle of every field, and not after Notes). Only when some field holds words.
+  const anyWords = READ_TEXT_FIELDS.some(([name]) => readHasWords(l[name]));
   const docs = l.docs_seen ? READ_DOCS_LABELS[l.docs_seen] || l.docs_seen : 'Not stated';
   return `
     <div class="list-row-meta">${l.type === 'sell' ? 'Sell offer' : 'Buy request'} · ${qty} · ${escapeHtml(l.incoterm || '')} · ${where}</div>
-    ${l.specification ? field('specification', 'Specification / Grade', l.specification, l.specification) : ''}
-    ${l.price_conditions ? field('price_conditions', 'Price', operatorPriceLine(l), l.price_conditions) : ''}
-    ${l.notes ? field('notes', 'Notes', l.notes, l.notes) : ''}
+    ${l.specification ? field('specification', 'Specification / Grade', l.specification) : ''}
+    ${l.price_conditions ? field('price_conditions', 'Price', operatorPriceLine(l)) : ''}
+    ${l.notes ? field('notes', 'Notes', l.notes) : ''}
     <div class="list-row-meta">Poster: ${escapeHtml(posterDetail(l))}${l.type === 'sell' ? ` · Documents: ${escapeHtml(docs)}` : ''}</div>
-    <div class="list-row-meta">${l.has_documents ? 'Documents indicated' : '<strong>No documents indicated</strong>'} · Posted ${escapeHtml(formatDate(l.created_at))}</div>`;
+    <div class="list-row-meta">${l.has_documents ? 'Documents indicated' : '<strong>No documents indicated</strong>'} · Posted ${escapeHtml(formatDate(l.created_at))}</div>
+    ${anyWords ? `<div data-read-translate>${translateControlHtml()}</div>` : ''}`;
 }
 
-/** Opens or closes the reading row under one listing; each text field gets its own Translate control. */
+/** The one Translate control of a Read panel. One press translates every free-text field that holds words (one call
+ *  each, through operator-translate) and shows the results BELOW the control, one block per field under the same label
+ *  the field has above. A field that fails shows the console's unavailable sentence and the others stay. Pressing again
+ *  hides everything; changing the language hides it too, as the control on a message does. */
+function wireReadTranslate(wrap, l) {
+  const btn = wrap.querySelector('[data-translate-btn]');
+  const select = wrap.querySelector('[data-translate-to]');
+  const box = wrap.querySelector('[data-translation]');
+  let shown = false;
+  const reset = () => { box.hidden = true; box.replaceChildren(); shown = false; btn.textContent = 'Translate'; };
+  btn.addEventListener('click', async () => {
+    if (btn.disabled) return;
+    if (shown) { reset(); return; }
+    const fields = READ_TEXT_FIELDS.filter(([name]) => readHasWords(l[name]));
+    if (!fields.length) return;
+    btn.disabled = true; select.disabled = true;
+    const outs = await Promise.all(fields.map(([name]) =>
+      operatorTranslateText(String(l[name]).trim().slice(0, READ_TEXT_CUT), select.value)));
+    btn.disabled = false; select.disabled = false;
+    box.replaceChildren();
+    fields.forEach(([name, label], i) => {
+      const block = document.createElement('div');
+      block.dataset.readTranslation = name;
+      const strong = document.createElement('strong');
+      strong.textContent = label;
+      block.append(strong, ': ', outs[i] === null ? TRANSLATE_UNAVAILABLE : outs[i]);
+      box.appendChild(block);
+    });
+    box.hidden = false;
+    if (outs.some(o => o !== null)) { shown = true; btn.textContent = 'Hide translation'; }
+  });
+  select.addEventListener('change', reset);
+}
+
+/** Opens or closes the reading row under one listing. */
 function toggleListingRead(btn) {
   const tr = btn.closest('tr');
   const open = tr.nextElementSibling && tr.nextElementSibling.classList.contains('listing-read');
@@ -429,13 +466,8 @@ function toggleListingRead(btn) {
   detail.innerHTML = `<td colspan="10">${listingReadHtml(l)}</td>`;
   tr.after(detail);
   btn.textContent = 'Hide';
-  detail.querySelectorAll('[data-read-field]').forEach(box => {
-    const control = box.querySelector('[data-translate-btn]');
-    if (!control) return;
-    const name = box.dataset.readField;
-    wireTranslateControl(control, box.querySelector('[data-translate-to]'), box.querySelector('[data-translation]'),
-      () => String(l[name] || '').trim().slice(0, READ_TEXT_CUT));
-  });
+  const wrap = detail.querySelector('[data-read-translate]');
+  if (wrap) wireReadTranslate(wrap, l);
 }
 
 /** Fill the commodity filter dropdown from the Operator-managed list. */
