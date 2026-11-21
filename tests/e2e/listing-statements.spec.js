@@ -91,7 +91,7 @@ test.describe.serial('listing statements', () => {
     await openScreen(page, 'browse');
     const row = page.locator('.list-row', { hasText: listing.reference_number });
     await expect(row.locator('[data-statements]')).toHaveText(
-      "Poster: Broker · Documents: Not seen; the poster's source says they exist", { timeout: 15_000 });
+      "Poster: Broker · Documents seen by poster: Not seen; the poster's source says they exist", { timeout: 15_000 });
     await expect(row).not.toContainText('other broker');
     // The one date the poster's statements were confirmed (sql/064): fresh, so "Stated by".
     await expect(row.locator('[data-statements-date]')).toHaveText(/^Stated by the poster on \d{2}\/\d{2}\/\d{4}$/);
@@ -153,7 +153,7 @@ test.describe.serial('listing statements', () => {
     await signIn(page, reader, 'app.html');
     await openScreen(page, 'browse');
     await expect(page.locator('.list-row', { hasText: sellRef }).locator('[data-statements]'))
-      .toHaveText('Poster: Principal (Trader) · Documents: Seen by the poster', { timeout: 15_000 });
+      .toHaveText('Poster: Principal (Trader) · Documents seen by poster: Seen by the poster', { timeout: 15_000 });
     await expect(page.locator('.list-row', { hasText: buy[0].reference_number }).locator('[data-statements]'))
       .toHaveText('Poster: Principal', { timeout: 15_000 });
     // Every Sell listing shows the one fixed documents line; a Buy request shows none.

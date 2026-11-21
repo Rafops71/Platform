@@ -144,7 +144,7 @@ test.describe('the screen', () => {
     await expect(panel).toContainText('Price: 13,850 USD per Metric tons');
     await expect(panel).toContainText(`Notes: ${NOTES}`);
     await expect(panel).toContainText('Documents indicated');
-    await expect(panel).toContainText('Documents: Seen by the poster');
+    await expect(panel).toContainText('Documents seen by poster: Seen by the poster');
     // Read again closes the panel; nothing was changed in the database.
     await row.locator('[data-read-listing]').click();
     await expect(panel).toHaveCount(0);
