@@ -345,7 +345,11 @@ async function cleanup() {
       [ids]
     );
     // document_checklist, document_requests, matches and email_outbox all
-    // cascade from listings, so they need no separate delete.
+    // cascade from listings, so they need no separate delete. So do the cached
+    // translations (listing_translations, sql/069): where the translation
+    // service answers (live), a test can legitimately store one, and it goes
+    // with the listing. member_translate_usage goes with the profile, and a
+    // forward's translation (sql/073) with the forward log row.
     // sql/035: forwarding a test member's message opens a deal file, which
     // keeps its row when the member goes (SET NULL). Removed here, while it
     // still names them, or every run would leave files in the live table.
