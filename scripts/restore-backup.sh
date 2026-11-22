@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Restore a backup taken by .github/workflows/backup.yml.
+# Restore a backup taken by .github/workflows/database-backup.yml.
 #
 # READ THIS BEFORE RUNNING ANYTHING
 #
@@ -11,14 +11,19 @@
 # is deliberately not available here: do that by hand, awake, having first
 # restored to a copy and looked at it.
 #
-#   ./scripts/restore-backup.sh backup.dump.enc "postgresql://.../restore_check"
+#   ./scripts/restore-backup.sh db-2026-11-22.dump.enc "postgresql://.../restore_check"
 #
 # WHAT YOU NEED
 #
-#   1. The encrypted file, from the GitHub Actions run that made it:
-#      Actions > Database backup > the run > Artifacts > database-backup-NN
-#   2. BACKUP_PASSPHRASE. It is not in this repository and cannot be recovered
-#      from it. Without it the file is not slow to read, it is unreadable.
+#   1. The encrypted file, from the PRIVATE backup repository (Rafops71/platform-backups, branch main). Each night's
+#      file is db-YYYY-MM-DD.dump.enc, kept 30 days. Sign in to GitHub as the owner, open the repository, open the
+#      file you want and use Download (or "Raw" > save); or, with git and your own GitHub login:
+#        git clone https://github.com/Rafops71/platform-backups.git
+#        ls platform-backups            # pick the date you want
+#      then pass that file as the first argument below.
+#   2. BACKUP_PASSPHRASE. It is not in either repository and cannot be recovered from them. Without it the file is not
+#      slow to read, it is unreadable. This script reads it from the environment variable BACKUP_PASSPHRASE and never
+#      prints it:  BACKUP_PASSPHRASE='...' ./scripts/restore-backup.sh <file> "<url>"
 #   3. pg_restore and psql version 17 or newer. The runner's own 16 will not
 #      read these dumps (pg_restore refuses a dump from a newer server), which
 #      is why the workflow installs 17 from PGDG.

@@ -34,6 +34,8 @@
     "check:terms": "node scripts/terms-seed.js",
     "check:purpose": "node scripts/check-pr-purpose.js",
     "check:deploy": "node scripts/check-deploy-gate.js",
+    "test:backup-repo": "node scripts/test-backup-repo.js",
+    "check:backup-workflow": "node scripts/check-backup-workflow.js",
     "build:demo": "node scripts/build-demo.js",
     "build:demo:operator": "DEMO_KIND=operator node scripts/build-demo.js",
     "test:demo": "playwright test -c playwright.demo.config.js",
