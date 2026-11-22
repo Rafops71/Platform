@@ -62,6 +62,9 @@ run('CI database targets (PR=staging, push=live, staging takes turns)', 'node', 
 run('CI database targets: self-test', 'node', ['scripts/check-ci-targets.js', '--self-test']);
 run('hidden-element lint: self-test', 'node', ['scripts/check-test-hidden.js', '--self-test']);
 run('picture-job filter: self-test', 'node', ['scripts/layout-changed.js', '--self-test']);
+run('nightly backup workflow: guard', 'node', ['scripts/check-backup-workflow.js']);
+run('nightly backup workflow: guard self-test', 'node', ['scripts/check-backup-workflow.js', '--self-test']);
+run('backup repository script: self-test (local git repository)', 'node', ['scripts/test-backup-repo.js']);
 
 // ---- 3. test:sql ----------------------------------------------------------
 if (skipSql) {

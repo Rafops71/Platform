@@ -1,13 +1,12 @@
-# DRAFT - NOT ACTIVE. Moved out of .github/workflows/ on 2026-10-25.
+# Where the backups go (owner-approved route, 22 Nov 2026; docs/AGREED-2026-11-22-backup.md): a SECOND, PRIVATE
+# repository, Rafops71/platform-backups, written with a fine-grained token that can read and write ONLY that
+# repository (secret BACKUP_REPO_TOKEN). The dump is still encrypted here first (BACKUP_PASSPHRASE) because this
+# repository is PUBLIC and the encryption is the second lock. The git work is in scripts/backup-repo.sh, which has a
+# self-test (npm run test:backup-repo). Secrets only ever travel through environment variables.
 #
-# This is the first backup design: an encrypted artifact on this PUBLIC
-# repository, which needs a passphrase the owner would have to keep. He asked
-# for it to be remembered for him instead, which a session cannot do, so the
-# storage is being changed to a second, PRIVATE repository (see HANDOFF, "There
-# were no backups at all"). Left as a workflow, it would run every night at
-# 03:17 and fail on purpose for want of BACKUP_PASSPHRASE - turning every
-# morning red for a reason nobody needs telling twice, which is exactly how a
-# real red gets ignored. It returns to .github/workflows/ once rewritten.
+# Running it by hand: Actions > Database backup > Run workflow. The "mode" choice "teardown-test" pushes a harmless
+# dummy file to the backup repository and deletes it again, proving the write and the delete path with the real
+# token, and touches no backup and not the database. Run it once before the first real backup.
 #
 name: Database backup
 
@@ -64,7 +63,16 @@ on:
     # 03:17 UTC. Off the hour on purpose: a scheduled job asking for :00 waits
     # behind everybody else's, and GitHub drops rather than queues when busy.
     - cron: '17 3 * * *'
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'backup = the real nightly job; teardown-test = push a dummy file to the backup repository and delete it again (no database, no backup)'
+        type: choice
+        options: [backup, teardown-test]
+        default: backup
+
+permissions:
+  contents: read
 
 concurrency:
   group: database-backup
@@ -72,7 +80,9 @@ concurrency:
 
 jobs:
   backup:
-    name: Dump, encrypt, and prove it restores
+    name: Dump, encrypt, prove it restores, and keep it
+    # The schedule has no inputs, so a scheduled run is always the real backup.
+    if: ${{ github.event_name == 'schedule' || github.event.inputs.mode == 'backup' }}
     runs-on: ubuntu-latest
 
     services:
@@ -99,19 +109,36 @@ jobs:
         env:
           DB_URL: ${{ secrets.SUPABASE_DB_URL }}
           PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+          REPO_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
         run: |
           missing=''
           [ -z "$DB_URL" ]     && missing="$missing SUPABASE_DB_URL"
           [ -z "$PASSPHRASE" ] && missing="$missing BACKUP_PASSPHRASE"
+          [ -z "$REPO_TOKEN" ] && missing="$missing BACKUP_REPO_TOKEN"
           if [ -n "$missing" ]; then
             echo "::error::No backup was taken. Missing repository secret(s):$missing"
             echo "Add them at Settings > Secrets and variables > Actions."
             echo "BACKUP_PASSPHRASE is what the dump is encrypted with. Keep a"
             echo "copy somewhere OUTSIDE this repository: without it the"
             echo "backups cannot be read, by anybody, ever."
+            echo "BACKUP_REPO_TOKEN is a fine-grained token with Contents read and"
+            echo "write on the private backup repository only."
             exit 1
           fi
-          echo "Both secrets present."
+          echo "All three secrets present."
+
+      - name: Check the backup repository is private, and the token reaches it
+        # Member data goes there, so a repository that is public (or a token that cannot see it) is a red run, not a
+        # warning. gh reads the token from the environment; nothing is printed but the answer.
+        env:
+          GH_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
+        run: |
+          visibility=$(gh api repos/Rafops71/platform-backups --jq '.private' 2>/dev/null || echo unreachable)
+          if [ "$visibility" != "true" ]; then
+            echo "::error::The backup repository is not confirmed private (answer: $visibility). Nothing was pushed."
+            exit 1
+          fi
+          echo "The backup repository is private and the token reaches it."
 
       - name: Install the PostgreSQL 17 client
         # The runner ships 16, and pg_dump refuses a server newer than itself
@@ -151,7 +178,7 @@ jobs:
         # file is the failure that looks most like success.
         run: |
           if [ "${DUMP_BYTES:-0}" -lt 20000 ]; then
-            echo "::error::The dump is only ${DUMP_BYTES} bytes. That is too small to be this database; treating it as a failure rather than uploading it."
+            echo "::error::The dump is only ${DUMP_BYTES} bytes. That is too small to be this database; treating it as a failure rather than storing it."
             exit 1
           fi
           echo "Dump is ${DUMP_BYTES} bytes."
@@ -167,7 +194,7 @@ jobs:
           ls -l backup.dump.enc
           # Proof it is not plaintext: a custom-format dump begins "PGDMP".
           if head -c 5 backup.dump.enc | grep -q PGDMP; then
-            echo "::error::The uploaded file is still readable as a dump. Refusing to continue."
+            echo "::error::The file to be stored is still readable as a dump. Refusing to continue."
             exit 1
           fi
           echo "Encrypted, and the header is no longer a PostgreSQL dump."
@@ -207,29 +234,60 @@ jobs:
             -v ON_ERROR_STOP=1 -f scripts/verify-restore.sql
           rm -f restored.dump
 
-      - name: Keep it
-        uses: actions/upload-artifact@v4
-        with:
-          name: database-backup-${{ github.run_number }}
-          path: backup.dump.enc
-          # 90 days is the maximum GitHub allows. Say it plainly rather than
-          # letting anyone believe this is an archive: a backup older than
-          # three months does not exist here, and nor does one taken before
-          # this workflow did.
-          retention-days: 90
-          if-no-files-found: error
+      - name: Push the encrypted dump to the private backup repository
+        env:
+          BACKUP_REPO_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
+        run: scripts/backup-repo.sh push backup.dump.enc
+
+      - name: Read it back from a fresh clone and compare
+        env:
+          BACKUP_REPO_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
+        run: scripts/backup-repo.sh verify backup.dump.enc
+
+      - name: Delete dated backups older than 30 days (in the backup repository only)
+        env:
+          BACKUP_REPO_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
+        run: scripts/backup-repo.sh retention 30
 
       - name: Say what happened
         run: |
           {
             echo "### Database backup"
             echo ""
-            echo "- Encrypted dump: \`backup.dump.enc\` ($(stat -c%s backup.dump.enc) bytes)"
+            echo "- Encrypted dump: \`db-$(date -u +%F).dump.enc\` ($(stat -c%s backup.dump.enc) bytes, sha256 \`$(sha256sum backup.dump.enc | cut -d' ' -f1)\`)"
             echo "- Restored into a throwaway PostgreSQL 17 and checked, in this run"
-            echo "- Kept for 90 days as artifact \`database-backup-${{ github.run_number }}\`"
+            echo "- Stored in the private backup repository and read back from a fresh clone: same bytes"
+            echo "- Dated backups older than 30 days were removed from that repository (the list is in the previous step's log)"
             echo ""
-            echo "To read it you need \`BACKUP_PASSPHRASE\`. It is not in this"
-            echo "repository and cannot be recovered from it."
+            echo "To read it you need the private repository (the owner's GitHub login) and \`BACKUP_PASSPHRASE\`."
+            echo "Neither is in this repository."
             echo ""
-            echo "Restoring: \`scripts/restore-backup.sh\` — read its header first."
+            echo "Restoring: \`scripts/restore-backup.sh\` - read its header first."
           } >> "$GITHUB_STEP_SUMMARY"
+
+  teardown-test:
+    name: Prove the delete path on a dummy file (no database, no backup)
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'teardown-test' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Refuse to run without the token, and check the repository is private
+        env:
+          GH_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::Missing repository secret BACKUP_REPO_TOKEN."
+            exit 1
+          fi
+          visibility=$(gh api repos/Rafops71/platform-backups --jq '.private' 2>/dev/null || echo unreachable)
+          if [ "$visibility" != "true" ]; then
+            echo "::error::The backup repository is not confirmed private (answer: $visibility)."
+            exit 1
+          fi
+          echo "The backup repository is private and the token reaches it."
+
+      - name: Push a dummy file, read it back, delete it, read back that it is gone
+        env:
+          BACKUP_REPO_TOKEN: ${{ secrets.BACKUP_REPO_TOKEN }}
+        run: scripts/backup-repo.sh teardown-test

@@ -682,8 +682,11 @@ Team and Enterprise plans, and free-tier projects are told to export their own
 data and keep off-site copies. So there was nothing to photograph and nothing
 to switch on. The database had no backups of any kind.
 
-`docs/drafts/backup-workflow.yml` (INACTIVE since 2026-10-25, pending the private-repository rewrite) takes one daily, encrypted, and restores it
-into a throwaway PostgreSQL in the same run to prove it works.
+`.github/workflows/database-backup.yml` (rewritten 2026-11-22 for the private repository `Rafops71/platform-backups`;
+decision `docs/AGREED-2026-11-22-backup.md`; **built, not yet proven by a green run**) takes one daily, encrypted, restores it
+into a throwaway PostgreSQL in the same run to prove it works, and pushes it to the private repository. THE SENTENCE
+BELOW, "The database had no backups of any kind", STAYS TRUE UNTIL A REAL RUN IS GREEN; whoever reads that run's log
+together with the owner removes it.
 `docs/BACKUPS.md` has the whole design and what it deliberately is not.
 
 THREE THINGS IN IT THAT ARE NOT OBVIOUS, each from something checked:
@@ -753,9 +756,10 @@ email sender, the CI gate are written for GitHub Actions and would need
 rewriting. That is the part that gets forgotten when someone says "it is just
 files".
 
-WAITING ON THE OWNER: the private backup repository and its write token. Until
-backup storage is settled the workflow fails on purpose, loudly, at its first
-step. That red run IS the guard working.
+THE OWNER HAS CREATED the private repository and stored `BACKUP_REPO_TOKEN` and `BACKUP_PASSPHRASE` (22 Nov 2026).
+The workflow checks them at run time and fails red, never skips, if one is missing; a red first run IS the guard working.
+First steps after the merge: run it by hand with mode `teardown-test` (proves the write and delete path on a dummy
+file), then once as `backup` and read the log together.
 
 ## Publishing is behind the gate (built and switched on 2026-10-25)
 
