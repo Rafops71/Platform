@@ -143,3 +143,22 @@ Never decide wording/design/anything members see or sign for him: options with a
 
 ## NEXT STEP (exactly)
 Wait for the owner's "done" on creating the private repo platform-backups (https://github.com/new, Private, with README); verify with list_repos (private); then walk him through (b) the token and (c) the passphrase one at a time (screenshot-first if any screen differs); then build the backup workflow in one PR with the rule-13 list; run it once with its restore test; then ask the CI-speed confirmation by button; then propose the fresh supervisor window.
+
+## UPDATE 23 Nov 2026 (supervisor 2; read after "CONSOLIDATED STATE")
+
+BACKUP IS LIVE. PR #138 merged (e167cc4); main CI run green. Workflow .github/workflows/database-backup.yml (nightly 03:17 UTC + manual). Manual run "teardown-test" passed on the real private repo Rafops71/platform-backups (run 45024393612); first real backup passed (run 45024435121): dump 425 kB, restore proved 4 profiles / 4 auth users / 48 activity rows, sha256 read-back matched, file db-2026-11-22.dump.enc. Secrets (set by owner in the Platform repo vault): BACKUP_REPO_TOKEN, BACKUP_PASSPHRASE; the passphrase is kept ONLY by the owner (never write it here). Dumps schemas public + auth only (not storage files, not secrets, not function code). 30-day retention in that repo only; history grows ~70 MB/yr.
+- WATCH: no scheduled run had appeared by 07:42 UTC on 23 Nov. Check 24 Nov; if the second night is also missing, tell the owner.
+- TODO docs: HANDOFF still says "no backups"; change it now that a real run is green, and fix the word "below"->"above" in the HANDOFF sentence about it (Builder 3 left it).
+- Owner decisions: weekly download of the encrypted file to the laptop folder AND a USB stick (remind in chat on Mondays; no phone notifications before launch). First download + restore drill (B2: owner has not yet chosen A/B/C) wait for the owner at his laptop; screenshot first, no button described from memory.
+
+DECIDED 23 Nov (block B, owner answers by button):
+- B5 broker fees = D: the Operator decides per deal (settles T11). 
+- Security tidy: ONLY activity_log (take away UPDATE/DELETE/TRUNCATE/TRIGGER/REFERENCES from anon + authenticated; verified live 23 Nov: RLS on, one SELECT policy). Build only after BATCH GO, with proven revert; tell him afterwards.
+- Roadmap docs/ROADMAP-2026-11-22.md APPROVED as the working plan.
+- Lock main: YES. Verify GitHub docs and each screen with him first; stop if the free plan lacks it.
+- CI speed job (ROADMAP 0.6) and library updates (one commit each; drop any that goes red) are in the NEXT batch, waiting for BATCH GO.
+- B6 liability: keep "no verification". B8 never-do list approved as written (no verified badges, no public ratings, never hold money, never demand principal's name up front, no rigid rules).
+- Build list for later: Operator-only chain map; Operator-only broker record. Parked: deal codes, video confirmation, forfeit deposit (conflicts with never hold money).
+- Medsted: my notes (broker won on appeal) and mistral.md (lost first instance, won on appeal re disclosure) may describe different courts; read the judgment before any Terms text relies on it.
+- Translation limit: leave as is (decided).
+- Owner asked to start "block D" parked items one by one: T8 code protection (repo is PUBLIC; if made private, Actions minutes become metered: GitHub docs say Free includes $12/month compute, not a minute count; public-repo runners are free) is the first item still to ask.
