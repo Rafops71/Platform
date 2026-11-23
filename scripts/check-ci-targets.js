@@ -130,6 +130,17 @@ function check(text, gridText) {
     // ("SUPABASE_URL ... are required", PR 120 run 1).
     for (const v of ['SUPABASE_URL', 'SUPABASE_ANON_KEY']) if (!new RegExp(`^\\s+${v}: .+`, 'm').test(pics)) problems.push(`the pictures job must set ${v} to the staging project's value`);
   }
+  // 6. only a pull request that changes documents alone may skip the browser chain (docs/ROADMAP-2026-11-22.md 0.6, step 2).
+  //    A push to main and a manual run always run everything: that run gates publishing.
+  const changes = jobBlock(text, 'changes');
+  const checklistJob = jobBlock(text, 'checklist');
+  if (!changes) problems.push('ci.yml has no "changes" job: the rule for skipping the browser chain on a documents-only pull request lives there');
+  else if (!/if \[ "\$EVENT" != "pull_request" \]; then\n\s+echo "browser=true" >> "\$GITHUB_OUTPUT"/.test(changes)) problems.push('the "changes" job must answer browser=true for anything that is not a pull request (a push to main must never skip the checklist)');
+  if (checklistJob) {
+    if (ifOf(checklistJob) !== "${{ needs.changes.outputs.browser == 'true' }}") problems.push(`the checklist job's "if" must be exactly: \${{ needs.changes.outputs.browser == 'true' }} (it is: ${ifOf(checklistJob) || 'missing'})`);
+    if (!/\bchanges\b/.test(needsOf(checklistJob))) problems.push('the checklist job must wait for "changes"');
+  }
+  if (grid && (!/\bchanges\b/.test(needsOf(grid)) || !ifOf(grid).includes("needs.changes.outputs.browser == 'true'"))) problems.push('the grid job must wait for "changes" and run only when it says browser == true');
   // the nightly copy and this one must run the same commands, in the same order
   if (gridText != null && grid) {
     const ciRuns = runsOf(grid);
@@ -166,9 +177,12 @@ if (process.argv.includes('--self-test')) {
     'the group stops separating live from staging': (t) => t.replace(`'ci-staging-database' || 'ci-live-database'`, `'ci-live-database' || 'ci-live-database'`),
     'a browser step names a live secret directly': (t) => t.replace(`SUPABASE_DB_URL: \${{ env.TARGET_DB_URL }}\n          SERVE_SUPABASE_URL`, `SUPABASE_DB_URL: \${{ secrets.SUPABASE_DB_URL }}\n          SERVE_SUPABASE_URL`),
     'a publishing job is handed the staging key': (t) => t.replace(`  deploy-www:\n    name: Publish the front page to Cloudflare Pages\n`, `  deploy-www:\n    name: Publish the front page to Cloudflare Pages\n    env:\n      K: \${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}\n`),
-    'the grid stops waiting for Safari': (t) => t.replace('    needs: [checklist, safari]\n    if: ${{ !cancelled() && github.event_name == \'pull_request\' }}', '    needs: [checklist]\n    if: ${{ !cancelled() && github.event_name == \'pull_request\' }}'),
-    'the grid stops waiting for the checklist': (t) => t.replace('    needs: [checklist, safari]\n    if: ${{ !cancelled()', '    needs: [safari]\n    if: ${{ !cancelled()'),
-    'the grid would run on a push too': (t) => t.replace(`    needs: [checklist, safari]\n    if: \${{ !cancelled() && github.event_name == 'pull_request' }}`, `    needs: [checklist, safari]\n    if: \${{ !cancelled() }}`),
+    'the grid stops waiting for Safari': (t) => t.replace('    needs: [changes, checklist, safari]\n    if: ${{ !cancelled()', '    needs: [changes, checklist]\n    if: ${{ !cancelled()'),
+    'the grid stops waiting for the checklist': (t) => t.replace('    needs: [changes, checklist, safari]\n    if: ${{ !cancelled()', '    needs: [changes, safari]\n    if: ${{ !cancelled()'),
+    'the grid would run on a push too': (t) => t.replace(`    needs: [changes, checklist, safari]\n    if: \${{ !cancelled() && github.event_name == 'pull_request' && needs.changes.outputs.browser == 'true' }}`, `    needs: [changes, checklist, safari]\n    if: \${{ !cancelled() && needs.changes.outputs.browser == 'true' }}`),
+    'the grid ignores the documents-only rule': (t) => t.replace(`github.event_name == 'pull_request' && needs.changes.outputs.browser == 'true' }}\n    runs-on: ubuntu-latest\n    env:\n      SUPABASE_URL`, `github.event_name == 'pull_request' }}\n    runs-on: ubuntu-latest\n    env:\n      SUPABASE_URL`),
+    'a push could skip the checklist': (t) => t.replace('echo "browser=true" >> "$GITHUB_OUTPUT"\n            echo "Not a pull request', 'echo "browser=false" >> "$GITHUB_OUTPUT"\n            echo "Not a pull request'),
+    'the checklist can be skipped for another reason': (t) => t.replace("    if: ${{ needs.changes.outputs.browser == 'true' }}\n    runs-on", "    if: ${{ needs.changes.outputs.browser == 'true' && github.actor != 'x' }}\n    runs-on"),
     'the pictures stop waiting for the grid': (t) => t.replace('    needs: [grid, layout]', '    needs: [layout]'),
     'the grid is handed a live secret': (t) => t.replace('          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}\n\n      # Same staging world', '          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}\n\n      # Same staging world'),
     'the pictures job loses its staging address': (t) => t.replace(/(  pictures:[\s\S]*?)      SUPABASE_URL: https:\/\/pqxlfgvjoowawzgoszna\.supabase\.co\n/, '$1'),

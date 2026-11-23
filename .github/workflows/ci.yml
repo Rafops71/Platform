@@ -55,6 +55,43 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Does this pull request change anything the long browser chain (Function checklist, Safari, grid, pictures) could
+  # notice? (docs/ROADMAP-2026-11-22.md section 0.6, step 2; scripts/browser-suites-needed.js has the rule and its
+  # self-test.) A pull request that changes ONLY documents says "false" and skips that chain; anything else, wording
+  # in js/i18n.js included, says "true". A push to main and a manual run ALWAYS say "true": that run is what gates
+  # publishing, so it never skips. This job runs on every event and always succeeds, and the database job and the
+  # offline checks always run, so a documents-only pull request still has them.
+  changes:
+    name: Which suites does this change need?
+    runs-on: ubuntu-latest
+    outputs:
+      browser: ${{ steps.decide.outputs.browser }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Documents only?
+        id: decide
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT" != "pull_request" ]; then
+            echo "browser=true" >> "$GITHUB_OUTPUT"
+            echo "Not a pull request: every suite always runs (this is the run that gates publishing)."
+            exit 0
+          fi
+          # HEAD is GitHub's merge of the pull request into its base; its first parent is the base, so this is
+          # exactly what the pull request changes.
+          git diff --name-only HEAD^1 HEAD > changed.txt
+          echo "Changed files:"; cat changed.txt
+          result=$(node scripts/browser-suites-needed.js < changed.txt)
+          echo "browser=$result" >> "$GITHUB_OUTPUT"
+          if [ "$result" = "false" ]; then
+            echo "Documents only: the browser suites (Function checklist, Safari, grid, pictures) are skipped on this pull request. The database tests and the offline checks still run, and a push to main runs everything."
+          else
+            echo "The browser suites run."
+          fi
+
   database:
     name: Database tests
     runs-on: ubuntu-latest
@@ -126,6 +163,10 @@ jobs:
           node scripts/check-migration-lists.js --self-test
           node scripts/check-applied-live.js --self-test
           node scripts/layout-changed.js --self-test
+          node scripts/browser-suites-needed.js --self-test
+          node scripts/superseded-runs.js --self-test
+          node scripts/check-cancel-workflow.js
+          node scripts/check-cancel-workflow.js --self-test
       - name: Run sql/tests
         run: npm run test:sql
       # The one-off tool that makes the standing Operator on STAGING (manual workflow, nothing runs on
@@ -197,6 +238,12 @@ jobs:
           cache: npm
       - run: npm ci
 
+      - name: Cache the Playwright browser download
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-webkit-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
       - name: Install WebKit
         # WebKit, not Chromium: this job exists precisely because every other
         # suite runs on Chrome's engine, and on iOS every browser is WebKit
@@ -226,6 +273,9 @@ jobs:
 
   checklist:
     name: Function checklist
+    needs: changes
+    # Skipped only on a pull request that changes documents alone (see the "changes" job); always runs otherwise.
+    if: ${{ needs.changes.outputs.browser == 'true' }}
     runs-on: ubuntu-latest
     # WHICH DATABASE THE BROWSER SUITES USE (docs/AGREED-2026-11-16-tooling.md, item 4). One rule: a
     # pull request uses the STAGING project, everything else (push to main, manual run) uses LIVE.
@@ -292,6 +342,12 @@ jobs:
           SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
         run: node scripts/apply-sql.js --only-new
 
+      - name: Cache the Playwright browser download
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
       - name: Install the browser
         run: npx playwright install --with-deps chromium
 
@@ -349,8 +405,8 @@ jobs:
   # between turns a pass into "invitations changed from 5 to 6" (PR 117). "needs" is the turn-taking;
   # !cancelled() so the grid still runs, and still reports, when an earlier job failed.
   grid:
-    needs: [checklist, safari]
-    if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+    needs: [changes, checklist, safari]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && needs.changes.outputs.browser == 'true' }}
     runs-on: ubuntu-latest
     env:
       SUPABASE_URL: https://pqxlfgvjoowawzgoszna.supabase.co
@@ -417,6 +473,11 @@ jobs:
       # languages - no script errors, no dead tabs, nothing stuck loading, no
       # critical accessibility fault (axe-core). Two engines: Chromium and
       # Firefox (Safari's engine already runs in ci.yml).
+      - name: Cache the Playwright browser download
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-firefox-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - name: Install the browsers
         run: npx playwright install --with-deps chromium firefox
       - name: Every page, every tab (Chromium)
@@ -500,6 +561,11 @@ jobs:
         with:
           node-version: 20
       - run: npm ci
+      - name: Cache the Playwright browser download
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - name: Install the browser
         run: npx playwright install --with-deps chromium
       - name: Every page and every tab looks as approved
