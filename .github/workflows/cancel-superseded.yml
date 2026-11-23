@@ -1,0 +1,60 @@
+name: Cancel superseded runs
+
+# When a new commit is pushed to a pull request, the CI run of the PREVIOUS commit of that same pull request is no longer
+# wanted: its result describes code that is already gone. It used to run to the end anyway (twenty to thirty-four
+# minutes of the one shared staging project), and the new commit's run waited behind it.
+# (docs/ROADMAP-2026-11-22.md section 0.6, step 1; docs/AGREED-2026-11-23-ci-speed.md.)
+#
+# WHY IT IS A SEPARATE WORKFLOW AND NOT cancel-in-progress IN ci.yml. ci.yml's concurrency group is shared by EVERY
+# pull request on purpose: staging has one writer. A cancel-in-progress there would cancel another pull request's run
+# the moment this one started. This workflow cancels only runs of the SAME pull request (same branch) whose commit is
+# not the current one.
+#
+# WHAT IT NEVER TOUCHES: runs on main (push) and manual runs, which gate publishing and use the live project; runs of
+# any other workflow; the current commit's own run.
+#
+# WHAT A CANCELLED BROWSER RUN LEAVES: its test accounts on staging, until the 2-hour orphan sweep in
+# tests/e2e/helpers/fixtures.js removes them. They carry that run's tag, so the next run neither deletes nor trips over
+# them. A migration being applied is one transaction per file and the ledger records what is done, so the next run's
+# --only-new continues from there.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  # One cancelling pass per pull request at a time; a newer pass replaces an older one (they only ever cancel).
+  group: cancel-superseded-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  cancel:
+    name: Cancel older runs of this pull request
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cancel
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.event.pull_request.head.ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          cancelled=0
+          for status in in_progress queued waiting pending; do
+            gh run list --repo "$REPO" --workflow ci.yml --branch "$BRANCH" --event pull_request --status "$status" \
+              --limit 50 --json databaseId,headSha --jq '.[] | "\(.databaseId) \(.headSha)"' > older.txt || true
+            while read -r id sha; do
+              [ -n "${id:-}" ] || continue
+              if [ "$sha" != "$HEAD_SHA" ]; then
+                echo "Cancelling run $id (commit ${sha:0:7}, $status): this pull request has a newer commit (${HEAD_SHA:0:7})."
+                gh run cancel --repo "$REPO" "$id" || echo "  (could not cancel $id: already finished?)"
+                cancelled=$((cancelled + 1))
+              fi
+            done < older.txt
+          done
+          echo "Cancelled $cancelled older run(s) of this pull request."
