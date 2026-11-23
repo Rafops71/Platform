@@ -57,7 +57,7 @@ if (process.argv.includes('--self-test')) {
   const good = fs.readFileSync(FILE, 'utf8');
   const cases = [
     ['the real workflow is clean', good, 0],
-    ['an uploaded artifact is caught', good.replace('      - name: Say what happened', '      - uses: actions/upload-artifact@v4\n        with:\n          path: x\n      - name: Say what happened'), 1],
+    ['an uploaded artifact is caught', good.replace('      - name: Say what happened', '      - uses: actions/upload-artifact@v6\n        with:\n          path: x\n      - name: Say what happened'), 1],
     ['a missing refuse-check for the token is caught', good.replace('[ -z "$REPO_TOKEN" ] && missing="$missing BACKUP_REPO_TOKEN"', ''), 1],
     ['continue-on-error is caught', good.replace('    runs-on: ubuntu-latest\n', '    runs-on: ubuntu-latest\n    continue-on-error: true\n'), 1],
     ['a secret in a run line is caught', good.replace('run: scripts/backup-repo.sh retention 30', 'run: scripts/backup-repo.sh retention 30 ${{ secrets.BACKUP_REPO_TOKEN }}'), 1],

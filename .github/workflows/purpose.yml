@@ -18,7 +18,7 @@ jobs:
     name: Says what it serves
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: The description names a checklist item or a decision
         env:
           PR_BODY: ${{ github.event.pull_request.body }}

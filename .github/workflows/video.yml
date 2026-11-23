@@ -67,11 +67,11 @@ jobs:
       matrix:
         shard: [0, 1, 2, 3, 4]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
       - name: Install Chatterbox (CPU build of PyTorch)
@@ -87,7 +87,7 @@ jobs:
         run: |
           echo "### Voice check, share ${{ matrix.shard }} of 5 (faster-whisper listens to every line)" >> "$GITHUB_STEP_SUMMARY"
           cat video/audio/wer-table-${{ matrix.shard }}.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "No table was written." >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: voice-${{ inputs.film }}-${{ inputs.lang }}-${{ matrix.shard }}
@@ -110,8 +110,8 @@ jobs:
       group: ci-live-database
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: npm
@@ -136,7 +136,7 @@ jobs:
 
       - run: npx playwright install --with-deps chromium
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         # Named explicitly rather than relying on whatever Python the runner
         # image happens to ship. Piper is the only Python in this project, and
         # a version that moves under us would break the narration silently -
@@ -165,7 +165,7 @@ jobs:
 
       - name: Fetch the checked narration from the voice jobs
         if: inputs.engine == 'chatterbox' && inputs.stills != 'true'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           pattern: voice-${{ inputs.film }}-${{ inputs.lang }}-*
           path: voice-parts
@@ -316,7 +316,7 @@ jobs:
 
       - name: Here is the film
         if: inputs.stills != 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: myplatform-${{ inputs.film }}-${{ inputs.lang }}
           path: video/out/*.mp4
@@ -325,7 +325,7 @@ jobs:
 
       - name: Here is the voice check
         if: always() && inputs.engine == 'chatterbox' && inputs.stills != 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: myplatform-${{ inputs.film }}-${{ inputs.lang }}-voicecheck
           path: video/audio/wer-table.md
@@ -334,7 +334,7 @@ jobs:
 
       - name: Here are the stills
         if: inputs.stills == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: myplatform-${{ inputs.film }}-${{ inputs.lang }}-stills
           path: video/stills/*.png
@@ -343,7 +343,7 @@ jobs:
 
       - name: What went wrong
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: video-failure-${{ inputs.film }}-${{ inputs.lang }}
           path: |
