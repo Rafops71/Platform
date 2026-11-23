@@ -162,3 +162,9 @@ DECIDED 23 Nov (block B, owner answers by button):
 - Medsted: my notes (broker won on appeal) and mistral.md (lost first instance, won on appeal re disclosure) may describe different courts; read the judgment before any Terms text relies on it.
 - Translation limit: leave as is (decided).
 - Owner asked to start "block D" parked items one by one: T8 code protection (repo is PUBLIC; if made private, Actions minutes become metered: GitHub docs say Free includes $12/month compute, not a minute count; public-repo runners are free) is the first item still to ask.
+
+DECIDED 23 Nov, T8 code protection (owner, by button):
+- Wording: LICENSE file (full notice) PLUS a one-line copyright header in the main code files. The owner's name is still a BLANK: ask him for it at build time; never fill it in.
+- Hidden marks: yes, a few invented harmless names in the code. The list of names must NEVER be written in this repo (it is PUBLIC); give the list to the owner in chat only.
+- Timing: notice + marks go in the NEXT batch (wait for BATCH GO). The repository goes PRIVATE only after the soft launch is confirmed (last step of ROADMAP Phase 4); before that measure real Actions minutes (GitHub docs: Free includes $12/month of compute, not a minute count; public repos run free).
+- Note: the repo is public and has no LICENSE file and no copyright notice today (checked 23 Nov).
