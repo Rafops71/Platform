@@ -271,13 +271,19 @@ async function cleanup() {
     // This run's accounts, plus orphans an earlier run left behind and is far
     // too old to still be using. Never another live run's accounts.
     const { rows: profiles } = await client.query(
-      `select id, user_id from public.profiles
+      `select id, user_id, email from public.profiles
         where email like $1
            or (email like any($2) and created_at < now() - interval '${ORPHAN_AGE}')`,
       [`${RUN_PREFIX}%`, E2E_LIKE_PATTERNS]
     );
     const ids = profiles.map(p => p.id);
     const userIds = profiles.map(p => p.user_id);
+    // Mail, invitations and log rows are matched on THESE addresses (this run's, plus the orphans being swept) and
+    // never on the whole myplatform-e2e- prefix: with several workers (E2E_WORKERS) another worker's accounts exist at
+    // the same moment, and deleting their invitations made their createAccount() fail with 'Registration is by
+    // invitation only', and deleting their mail emptied counts a test was reading.
+    const mine = [`${RUN_PREFIX}%`];
+    const emails = profiles.map(p => p.email);
     if (!ids.length) return { profiles: 0 };
 
     const listings = 'select id from public.listings where user_id = any($1)';
@@ -334,8 +340,8 @@ async function cleanup() {
     // on the next flush of the outbox.
     await client.query(
       `delete from public.email_outbox
-        where related_listing_id in (${listings}) or to_email like any($2)`,
-      [ids, E2E_LIKE_PATTERNS]
+        where related_listing_id in (${listings}) or to_email like any($2) or to_email = any($3)`,
+      [ids, mine, emails]
     );
     await client.query(
       `delete from public.message_forward_log
@@ -368,8 +374,8 @@ async function cleanup() {
     // forever with no owner. Removed here, while they still have one.
     await client.query('delete from public.terms_acceptances where profile_id = any($1)', [ids]);
     await client.query(
-      'delete from public.invitations where created_by = any($1) or used_by = any($1) or email like any($2)',
-      [ids, E2E_LIKE_PATTERNS]
+      'delete from public.invitations where created_by = any($1) or used_by = any($1) or email like any($2) or email = any($3)',
+      [ids, mine, emails]
     );
     // Activity rows, matched on what they SAY and not only on who did it.
     //
@@ -391,8 +397,8 @@ async function cleanup() {
         where user_id = any($1)
            or (jsonb_exists(details, 'profile_id') and (details->>'profile_id')::uuid = any($1))
            or (jsonb_exists(details, 'listing_id') and (details->>'listing_id')::uuid = any($2))
-           or details->>'email' like any($3)`,
-      [ids, listingIds, E2E_LIKE_PATTERNS]
+           or details->>'email' like any($3) or details->>'email' = any($4)`,
+      [ids, listingIds, mine, emails]
     );
     // Commodities are shared reference data — if a test operator added one,
     // orphan the authorship rather than deleting a row others may now use.

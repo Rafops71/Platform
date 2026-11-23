@@ -19,3 +19,9 @@ Source: `docs/ROADMAP-2026-11-22.md` section 0.6 and `docs/CI-SPEED-AI-ADVICE-20
 - Two assertions that a neighbour's activity could change were made specific (Item 86's email count excludes mail about listings; the Operator-translate "keeps nothing" test counts only notifications tied to its own listings and messages). Nothing was removed or loosened beyond ignoring rows a neighbour made.
 - Pull requests run with `E2E_WORKERS=2`; a push to main stays at 1 until the pull-request runs have shown the parallel suite stable over several runs. Four workers wait for the numbers.
 - The guard in `scripts/check-ci-targets.js` now also requires the `changes` job's push branch to end (`exit 0`) right after writing `browser=true`.
+
+### PR 2, first run found a third hazard (teardown itself)
+The first 2-worker run failed 3 tests, all one cause: `cleanup()` removed mail, invitations and activity rows by the
+WHOLE `myplatform-e2e-` prefix, so one worker's teardown deleted the other worker's invitations (`createAccount()` then
+failed with "Registration is by invitation only", seen in the Auth log) and its queued mail (Item 86 counted 2, then 0).
+Those three deletes now match this run's own prefix and the addresses of the accounts being swept (orphans included).
