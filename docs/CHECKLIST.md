@@ -117,6 +117,10 @@ the suite: this platform's product is controlled disclosure, so proving a thing
 | 87 | A member can never read, change or delete another member's recommendation | MUST NOT |
 | 88 | When new Terms are published, every approved member is emailed a summary of the changes and a link, once | does |
 | 89 | The Operator can read every listing field a member sees in Browse, and translate the free text | does |
+| 90 | The Operator can read both listings of a match suggestion, and translate their free text with one control | does |
+| 91 | The Operator can read the listing a deal file is about, and translate its free text | does |
+| 92 | Pending approvals and the member list show each member's job title, signing capacity and language | does |
+| 93 | The Operator's approvals and member list never show a member's postal address | MUST NOT |
 
 ## Open questions on this list
 

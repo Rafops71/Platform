@@ -292,6 +292,7 @@ async function loadApprovals() {
         <span class="badge badge-amber">Pending</span>
       </div>
       <div class="list-row-meta">${escapeHtml(p.email)} · ${escapeHtml(p.company || 'No company')} · ${escapeHtml(p.country)} · ${escapeHtml(p.phone)}</div>
+      ${memberFactsLine(p)}
       <div class="list-row-meta">Registered ${formatDateTime(p.created_at)}</div>
       <div class="row" style="margin-top:4px;">
         <button class="btn btn-primary btn-small" data-approve="${p.id}">Approve</button>
@@ -399,7 +400,7 @@ function readHasWords(text) {
   return typeof text === 'string' && /\p{L}/u.test(text);
 }
 
-function listingReadHtml(l) {
+function listingReadHtml(l, withTranslate = true) {
   const qty = l.quantity ? `${escapeHtml(formatNumber(l.quantity))} ${escapeHtml(l.unit || '')}` : 'n/a';
   const where = l.type === 'sell'
     ? `Origin: ${escapeHtml(l.origin || 'n/a')}`
@@ -417,14 +418,25 @@ function listingReadHtml(l) {
     ${l.notes ? field('notes', 'Notes', l.notes) : ''}
     <div class="list-row-meta">Poster: ${escapeHtml(posterDetail(l))}${l.type === 'sell' ? ` · Documents seen by poster: ${escapeHtml(docs)}` : ''}</div>
     <div class="list-row-meta">${l.has_documents ? 'Documents indicated' : '<strong>No documents indicated</strong>'} · Posted ${escapeHtml(formatDate(l.created_at))}</div>
-    ${anyWords ? `<div data-read-translate>${translateControlHtml()}</div>` : ''}`;
+    ${anyWords && withTranslate ? `<div data-read-translate>${translateControlHtml()}</div>` : ''}`;
+}
+
+/** The Read panel for a match suggestion: BOTH listings, each as the All Listings panel shows it, and ONE Translate control
+ *  at the very bottom for the whole panel (owner's rule: one control, after everything it translates). */
+function matchReadHtml(listings) {
+  const blocks = listings.map(l => `
+    <div class="list-row-meta" data-read-block="${escapeHtml(l.reference_number)}" style="margin-top:8px;"><strong>${escapeHtml(l.reference_number)}</strong></div>${listingReadHtml(l, false)}`).join('');
+  const anyWords = listings.some(l => READ_TEXT_FIELDS.some(([name]) => readHasWords(l[name])));
+  return blocks + (anyWords ? `<div data-read-translate>${translateControlHtml()}</div>` : '');
 }
 
 /** The one Translate control of a Read panel. One press translates every free-text field that holds words (one call
  *  each, through operator-translate) and shows the results BELOW the control, one block per field under the same label
  *  the field has above. A field that fails shows the console's unavailable sentence and the others stay. Pressing again
  *  hides everything; changing the language hides it too, as the control on a message does. */
-function wireReadTranslate(wrap, l) {
+function wireReadTranslate(wrap, listing) {
+  const many = Array.isArray(listing);
+  const listings = many ? listing : [listing];
   const btn = wrap.querySelector('[data-translate-btn]');
   const select = wrap.querySelector('[data-translate-to]');
   const box = wrap.querySelector('[data-translation]');
@@ -433,18 +445,20 @@ function wireReadTranslate(wrap, l) {
   btn.addEventListener('click', async () => {
     if (btn.disabled) return;
     if (shown) { reset(); return; }
-    const fields = READ_TEXT_FIELDS.filter(([name]) => readHasWords(l[name]));
+    // One entry per free-text field that holds words, over every listing in the panel (a match has two).
+    const fields = listings.flatMap(l => READ_TEXT_FIELDS.filter(([name]) => readHasWords(l[name])).map(([name, label]) => ({ l, name, label })));
     if (!fields.length) return;
     btn.disabled = true; select.disabled = true;
-    const outs = await Promise.all(fields.map(([name]) =>
+    const outs = await Promise.all(fields.map(({ l, name }) =>
       operatorTranslateText(String(l[name]).trim().slice(0, READ_TEXT_CUT), select.value)));
     btn.disabled = false; select.disabled = false;
     box.replaceChildren();
-    fields.forEach(([name, label], i) => {
+    fields.forEach(({ l, name, label }, i) => {
       const block = document.createElement('div');
       block.dataset.readTranslation = name;
+      if (many) block.dataset.readTranslationListing = l.reference_number;
       const strong = document.createElement('strong');
-      strong.textContent = label;
+      strong.textContent = many ? `${l.reference_number} · ${label}` : label;
       block.append(strong, ': ', outs[i] === null ? TRANSLATE_UNAVAILABLE : outs[i]);
       box.appendChild(block);
     });
@@ -468,6 +482,35 @@ function toggleListingRead(btn) {
   btn.textContent = 'Hide';
   const wrap = detail.querySelector('[data-read-translate]');
   if (wrap) wireReadTranslate(wrap, l);
+}
+
+/** Read panel under a card row (Match Suggestions, Deals): opens or closes it. `build()` returns the panel's HTML and the
+ *  listings to translate (it may fetch them), or null for "nothing to show". Same fields and the same single Translate
+ *  control as the All Listings panel, because it is built by the same functions. */
+async function toggleCardRead(btn, row, marker, build) {
+  const open = row.querySelector(`[${marker}]`);
+  if (open) { open.remove(); btn.textContent = 'Read'; return; }
+  btn.disabled = true;
+  const made = await build();
+  btn.disabled = false;
+  if (!made) return;
+  const panel = document.createElement('div');
+  panel.setAttribute(marker, '');
+  panel.className = 'stack';
+  panel.style.marginTop = '6px';
+  panel.innerHTML = made.html;
+  row.appendChild(panel);
+  btn.textContent = 'Hide';
+  const wrap = panel.querySelector('[data-read-translate]');
+  if (wrap && made.listings.length) wireReadTranslate(wrap, made.listings.length === 1 ? made.listings[0] : made.listings);
+}
+
+/** What the Operator sees of a member besides the name and contact line: job title, the capacity they sign in, the language
+ *  they use. The postal address is deliberately NOT here (owner's brief, 23 Nov 2026); the Terms record holds it. */
+function memberFactsLine(p) {
+  const capacity = p.signing_capacity === 'company' ? 'Company' : p.signing_capacity === 'individual' ? 'Individual' : 'Not stated';
+  const language = p.language === 'es' ? 'Spanish' : p.language === 'en' ? 'English' : 'Not stated';
+  return `<div class="list-row-meta" data-member-facts>Job title: ${escapeHtml(p.job_title || 'Not stated')} · Signing as: ${capacity} · Language: ${language}</div>`;
 }
 
 /** Fill the commodity filter dropdown from the Operator-managed list. */
@@ -917,6 +960,7 @@ async function loadUsers() {
         <span class="badge ${userStatusBadge(p.status)}">${statusLabel(p.status)}</span>
       </div>
       <div class="list-row-meta">${escapeHtml(p.email)} · ${escapeHtml(p.company || 'No company')} · ${escapeHtml(p.country)}</div>
+      ${memberFactsLine(p)}
       <div class="row" style="margin-top:4px;">
         ${p.status !== 'approved' ? `<button class="btn btn-primary btn-small" data-approve="${p.id}">Approve</button>` : ''}
         ${p.status !== 'suspended' ? `<button class="btn btn-secondary btn-small" data-suspend="${p.id}">Suspend</button>` : `<button class="btn btn-secondary btn-small" data-reinstate="${p.id}">Reinstate</button>`}
@@ -1769,12 +1813,25 @@ async function loadDeals() {
         <textarea data-deal-field="note" data-deal="${d.id}" maxlength="2000" rows="2">${escapeHtml(d.note || '')}</textarea></label>
       <div class="row" style="margin-top:4px;">
         <button class="btn btn-primary btn-small" data-save-deal="${d.id}">Save</button>
+        <button class="btn btn-secondary btn-small" data-read-deal="${d.id}">Read</button>
         <button class="btn btn-secondary btn-small" data-deal-history="${d.id}">History</button>
       </div>
       <div class="stack hidden" data-history-for="${d.id}"></div>
     `;
     container.appendChild(row);
   }
+  container.querySelectorAll('[data-read-deal]').forEach(b => {
+    const d = data.find(x => x.id === b.dataset.readDeal);
+    b.addEventListener('click', () => toggleCardRead(b, b.closest('.list-row'), 'data-deal-read', async () => {
+      // The listing a deal file is about; the file keeps its reference when the listing goes (listing_id is then null).
+      const { data: l, error: lErr } = d.listing_id
+        ? await myplatform.from('listings').select('*').eq('id', d.listing_id).maybeSingle()
+        : { data: null, error: null };
+      if (lErr) { showError(errorMessage(lErr)); return null; }
+      if (!l) return { html: `<div class="list-row-meta" data-read-gone>The listing ${escapeHtml(d.listing_ref)} is no longer on the platform.</div>`, listings: [] };
+      return { html: listingReadHtml(l), listings: [l] };
+    }));
+  });
   container.querySelectorAll('[data-save-deal]').forEach(b =>
     b.addEventListener('click', () => withButtonBusy(b, 'Saving…', () => saveDeal(b.dataset.saveDeal))));
   container.querySelectorAll('[data-deal-history]').forEach(b =>
@@ -1877,11 +1934,21 @@ async function loadMatches() {
       </div>
       <div class="list-row-meta">${escapeHtml(a.commodity)} · ${formatDate(m.created_at)}</div>
       <div class="row" style="margin-top:4px;">
+        <button class="btn btn-secondary btn-small" data-read-match="${m.id}">Read</button>
         <button class="btn btn-secondary btn-small" data-review="${m.id}">Mark Reviewed</button>
         <button class="btn btn-danger btn-small" data-dismiss="${m.id}">Dismiss</button>
       </div>
     `;
     container.appendChild(row);
+    row.querySelector('[data-read-match]').addEventListener('click', (e) =>
+      toggleCardRead(e.currentTarget, row, 'data-match-read', async () => {
+        // The whole listings are read only when Read is pressed, so the list itself stays as light as before.
+        const { data: ls, error: lErr } = await myplatform.from('listings').select('*').in('id', [a.id, b.id]);
+        if (lErr) { showError(errorMessage(lErr)); return null; }
+        const sides = [a.id, b.id].map(id => (ls || []).find(l => l.id === id)).filter(Boolean);
+        if (sides.length < 2) { showError('One of the two listings could not be loaded. Refresh and try again.'); return null; }
+        return { html: matchReadHtml(sides), listings: sides };
+      }));
   }
 
   // Every match referenced a listing we could not resolve. Saying so beats an
