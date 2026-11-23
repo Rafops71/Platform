@@ -103,6 +103,7 @@ const DEFAULT_ORDER = [
   '071_drop_activity_log_insert_policy.sql',
   '072_profile_company_job_notice.sql',
   '073_forward_translation.sql',
+  '074_activity_log_tidy.sql',
   'seed_commodities.sql',
 ];
 
