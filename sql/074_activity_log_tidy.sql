@@ -1,0 +1,17 @@
+-- 074: tidy the activity log's privileges (supervisor's brief, 23 Nov 2026; docs/AGREED-2026-11-23-activity-log-tidy.md).
+-- applied-probe: select not has_table_privilege('anon', 'public.activity_log', 'UPDATE') and not has_table_privilege('anon', 'public.activity_log', 'DELETE') and not has_table_privilege('anon', 'public.activity_log', 'TRUNCATE') and not has_table_privilege('anon', 'public.activity_log', 'TRIGGER') and not has_table_privilege('anon', 'public.activity_log', 'REFERENCES') and not has_table_privilege('authenticated', 'public.activity_log', 'UPDATE') and not has_table_privilege('authenticated', 'public.activity_log', 'DELETE') and not has_table_privilege('authenticated', 'public.activity_log', 'TRUNCATE') and not has_table_privilege('authenticated', 'public.activity_log', 'TRIGGER') and not has_table_privilege('authenticated', 'public.activity_log', 'REFERENCES')
+--
+-- WHAT LIVE HELD (read from information_schema.role_table_grants on 23 Nov 2026): anon and authenticated each held
+-- DELETE, REFERENCES, SELECT, TRIGGER, TRUNCATE and UPDATE on the log (INSERT went in 030 and 071). Row level security
+-- with no UPDATE or DELETE policy already stops UPDATE and DELETE through the API, so those two were inert; TRUNCATE,
+-- TRIGGER and REFERENCES are not row-level and RLS does not cover them. The log is the record of who did what, so the
+-- privilege to empty it, to attach a trigger to it or to point a table at it should not exist for the two API roles at all.
+--
+-- WHAT THIS DOES (removes privileges only; no row, policy or function changes):
+--   revoke UPDATE, DELETE, TRUNCATE, TRIGGER, REFERENCES on public.activity_log from anon, authenticated.
+-- KEPT: SELECT (the Operator-only policy activity_log_select decides who actually sees rows), service_role's grants, and the
+-- owner's. Every writer is a SECURITY DEFINER function owned by postgres (log_activity, record_activity, the trg_log_*
+-- triggers, purge_orphaned_activity, renew_listing, send_manual_reminder, sync_profile_email_from_auth, my_activity_export
+-- reads), which run with the owner's privileges and are not affected.
+-- Safe to run twice (revoking what is not held is harmless). Revert: sql/revert/074_activity_log_tidy_revert.sql.
+revoke update, delete, truncate, trigger, references on public.activity_log from anon, authenticated;
