@@ -3,9 +3,10 @@
 // Two things, both for the demo only:
 //   1. The fixed ribbon at the foot of every page, saying the data is example
 //      data and is not saved.
-//   2. On the first page, ONE button that enters the demo as the one seeded
-//      member, with no password and no film (owner, 23 Nov 2026). The Operator
-//      demo (DEMO_KIND "operator") has its own single button.
+//   2. On the sign-in page, ONE button that enters the demo as the one seeded
+//      member, with no password (owner, 23 Nov 2026; no film in the panel). It
+//      sits above the normal form. The demo is for members only: there is no
+//      Operator entry.
 
 (function () {
   'use strict';
@@ -33,16 +34,12 @@
   document.body.appendChild(ribbon);
   document.body.style.paddingBottom = (ribbon.offsetHeight + 8) + 'px';
 
-  // The Operator demo (window.DEMO_KIND set by scripts/build-demo.js) keeps the ordinary sign-in page with its single
-  // button above it. The MEMBER demo's first page is built differently (owner, 23 Nov 2026,
-  // docs/AGREED-2026-11-23-demo-one-member.md): scripts/build-demo.js removes the tagline, the sign-in form, the
-  // walkthrough film and the invitation line from index.html and leaves a slot, so the page is the name, ONE button
-  // and the language switch. No film, no password.
-  const OPERATOR_DEMO = window.DEMO_KIND === 'operator';
   const form = document.getElementById('login-form');
-  const slot = document.getElementById('demo-enter-slot');
-  if (!form && !slot) return;
+  if (!form) return;
 
+  // The Operator demo (window.DEMO_KIND set by scripts/build-demo.js) has its
+  // own single button; the member demo has one button too (no film in the panel).
+  const OPERATOR_DEMO = window.DEMO_KIND === 'operator';
   // English only: the Operator demo has no language switch (owner's rule for the
   // Operator side). The member demo keeps its switch.
   if (OPERATOR_DEMO) {
@@ -56,7 +53,7 @@
 
   const buttons = OPERATOR_DEMO
     ? [['operator', 'Enter as Operator', 'btn-primary']]
-    : [['member', 'Enter as Member', 'btn-primary']];
+    : [['member', 'Enter the demo', 'btn-primary']];
   buttons.forEach(([key, label, cls]) => {
     const btn = document.createElement('button');
     btn.type = 'button';
@@ -66,7 +63,6 @@
     panel.appendChild(btn);
   });
 
-  if (slot) { slot.appendChild(panel); return; }
   const card = form.closest('.card') || form;
   card.parentNode.insertBefore(panel, card);
 })();

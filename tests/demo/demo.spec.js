@@ -3,8 +3,8 @@
 //   npm run test:demo
 //
 // The demo is for members only (owner's correction, 3 Nov): there is no
-// Operator entry and no Operator console in it. Since 23 Nov 2026 its first page is the
-// name, ONE entry button and the language switch: one example member, no password, no film
+// Operator entry and no Operator console in it. Since 23 Nov 2026 it has ONE example member and
+// ONE entry button, "Enter the demo", and no trailer in the entry panel
 // (docs/AGREED-2026-11-23-demo-one-member.md).
 //
 // What these prove:
@@ -74,8 +74,8 @@ async function errorTextOn(page) {
   return ERROR_TEXT.filter((t) => text.includes(t));
 }
 
-const ENTER = 'Enter as Member';
-/** The one entry button of the member demo's first page. */
+const ENTER = 'Enter the demo';
+/** The one entry button of the member demo. */
 async function enter(page) {
   await page.goto('/index.html');
   await page.getByRole('button', { name: ENTER, exact: true }).click();
@@ -132,47 +132,40 @@ test.describe('demo build', () => {
     await expect(page.locator('#demo-ribbon')).toHaveText(RIBBON);
   });
 
-  test('the first page is the name, ONE entry button and the language switch, and nothing else', async ({ page }) => {
+  test('the sign-in page offers ONE entry button, "Enter the demo", no second member and no Operator entry', async ({ page }) => {
     await page.goto('/index.html');
-    await expect(page.getByRole('button', { name: ENTER, exact: true }), 'one entry button').toHaveCount(1);
-    await expect(page.locator('main button:not(.lang-btn)'), 'no other button on the page').toHaveCount(1);
-    await expect(page.getByRole('button', { name: /Member B|Member A/ }), 'no second member, no letters').toHaveCount(0);
+    await expect(page.getByRole('button', { name: ENTER, exact: true })).toHaveCount(1);
+    await expect(page.locator('#demo-enter button'), 'one button in the entry panel').toHaveCount(1);
+    await expect(page.getByRole('button', { name: /Member A|Member B|Enter as/ }), 'no member letters, no old wording').toHaveCount(0);
     await expect(page.getByRole('button', { name: /Operator/ }), 'no Operator button').toHaveCount(0);
-    await expect(page.locator('h1')).toHaveText('MyPlatform');
     await expect(page.locator('#lang-toggle .lang-btn'), 'the EN / ES switch stays').toHaveCount(2);
-    // Nothing that asks for a password or an email, and no sentence or feature line under the name.
-    await expect(page.locator('input'), 'no input of any kind').toHaveCount(0);
-    await expect(page.locator('#login-form, #password, #email, #forgot-link')).toHaveCount(0);
-    const words = (await page.locator('main').innerText()).replace(/\s+/g, ' ').trim();
-    expect(words, 'the page says only the name, the language switch and the button').toBe(`EN ES MyPlatform ${ENTER}`);
+    await expect(page.locator('#demo-ribbon')).toHaveText(RIBBON);
   });
 
-  test('there is no film or trailer in the member demo: no video element, no film file, no film request', async ({ page, baseURL }) => {
-    const requested = [];
-    page.on('request', (r) => { if (/\/films\//.test(r.url())) requested.push(r.url()); });
+  test('the line "Access is by invitation only." is gone from the demo\'s first page, in both languages', async ({ page }) => {
     await page.goto('/index.html');
-    await expect(page.locator('video'), 'the first page has no video').toHaveCount(0);
-    // register.html carries a hidden film card that only an invitation link ever shows; nothing in the demo shows it.
-    for (const p of ['register.html', 'reset.html', 'terms.html']) {
-      await page.goto('/' + p);
-      await expect(page.locator('video:visible'), `${p} shows no video`).toHaveCount(0);
-    }
-    await page.goto('/index.html');
+    await expect(page.locator('body')).not.toContainText('Access is by invitation only');
     await page.getByRole('button', { name: 'ES', exact: true }).click();
     await page.waitForTimeout(500);
-    await expect(page.locator('video'), 'no video after switching to Spanish').toHaveCount(0);
-    expect(requested, 'no film or poster was requested').toEqual([]);
-    expect(fs.existsSync(path.join(DIST, 'films')), 'the demo does not ship the film files').toBe(false);
-    const trailer = await page.request.get(new URL('films/trailer-en.mp4', baseURL).href);
-    expect(trailer.status(), 'the trailer is not served by the demo').toBe(404);
-    expect(fs.readdirSync(path.resolve(__dirname, '..', '..', 'films')).length, 'the film files stay in the repository').toBeGreaterThan(0);
+    await expect(page.locator('body')).not.toContainText('Solo se accede por invitación');
+    await expect(page.locator('[data-i18n="login.noAccount"]')).toHaveCount(0);
+    await expect(page.locator('body'), 'the real page is untouched: its own file still has the line').toBeVisible();
+    expect(fs.readFileSync(path.resolve(__dirname, '..', '..', 'index.html'), 'utf8')).toContain('data-i18n="login.noAccount"');
   });
 
-  test('the language switch works on the first page; the entry button stays', async ({ page }) => {
+  test('the entry panel has no trailer: no video in it, nothing above the button, no trailer file asked for', async ({ page }) => {
+    const requested = [];
+    page.on('request', (r) => { if (/trailer-/.test(r.url())) requested.push(r.url()); });
     await page.goto('/index.html');
+    await expect(page.locator('#demo-enter video'), 'no trailer in the entry panel').toHaveCount(0);
+    const first = await page.locator('#demo-enter').evaluate((el) => el.firstElementChild && el.firstElementChild.tagName);
+    expect(first, 'the button is the first thing in the panel').toBe('BUTTON');
     await page.getByRole('button', { name: 'ES', exact: true }).click();
-    await expect(page.getByRole('button', { name: ENTER, exact: true })).toBeVisible();
-    await expect(page.locator('html')).toHaveAttribute('lang', 'es');
+    await page.waitForTimeout(500);
+    await expect(page.locator('#demo-enter video')).toHaveCount(0);
+    expect(requested, 'no trailer file was requested, in either language').toEqual([]);
+    // The film FILES stay (the walkthrough under the sign-in form still uses its own).
+    expect(fs.readdirSync(path.resolve(__dirname, '..', '..', 'films')).length).toBeGreaterThan(0);
   });
 
   test('the Operator console is absent: its page is missing and its e-mail does not sign in', async ({ page, baseURL }) => {
@@ -180,10 +173,15 @@ test.describe('demo build', () => {
     const response = await page.goto('/operator.html');
     expect(response.status(), 'a direct visit to /operator.html').toBe(404);
 
-    // There is no sign-in form at all any more, so nothing can be typed: not the Operator's address, not a password.
+    // The normal sign-in form, typed with the Operator's address: it must not
+    // sign in or move the tab to any Operator page.
     await page.goto('/index.html');
-    await expect(page.locator('#email, #password, #login-form')).toHaveCount(0);
-    expect(OPERATOR_EMAIL).toBeTruthy();
+    await page.locator('#email').fill(OPERATOR_EMAIL);
+    await page.locator('#password').fill('anything-at-all');
+    await page.locator('#login-btn').click();
+    await page.waitForTimeout(1500);
+    expect(page.url(), 'the Operator address must not reach an Operator page').not.toMatch(/operator\.html|app\.html/);
+    await expect(page.locator('#login-form'), 'the sign-in form stays up').toBeVisible();
   });
 
   test('the whole walk through the demo contacts no host but its own and the fonts', async ({ page, baseURL }) => {
@@ -271,7 +269,6 @@ test.describe('demo build', () => {
   test('the posting form offers the role choices for a Sell offer and for a Buy request', async ({ page }) => {
     await enter(page);
     await clickNav(page, 'New Listing');
-    // Sell offer: role, then Producer or Trader for a principal.
     await page.check('input[name="type"][value="sell"]');
     const roles = await page.locator('#poster_role option').evaluateAll((os) => os.map((o) => o.value).filter(Boolean));
     expect(roles.sort(), 'principal, mandated and broker are all offered').toEqual(['broker', 'mandated', 'principal']);
@@ -283,7 +280,6 @@ test.describe('demo build', () => {
     await expect(page.locator('#mandate-row')).toBeVisible();
     await page.selectOption('#poster_role', 'broker');
     await expect(page.locator('#broker-row')).toBeVisible();
-    // Buy request: the same role choice, with no producer or trader.
     await page.check('input[name="type"][value="buy"]');
     await page.selectOption('#poster_role', 'principal');
     await expect(page.locator('#kind-row'), 'a Buy request is not asked producer or trader').toBeHidden();

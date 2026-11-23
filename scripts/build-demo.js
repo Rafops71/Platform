@@ -74,24 +74,14 @@ function copyDir(from, to, skip) {
   }
 }
 
-/** The MEMBER demo's first page (owner, 23 Nov 2026, docs/AGREED-2026-11-23-demo-one-member.md): the name, ONE entry button
- *  and the language switch. Taken out of the copy of index.html, never out of the real page: the tagline, the whole
- *  sign-in card (email, password, forgotten-password panel), the walkthrough film card and the invitation-only line.
- *  A slot is left where the button goes (js/demo/demo-ui.js fills it). Refuses to build if the page no longer has the
- *  pieces it expects, rather than quietly shipping a page that still has a password box or a film. */
+/** The member demo's first page: the line 'Access is by invitation only.' is taken out of the demo's COPY of index.html
+ *  (owner, 23 Nov 2026), never out of the real page. Refuses to build if the line is no longer where it was expected. */
 function memberFirstPage(html) {
-  let out = html;
-  const cut = (start, end, label, insert = '') => {
-    const a = out.indexOf(start);
-    const b = a === -1 ? -1 : out.indexOf(end, a);
-    if (a === -1 || b === -1) throw new Error(`the member demo's first page: could not find the ${label} in index.html`);
-    out = out.slice(0, a) + insert + out.slice(b + end.length);
-  };
-  cut('<p data-i18n="login.tagline">', '</p>', 'tagline');
-  // From the sign-in card to the end of the walkthrough film's card: both go, and the slot takes their place.
-  cut('<div class="card">\n    <form id="login-form">', '</video>\n  </div>', 'sign-in card and walkthrough film', '<div id="demo-enter-slot"></div>');
-  cut('<p class="text-center text-muted" style="font-size:var(--text-base);" data-i18n="login.noAccount">', '</p>', 'invitation-only line');
-  return out;
+  const start = '<p class="text-center text-muted" style="font-size:var(--text-base);" data-i18n="login.noAccount">';
+  const a = html.indexOf(start);
+  const b = a === -1 ? -1 : html.indexOf('</p>', a);
+  if (a === -1 || b === -1) throw new Error("the member demo's first page: could not find the invitation-only line in index.html");
+  return html.slice(0, a) + html.slice(b + 4);
 }
 
 function rewritePage(html, file) {
@@ -118,9 +108,7 @@ function build() {
   fs.mkdirSync(OUT, { recursive: true });
 
   copyDir(path.join(ROOT, 'css'), path.join(OUT, 'css'));
-  // No film in the member demo (owner, 23 Nov 2026): no page of it points at one, so the 91 MB are not shipped. The film files stay
-  // in the repository. The Operator demo is untouched.
-  if (KIND !== 'member') copyDir(path.join(ROOT, 'films'), path.join(OUT, 'films'));
+  copyDir(path.join(ROOT, 'films'), path.join(OUT, 'films'));
   copyDir(path.join(ROOT, 'js'), path.join(OUT, 'js'),
     (src) => path.basename(src) === 'supabase-config.js'
       || EXCLUDED_FILES.some((f) => src === path.join(ROOT, f)));
@@ -171,11 +159,7 @@ function check(pages) {
       const html = fs.readFileSync(path.join(OUT, page), 'utf8');
       if (/js\/operator\.js/.test(html)) problems.push(`${page} loads the Operator console script`);
     }
-    // The member demo's first page: the name, one button, no password, no film.
-    const first = fs.readFileSync(path.join(OUT, 'index.html'), 'utf8');
-    if (/type="password"|id="login-form"|<video|walkthrough|login\.tagline|login\.noAccount/.test(first)) problems.push('index.html (member demo) still has a password box, a film, the tagline or the invitation line');
-    if (!/id="demo-enter-slot"/.test(first)) problems.push('index.html (member demo) has no slot for the entry button');
-    if (fs.existsSync(path.join(OUT, 'films'))) problems.push('films/ was copied into the member demo (no film in it)');
+    if (/data-i18n="login\.noAccount"/.test(fs.readFileSync(path.join(OUT, 'index.html'), 'utf8'))) problems.push('index.html (member demo) still has the invitation-only line');
   } else {
     // The Operator demo has no member pages, and no member film on its pages.
     for (const page of ['app.html', 'register.html', 'reset.html']) {
