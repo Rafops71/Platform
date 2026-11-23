@@ -164,6 +164,9 @@ jobs:
           node scripts/check-applied-live.js --self-test
           node scripts/layout-changed.js --self-test
           node scripts/browser-suites-needed.js --self-test
+          node scripts/superseded-runs.js --self-test
+          node scripts/check-cancel-workflow.js
+          node scripts/check-cancel-workflow.js --self-test
       - name: Run sql/tests
         run: npm run test:sql
       # The one-off tool that makes the standing Operator on STAGING (manual workflow, nothing runs on

@@ -36,6 +36,9 @@ jobs:
     name: Cancel older runs of this pull request
     runs-on: ubuntu-latest
     steps:
+      # The script is read from the pull request's own checkout, which is the code that is about to be merged.
+      - uses: actions/checkout@v4
+
       - name: Cancel
         env:
           GH_TOKEN: ${{ github.token }}
@@ -44,17 +47,17 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
+          # Every recent CI run, of any kind; scripts/superseded-runs.js (with a self-test) decides which are pointless:
+          # only an unfinished pull-request run of THIS branch for an OLDER commit. A push to main, a manual or a scheduled
+          # run, another branch's run and the current commit's own run can never be selected.
+          gh run list --repo "$REPO" --workflow ci.yml --limit 100 \
+            --json databaseId,headSha,headBranch,event,status > runs.json
+          node scripts/superseded-runs.js < runs.json > older.txt
           cancelled=0
-          for status in in_progress queued waiting pending; do
-            gh run list --repo "$REPO" --workflow ci.yml --branch "$BRANCH" --event pull_request --status "$status" \
-              --limit 50 --json databaseId,headSha --jq '.[] | "\(.databaseId) \(.headSha)"' > older.txt || true
-            while read -r id sha; do
-              [ -n "${id:-}" ] || continue
-              if [ "$sha" != "$HEAD_SHA" ]; then
-                echo "Cancelling run $id (commit ${sha:0:7}, $status): this pull request has a newer commit (${HEAD_SHA:0:7})."
-                gh run cancel --repo "$REPO" "$id" || echo "  (could not cancel $id: already finished?)"
-                cancelled=$((cancelled + 1))
-              fi
-            done < older.txt
-          done
+          while read -r id; do
+            [ -n "${id:-}" ] || continue
+            echo "Cancelling run $id: this pull request has a newer commit (${HEAD_SHA:0:7})."
+            gh run cancel --repo "$REPO" "$id" || echo "  (could not cancel $id: already finished?)"
+            cancelled=$((cancelled + 1))
+          done < older.txt
           echo "Cancelled $cancelled older run(s) of this pull request."
