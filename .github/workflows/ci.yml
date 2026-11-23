@@ -67,7 +67,7 @@ jobs:
     outputs:
       browser: ${{ steps.decide.outputs.browser }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 2
       - name: Documents only?
@@ -96,8 +96,8 @@ jobs:
     name: Database tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: npm
@@ -187,8 +187,8 @@ jobs:
     name: Volume and concurrency
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: npm
@@ -231,15 +231,15 @@ jobs:
     # thirteen.
     needs: checklist
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: npm
       - run: npm ci
 
       - name: Cache the Playwright browser download
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/ms-playwright
           key: playwright-webkit-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
@@ -264,7 +264,7 @@ jobs:
 
       - name: Keep the failure evidence
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: safari-failure
           path: test-results/
@@ -289,8 +289,8 @@ jobs:
       TARGET_SERVICE_ROLE_KEY: ${{ github.event_name == 'pull_request' && secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY || secrets.SUPABASE_SERVICE_ROLE_KEY }}
       TARGET_DB_URL: ${{ github.event_name == 'pull_request' && secrets.STAGING_SUPABASE_DB_URL || secrets.SUPABASE_DB_URL }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: npm
@@ -343,7 +343,7 @@ jobs:
         run: node scripts/apply-sql.js --only-new
 
       - name: Cache the Playwright browser download
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
@@ -392,7 +392,7 @@ jobs:
 
       - name: Keep the failure evidence
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: checklist-failure
           # Traces and screenshots from a failed run can contain session tokens
@@ -417,8 +417,8 @@ jobs:
       SUPABASE_URL: https://pqxlfgvjoowawzgoszna.supabase.co
       SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxeGxmZ3Zqb293YXd6Z29zem5hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxMTUyNTMsImV4cCI6MjEwODY5MTI1M30.d-5Hk6gljO5IOgsLus3AtddsOD7g9xJ6ra4beHGFtEQ
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 20
       - run: npm ci
@@ -479,7 +479,7 @@ jobs:
       # critical accessibility fault (axe-core). Two engines: Chromium and
       # Firefox (Safari's engine already runs in ci.yml).
       - name: Cache the Playwright browser download
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-firefox-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
@@ -531,7 +531,7 @@ jobs:
     outputs:
       pictures: ${{ steps.decide.outputs.pictures }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Did anything that can move a picture change?
         id: decide
         env:
@@ -561,13 +561,13 @@ jobs:
       SUPABASE_URL: https://pqxlfgvjoowawzgoszna.supabase.co
       SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxeGxmZ3Zqb293YXd6Z29zem5hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxMTUyNTMsImV4cCI6MjEwODY5MTI1M30.d-5Hk6gljO5IOgsLus3AtddsOD7g9xJ6ra4beHGFtEQ
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 20
       - run: npm ci
       - name: Cache the Playwright browser download
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
@@ -579,7 +579,7 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
       - name: Keep the pictures
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: pictures
           path: |
@@ -592,13 +592,13 @@ jobs:
     needs: [database, checklist, stress]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Package the site
         # Reached only when both suites are green. A crossed function means this
         # job never runs and no artifact exists to deploy. The same script the
         # deploy job below uses, so the artifact is what would be published.
         run: ./scripts/assemble-site.sh dist
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: site-${{ github.sha }}
           path: dist/
@@ -645,7 +645,7 @@ jobs:
       group: pages-deploy
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       # Assembled again here, from this run's own commit, rather than handed
       # down from `package`: a re-run of this job alone then still publishes
       # exactly the commit that passed, without depending on how GitHub treats
@@ -693,7 +693,7 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Are the secrets configured?
         run: |
           if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
@@ -732,7 +732,7 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Are the secrets configured?
         run: |
           if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then

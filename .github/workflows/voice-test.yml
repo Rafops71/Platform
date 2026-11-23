@@ -26,8 +26,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
       - name: Install the system library Kokoro needs
@@ -43,7 +43,7 @@ jobs:
         run: |
           echo "### Kokoro-82M" >> "$GITHUB_STEP_SUMMARY"
           cat clips/kokoro-summary.txt >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "No clips were made." >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: voice-test-kokoro
@@ -58,8 +58,8 @@ jobs:
     continue-on-error: true
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
       - name: Install VoxCPM2 (CPU build of PyTorch)
@@ -73,7 +73,7 @@ jobs:
         run: |
           echo "### VoxCPM2" >> "$GITHUB_STEP_SUMMARY"
           cat clips/voxcpm-summary.txt >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "The script did not get as far as writing a summary." >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: voice-test-voxcpm
@@ -88,7 +88,7 @@ jobs:
     continue-on-error: true
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Make the two lines with the film voice
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -111,7 +111,7 @@ jobs:
         run: |
           echo "### Gemini (Algieba)" >> "$GITHUB_STEP_SUMMARY"
           ls -l clips >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "No clips were made." >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: voice-test-gemini
@@ -126,8 +126,8 @@ jobs:
     continue-on-error: true
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
       - name: Install Chatterbox (CPU build of PyTorch)
@@ -141,7 +141,7 @@ jobs:
         run: |
           echo "### Chatterbox" >> "$GITHUB_STEP_SUMMARY"
           cat clips/chatterbox-summary.txt >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "The script did not get as far as writing a summary." >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: voice-test-chatterbox
@@ -156,8 +156,8 @@ jobs:
     continue-on-error: true
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
       - name: Install Qwen3-TTS (CPU build of PyTorch)
@@ -171,7 +171,7 @@ jobs:
         run: |
           echo "### Qwen3-TTS" >> "$GITHUB_STEP_SUMMARY"
           cat clips/qwen-summary.txt >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "The script did not get as far as writing a summary." >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: voice-test-qwen
@@ -185,8 +185,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
       - name: Install Chatterbox (CPU build of PyTorch)
@@ -202,7 +202,7 @@ jobs:
         run: |
           echo "### Voice check (faster-whisper listens to every line)" >> "$GITHUB_STEP_SUMMARY"
           cat clips/wer-table.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "No table was written." >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: trailer-voice-chatterbox
@@ -218,8 +218,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
       - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
@@ -231,7 +231,7 @@ jobs:
       - name: The voice check
         if: always()
         run: cat voice-out/voice-table.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "No table was written." >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: trailer-voice-en
@@ -253,8 +253,8 @@ jobs:
       group: ci-live-database
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: npm
@@ -270,7 +270,7 @@ jobs:
           node scripts/serve.js &
           for i in $(seq 1 30); do curl -sf http://localhost:8000/index.html >/dev/null && break; sleep 1; done
           node video/trailer2/capture.js capture-out
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: trailer-capture-en
@@ -290,21 +290,21 @@ jobs:
       CAPTURE_RUN: '41442771453'
       OM_SHA: '195eab24478dc9363326aec437aefc3701635ddf'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
       - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg && pip install numpy soundfile pillow
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           name: trailer-voice-en
           run-id: ${{ env.VOICE_RUN }}
           github-token: ${{ github.token }}
           path: voice
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           name: trailer-capture-en
           run-id: ${{ env.CAPTURE_RUN }}
@@ -331,7 +331,7 @@ jobs:
           ffmpeg -i trailer-en.mp4 -af volumedetect -vn -f null - 2>&1 | grep -E "mean_volume|max_volume"
           ls -l trailer-en.mp4
           for t in 3 12 28 36 44 55 66 76; do ffmpeg -v error -y -ss $t -i trailer-en.mp4 -frames:v 1 -vf scale=960:-1 "frame-$t.png"; done
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: trailer-en-render
           path: |

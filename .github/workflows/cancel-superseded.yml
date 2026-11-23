@@ -37,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # The script is read from the pull request's own checkout, which is the code that is about to be merged.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Cancel
         env:
