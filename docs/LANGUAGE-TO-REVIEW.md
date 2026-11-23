@@ -13,3 +13,5 @@ Rule: nothing here is final. The owner reviews each line later and decides. Span
 - WHO IS ASKED (owner, 23 Nov): brokers AND mandated intermediaries are asked whether they have SIGHTED the documents. Principals (producer, trader) are asked a different question: whether they HOLD the documentation, in trade wording. Existing answers are not deleted; display follows the new rule.
 - Trade wording: NOT verified online (five searches found no source for "sighted", "advised as available", "documents in hand"). Grok claims "sighted"/"not sighted" are in real use (its own words: no published glossary). Waiting for ChatGPT's and Grok's answers to the second box (principal question + broker label). Owner rule: verify wording online or mark it unverified.
 - Spanish: write after the English is final; give the owner an English reading.
+
+STATUS 23 Nov (later): owner approved the full English wording: see docs/AGREED-2026-11-23-documents-wording.md. Spanish still to be written and approved via English reading. Build = job 6 of the batch.
