@@ -131,8 +131,11 @@ test('Item86 declining a recommendation tells the referrer nothing', async ({ pa
   await recommend(page, candidate, testEmail('i86dec'));
   await expect(page.locator('.toast-success')).toContainText('Message sent to the Operator.');
 
+  // Mail about a LISTING is left out: every listing posted by anybody queues a mail to every approved member
+  // (trg_queue_listing_emails), including this account if another test file posts one while this runs side by side
+  // (E2E_WORKERS above 1). A mail about the DECLINE would carry no listing, so it is still counted.
   const before = await query(
-    `select count(*)::int n from public.email_outbox where to_email = $1`, [sender.email]
+    `select count(*)::int n from public.email_outbox where to_email = $1 and related_listing_id is null`, [sender.email]
   );
 
   // The member's session is still in the browser: sign out first, or the
@@ -146,7 +149,7 @@ test('Item86 declining a recommendation tells the referrer nothing', async ({ pa
   await expect(row).toHaveCount(0, { timeout: 15_000 });
 
   const after = await query(
-    `select count(*)::int n from public.email_outbox where to_email = $1`, [sender.email]
+    `select count(*)::int n from public.email_outbox where to_email = $1 and related_listing_id is null`, [sender.email]
   );
   expect(after.rows[0].n).toBe(before.rows[0].n);
 });

@@ -49,11 +49,18 @@ const E2E_LIKE_PATTERNS = [`${E2E_PREFIX}%`, `${LEGACY_E2E_PREFIX}%`];
 // GITHUB_RUN_ID keeps the tag stable across processes on CI. Locally a random
 // tag is enough: Playwright runs this suite in one worker (workers: 1), so the
 // module is loaded once and every spec in the run shares it.
+//
+// WITH MORE THAN ONE WORKER (E2E_WORKERS, playwright.config.js) every worker process loads this module, so a tag shared by the
+// run would be shared by all of them, and each spec file's cleanup() would delete the accounts the other workers are
+// using. So the tag also carries the worker's SLOT: Playwright's TEST_PARALLEL_INDEX, which is 0, 1, ... and stays the
+// same when a worker is restarted after a failure (TEST_WORKER_INDEX would not). A spec file runs entirely in one
+// worker, so all its accounts, its cleanup and its prefix-scoped queries (RUN_PREFIX) agree.
+const SLOT = process.env.TEST_PARALLEL_INDEX !== undefined ? `w${process.env.TEST_PARALLEL_INDEX}` : '';
 const RUN_TAG =
   process.env.E2E_RUN_TAG ||
   (process.env.GITHUB_RUN_ID
-    ? `ci${process.env.GITHUB_RUN_ID}x${process.env.GITHUB_RUN_ATTEMPT || 1}`
-    : `local${crypto.randomBytes(4).toString('hex')}`);
+    ? `ci${process.env.GITHUB_RUN_ID}x${process.env.GITHUB_RUN_ATTEMPT || 1}${SLOT}`
+    : `local${crypto.randomBytes(4).toString('hex')}${SLOT}`);
 
 const RUN_PREFIX = `${E2E_PREFIX}${RUN_TAG}-`;
 
@@ -264,13 +271,19 @@ async function cleanup() {
     // This run's accounts, plus orphans an earlier run left behind and is far
     // too old to still be using. Never another live run's accounts.
     const { rows: profiles } = await client.query(
-      `select id, user_id from public.profiles
+      `select id, user_id, email from public.profiles
         where email like $1
            or (email like any($2) and created_at < now() - interval '${ORPHAN_AGE}')`,
       [`${RUN_PREFIX}%`, E2E_LIKE_PATTERNS]
     );
     const ids = profiles.map(p => p.id);
     const userIds = profiles.map(p => p.user_id);
+    // Mail, invitations and log rows are matched on THESE addresses (this run's, plus the orphans being swept) and
+    // never on the whole myplatform-e2e- prefix: with several workers (E2E_WORKERS) another worker's accounts exist at
+    // the same moment, and deleting their invitations made their createAccount() fail with 'Registration is by
+    // invitation only', and deleting their mail emptied counts a test was reading.
+    const mine = [`${RUN_PREFIX}%`];
+    const emails = profiles.map(p => p.email);
     if (!ids.length) return { profiles: 0 };
 
     const listings = 'select id from public.listings where user_id = any($1)';
@@ -327,8 +340,8 @@ async function cleanup() {
     // on the next flush of the outbox.
     await client.query(
       `delete from public.email_outbox
-        where related_listing_id in (${listings}) or to_email like any($2)`,
-      [ids, E2E_LIKE_PATTERNS]
+        where related_listing_id in (${listings}) or to_email like any($2) or to_email = any($3)`,
+      [ids, mine, emails]
     );
     await client.query(
       `delete from public.message_forward_log
@@ -361,8 +374,8 @@ async function cleanup() {
     // forever with no owner. Removed here, while they still have one.
     await client.query('delete from public.terms_acceptances where profile_id = any($1)', [ids]);
     await client.query(
-      'delete from public.invitations where created_by = any($1) or used_by = any($1) or email like any($2)',
-      [ids, E2E_LIKE_PATTERNS]
+      'delete from public.invitations where created_by = any($1) or used_by = any($1) or email like any($2) or email = any($3)',
+      [ids, mine, emails]
     );
     // Activity rows, matched on what they SAY and not only on who did it.
     //
@@ -384,8 +397,8 @@ async function cleanup() {
         where user_id = any($1)
            or (jsonb_exists(details, 'profile_id') and (details->>'profile_id')::uuid = any($1))
            or (jsonb_exists(details, 'listing_id') and (details->>'listing_id')::uuid = any($2))
-           or details->>'email' like any($3)`,
-      [ids, listingIds, E2E_LIKE_PATTERNS]
+           or details->>'email' like any($3) or details->>'email' = any($4)`,
+      [ids, listingIds, mine, emails]
     );
     // Commodities are shared reference data — if a test operator added one,
     // orphan the authorship rather than deleting a row others may now use.

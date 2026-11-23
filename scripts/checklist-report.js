@@ -70,26 +70,55 @@ function readChecklist() {
   return items;
 }
 
-function runBrowserSuite() {
-  console.log(`${DIM}Running the browser suite …${OFF}`);
+/** One Playwright run of one project, as the parsed JSON report (or why there is none). */
+function playwrightRun(project, extra = []) {
   const res = spawnSync(
     'npx',
-    // --project=chromium, explicitly. Without it this runs EVERY project,
+    // --project, explicitly. Without it this runs EVERY project,
     // which since the Safari project was added means launching WebKit - a
     // browser this job does not install, because Safari has a job of its own
     // with its own install step. The whole checklist went red on a browser
     // that was never meant to run here.
-    ['playwright', 'test', '--project=chromium', '--reporter', 'json'],
+    ['playwright', 'test', `--project=${project}`, ...extra, '--reporter', 'json'],
     { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, shell: process.platform === 'win32' },
   );
   // Playwright exits non-zero when tests fail. That is expected: a failure is a
   // cross on the table, not a reason to abandon the report. No output at all is
-  // different — the suite never ran, and nothing it would have proven counts.
-  if (!res.stdout) {
-    return { ok: false, raw: '', why: (res.stderr || 'playwright produced no output').slice(0, 800) };
+  // different - the suite never ran, and nothing it would have proven counts.
+  if (!res.stdout) return { raw: '', why: (res.stderr || `playwright (${project}) produced no output`).slice(0, 800) };
+  return { raw: res.stdout };
+}
+
+function runBrowserSuite() {
+  console.log(`${DIM}Running the browser suite …${OFF}`);
+  const workers = Math.max(1, Math.floor(Number(process.env.E2E_WORKERS || 1)) || 1);
+  const first = playwrightRun('chromium');
+  if (!first.raw) return { ok: false, raw: '', why: first.why };
+  if (workers === 1) {
+    // One worker: every spec file ran in order, in the one project, as it always has.
+    fs.writeFileSync(UI_RESULTS, first.raw);
+    return { ok: true, raw: first.raw };
   }
-  fs.writeFileSync(UI_RESULTS, res.stdout);
-  return { ok: true, raw: res.stdout };
+
+  // More than one worker: the "chromium" project ran everything except tests/e2e/exclusive-specs.js, in parallel. Those
+  // files now run ALONE, on one worker, with the database to themselves (they assert on whole tables), and the two
+  // reports are merged into one so the table below reads exactly as if it had been a single run.
+  console.log(`${DIM}Running the files that must run alone (tests/e2e/exclusive-specs.js) …${OFF}`);
+  const second = playwrightRun('chromium-exclusive', ['--workers=1']);
+  if (!second.raw) return { ok: false, raw: '', why: `the exclusive spec files did not run: ${second.why}` };
+  let a, b;
+  try { a = JSON.parse(first.raw); b = JSON.parse(second.raw); } catch { return { ok: false, raw: '', why: 'a Playwright JSON report could not be parsed' }; }
+  const sum = (k) => (a.stats?.[k] || 0) + (b.stats?.[k] || 0);
+  const merged = {
+    ...a,
+    suites: [...(a.suites || []), ...(b.suites || [])],
+    errors: [...(a.errors || []), ...(b.errors || [])],
+    stats: { ...(a.stats || {}), expected: sum('expected'), unexpected: sum('unexpected'), flaky: sum('flaky'), skipped: sum('skipped'),
+             duration: sum('duration') },
+  };
+  const raw = JSON.stringify(merged);
+  fs.writeFileSync(UI_RESULTS, raw);
+  return { ok: true, raw };
 }
 
 function runDatabaseSuite() {
