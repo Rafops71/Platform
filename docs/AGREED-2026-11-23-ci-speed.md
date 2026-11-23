@@ -12,3 +12,10 @@ Source: `docs/ROADMAP-2026-11-22.md` section 0.6 and `docs/CI-SPEED-AI-ADVICE-20
 **A change to the roadmap's wording (supervisor, 23 Nov):** `docs/ROADMAP-2026-11-22.md` section 0.6, step 2, says "word-only changes (i18n/labels) take the short line". That is NOT what was built: only documents-only pull requests take it, and wording in `js/i18n.js` runs the full line. Reason: #137 (a label rename) needed three browser assertions changed, and only the browser suites see that. The roadmap file is on the supervisor's notes branch, so the supervisor changes that line there.
 
 **What to expect, honestly:** steps 1 and 2 do not reach the 10-minute target. The realistic result after the parallel steps is about 8 to 9 minutes for a push to main and about 18 minutes for a pull-request run, until the security grid (8 to 10 minutes, ten scripts in a row, behind the checklist and Safari because staging has one writer) is reworked.
+
+## PR 2 (23 Nov, supervisor's go): per-worker tag, the audit of the spec files, 2 workers on pull requests
+- Every account a test makes carries its worker's slot in its tag (`w0`, `w1`), so one worker's cleanup never deletes another's.
+- Five spec files assert on whole tables or seed mass data (`tests/e2e/exclusive-specs.js`, with the reason for each); with more than one worker they run alone, after the others, on one worker, in the project `chromium-exclusive`; the report merges the two runs.
+- Two assertions that a neighbour's activity could change were made specific (Item 86's email count excludes mail about listings; the Operator-translate "keeps nothing" test counts only notifications tied to its own listings and messages). Nothing was removed or loosened beyond ignoring rows a neighbour made.
+- Pull requests run with `E2E_WORKERS=2`; a push to main stays at 1 until the pull-request runs have shown the parallel suite stable over several runs. Four workers wait for the numbers.
+- The guard in `scripts/check-ci-targets.js` now also requires the `changes` job's push branch to end (`exit 0`) right after writing `browser=true`.

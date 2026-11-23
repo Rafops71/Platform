@@ -49,11 +49,18 @@ const E2E_LIKE_PATTERNS = [`${E2E_PREFIX}%`, `${LEGACY_E2E_PREFIX}%`];
 // GITHUB_RUN_ID keeps the tag stable across processes on CI. Locally a random
 // tag is enough: Playwright runs this suite in one worker (workers: 1), so the
 // module is loaded once and every spec in the run shares it.
+//
+// WITH MORE THAN ONE WORKER (E2E_WORKERS, playwright.config.js) every worker process loads this module, so a tag shared by the
+// run would be shared by all of them, and each spec file's cleanup() would delete the accounts the other workers are
+// using. So the tag also carries the worker's SLOT: Playwright's TEST_PARALLEL_INDEX, which is 0, 1, ... and stays the
+// same when a worker is restarted after a failure (TEST_WORKER_INDEX would not). A spec file runs entirely in one
+// worker, so all its accounts, its cleanup and its prefix-scoped queries (RUN_PREFIX) agree.
+const SLOT = process.env.TEST_PARALLEL_INDEX !== undefined ? `w${process.env.TEST_PARALLEL_INDEX}` : '';
 const RUN_TAG =
   process.env.E2E_RUN_TAG ||
   (process.env.GITHUB_RUN_ID
-    ? `ci${process.env.GITHUB_RUN_ID}x${process.env.GITHUB_RUN_ATTEMPT || 1}`
-    : `local${crypto.randomBytes(4).toString('hex')}`);
+    ? `ci${process.env.GITHUB_RUN_ID}x${process.env.GITHUB_RUN_ATTEMPT || 1}${SLOT}`
+    : `local${crypto.randomBytes(4).toString('hex')}${SLOT}`);
 
 const RUN_PREFIX = `${E2E_PREFIX}${RUN_TAG}-`;
 

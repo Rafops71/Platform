@@ -366,6 +366,11 @@ jobs:
           SERVE_SUPABASE_URL: ${{ github.event_name == 'pull_request' && env.TARGET_URL || '' }}
           SERVE_SUPABASE_KEY: ${{ github.event_name == 'pull_request' && env.TARGET_ANON_KEY || '' }}
           OPERATOR_EMAIL: ${{ secrets.OPERATOR_EMAIL }}
+          # How many spec files run at once (docs/AGREED-2026-11-23-ci-speed.md, PR 2). Pull requests run on staging with 2.
+          # A push to main (live, the run that gates publishing) stays at 1 until the pull-request runs have shown the
+          # parallel suite stable over several runs; then this is the one line to change. With more than 1, the files in
+          # tests/e2e/exclusive-specs.js run alone after the others (scripts/checklist-report.js).
+          E2E_WORKERS: ${{ github.event_name == 'pull_request' && '2' || '1' }}
         run: npm run checklist
 
       # Printed on success, not only on failure. The timings are most useful

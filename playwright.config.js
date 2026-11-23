@@ -23,14 +23,20 @@ const { defineConfig, devices } = require('@playwright/test');
 
 const BASE_URL = process.env.E2E_BASE_URL || 'http://localhost:8000';
 
+// How many spec files run at the same moment. 1 (the default) is the suite exactly as it has always run. Above 1, the files
+// in tests/e2e/exclusive-specs.js move to their own project and run alone, after the others (see that file). Every account
+// a worker makes carries that worker's own tag (tests/e2e/helpers/fixtures.js), so one worker's teardown never deletes another's.
+const WORKERS = Math.max(1, Math.floor(Number(process.env.E2E_WORKERS || 1)) || 1);
+const EXCLUSIVE = require('./tests/e2e/exclusive-specs.js').map((f) => new RegExp(f.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$'));
+
 module.exports = defineConfig({
   testDir: './tests/e2e',
   // The flow is one long causal chain — an invitation must exist before it can
-  // be redeemed, a listing before it can be contacted. Parallelism would not
-  // just be useless here, it would have several workers racing on the same
-  // shared live database.
+  // be redeemed, a listing before it can be contacted, so the tests INSIDE a spec file always run in order, on one
+  // worker. Workers share nothing but the database: with E2E_WORKERS above 1, different spec FILES run at the same
+  // moment (see WORKERS above, tests/e2e/exclusive-specs.js and tests/e2e/helpers/fixtures.js).
   fullyParallel: false,
-  workers: 1,
+  workers: WORKERS,
   retries: 0,
   timeout: 60_000,
   expect: { timeout: 10_000 },
@@ -51,7 +57,16 @@ module.exports = defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
-      testIgnore: /on-safari\.spec\.js/,
+      testIgnore: [/on-safari\.spec\.js/, ...(WORKERS > 1 ? EXCLUSIVE : [])],
+    },
+
+    // The files that must run alone (tests/e2e/exclusive-specs.js). Used only when E2E_WORKERS is above 1, and then run
+    // by scripts/checklist-report.js as a second step on ONE worker (--workers=1) after the parallel project is done.
+    // Never part of "--project=chromium"; with one worker those files stay inside the chromium project as before.
+    {
+      name: 'chromium-exclusive',
+      use: { ...devices['Desktop Chrome'] },
+      testMatch: EXCLUSIVE,
     },
 
     // Safari, on an iPhone, which is what a client will actually open.

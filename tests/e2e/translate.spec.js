@@ -318,7 +318,14 @@ test.describe('operator-translate: Operators only, and nothing kept', () => {
       messages: (await query(`select count(*)::int n from public.messages where sender_id = any($1::uuid[])`, [people])).rows[0].n,
       message_forward_log: (await query(`select count(*)::int n from public.message_forward_log where operator_id = any($1::uuid[]) or to_user_id = any($1::uuid[])`, [people])).rows[0].n,
       activity_log: (await query(`select count(*)::int n from public.activity_log where user_id = any($1::uuid[])`, [people])).rows[0].n,
-      notifications: (await query(`select count(*)::int n from public.notifications where user_id = any($1::uuid[])`, [people])).rows[0].n,
+      // Only notifications tied to THIS test's own listings and messages: every listing posted by anybody notifies every
+      // Operator (a fixture Operator included) and a match notifies again, so another spec file running side by side
+      // (E2E_WORKERS above 1) would change a whole-account count for reasons that are not the translation.
+      notifications: (await query(
+        `select count(*)::int n from public.notifications
+          where user_id = any($1::uuid[])
+            and (related_id in (select id from public.listings where user_id = any($1::uuid[]))
+              or related_id in (select id from public.messages where sender_id = any($1::uuid[])))`, [people])).rows[0].n,
       listing_translations_since: (await query(`select count(*)::int n from public.listing_translations where created_at >= $1`, [t0])).rows[0].n,
     });
     const before = await counts();

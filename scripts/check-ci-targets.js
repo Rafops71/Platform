@@ -135,7 +135,15 @@ function check(text, gridText) {
   const changes = jobBlock(text, 'changes');
   const checklistJob = jobBlock(text, 'checklist');
   if (!changes) problems.push('ci.yml has no "changes" job: the rule for skipping the browser chain on a documents-only pull request lives there');
-  else if (!/if \[ "\$EVENT" != "pull_request" \]; then\n\s+echo "browser=true" >> "\$GITHUB_OUTPUT"/.test(changes)) problems.push('the "changes" job must answer browser=true for anything that is not a pull request (a push to main must never skip the checklist)');
+  else {
+    // The branch for anything that is not a pull request must say browser=true and then END (exit 0) before any other line
+    // can run, so no later line, however it got there, can turn a push's answer into false.
+    if (!/if \[ "\$EVENT" != "pull_request" \]; then\n\s+echo "browser=true" >> "\$GITHUB_OUTPUT"\n\s+echo "[^\n]*"\n\s+exit 0\n\s+fi/.test(changes)) problems.push('the "changes" job must answer browser=true for anything that is not a pull request and then exit 0 at once (a push to main must never skip the checklist)');
+    const falseAt = changes.indexOf('browser=false');
+    const exitAt = changes.indexOf('exit 0');
+    if (falseAt >= 0 && exitAt >= 0 && falseAt < exitAt) problems.push('"browser=false" is written before the push branch has ended');
+    if (/browser=\$\{?[a-z]/i.test(changes.slice(0, exitAt < 0 ? 0 : exitAt))) problems.push('the push branch must not compute its answer');
+  }
   if (checklistJob) {
     if (ifOf(checklistJob) !== "${{ needs.changes.outputs.browser == 'true' }}") problems.push(`the checklist job's "if" must be exactly: \${{ needs.changes.outputs.browser == 'true' }} (it is: ${ifOf(checklistJob) || 'missing'})`);
     if (!/\bchanges\b/.test(needsOf(checklistJob))) problems.push('the checklist job must wait for "changes"');
@@ -181,6 +189,7 @@ if (process.argv.includes('--self-test')) {
     'the grid stops waiting for the checklist': (t) => t.replace('    needs: [changes, checklist, safari]\n    if: ${{ !cancelled()', '    needs: [changes, safari]\n    if: ${{ !cancelled()'),
     'the grid would run on a push too': (t) => t.replace(`    needs: [changes, checklist, safari]\n    if: \${{ !cancelled() && github.event_name == 'pull_request' && needs.changes.outputs.browser == 'true' }}`, `    needs: [changes, checklist, safari]\n    if: \${{ !cancelled() && needs.changes.outputs.browser == 'true' }}`),
     'the grid ignores the documents-only rule': (t) => t.replace(`github.event_name == 'pull_request' && needs.changes.outputs.browser == 'true' }}\n    runs-on: ubuntu-latest\n    env:\n      SUPABASE_URL`, `github.event_name == 'pull_request' }}\n    runs-on: ubuntu-latest\n    env:\n      SUPABASE_URL`),
+    'the push branch no longer ends at once': (t) => t.replace('echo "Not a pull request: every suite always runs (this is the run that gates publishing)."\n            exit 0', 'echo "Not a pull request: every suite always runs (this is the run that gates publishing)."'),
     'a push could skip the checklist': (t) => t.replace('echo "browser=true" >> "$GITHUB_OUTPUT"\n            echo "Not a pull request', 'echo "browser=false" >> "$GITHUB_OUTPUT"\n            echo "Not a pull request'),
     'the checklist can be skipped for another reason': (t) => t.replace("    if: ${{ needs.changes.outputs.browser == 'true' }}\n    runs-on", "    if: ${{ needs.changes.outputs.browser == 'true' && github.actor != 'x' }}\n    runs-on"),
     'the pictures stop waiting for the grid': (t) => t.replace('    needs: [grid, layout]', '    needs: [layout]'),
