@@ -1941,14 +1941,7 @@ async function loadMatches() {
     `;
     container.appendChild(row);
     row.querySelector('[data-read-match]').addEventListener('click', (e) =>
-      toggleCardRead(e.currentTarget, row, 'data-match-read', async () => {
-        // The whole listings are read only when Read is pressed, so the list itself stays as light as before.
-        const { data: ls, error: lErr } = await myplatform.from('listings').select('*').in('id', [a.id, b.id]);
-        if (lErr) { showError(errorMessage(lErr)); return null; }
-        const sides = [a.id, b.id].map(id => (ls || []).find(l => l.id === id)).filter(Boolean);
-        if (sides.length < 2) { showError('One of the two listings could not be loaded. Refresh and try again.'); return null; }
-        return { html: matchReadHtml(sides), listings: sides };
-      }));
+      toggleCardRead(e.currentTarget, row, 'data-match-read', () => buildMatchRead(a, b)));
   }
 
   // Every match referenced a listing we could not resolve. Saying so beats an
@@ -1961,6 +1954,15 @@ async function loadMatches() {
 
   container.querySelectorAll('[data-review]').forEach(b => b.addEventListener('click', () => updateMatchStatus(b.dataset.review, 'reviewed')));
   container.querySelectorAll('[data-dismiss]').forEach(b => b.addEventListener('click', () => updateMatchStatus(b.dataset.dismiss, 'dismissed')));
+}
+
+/** The panel for one match: both whole listings, read when Read is pressed so the list itself stays light. */
+async function buildMatchRead(a, b) {
+  const { data: ls, error } = await myplatform.from('listings').select('*').in('id', [a.id, b.id]);
+  if (error) { showError(errorMessage(error)); return null; }
+  const sides = [a.id, b.id].map(id => (ls || []).find(l => l.id === id)).filter(Boolean);
+  if (sides.length < 2) { showError('One of the two listings could not be loaded. Refresh and try again.'); return null; }
+  return { html: matchReadHtml(sides), listings: sides };
 }
 
 async function updateMatchStatus(id, status) {

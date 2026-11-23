@@ -35,8 +35,9 @@ test.describe('parity: the new panels are built from the same pieces as All List
     expect(panel).toContain('listingReadHtml(l, false)');          // each side: the same fields as All Listings, no control of its own
     expect((panel.match(/translateControlHtml\(\)/g) || []).length, 'one Translate control for the whole match panel').toBe(1);
     const load = stripComments(fn(op, 'loadMatches'));
-    expect(load).toContain(".from('listings').select('*').in('id', [a.id, b.id])");   // whole listings, so every field Browse shows is there
-    expect(load).toContain('matchReadHtml(sides)');
+    expect(stripComments(fn(op, 'buildMatchRead'))).toContain(".from('listings').select('*').in('id', [a.id, b.id])");   // whole listings, so every field Browse shows is there
+    expect(stripComments(fn(op, 'buildMatchRead'))).toContain('matchReadHtml(sides)');
+    expect(load).toContain('buildMatchRead(a, b)');
     expect(load).toContain('data-read-match');
   });
 
