@@ -59,8 +59,8 @@
 
   // Who the three demo buttons sign in as.
   const enterAs = {
-    'member-a': { profileId: IDS.memberA, page: 'app.html' },
-    'member-b': { profileId: IDS.memberB, page: 'app.html' },
+    // ONE member can be entered (owner, 23 Nov 2026). Member B stays in the seed: their offers are what this member browses.
+    member: { profileId: IDS.memberA, page: 'app.html' },
   };
   // Only the Operator demo (window.DEMO_KIND, set by scripts/build-demo.js) has
   // an Operator entry. The member demo has no way in as the Operator.

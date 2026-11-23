@@ -3,9 +3,9 @@
 // Two things, both for the demo only:
 //   1. The fixed ribbon at the foot of every page, saying the data is example
 //      data and is not saved.
-//   2. On the sign-in page, two buttons that enter the demo as a seeded
-//      member, with no password. They sit above the normal form. The demo is
-//      for members only: there is no Operator entry.
+//   2. On the first page, ONE button that enters the demo as the one seeded
+//      member, with no password and no film (owner, 23 Nov 2026). The Operator
+//      demo (DEMO_KIND "operator") has its own single button.
 
 (function () {
   'use strict';
@@ -33,12 +33,16 @@
   document.body.appendChild(ribbon);
   document.body.style.paddingBottom = (ribbon.offsetHeight + 8) + 'px';
 
-  const form = document.getElementById('login-form');
-  if (!form) return;
-
-  // The Operator demo (window.DEMO_KIND set by scripts/build-demo.js) has its
-  // own single button and no member film; the member demo is unchanged.
+  // The Operator demo (window.DEMO_KIND set by scripts/build-demo.js) keeps the ordinary sign-in page with its single
+  // button above it. The MEMBER demo's first page is built differently (owner, 23 Nov 2026,
+  // docs/AGREED-2026-11-23-demo-one-member.md): scripts/build-demo.js removes the tagline, the sign-in form, the
+  // walkthrough film and the invitation line from index.html and leaves a slot, so the page is the name, ONE button
+  // and the language switch. No film, no password.
   const OPERATOR_DEMO = window.DEMO_KIND === 'operator';
+  const form = document.getElementById('login-form');
+  const slot = document.getElementById('demo-enter-slot');
+  if (!form && !slot) return;
+
   // English only: the Operator demo has no language switch (owner's rule for the
   // Operator side). The member demo keeps its switch.
   if (OPERATOR_DEMO) {
@@ -50,44 +54,9 @@
   panel.className = 'card';
   panel.style.cssText = 'display:flex;flex-direction:column;gap:10px;';
 
-  if (!OPERATOR_DEMO) {
-    // The trailer, at the top of the sign-in panel. Same file as the front page;
-    // no autoplay, so nothing plays until someone presses play.
-    const trailer = document.createElement('video');
-    trailer.controls = true;
-    trailer.setAttribute('playsinline', '');
-    trailer.preload = 'metadata';
-    trailer.poster = 'films/trailer-en-poster.jpg';
-    trailer.setAttribute('aria-label', 'MyPlatform trailer');
-    trailer.style.cssText = 'display:block;width:100%;border-radius:8px;';
-    panel.appendChild(trailer);
-
-    // The film follows the language: English or Spanish, with its own poster.
-    // Set only when it changes, so switching again does not restart the film.
-    function setTrailer() {
-      const lang = typeof currentLang === 'function' && currentLang() === 'es' ? 'es' : 'en';
-      const next = 'films/trailer-' + lang + '.mp4';
-      if (trailer.getAttribute('src') !== next) {
-        trailer.setAttribute('poster', 'films/trailer-' + lang + '-poster.jpg');
-        trailer.setAttribute('src', next);
-      }
-    }
-    setTrailer();
-    // Keep whatever the page already does on a language change (auth.js sets it),
-    // and run the trailer's own swap after it.
-    const previousOnLanguageChange = window.onLanguageChange;
-    window.onLanguageChange = function () {
-      if (typeof previousOnLanguageChange === 'function') previousOnLanguageChange();
-      setTrailer();
-    };
-  }
-
   const buttons = OPERATOR_DEMO
     ? [['operator', 'Enter as Operator', 'btn-primary']]
-    : [
-      ['member-a', 'Enter as Member A', 'btn-primary'],
-      ['member-b', 'Enter as Member B', 'btn-primary'],
-    ];
+    : [['member', 'Enter as Member', 'btn-primary']];
   buttons.forEach(([key, label, cls]) => {
     const btn = document.createElement('button');
     btn.type = 'button';
@@ -97,6 +66,7 @@
     panel.appendChild(btn);
   });
 
+  if (slot) { slot.appendChild(panel); return; }
   const card = form.closest('.card') || form;
   card.parentNode.insertBefore(panel, card);
 })();

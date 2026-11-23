@@ -3,7 +3,9 @@
 //   npm run test:demo
 //
 // The demo is for members only (owner's correction, 3 Nov): there is no
-// Operator entry and no Operator console in it.
+// Operator entry and no Operator console in it. Since 23 Nov 2026 its first page is the
+// name, ONE entry button and the language switch: one example member, no password, no film
+// (docs/AGREED-2026-11-23-demo-one-member.md).
 //
 // What these prove:
 //   1. Every demo page carries the "example data, nothing is saved" ribbon.
@@ -72,9 +74,13 @@ async function errorTextOn(page) {
   return ERROR_TEXT.filter((t) => text.includes(t));
 }
 
-async function signInAs(page, label) {
+const ENTER = 'Enter as Member';
+/** The one entry button of the member demo's first page. */
+async function enter(page) {
   await page.goto('/index.html');
-  await page.getByRole('button', { name: label, exact: true }).click();
+  await page.getByRole('button', { name: ENTER, exact: true }).click();
+  await page.waitForURL('**/app.html');
+  await page.waitForTimeout(800);
 }
 
 async function clickNav(page, label) {
@@ -122,46 +128,51 @@ test.describe('demo build', () => {
       await expect(page.locator('#demo-ribbon'), p).toBeVisible();
     }
     // The signed-in member page needs a signed-in tab.
-    await signInAs(page, 'Enter as Member A');
-    await page.waitForURL('**/app.html');
+    await enter(page);
     await expect(page.locator('#demo-ribbon')).toHaveText(RIBBON);
   });
 
-  test('the sign-in page offers the two member buttons and no Operator entry', async ({ page }) => {
+  test('the first page is the name, ONE entry button and the language switch, and nothing else', async ({ page }) => {
     await page.goto('/index.html');
-    for (const label of ['Enter as Member A', 'Enter as Member B']) {
-      await expect(page.getByRole('button', { name: label, exact: true })).toBeVisible();
-    }
+    await expect(page.getByRole('button', { name: ENTER, exact: true }), 'one entry button').toHaveCount(1);
+    await expect(page.locator('main button:not(.lang-btn)'), 'no other button on the page').toHaveCount(1);
+    await expect(page.getByRole('button', { name: /Member B|Member A/ }), 'no second member, no letters').toHaveCount(0);
     await expect(page.getByRole('button', { name: /Operator/ }), 'no Operator button').toHaveCount(0);
+    await expect(page.locator('h1')).toHaveText('MyPlatform');
+    await expect(page.locator('#lang-toggle .lang-btn'), 'the EN / ES switch stays').toHaveCount(2);
+    // Nothing that asks for a password or an email, and no sentence or feature line under the name.
+    await expect(page.locator('input'), 'no input of any kind').toHaveCount(0);
+    await expect(page.locator('#login-form, #password, #email, #forgot-link')).toHaveCount(0);
+    const words = (await page.locator('main').innerText()).replace(/\s+/g, ' ').trim();
+    expect(words, 'the page says only the name, the language switch and the button').toBe(`EN ES MyPlatform ${ENTER}`);
   });
 
-  test('the sign-in page has the trailer at its top, with no autoplay, and the files are served', async ({ page, baseURL }) => {
+  test('there is no film or trailer in the member demo: no video element, no film file, no film request', async ({ page, baseURL }) => {
+    const requested = [];
+    page.on('request', (r) => { if (/\/films\//.test(r.url())) requested.push(r.url()); });
     await page.goto('/index.html');
-    const video = page.locator('#demo-enter video');
-    await expect(video, 'one trailer on the sign-in page').toHaveCount(1);
-    expect(await video.getAttribute('autoplay'), 'no autoplay').toBeNull();
-    const first = await page.locator('#demo-enter').evaluate((el) => el.firstElementChild && el.firstElementChild.tagName);
-    expect(first, 'the trailer is the first thing above the sign-in buttons').toBe('VIDEO');
-
-    const trailer = await page.request.get(new URL('films/trailer-en.mp4', baseURL).href);
-    expect(trailer.status(), 'the trailer file resolves').toBe(200);
-    const poster = await page.request.get(new URL('films/trailer-en-poster.jpg', baseURL).href);
-    expect(poster.status(), 'the poster resolves').toBe(200);
-  });
-
-  test('the sign-in trailer follows the language: English, then Spanish after ES', async ({ page, baseURL }) => {
+    await expect(page.locator('video'), 'the first page has no video').toHaveCount(0);
+    // register.html carries a hidden film card that only an invitation link ever shows; nothing in the demo shows it.
+    for (const p of ['register.html', 'reset.html', 'terms.html']) {
+      await page.goto('/' + p);
+      await expect(page.locator('video:visible'), `${p} shows no video`).toHaveCount(0);
+    }
     await page.goto('/index.html');
-    const video = page.locator('#demo-enter video');
-    const src = () => video.evaluate((v) => v.getAttribute('src'));
-    expect(await src(), 'English by default').toBe('films/trailer-en.mp4');
-    expect((await page.request.get(new URL('films/trailer-en.mp4', baseURL).href)).status()).toBe(200);
-    expect(await video.getAttribute('autoplay'), 'no autoplay').toBeNull();
-
     await page.getByRole('button', { name: 'ES', exact: true }).click();
-    await expect.poll(src, { message: 'Spanish after ES' }).toBe('films/trailer-es.mp4');
-    expect((await page.request.get(new URL('films/trailer-es.mp4', baseURL).href)).status()).toBe(200);
-    expect((await page.request.get(new URL('films/trailer-es-poster.jpg', baseURL).href)).status()).toBe(200);
-    expect(await video.getAttribute('autoplay'), 'no autoplay after the swap').toBeNull();
+    await page.waitForTimeout(500);
+    await expect(page.locator('video'), 'no video after switching to Spanish').toHaveCount(0);
+    expect(requested, 'no film or poster was requested').toEqual([]);
+    expect(fs.existsSync(path.join(DIST, 'films')), 'the demo does not ship the film files').toBe(false);
+    const trailer = await page.request.get(new URL('films/trailer-en.mp4', baseURL).href);
+    expect(trailer.status(), 'the trailer is not served by the demo').toBe(404);
+    expect(fs.readdirSync(path.resolve(__dirname, '..', '..', 'films')).length, 'the film files stay in the repository').toBeGreaterThan(0);
+  });
+
+  test('the language switch works on the first page; the entry button stays', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.getByRole('button', { name: 'ES', exact: true }).click();
+    await expect(page.getByRole('button', { name: ENTER, exact: true })).toBeVisible();
+    await expect(page.locator('html')).toHaveAttribute('lang', 'es');
   });
 
   test('the Operator console is absent: its page is missing and its e-mail does not sign in', async ({ page, baseURL }) => {
@@ -169,37 +180,26 @@ test.describe('demo build', () => {
     const response = await page.goto('/operator.html');
     expect(response.status(), 'a direct visit to /operator.html').toBe(404);
 
-    // The normal sign-in form, typed with the Operator's address: it must not
-    // sign in or move the tab to any Operator page.
+    // There is no sign-in form at all any more, so nothing can be typed: not the Operator's address, not a password.
     await page.goto('/index.html');
-    await page.locator('#email').fill(OPERATOR_EMAIL);
-    await page.locator('#password').fill('anything-at-all');
-    await page.locator('#login-btn').click();
-    await page.waitForTimeout(1500);
-    expect(page.url(), 'the Operator address must not reach an Operator page').not.toMatch(/operator\.html|app\.html/);
-    await expect(page.locator('#login-form'), 'the sign-in form stays up').toBeVisible();
+    await expect(page.locator('#email, #password, #login-form')).toHaveCount(0);
+    expect(OPERATOR_EMAIL).toBeTruthy();
   });
 
   test('the whole walk through the demo contacts no host but its own and the fonts', async ({ page, baseURL }) => {
     const w = watch(page);
 
-    // Member A: every tab, then sign out.
-    await signInAs(page, 'Enter as Member A');
-    await page.waitForURL('**/app.html');
-    await page.waitForTimeout(800);
+    // The one member: every tab, then sign out.
+    await enter(page);
     for (const label of await navLabels(page)) {
       if (label === 'Sign out') continue;
       await clickNav(page, label);
     }
+    // Browse shows the other side's offers and requests.
+    await clickNav(page, 'Browse');
+    await expect(page.getByText('BUY-26-001').first(), 'Browse shows the other side\'s copper request').toBeVisible();
     await page.getByText('Sign out', { exact: true }).first().click();
     await page.waitForURL('**/index.html');
-
-    // Member B: the Browse list shows the other side's listings.
-    await signInAs(page, 'Enter as Member B');
-    await page.waitForURL('**/app.html');
-    await page.waitForTimeout(800);
-    await clickNav(page, 'Browse');
-    await expect(page.getByText('SELL-26-001').first(), 'Browse shows the copper offer').toBeVisible();
 
     expect(unexpectedHosts(w.hosts, baseURL), 'hosts the demo contacted').toEqual([]);
   });
@@ -212,9 +212,7 @@ test.describe('demo build', () => {
     // Member A cannot contact its own copper sell offer, so it contacts the
     // copper request posted by Member B (BUY-26-001).
     const body = 'Demo click-through: is the copper cathode request still open for CIF Rotterdam?';
-    await signInAs(page, 'Enter as Member A');
-    await page.waitForURL('**/app.html');
-    await page.waitForTimeout(800);
+    await enter(page);
     await clickNav(page, 'Browse');
     const copper = page.locator('div', { hasText: 'BUY-26-001' })
       .filter({ has: page.getByRole('button', { name: 'Contact', exact: true }) }).last();
@@ -241,47 +239,69 @@ test.describe('demo build', () => {
     const w = watch(page);
     const failures = [];
 
-    for (const who of ['Enter as Member A', 'Enter as Member B']) {
-      await signInAs(page, who);
-      await page.waitForURL('**/app.html');
-      await page.waitForTimeout(800);
-      for (const label of await navLabels(page)) {
-        if (label === 'Sign out') continue;
-        const before = w.errors.length;
-        await clickNav(page, label);
-        if (w.errors.length > before) failures.push(`${who}, ${label}: ${w.errors.slice(before).join(' | ')}`);
-        const shown = await errorTextOn(page);
-        if (shown.length) failures.push(`${who}, ${label}: shows "${shown.join('", "')}"`);
-      }
-      await page.getByText('Sign out', { exact: true }).first().click();
-      await page.waitForURL('**/index.html');
+    await enter(page);
+    for (const label of await navLabels(page)) {
+      if (label === 'Sign out') continue;
+      const before = w.errors.length;
+      await clickNav(page, label);
+      if (w.errors.length > before) failures.push(`${label}: ${w.errors.slice(before).join(' | ')}`);
+      const shown = await errorTextOn(page);
+      if (shown.length) failures.push(`${label}: shows "${shown.join('", "')}"`);
     }
+    await page.getByText('Sign out', { exact: true }).first().click();
+    await page.waitForURL('**/index.html');
 
     expect(failures).toEqual([]);
   });
 
   test('a member sees only their own listings and mailbox', async ({ page }) => {
-    // Member A posted SELL-26-001 (copper offer) and the Wheat sell offer;
-    // Member B posted BUY-26-001 (copper request). Each must not see the other's.
-    await signInAs(page, 'Enter as Member A');
-    await page.waitForURL('**/app.html');
-    await page.waitForTimeout(800);
+    // The one member posted SELL-26-001 (copper offer) and the Wheat sell offer; the other member's copper
+    // request (BUY-26-001) is theirs to browse, not to see among their own.
+    await enter(page);
     await clickNav(page, 'My Listings');
     // Match listing titles ("SELL-26-001 — ..."), not any text: the Help copy on this page
     // gives SELL-26-001 as an example.
     await expect(page.getByText(/^SELL-26-001 —/).first()).toBeVisible();
-    await expect(page.getByText(/^BUY-26-001 —/), 'A must not see B\'s copper request').toHaveCount(0);
+    await expect(page.getByText(/^BUY-26-001 —/), 'the member must not see the other member\'s copper request among their own').toHaveCount(0);
     await clickNav(page, 'Mailbox');
     await expect(page.getByText('Can you confirm the protein and Hagberg figures'),
-      'A must not see B\'s private message').toHaveCount(0);
-    await page.getByText('Sign out', { exact: true }).first().click();
-    await page.waitForURL('**/index.html');
+      'the member must not see the other member\'s private message').toHaveCount(0);
+  });
 
-    await signInAs(page, 'Enter as Member B');
-    await page.waitForURL('**/app.html');
-    await page.waitForTimeout(800);
+  test('the posting form offers the role choices for a Sell offer and for a Buy request', async ({ page }) => {
+    await enter(page);
+    await clickNav(page, 'New Listing');
+    // Sell offer: role, then Producer or Trader for a principal.
+    await page.check('input[name="type"][value="sell"]');
+    const roles = await page.locator('#poster_role option').evaluateAll((os) => os.map((o) => o.value).filter(Boolean));
+    expect(roles.sort(), 'principal, mandated and broker are all offered').toEqual(['broker', 'mandated', 'principal']);
+    await page.selectOption('#poster_role', 'principal');
+    await expect(page.locator('#kind-row'), 'a principal on a Sell offer says producer or trader').toBeVisible();
+    const kinds = await page.locator('#principal_kind option').evaluateAll((os) => os.map((o) => o.value).filter(Boolean));
+    expect(kinds.sort()).toEqual(['producer', 'trader']);
+    await page.selectOption('#poster_role', 'mandated');
+    await expect(page.locator('#mandate-row')).toBeVisible();
+    await page.selectOption('#poster_role', 'broker');
+    await expect(page.locator('#broker-row')).toBeVisible();
+    // Buy request: the same role choice, with no producer or trader.
+    await page.check('input[name="type"][value="buy"]');
+    await page.selectOption('#poster_role', 'principal');
+    await expect(page.locator('#kind-row'), 'a Buy request is not asked producer or trader').toBeHidden();
+  });
+
+  test('the member can post a buy request and then finds it among their own listings', async ({ page }) => {
+    await enter(page);
+    await clickNav(page, 'New Listing');
+    await page.check('input[name="type"][value="buy"]');
+    await page.selectOption('#commodity-select', { index: 1 });
+    await page.fill('#quantity', '250');
+    await page.selectOption('#unit', { index: 1 });
+    await page.selectOption('#incoterm', 'CIF');
+    await page.selectOption('#location', { index: 1 });
+    await page.selectOption('#poster_role', 'principal');
+    await page.check('#truth-confirm');
+    await page.click('#listing-submit-btn');
     await clickNav(page, 'My Listings');
-    await expect(page.getByText(/^BUY-26-001 —/).first()).toBeVisible();
-    await expect(page.getByText(/^SELL-26-001 —/), 'B must not see A\'s copper offer in My Listings').toHaveCount(0);
+    await expect(page.getByText(/^BUY-26-\d+ —/).first(), 'the new buy request is listed').toBeVisible({ timeout: 10_000 });
   });
 });
