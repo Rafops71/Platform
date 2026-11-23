@@ -22,3 +22,6 @@ platform, the Operator or the member has verified the authenticity or sufficienc
 
 ## Spanish
 NOT decided. Builder 3 writes it (formal style); the supervisor gives the owner an English reading of every Spanish line; the owner approves before merge.
+
+## Spanish approval route (owner, 23 Nov: option B)
+The owner reads no Spanish and does NOT want to see it. For THIS job: Builder 3 writes the Spanish; the supervisor has it translated back to English by a reader that never saw the approved English, compares the two, and shows the owner ONLY the lines whose meaning drifted (with the English readings). If nothing drifts the owner sees nothing, but is told afterwards what was checked. The 10 approved glossary terms still apply. Not extended to Terms or legal text without asking him again.
