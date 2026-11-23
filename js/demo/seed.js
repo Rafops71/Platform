@@ -78,7 +78,7 @@
     price_conditions: null, price_unit: 'Metric tons', currency: 'USD', notes: null,
     status: 'available', poster_role: 'principal', principal_kind: 'producer',
     has_mandate: null, mandate_date: null, broker_via: null,
-    docs_seen: 'yes', docs_showable: 'yes', truth_confirmed: true, truth_confirmed_at: ago(n),
+    docs_seen: 'held', docs_showable: 'yes', truth_confirmed: true, truth_confirmed_at: ago(n),
     last_reminder_at: null, created_at: ago(n * 1.5), updated_at: ago(n),
   }, o);
 

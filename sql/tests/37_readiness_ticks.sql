@@ -39,12 +39,12 @@ create temp table t37_ref (label text, id uuid); grant all on t37_ref to authent
 set role authenticated; set test.uid='f6f6f6f6-0037-0037-0037-000000000001';
 insert into public.listings (user_id, type, commodity, incoterm, origin, reference_number,
                              poster_role, principal_kind, docs_seen, truth_confirmed, readiness)
-select id, 'sell', 'Tick Copper', 'FOB', 'Chile', 'SELL-TICK-P', 'principal', 'producer', 'yes', true,
+select id, 'sell', 'Tick Copper', 'FOB', 'Chile', 'SELL-TICK-P', 'principal', 'producer', 'held', true,
        array['own_available','own_scheduled','ex_stock']
   from public.profiles where email = 'tick-a@example.invalid';
 insert into public.listings (user_id, type, commodity, incoterm, origin, reference_number,
                              poster_role, principal_kind, docs_seen, truth_confirmed, readiness)
-select id, 'sell', 'Tick Zinc', 'FOB', 'Chile', 'SELL-TICK-T', 'principal', 'trader', 'yes', true,
+select id, 'sell', 'Tick Zinc', 'FOB', 'Chile', 'SELL-TICK-T', 'principal', 'trader', 'held', true,
        array['ex_stock','back_to_back','own_available']
   from public.profiles where email = 'tick-a@example.invalid';
 insert into public.listings (user_id, type, commodity, incoterm, origin, reference_number,

@@ -380,7 +380,17 @@ function posterDetail(l) {
 // the same fields, the price line built the same way, and the same Translate control the Mailbox uses.
 // tests/e2e/operator-reads-listings.spec.js fails if Browse shows a listing field this panel does not.
 // Wording here is the Operator console's own (English only); the labels follow Browse's English ones.
-const READ_DOCS_LABELS = { yes: 'Seen by the poster', source_says: "Not seen; the poster's source says they exist", no: 'Not seen by the poster' };
+// The documentation answer, in the words Browse uses (owner, 23 Nov 2026): a principal states whether it HOLDS the supporting
+// documentation, a broker or mandated intermediary whether it has SIGHTED it. An answer that does not belong to the role's
+// question (a principal's older yes / no) is not shown; it stays stored.
+const READ_DOCS_LABELS = { yes: 'Documents sighted', no: 'Documents not sighted', source_says: 'Documents not sighted; availability advised by source',
+  held: 'Documentation held and available', not_held: 'Documentation not currently held' };
+function operatorDocsPart(role, answer) {
+  const fits = (role === 'principal' && ['held', 'not_held'].includes(answer))
+    || (['broker', 'mandated'].includes(role) && ['yes', 'source_says', 'no'].includes(answer));
+  if (!fits) return '';
+  return ` · ${role === 'principal' ? 'Supporting documentation' : 'Supporting documentation status'}: ${READ_DOCS_LABELS[answer]}`;
+}
 const LISTINGS_BY_ID = new Map();
 const READ_TEXT_CUT = 2000;   // the same cut members' translations use
 // The free-text fields, in the order Browse shows them, with the labels the panel gives them.
@@ -406,16 +416,15 @@ function listingReadHtml(l) {
     : `Destination: ${escapeHtml(l.destination || 'n/a')}`;
   const field = (name, label, shown) => `
     <div class="list-row-meta" data-read-field="${name}">${escapeHtml(label)}: ${escapeHtml(shown)}</div>`;
-  // ONE Translate control for the whole offer, at the very bottom of the panel, after the Poster / Documents / Posted
+  // ONE Translate control for the whole offer, at the very bottom of the panel, after the Listing member / Documents / Posted
   // lines (owner, 21 Nov: not one in the middle of every field, and not after Notes). Only when some field holds words.
   const anyWords = READ_TEXT_FIELDS.some(([name]) => readHasWords(l[name]));
-  const docs = l.docs_seen ? READ_DOCS_LABELS[l.docs_seen] || l.docs_seen : 'Not stated';
   return `
     <div class="list-row-meta">${l.type === 'sell' ? 'Sell offer' : 'Buy request'} · ${qty} · ${escapeHtml(l.incoterm || '')} · ${where}</div>
     ${l.specification ? field('specification', 'Specification / Grade', l.specification) : ''}
     ${l.price_conditions ? field('price_conditions', 'Price', operatorPriceLine(l)) : ''}
     ${l.notes ? field('notes', 'Notes', l.notes) : ''}
-    <div class="list-row-meta">Poster: ${escapeHtml(posterDetail(l))}${l.type === 'sell' ? ` · Documents seen by poster: ${escapeHtml(docs)}` : ''}</div>
+    <div class="list-row-meta">Listing member: ${escapeHtml(posterDetail(l))}${l.type === 'sell' ? escapeHtml(operatorDocsPart(l.poster_role, l.docs_seen)) : ''}</div>
     <div class="list-row-meta">${l.has_documents ? 'Documents indicated' : '<strong>No documents indicated</strong>'} · Posted ${escapeHtml(formatDate(l.created_at))}</div>
     ${anyWords ? `<div data-read-translate>${translateControlHtml()}</div>` : ''}`;
 }

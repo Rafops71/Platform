@@ -137,7 +137,13 @@ async function answerListingStatements(page) {
   // A principal on a Sell offer also says Producer or Trader (sql/043).
   if (await page.locator('#kind-row:not(.hidden)').count() && !(await page.inputValue('#principal_kind'))) await page.selectOption('#principal_kind', 'producer');
   // The question is asked on a Sell offer only (a Buy request skips it).
-  if (await page.locator('#docs-seen-row:not(.hidden)').count() && !(await page.inputValue('#docs_seen'))) await page.selectOption('#docs_seen', 'yes');
+  // Which question depends on the role (sql/075): a principal says whether it holds the supporting documentation, a broker
+  // or mandated intermediary whether it has sighted it.
+  if (await page.locator('#docs-seen-row:not(.hidden)').count()) {
+    if (await page.locator('#docs-held-block:not(.hidden)').count()) {
+      if (!(await page.inputValue('#docs_held'))) await page.selectOption('#docs_held', 'held');
+    } else if (!(await page.inputValue('#docs_seen'))) await page.selectOption('#docs_seen', 'yes');
+  }
   await page.check('#truth-confirm');
 }
 
