@@ -1,14 +1,17 @@
-// The participant's activity export: a CSV of everything they have done here.
+// The participant's activity overview, ON THE SCREEN (owner, 23 Nov 2026; docs/AGREED-2026-11-23-activity-on-screen.md).
+// It replaced the CSV download: the same data (my_activity_export()), newest first, the latest 50, "Show more" for older.
 //
-// The file is the deliverable, so this spec takes the download Playwright
-// catches and reads it, rather than trusting a toast. Two things are asserted
-// about the contents: that every kind of activity is in it, and that another
-// participant's activity is not - which is the assertion that matters, since an
-// export is the one feature whose whole job is to hand someone a copy of data.
+//   Item35  it contains only the member's own data (MUST NOT)
+//   Item36  it never names a counterparty (MUST NOT)
+//   Item99  there is no download of a member's activity any more: no button, no code (MUST NOT)
+//   Item100 it shows everything my_activity_export() returns, newest first, the latest 50, with Show more
+//
+// What the screen shows is read from the page itself. The old download tests read a file; there is no file now.
 
 'use strict';
 
 const fs = require('fs');
+const path = require('path');
 const { test, expect } = require('@playwright/test');
 const { createAccount, cleanup, assertConfigured } = require('./helpers/fixtures');
 const { signIn } = require('./helpers/session');
@@ -71,81 +74,106 @@ async function insertListing(profileId, commodity) {
   return rows[0].reference_number;
 }
 
-/** Click Download and read what the browser was handed. */
-async function downloadExport(page) {
+/** Open the Profile page and wait for the overview to be drawn. */
+async function openOverview(page) {
   await page.click('button[data-screen="profile"]');
   await expect(page.locator('#screen-profile')).toBeVisible({ timeout: 15_000 });
-
-  const [download] = await Promise.all([
-    page.waitForEvent('download', { timeout: 20_000 }),
-    page.click('#export-activity-btn'),
-  ]);
-  const path = await download.path();
-  return { name: download.suggestedFilename(), text: fs.readFileSync(path, 'utf8') };
+  await expect(page.locator('#activity-list [data-activity-row]').first()).toBeVisible({ timeout: 15_000 });
+  return (await page.locator('#activity-list').innerText());
 }
 
-test.describe.serial('activity export', () => {
+test.describe.serial('activity overview', () => {
 
-  test('the file is a dated CSV with a header row', async ({ page }) => {
+  test('Item100 everything the participant has done is on the screen', async ({ page }) => {
     await signIn(page, me);
-    const { name, text } = await downloadExport(page);
-
-    expect(name).toMatch(/^myplatform-activity-\d{4}-\d{2}-\d{2}\.csv$/);
-    // A BOM, because this is opened in Excel and UTF-8 without one is read as
-    // the local codepage - which turns every accented character in a Spanish
-    // message body into mojibake.
-    expect(text.charCodeAt(0)).toBe(0xFEFF);
-    expect(text).toContain('"Date","What","Listing","Detail","Status"');
-  });
-
-  test('everything the participant has done is in it', async ({ page }) => {
-    await signIn(page, me);
-    const { text } = await downloadExport(page);
-
+    const text = await openOverview(page);
     expect(text).toContain(myRef);
     expect(text).toContain('Listing posted');
     expect(text).toContain('E2E export enquiry of mine');
     expect(text).toContain('Message sent');
-    // Forwarded to them by an Operator: theirs to have, though not a row they
-    // own, which is the case a "where sender_id = me" export would drop.
+    // Forwarded to them by an Operator: theirs to see, though not a row they own, which is the case a
+    // "where sender_id = me" list would drop.
     expect(text).toContain('E2E export enquiry of theirs');
     expect(text).toContain('Message received');
     expect(text).toContain('Document requested');
     expect(text).toContain('Certificate of Origin');
   });
 
-  test('nobody else appears in it', async ({ page }) => {
+  test('Item35 and Item36 nobody else appears in it, and no counterparty is named', async ({ page }) => {
     await signIn(page, me);
-    const { text } = await downloadExport(page);
-
-    // Their listing, which I have never been shown as mine.
-    const listingRows = text.split(/\r?\n/).filter(line => line.includes('Listing posted'));
+    const text = await openOverview(page);
+    const listingRows = await page.locator('#activity-list [data-activity-row]', { hasText: 'Listing posted' }).allInnerTexts();
     expect(listingRows.join('\n')).toContain(myRef);
     expect(listingRows.join('\n')).not.toContain(theirRef);
-
-    // And no identity of any kind: the export is one participant's own record,
-    // and the platform never tells them who the counterparty was.
     expect(text).not.toContain(other.email);
     expect(text).not.toContain(operator.email);
+    for (const name of ['expother', 'expop']) expect(text.toLowerCase()).not.toContain(name);
   });
 
-  test('the other participant gets their own file, not this one', async ({ page }) => {
+  test('Item35 the other participant sees their own overview, not this one', async ({ page }) => {
     await signIn(page, other);
-    const { text } = await downloadExport(page);
-
+    const text = await openOverview(page);
     expect(text).toContain(theirRef);
     expect(text).toContain('E2E export enquiry of theirs');
-    const listingRows = text.split(/\r?\n/).filter(line => line.includes('Listing posted'));
-    expect(listingRows.join('\n')).not.toContain(myRef);
+    expect(text).not.toContain(myRef);
     expect(text).not.toContain('E2E export enquiry of mine');
   });
 
-  test('the column headings follow the interface language', async ({ page }) => {
-    await signIn(page, other);
+  test('Item100 the heading is the one line "Activity overview" with nothing under it but the rows', async ({ page }) => {
+    await signIn(page, me);
+    await openOverview(page);
+    const card = page.locator('#screen-profile .card', { has: page.locator('#activity-list') });
+    await expect(card.locator('h3')).toHaveText('Activity overview');
+    await expect(card.locator('p')).toHaveCount(0);
     await page.locator('.lang-btn', { hasText: 'ES' }).click();
-    const { text } = await downloadExport(page);
+    await expect(card.locator('h3')).toHaveText('Resumen de actividad');
+    await expect(card.locator('#activity-list')).toContainText('Publicación creada');
+  });
 
-    expect(text).toContain('"Fecha","Qué","Publicación","Detalle","Estado"');
-    expect(text).toContain('Publicación creada');
+  test('Item100 newest first, the latest 50, and Show more for older ones', async ({ page }) => {
+    // 55 more messages of mine, the newest one an hour ahead, so the order is not left to chance.
+    await query(
+      `insert into public.messages (sender_id, listing_id, body, status, created_at)
+       select $1, (select id from public.listings where reference_number = $2), 'E2E export bulk ' || g, 'pending_review',
+              now() - (g || ' minutes')::interval
+         from generate_series(1, 55) g`, [me.profileId, theirRef]);
+    await query(
+      `insert into public.messages (sender_id, listing_id, body, status, created_at)
+       values ($1, (select id from public.listings where reference_number = $2), 'E2E export newest of all', 'pending_review', now() + interval '1 hour')`,
+      [me.profileId, theirRef]);
+    await signIn(page, me);
+    await openOverview(page);
+    const rows = page.locator('#activity-list [data-activity-row]');
+    await expect(rows).toHaveCount(50);
+    await expect(rows.first()).toContainText('E2E export newest of all');
+    const more = page.locator('#activity-more-btn');
+    await expect(more).toBeVisible();
+    await expect(more).toHaveText('Show more');
+    await more.click();
+    const total = await rows.count();
+    expect(total, 'Show more must add rows').toBeGreaterThan(50);
+    expect(total).toBeLessThanOrEqual(100);
+    // The oldest rows (the listing and the document request made first) are reachable by pressing on.
+    while (await more.isVisible()) await more.click();
+    await expect(page.locator('#activity-list')).toContainText(myRef);
+  });
+
+  test('Item99 there is no download of the activity any more: no button, no link, no file code', async ({ page }) => {
+    await signIn(page, me);
+    await openOverview(page);
+    await expect(page.locator('#export-activity-btn')).toHaveCount(0);
+    await expect(page.locator('#screen-profile').getByRole('button', { name: /download|csv|descargar/i })).toHaveCount(0);
+    await expect(page.locator('#screen-profile a[download]')).toHaveCount(0);
+    const root = path.join(__dirname, '..', '..');
+    const app = fs.readFileSync(path.join(root, 'js', 'app.js'), 'utf8');
+    const html = fs.readFileSync(path.join(root, 'app.html'), 'utf8');
+    const i18n = fs.readFileSync(path.join(root, 'js', 'i18n.js'), 'utf8');
+    for (const dead of ['createObjectURL', 'text/csv', 'csvField', 'toCsv', 'downloadFile', 'exportMyActivity']) {
+      expect(app, `js/app.js still contains ${dead}`).not.toContain(dead);
+    }
+    expect(html).not.toContain('export-activity-btn');
+    for (const key of ['export.download', 'export.intro', 'export.done', 'export.empty', 'export.colDate', 'export.colDetail']) {
+      expect(i18n, `${key} is still in js/i18n.js`).not.toContain(`'${key}'`);
+    }
   });
 });

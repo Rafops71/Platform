@@ -417,13 +417,12 @@
       </form>
     </div>
 
-    <!-- The participant's own record of what they have done here. It is on the
-         Profile page because it is about their account rather than their
-         trading, and next to the Terms link in the footer that promises it. -->
+    <!-- The participant's own record of what they have done here, on the screen (no download). It is on the Profile page
+         because it is about their account rather than their trading. One line as its heading, nothing under it. -->
     <div class="card">
-      <h3 data-i18n="export.title">Your activity</h3>
-      <p class="text-muted" style="font-size:var(--text-base);" data-i18n="export.intro">Download everything you have done on the platform — your listings, your messages, document requests and answers, and changes to your account — as a spreadsheet file.</p>
-      <button class="btn btn-secondary" id="export-activity-btn" data-i18n="export.download">Download CSV</button>
+      <h3 data-i18n="export.title">Activity overview</h3>
+      <div id="activity-list" class="stack"></div>
+      <button type="button" class="btn btn-secondary hidden" id="activity-more-btn" data-i18n="export.more">Show more</button>
     </div>
 
     <div class="card">

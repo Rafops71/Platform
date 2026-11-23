@@ -62,8 +62,8 @@ the suite: this platform's product is controlled disclosure, so proving a thing
 | 32 | An Operator never requests a document, and the Operator's console and the member's screens offer no document request or answer | MUST NOT |
 | 33 | No file is ever uploaded or stored — documents are declared only | MUST NOT |
 | 34 | A member can download their own activity as a CSV | does |
-| 35 | The export contains only the member's own data | MUST NOT |
-| 36 | The export never names a counterparty | MUST NOT |
+| 35 | The activity overview on the member's profile screen contains only the member's own data | MUST NOT |
+| 36 | The activity overview never names a counterparty | MUST NOT |
 | 37 | A stale listing prompts its owner, who can renew it in one action | does |
 | 38 | A member cannot fake how fresh their listing is | MUST NOT |
 | 39 | A member cannot renew another member's listing | MUST NOT |
@@ -117,6 +117,8 @@ the suite: this platform's product is controlled disclosure, so proving a thing
 | 87 | A member can never read, change or delete another member's recommendation | MUST NOT |
 | 88 | When new Terms are published, every approved member is emailed a summary of the changes and a link, once | does |
 | 89 | The Operator can read every listing field a member sees in Browse, and translate the free text | does |
+| 99 | There is no download of a member's activity any more: no button, no link, no code that makes a file | MUST NOT |
+| 100 | The profile screen shows everything the member's activity record holds, newest first, the latest 50, with a Show more button for older ones | does |
 
 ## Open questions on this list
 
