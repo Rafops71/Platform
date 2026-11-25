@@ -3,7 +3,7 @@
 
 const { test, expect } = require('@playwright/test');
 const { createAccount, cleanup, assertConfigured } = require('./helpers/fixtures');
-const { signIn, openScreen } = require('./helpers/session');
+const { signIn, openScreen, waitForListSettled, clickUntilPanel } = require('./helpers/session');
 const { query } = require('../../scripts/db');
 
 // Item74 reads what Item70 recorded, so the two run in order.
@@ -60,9 +60,11 @@ test('Item70 a forwarded negotiation appears as a deal file the Operator can mov
   // discarded, and the new box stays empty (CI runs 45689579681 and #149's, 25 Nov 2026). The stage badge says "Negotiating"
   // until that redraw and "Agreed" after it, so wait for it; the select the test changed does not prove the redraw.
   await expect(page.locator(`[data-deal-stage="${deal.id}"]`)).toHaveText('Agreed', { timeout: 15_000 });
+  await waitForListSettled(page, '#deals-list');
   const fresh = page.locator(`[data-deal-row="${deal.id}"]`);
-  await fresh.locator('[data-deal-history]').click();
-  await expect(page.locator(`[data-history-for="${deal.id}"]`)).toContainText('offer_real — → did_not_happen');
+  const history = page.locator(`[data-history-for="${deal.id}"]`);
+  await clickUntilPanel(fresh.locator('[data-deal-history]'), history);
+  await expect(history).toContainText('offer_real — → did_not_happen');
 });
 
 test('Item74 the scorecard shows the counts recorded in the deal file, by side', async ({ page }) => {
