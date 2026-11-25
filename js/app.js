@@ -437,8 +437,14 @@ function statementsLine(l) {
   if (l.poster_role === 'principal' && l.type === 'sell' && l.principal_kind) role += ` (${t(`stmt.browse.kind.${l.principal_kind}`)})`;
   // A Buy request is never asked about documents, so it shows no documents part.
   if (l.type === 'buy') return `${t('stmt.browse.role')}: ${role}`;
-  const docs = l.docs_seen ? t(`stmt.browse.docs.${l.docs_seen}`) : t('stmt.notStated');
-  return `${t('stmt.browse.role')}: ${role} · ${t('stmt.browse.docs')}: ${docs}`;
+  // The documentation part depends on the role (owner, 23 Nov 2026): a principal states whether it HOLDS the supporting
+  // documentation, a broker or mandated intermediary whether it has SIGHTED it. An answer that does not belong to the
+  // role's question (a principal's older yes / no) is not shown: nothing is mapped, nothing is guessed.
+  const fitsRole = (l.poster_role === 'principal' && ['held', 'not_held'].includes(l.docs_seen))
+    || (['broker', 'mandated'].includes(l.poster_role) && ['yes', 'source_says', 'no'].includes(l.docs_seen));
+  if (!fitsRole) return `${t('stmt.browse.role')}: ${role}`;
+  const label = t(l.poster_role === 'principal' ? 'stmt.browse.docsPrincipal' : 'stmt.browse.docs');
+  return `${t('stmt.browse.role')}: ${role} · ${label}: ${t(`stmt.browse.docs.${l.docs_seen}`)}`;
 }
 
 /** The poster's one statements date under Browse's statements line (sql/064). Older than 30 days
@@ -461,8 +467,13 @@ function showRoleQuestions() {
   showReadinessTicks(role, isSell);
   document.getElementById('mandate-row').classList.toggle('hidden', role !== 'mandated');
   document.getElementById('broker-row').classList.toggle('hidden', role !== 'broker');
-  // The documents question is for a Sell offer only.
-  document.getElementById('docs-seen-row').classList.toggle('hidden', !isSell);
+  // The documents question is for a Sell offer only, and which question it is depends on the role: a principal is asked
+  // whether it holds the supporting documentation, a broker or mandated intermediary whether it has sighted it.
+  const principal = role === 'principal';
+  const sighted = role === 'broker' || role === 'mandated';
+  document.getElementById('docs-seen-row').classList.toggle('hidden', !(isSell && (principal || sighted)));
+  document.getElementById('docs-held-block').classList.toggle('hidden', !principal);
+  document.getElementById('docs-sighted-block').classList.toggle('hidden', !sighted);
 }
 
 /** Readiness ticks (sql/066): optional, Principal only, for the Operator's eyes only. A seller sees
@@ -494,7 +505,8 @@ function readListingStatements() {
   const mandate = document.querySelector('input[name="has_mandate"]:checked')?.value;
   const mandateDate = document.getElementById('mandate_date').value;
   const via = document.getElementById('broker_via').value;
-  const docsSeen = document.getElementById('docs_seen').value;
+  // The answer of the question this role was asked (both are stored in docs_seen).
+  const docsSeen = document.getElementById(role === 'principal' ? 'docs_held' : 'docs_seen').value;
   const isSell = document.querySelector('input[name="type"]:checked')?.value === 'sell';
   if (!role) return { errorKey: 'stmt.err.role' };
   if (kindShown && !kind) return { errorKey: 'stmt.err.kind' };
@@ -569,7 +581,9 @@ async function editListing(id) {
   if (listing.has_mandate) document.getElementById('mandate-yes').checked = true;
   document.getElementById('mandate_date').value = listing.mandate_date ?? '';
   document.getElementById('broker_via').value = listing.broker_via ?? '';
-  document.getElementById('docs_seen').value = listing.docs_seen ?? '';
+  // A principal's older yes / no has no option in the new question, so the select stays empty and it is asked again.
+  document.getElementById('docs_seen').value = ['yes', 'source_says', 'no'].includes(listing.docs_seen) ? listing.docs_seen : '';
+  document.getElementById('docs_held').value = ['held', 'not_held'].includes(listing.docs_seen) ? listing.docs_seen : '';
   document.getElementById('truth-confirm').checked = false;
   showRoleQuestions();
   // The ticks are filled back in after the questions are shown (showRoleQuestions clears hidden ones).

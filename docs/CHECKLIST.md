@@ -121,6 +121,11 @@ the suite: this platform's product is controlled disclosure, so proving a thing
 | 91 | The Operator can read the listing a deal file is about, and translate its free text | does |
 | 92 | Pending approvals and the member list show each member's job title, signing capacity and language | does |
 | 93 | The Operator's approvals and member list never show a member's postal address | MUST NOT |
+| 94 | On a Sell offer a broker or mandated intermediary is asked whether it has sighted supporting documentation, a principal whether it holds it, and the answer is stored | does |
+| 95 | Browse shows the supporting documentation line in the words of the listing member's role, and never shows a principal's older yes or no answer | does |
+| 96 | The Operator's Read panel shows the listing member and the supporting documentation in the same words as Browse | does |
+| 97 | Existing documentation answers are never deleted, mapped or rewritten by the change of question | MUST NOT |
+| 98 | The words of the documentation fields never say or imply that a document was verified by the platform, the Operator or anyone else | MUST NOT |
 | 99 | There is no download of a member's activity any more: no button, no link, no code that makes a file | MUST NOT |
 | 100 | The profile screen shows everything the member's activity record holds, newest first, the latest 50, with a Show more button for older ones | does |
 
