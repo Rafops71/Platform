@@ -14,3 +14,4 @@
 - 25 Nov 17:20 overseer: #147 red 14:37-17:20 idle; only Item 90 left (fixed by #149) -> told supervisor to merge #149 into #147, one run. Owner approved CI step 5 (heavy suites nightly + live smoke) 14:3x; job 9 queued after #147.
 - 25 Nov 18:34 overseer: #147 fb11c4c green+clean but unmerged ~1h; told supervisor to merge and watch live publish.
 - 25 Nov 19:51 overseer: #147 merged 18:34 (incl #149); live run 45676610723 red on translate 429 test (got 200) -> site still 8753dd6. Told supervisor: root cause, one PR first.
+- 25 Nov 20:35 overseer: #154 (translate hour fix) red on history-panel test (also failed on #149 12:38) -> asked supervisor for root cause. Site still 8753dd6.
