@@ -14,12 +14,18 @@ name: Security grid (staging)
 # The staging URL and publishable key are not secret; the service role key
 # and database address are repository secrets.
 #
-# SINCE 17 NOV 2026 THIS WORKFLOW RUNS ONLY ON ITS NIGHTLY SCHEDULE AND BY HAND. On pull requests the
-# same grid and pictures are jobs of ci.yml, behind the browser suites, so nothing else writes to staging
-# while the privilege scan counts rows (PR 117). scripts/check-ci-targets.js fails the build if the two
-# copies of the grid steps drift apart. ONE allowed difference (owner, 17 Nov 2026,
-# docs/AGREED-2026-11-17-crowd-scan.md): the crowd scan ("Forty members at once", a speed test of the small
-# staging server) runs HERE, nightly and by hand, and not on pull requests.
+# BEFORE 25 NOV 2026 the grid and the pictures also ran on pull requests, as jobs of ci.yml, behind the
+# browser suites (so nothing else wrote to staging while the privilege scan counted rows, PR 117). The crowd
+# scan ("Forty members at once", a speed test of the small staging server) was already nightly only
+# (owner, 17 Nov 2026, docs/AGREED-2026-11-17-crowd-scan.md).
+#
+# SINCE 25 NOV 2026 (owner: "we first build and tweak and then you do stresstests, do it at night, not
+# during my waking times"; docs/AGREED-2026-11-25-ci-step5.md) THIS IS THE ONE NIGHTLY RUN. The grid and the
+# pictures no longer run on pull requests (they were jobs of ci.yml); the "Volume and concurrency" job
+# (stress) moved here from ci.yml too. All three run here and nowhere else. This workflow is NOT part of the
+# publishing gate: it is not run per push, so it cannot be a "needs" of the deploy jobs, and it must not be.
+# A red night is a red run on the Actions page; each job keeps its log, and the stress job and the pictures
+# also keep their files as artifacts. The supervisor reads it each morning and tells the owner in chat.
 
 on:
   schedule:
@@ -132,6 +138,46 @@ jobs:
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
 
+  # "Volume and concurrency", moved here from ci.yml on 25 Nov 2026. Needs no secrets and no staging: it runs
+  # against a throwaway PostgreSQL the harness downloads, so it takes no turn in the staging line and runs
+  # beside the grid. The three commands are exactly the ones ci.yml ran. Their output is kept in
+  # nightly-evidence/ and uploaded when any of them fails.
+  stress:
+    name: Volume and concurrency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Volume and concurrency
+        # It found the rate-limit race on its first run: 24 parallel inserts all accepted against a limit
+        # of 20, which no single-connection test could have seen.
+        run: |
+          mkdir -p nightly-evidence
+          set -o pipefail
+          npm run stress 2>&1 | tee nightly-evidence/stress.log
+      - name: The five-open cap holds under two simultaneous submissions
+        # Two submissions at the same moment, on two connections, 30 rounds: only this sees the race the
+        # advisory lock in sql/054 prevents.
+        run: |
+          set -o pipefail
+          npm run check:recommend-cap 2>&1 | tee nightly-evidence/recommend-cap.log
+      - name: The email sender, made to fail on purpose
+        run: |
+          set -o pipefail
+          npm run test:sender 2>&1 | tee nightly-evidence/sender.log
+      - name: Keep the evidence
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: nightly-stress-evidence
+          path: nightly-evidence/
+          retention-days: 30
+          if-no-files-found: ignore
+
   # The picture check (playwright.visual.config.js): the public pages and
   # every dashboard tab, against the approved pictures. A job of this
   # workflow, after the grid, and not a workflow of its own: two workflows
@@ -140,14 +186,10 @@ jobs:
   # A page with no approved picture fails, and its new picture is kept as
   # the "pictures" artifact to look at and commit.
   #
-  # ONLY WHEN A PICTURE COULD MOVE (docs/FABLE-ORCHESTRATION-2026-11-16.md, fix 4).
-  # On a pull request the job below runs only if css/, a page's HTML, js/ other than
-  # js/i18n.js, tests/visual/ or its config changed (the rule is scripts/layout-changed.js,
-  # with its own self-test). A wording-only change to js/i18n.js, a migration or a test
-  # skips it - a skipped job reads "skipped", not red. The trade-off, plainly: a new
-  # English phrase can make a screen a few pixels different, and the pictures notice it
-  # at the nightly run instead of on the pull request. Pushes, the nightly schedule and
-  # manual runs always take the pictures.
+  # Since 25 Nov 2026 this workflow is the only place the pictures run, and it is never a pull request, so
+  # the "layout" job below always says "true" (scripts/layout-changed.js stays for its own self-test and for
+  # anyone who runs it by hand). A new English phrase can make a screen a few pixels different; the
+  # pictures notice it here, the next night.
   layout:
     runs-on: ubuntu-latest
     outputs:

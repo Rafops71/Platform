@@ -24,7 +24,10 @@ const path = require('path');
 // of the workflows with a deliberate break in it. Unset, it checks the repo.
 const GATE_ROOT = process.env.DEPLOY_GATE_ROOT || path.join(__dirname, '..');
 const FILE = path.join(GATE_ROOT, '.github', 'workflows', 'ci.yml');
-const REQUIRED = ['database', 'checklist', 'stress', 'safari', 'package'];
+// "stress" is not here since 25 Nov 2026: it runs in the nightly run (security-grid.yml), not per push
+// (docs/AGREED-2026-11-25-ci-step5.md). Nothing that runs after the publish (the live smoke check) or at night
+// may be a requirement either: the list below is EXACT, so a nightly job cannot be made a gate by accident.
+const REQUIRED = ['database', 'checklist', 'safari', 'package'];
 const STATUS_FUNCTIONS = /\b(always|failure|cancelled)\s*\(/;
 
 const text = fs.readFileSync(FILE, 'utf8');
@@ -51,6 +54,9 @@ if (start === -1) {
     const have = needs.split(',').map(s => s.trim()).filter(Boolean);
     for (const req of REQUIRED) {
       if (!have.includes(req)) problems.push(`the ${job} job does not wait for \`${req}\`.`);
+    }
+    for (const extra of have.filter((h) => !REQUIRED.includes(h))) {
+      problems.push(`the ${job} job waits for \`${extra}\`, which is not one of the gate's checks (${REQUIRED.join(', ')}). The nightly run and the live smoke check are not part of the gate.`);
     }
   }
 

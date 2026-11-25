@@ -62,6 +62,7 @@ run('CI database targets (PR=staging, push=live, staging takes turns)', 'node', 
 run('CI database targets: self-test', 'node', ['scripts/check-ci-targets.js', '--self-test']);
 run('hidden-element lint: self-test', 'node', ['scripts/check-test-hidden.js', '--self-test']);
 run('picture-job filter: self-test', 'node', ['scripts/layout-changed.js', '--self-test']);
+run('live smoke check: self-test', 'node', ['scripts/live-smoke.js', '--self-test']);
 run('browser-suites filter (documents-only pull requests): self-test', 'node', ['scripts/browser-suites-needed.js', '--self-test']);
 run('cancel-superseded: which runs it may cancel (self-test)', 'node', ['scripts/superseded-runs.js', '--self-test']);
 run('cancel-superseded workflow: guard', 'node', ['scripts/check-cancel-workflow.js']);
