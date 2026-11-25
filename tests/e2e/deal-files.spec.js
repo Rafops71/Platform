@@ -55,6 +55,11 @@ test('Item70 a forwarded negotiation appears as a deal file the Operator can mov
     return d && d.stage === 'agreed' && d.agreed_at !== null && d.offer_real === 'did_not_happen' && d.note === 'B/L promised, not sent';
   }, { timeout: 20_000 }).toBe(true);
 
+  // saveDeal() reloads the whole list after the save returns (js/operator.js: loadDeals), which throws away every row and
+  // draws new ones, each with a fresh EMPTY history box. A History click that lands on the old row fills a box that is then
+  // discarded, and the new box stays empty (CI runs 45689579681 and #149's, 25 Nov 2026). The stage badge says "Negotiating"
+  // until that redraw and "Agreed" after it, so wait for it; the select the test changed does not prove the redraw.
+  await expect(page.locator(`[data-deal-stage="${deal.id}"]`)).toHaveText('Agreed', { timeout: 15_000 });
   const fresh = page.locator(`[data-deal-row="${deal.id}"]`);
   await fresh.locator('[data-deal-history]').click();
   await expect(page.locator(`[data-history-for="${deal.id}"]`)).toContainText('offer_real — → did_not_happen');
