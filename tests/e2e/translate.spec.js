@@ -60,6 +60,18 @@ async function call(name, token, body) {
   return { status: res.status, body: await res.json().catch(() => ({})) };
 }
 
+/** The hourly press counter is keyed on date_trunc('hour', now()) in the database (sql/070 translate_take_slot). A test that
+ *  seeds the counter and then asks the function expects both to land in the SAME clock hour; if the hour turns between
+ *  them, the function takes its slot in a new hour with an empty counter and answers 200 where the test expects 429
+ *  (live run 45676610723, 25 Nov 2026: the call came 150 ms before 19:00). So: before seeding, make sure at least
+ *  ROOM seconds of the current database hour remain; if not, wait for the next hour to start (at most ROOM + 2 seconds).
+ *  Uses the database's own clock, the one the function uses. No assertion is changed by this. */
+const HOUR_ROOM_SECONDS = 45;
+async function waitForRoomInTheHour() {
+  const left = Number((await query(`select extract(epoch from date_trunc('hour', now()) + interval '1 hour' - now()) as s`)).rows[0].s);
+  if (left < HOUR_ROOM_SECONDS) await new Promise((r) => setTimeout(r, (left + 2) * 1000));
+}
+
 const usage = async (profileId) => (await query(
   `select coalesce(sum(listings), 0)::int n from public.member_translate_usage where profile_id = $1`, [profileId])).rows[0].n;
 /** The cached translation rows of these listings, as a comparable list. */
@@ -173,6 +185,8 @@ test.describe('translate-listing: who may ask, and what may be asked', () => {
     // The limit applies only when the translation service would be asked. A listing whose text is cached is served
     // without a press, so this must start from a listing with NOTHING cached (on live an earlier test's real request
     // cached it). The member then uses up the hour's 30 presses through the real counter, and the 31st is refused.
+    test.setTimeout(120_000);          // may wait for the next clock hour to start (waitForRoomInTheHour)
+    await waitForRoomInTheHour();
     await query('delete from public.listing_translations where listing_id = $1', [listingId]);
     await query('delete from public.member_translate_usage where profile_id = $1', [viewer.profileId]);
     let last = null;
@@ -215,6 +229,8 @@ test.describe('translate-listing: who may ask, and what may be asked', () => {
     // Proved without asking the translation service, so it holds on live and on staging alike and spends nothing: with the
     // member's hourly limit already used up, text that is still cached is served (200, no press needed) and the same listing
     // after an edit is refused (429: the changed text would need a press, and there is none left).
+    test.setTimeout(120_000);
+    await waitForRoomInTheHour();
     await query(
       `insert into public.member_translate_usage (profile_id, hour_start, listings) values ($1, date_trunc('hour', now()), 30)
        on conflict (profile_id, hour_start) do update set listings = 30`, [viewer.profileId]);
