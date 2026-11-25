@@ -17,3 +17,8 @@
 - 25 Nov 20:35 overseer: #154 (translate hour fix) red on history-panel test (also failed on #149 12:38) -> asked supervisor for root cause. Site still 8753dd6.
 - 25 Nov 21:56 overseer: #154 68bc256 red 20:52 on deal-read locator (same re-render race); told supervisor: fix all such specs in one push, prove with repeat runs first.
 - 25 Nov 22:35 overseer: #154 864af70 all green 22:25, unmerged; told supervisor to merge + watch live publish.
+## OVERSEER TARGET (owner, 25 Nov; every 2h check follows this)
+- DONE 25 Nov 22:35: live site published b2f9368 (Monday batch + documents question + test fixes); demos on b2f9368.
+- QUEUE, one PR at a time: #150 activity overview -> #152 Node 22 -> #151 guard -> job 9 CI step 5 (heavy suites nightly + live smoke; target ~10 min runs) -> switch off GitHub Pages copy (owner chose; FIRST prove the Operator reset link works from app.myplatform.trade).
+- Then ROADMAP: lock main (screens checked with owner) -> Phase 1 decisions (T12, Medsted, legal/wording list) -> last batch + freeze -> launch readiness -> soft launch 5-10 contacts.
+- Rules for supervisor: red acted on within 1h; cause before rerun; migration goes live with its code; merge as soon as green; report to owner in one line on publish.
