@@ -50,7 +50,7 @@ begin
   begin  -- a Sell offer with docs_seen only
     insert into public.listings (user_id, type, commodity, incoterm, origin, reference_number,
                                  poster_role, principal_kind, docs_seen, truth_confirmed)
-    values (me, 'sell', 'Doc Copper', 'FOB', 'Chile', 'SELL-DOC-1', 'principal', 'producer', 'yes', true);
+    values (me, 'sell', 'Doc Copper', 'FOB', 'Chile', 'SELL-DOC-1', 'principal', 'producer', 'held', true);
     insert into t34 values ('sell seen only', 'ACCEPTED');
   exception when others then insert into t34 values ('sell seen only', sqlerrm); end;
 
@@ -64,7 +64,7 @@ begin
   begin  -- an older-style Sell offer that still sends docs_showable: stored, not cleared
     insert into public.listings (user_id, type, commodity, incoterm, origin, reference_number,
                                  poster_role, principal_kind, docs_seen, docs_showable, truth_confirmed)
-    values (me, 'sell', 'Doc Copper', 'FOB', 'Chile', 'SELL-DOC-3', 'principal', 'producer', 'no', 'after_agreement', true);
+    values (me, 'sell', 'Doc Copper', 'FOB', 'Chile', 'SELL-DOC-3', 'principal', 'producer', 'not_held', 'after_agreement', true);
     insert into t34 values ('sell old style', 'ACCEPTED');
   exception when others then insert into t34 values ('sell old style', sqlerrm); end;
 end $$;
@@ -79,7 +79,7 @@ select case when (select msg from t34 where label = 'buy no docs') = 'ACCEPTED'
   as "T1 a Buy request is accepted with no document answer, and none is stored";
 
 select case when (select msg from t34 where label = 'sell seen only') = 'ACCEPTED'
-             and exists (select 1 from public.listings where reference_number = 'SELL-DOC-1' and docs_seen = 'yes' and docs_showable is null)
+             and exists (select 1 from public.listings where reference_number = 'SELL-DOC-1' and docs_seen = 'held' and docs_showable is null)
             then 'PASS' else 'FAIL ' || (select msg from t34 where label = 'sell seen only') end
   as "T2 a Sell offer is accepted with only the seen-documents answer";
 
@@ -89,7 +89,7 @@ select case when (select msg from t34 where label = 'sell no seen') = 'Please an
   as "T3 a Sell offer with no seen-documents answer is refused, in one sentence, and not saved";
 
 select case when exists (select 1 from public.listings where reference_number = 'SELL-DOC-3'
-                          and docs_seen = 'no' and docs_showable = 'after_agreement' and notes = 'edited')
+                          and docs_seen = 'not_held' and docs_showable = 'after_agreement' and notes = 'edited')
             then 'PASS' else 'FAIL' end
   as "T4 a stored docs_showable stays on the listing, also after the member edits another field";
 

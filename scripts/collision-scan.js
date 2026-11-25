@@ -70,7 +70,7 @@ async function main() {
       method: 'POST', prefer: 'return=minimal',
       body: { user_id: flooder.profileId, reference_number: `RACE-${crypto.randomBytes(5).toString('hex')}-${i}`,
               type: 'buy', commodity, incoterm: 'CIF', destination: 'Race', poster_role: 'principal',
-              docs_seen: 'no', docs_showable: 'no', truth_confirmed: true },
+              truth_confirmed: true },   // a Buy request carries no documents answer (sql/075)
     }));
     const accepted = posts.filter((r) => r.ok).length;
     const stored = (await http(`/rest/v1/listings?select=id&user_id=eq.${flooder.profileId}`)).json.length;

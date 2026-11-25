@@ -64,7 +64,7 @@ test.describe.serial('listing statements', () => {
     // A principal's Sell offer also answers Producer or Trader (sql/043); the
     // question under test here is the missing truth tick, so answer that one.
     await page.selectOption('#principal_kind', 'producer');
-    await page.selectOption('#docs_seen', 'yes');
+    await page.selectOption('#docs_held', 'held');
     await page.click('#listing-submit-btn');
 
     await expect(page.locator('.toast-error').last()).toContainText('Please confirm that this offer is true');
@@ -91,10 +91,10 @@ test.describe.serial('listing statements', () => {
     await openScreen(page, 'browse');
     const row = page.locator('.list-row', { hasText: listing.reference_number });
     await expect(row.locator('[data-statements]')).toHaveText(
-      "Poster: Broker · Documents seen by poster: Not seen; the poster's source says they exist", { timeout: 15_000 });
+      'Listing member: Broker · Supporting documentation status: Documents not sighted; availability advised by source', { timeout: 15_000 });
     await expect(row).not.toContainText('other broker');
     // The one date the poster's statements were confirmed (sql/064): fresh, so "Stated by".
-    await expect(row.locator('[data-statements-date]')).toHaveText(/^Stated by the poster on \d{2}\/\d{2}\/\d{4}$/);
+    await expect(row.locator('[data-statements-date]')).toHaveText(/^Stated by the listing member on \d{2}\/\d{2}\/\d{4}$/);
     await signOut(page);
 
     await signIn(page, operator, 'operator.html');
@@ -109,7 +109,7 @@ test.describe.serial('listing statements', () => {
     await fillOffer(page);
     await page.selectOption('#poster_role', 'principal');
     await expect(page.locator('#kind-row')).toBeVisible();
-    await page.selectOption('#docs_seen', 'yes');
+    await page.selectOption('#docs_held', 'held');
     await page.check('#truth-confirm');
     await page.click('#listing-submit-btn');
     await expect(page.locator('.toast-error').last()).toContainText('Please say whether you are a producer or a trader.');
@@ -153,12 +153,12 @@ test.describe.serial('listing statements', () => {
     await signIn(page, reader, 'app.html');
     await openScreen(page, 'browse');
     await expect(page.locator('.list-row', { hasText: sellRef }).locator('[data-statements]'))
-      .toHaveText('Poster: Principal (Trader) · Documents seen by poster: Seen by the poster', { timeout: 15_000 });
+      .toHaveText('Listing member: Principal (Trader) · Supporting documentation: Documentation held and available', { timeout: 15_000 });
     await expect(page.locator('.list-row', { hasText: buy[0].reference_number }).locator('[data-statements]'))
-      .toHaveText('Poster: Principal', { timeout: 15_000 });
+      .toHaveText('Listing member: Principal', { timeout: 15_000 });
     // Every Sell listing shows the one fixed documents line; a Buy request shows none.
     await expect(page.locator('.list-row', { hasText: sellRef }).locator('[data-docs-line]'))
-      .toHaveText('Documents: after the introduction, subject to agreement between the parties.');
+      .toHaveText('Document exchange: after the introduction, subject to agreement between the parties.');
     await expect(page.locator('.list-row', { hasText: buy[0].reference_number }).locator('[data-docs-line]')).toHaveCount(0);
   });
   // Readiness ticks (sql/066): optional, Principal only, for the Operator's eyes only.
@@ -191,7 +191,7 @@ test.describe.serial('listing statements', () => {
     await expect(page.locator('#readiness-row input[value="own_available"]')).not.toBeChecked();
     await page.check('#readiness-row input[value="back_to_back"]');
 
-    await page.selectOption('#docs_seen', 'yes');
+    await page.selectOption('#docs_held', 'held');
     await page.check('#truth-confirm');
     await submitListing(page);
     await expect.poll(() => postedBy(poster), { timeout: 20_000 }).toBe(before + 1);

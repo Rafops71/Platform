@@ -124,7 +124,11 @@ test.describe('the screens', () => {
     await stubEcho(page);
     await signIn(page, operator, 'operator.html');
     await openScreen(page, 'matches');
-    const row = page.locator('#matches-list .list-row', { hasText: refSell });
+    // The row is found by the id of the match this test made, not by the listing reference. A pair of listings can have TWO
+    // suggestion rows (A to B and B to A: the database's own trigger makes one, this test's fixture the other, and the
+    // live project showed both on 24 Nov), so a reference alone is not one row. Whichever row is read, the panel it opens
+    // must show both listings in full: that is what is asserted below.
+    const row = page.locator('#matches-list .list-row').filter({ has: page.locator(`[data-read-match="${matchId}"]`) });
     await expect(row).toBeVisible({ timeout: 15_000 });
     await row.locator('[data-read-match]').click();
     const panel = row.locator('[data-match-read]');
