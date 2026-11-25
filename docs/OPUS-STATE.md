@@ -16,3 +16,4 @@
 - 25 Nov 19:51 overseer: #147 merged 18:34 (incl #149); live run 45676610723 red on translate 429 test (got 200) -> site still 8753dd6. Told supervisor: root cause, one PR first.
 - 25 Nov 20:35 overseer: #154 (translate hour fix) red on history-panel test (also failed on #149 12:38) -> asked supervisor for root cause. Site still 8753dd6.
 - 25 Nov 21:56 overseer: #154 68bc256 red 20:52 on deal-read locator (same re-render race); told supervisor: fix all such specs in one push, prove with repeat runs first.
+- 25 Nov 22:35 overseer: #154 864af70 all green 22:25, unmerged; told supervisor to merge + watch live publish.
