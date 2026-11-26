@@ -104,6 +104,7 @@ const DEFAULT_ORDER = [
   '072_profile_company_job_notice.sql',
   '073_forward_translation.sql',
   '074_activity_log_tidy.sql',
+  '075_documents_wording.sql',
   'seed_commodities.sql',
 ];
 

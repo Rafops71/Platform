@@ -503,11 +503,11 @@ const myplatform = (function () {
       if (!p) return [];
       const out = [];
       visibleRows('listings').forEach((l) => out.push({
-        occurred_at: l.created_at, category: 'Listing', reference: l.reference_number,
+        occurred_at: l.created_at, category: 'listing', reference: l.reference_number,
         detail: l.commodity, status: l.status,
       }));
       visibleRows('messages').forEach((m) => out.push({
-        occurred_at: m.created_at, category: 'Message', reference: null,
+        occurred_at: m.created_at, category: 'message_sent', reference: null,
         detail: String(m.body).slice(0, 120), status: m.status,
       }));
       return out.sort((a, b) => cmpVals(b.occurred_at, a.occurred_at));

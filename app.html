@@ -210,14 +210,26 @@
         <!-- Sell offers only (a Buy request skips it, js/app.js showRoleQuestions). The old
              "Can documents be shown during due diligence?" question is gone: every Sell
              listing shows one fixed line instead (js/app.js, 'stmt.browse.docsLine'). -->
-        <div id="docs-seen-row">
-        <label for="docs_seen"><span data-i18n="stmt.docsSeen.q">Have you personally seen documents for this offer?</span> *</label>
+        <!-- The question depends on the role (js/app.js showRoleQuestions): a broker or a mandated intermediary says whether
+             it has SIGHTED supporting documentation; a principal says whether it HOLDS it. Both answers go into docs_seen. -->
+        <div id="docs-seen-row" class="hidden">
+        <div id="docs-sighted-block" class="hidden">
+        <label for="docs_seen"><span data-i18n="stmt.docsSeen.q">Have you sighted supporting documentation for this offer?</span> *</label>
         <select id="docs_seen">
           <option value="" data-i18n="stmt.choose">Choose…</option>
-          <option value="yes" data-i18n="stmt.docsSeen.yes">Yes</option>
-          <option value="source_says" data-i18n="stmt.docsSeen.source_says">No, but my source says they exist</option>
-          <option value="no" data-i18n="stmt.docsSeen.no">No</option>
+          <option value="yes" data-i18n="stmt.docsSeen.yes">Documents sighted</option>
+          <option value="no" data-i18n="stmt.docsSeen.no">Documents not sighted</option>
+          <option value="source_says" data-i18n="stmt.docsSeen.source_says">Documents not sighted; availability advised by source</option>
         </select>
+        </div>
+        <div id="docs-held-block" class="hidden">
+        <label for="docs_held"><span data-i18n="stmt.docsHeld.q">Do you hold the supporting documentation for this offer?</span> *</label>
+        <select id="docs_held">
+          <option value="" data-i18n="stmt.choose">Choose…</option>
+          <option value="held" data-i18n="stmt.docsHeld.held">Documentation held and available</option>
+          <option value="not_held" data-i18n="stmt.docsHeld.not_held">Documentation not currently held</option>
+        </select>
+        </div>
         </div>
 
         <div class="terms-accept">
@@ -417,13 +429,12 @@
       </form>
     </div>
 
-    <!-- The participant's own record of what they have done here. It is on the
-         Profile page because it is about their account rather than their
-         trading, and next to the Terms link in the footer that promises it. -->
+    <!-- The participant's own record of what they have done here, on the screen (no download). It is on the Profile page
+         because it is about their account rather than their trading. One line as its heading, nothing under it. -->
     <div class="card">
-      <h3 data-i18n="export.title">Your activity</h3>
-      <p class="text-muted" style="font-size:var(--text-base);" data-i18n="export.intro">Download everything you have done on the platform — your listings, your messages, document requests and answers, and changes to your account — as a spreadsheet file.</p>
-      <button class="btn btn-secondary" id="export-activity-btn" data-i18n="export.download">Download CSV</button>
+      <h3 data-i18n="export.title">Activity overview</h3>
+      <div id="activity-list" class="stack"></div>
+      <button type="button" class="btn btn-secondary hidden" id="activity-more-btn" data-i18n="export.more">Show more</button>
     </div>
 
     <div class="card">

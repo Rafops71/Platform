@@ -288,7 +288,7 @@ async function main() {
       return c.query(`
         insert into public.listings (user_id, type, commodity, incoterm, origin, reference_number,
                                      poster_role, principal_kind, docs_seen, docs_showable, truth_confirmed)
-        values ($1, 'sell', 'Iron Ore', 'FOB', 'Chile', $2, 'principal', 'producer', 'yes', 'on_request', true)
+        values ($1, 'sell', 'Iron Ore', 'FOB', 'Chile', $2, 'principal', 'producer', 'held', 'on_request', true)
       `, [racer.id, `STRESS-RACE-${i}`]);
     }));
 
