@@ -64,6 +64,7 @@ run('hidden-element lint: self-test', 'node', ['scripts/check-test-hidden.js', '
 run('a spec that counts a whole table runs alone', 'node', ['scripts/check-exclusive-specs.js']);
 run('a spec that counts a whole table runs alone: self-test', 'node', ['scripts/check-exclusive-specs.js', '--self-test']);
 run('picture-job filter: self-test', 'node', ['scripts/layout-changed.js', '--self-test']);
+run('live smoke check: self-test', 'node', ['scripts/live-smoke.js', '--self-test']);
 run('browser-suites filter (documents-only pull requests): self-test', 'node', ['scripts/browser-suites-needed.js', '--self-test']);
 run('cancel-superseded: which runs it may cancel (self-test)', 'node', ['scripts/superseded-runs.js', '--self-test']);
 run('cancel-superseded workflow: guard', 'node', ['scripts/check-cancel-workflow.js']);

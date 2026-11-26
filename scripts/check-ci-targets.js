@@ -15,16 +15,14 @@
 //      named steps that have a reason (the read-only "applied live?" probe and the staging bring-up,
 //      which only runs on pull requests);
 //   4. a SERVE_* line (the test server's override of the project) is not empty on a push;
-//   5. staging TAKES TURNS: the security grid (a job of ci.yml, pull requests only, staging secrets only)
-//      must wait for BOTH the checklist and Safari, and the pictures must wait for the grid, because the
-//      grid's privilege scan counts whole tables and any other writer on staging in between breaks it
-//      (PR 117: "invitations changed from 5 to 6"); and the grid's steps must be the same commands as the
-//      ones in security-grid.yml (the nightly copy), so the two cannot drift apart. ONE difference is
-//      required (owner, 17 Nov 2026, docs/AGREED-2026-11-17-crowd-scan.md): the crowd scan (a speed test
-//      of the small staging server) must be in the nightly copy and must NOT be in the pull-request grid.
+//   5. the NIGHTLY RUN (docs/AGREED-2026-11-25-ci-step5.md): the security grid, the pictures and "Volume and
+//      concurrency" (stress) run in security-grid.yml on its schedule and by hand, and NOT in ci.yml, so they
+//      are not on any pull request and not on any push. ci.yml must have none of those jobs and no crowd
+//      scan; security-grid.yml must have a schedule, a manual trigger and all three jobs, and the crowd scan.
+//      Staging still takes turns inside a pull request: Safari waits for the checklist.
 // It also evaluates the rule for both events and prints what each one resolves to.
 //   node scripts/check-ci-targets.js            check the real file
-//   node scripts/check-ci-targets.js --self-test   break a copy five ways and require a failure each time
+//   node scripts/check-ci-targets.js --self-test   break a copy several ways and require a failure each time
 
 const fs = require('fs');
 const path = require('path');
@@ -62,7 +60,7 @@ function jobBlock(text, id) {
 const runsOf = (block) => (block || '').split('\n').filter((l) => /^\s+run: /.test(l)).map((l) => l.trim());
 // The one command that runs in the nightly grid and never in a pull request's grid.
 const NIGHTLY_ONLY_RUN = 'run: node scripts/crowd-scan.js';
-const STAGING_ONLY_JOBS = new Set(['grid', 'pictures']);
+const MOVED_JOBS = ['grid', 'layout', 'pictures', 'stress'];
 
 function check(text, gridText) {
   const problems = [];
@@ -94,9 +92,6 @@ function check(text, gridText) {
     if (!/secrets\.(SUPABASE_|STAGING_)/.test(l) && !/pqxlfgvjoowawzgoszna/.test(l)) return;
     if (/^\s+TARGET_/.test(l)) return;                    // checked in 2
     if (/^\s*#/.test(l)) return;                          // a comment
-    // The grid and the pictures are staging-only jobs: STAGING_ secrets and the staging address are theirs;
-    // a LIVE secret is never allowed there (and the job must be pull-request-only: checked in 5).
-    if (STAGING_ONLY_JOBS.has(job) && !/secrets\.SUPABASE_/.test(l)) return;
     const allowed = ALLOWED_STEPS[step];
     // the step's `if:` may sit after its env block, so look ahead a few lines for it
     const ahead = lines.slice(i, i + 12).join('\n');
@@ -111,29 +106,30 @@ function check(text, gridText) {
     if (!new RegExp(`^${PR.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} && env\\.TARGET_(URL|ANON_KEY) \\|\\| ''$`).test(e)) problems.push(`SERVE_* must be empty unless a pull request: ${l.trim()}`);
   }
 
-  // 5. staging takes turns, and only on pull requests
-  const grid = jobBlock(text, 'grid');
-  const pics = jobBlock(text, 'pictures');
-  const needsOf = (b) => ((/^    needs: (.*)$/m.exec(b || '') || [])[1] || '');
-  const ifOf = (b) => ((/^    if: (.*)$/m.exec(b || '') || [])[1] || '');
-  if (!grid) problems.push('ci.yml has no "grid" job: the security grid must run in this workflow, after the browser suites');
-  else {
-    for (const need of ['checklist', 'safari']) if (!new RegExp(`\\b${need}\\b`).test(needsOf(grid))) problems.push(`the grid job must wait for "${need}" (needs: ${needsOf(grid) || 'nothing'}): staging jobs take turns`);
-    if (!ifOf(grid).includes(PR)) problems.push('the grid job must run on pull requests only (its "if" must contain ' + PR + ')');
-    if (/needs\.[\w-]+\.result/.test(ifOf(grid)) === false && /^\s*if:.*always\(\)/m.test(grid)) problems.push('use !cancelled(), not always(), on the grid job');
+  // 5. the nightly run holds the grid, the pictures and stress; ci.yml holds none of them
+  const needsOf = (blk) => ((/^    needs: (.*)$/m.exec(blk || '') || [])[1] || '');
+  const ifOf = (blk) => ((/^    if: (.*)$/m.exec(blk || '') || [])[1] || '');
+  for (const j of MOVED_JOBS) {
+    if (jobBlock(text, j)) problems.push(`ci.yml has a "${j}" job: it runs in the nightly run (security-grid.yml) only, never on a pull request or a push (docs/AGREED-2026-11-25-ci-step5.md)`);
   }
-  if (!pics) problems.push('ci.yml has no "pictures" job');
-  else {
-    if (!/\bgrid\b/.test(needsOf(pics))) problems.push(`the pictures job must wait for "grid" (needs: ${needsOf(pics) || 'nothing'})`);
-    if (!ifOf(pics).includes(PR)) problems.push('the pictures job must run on pull requests only');
-    // The visual tests read the staging address and key from the environment; without them they fail
-    // ("SUPABASE_URL ... are required", PR 120 run 1).
-    for (const v of ['SUPABASE_URL', 'SUPABASE_ANON_KEY']) if (!new RegExp(`^\\s+${v}: .+`, 'm').test(pics)) problems.push(`the pictures job must set ${v} to the staging project's value`);
+  if (/scripts\/crowd-scan\.js/.test(text.split('\n').filter((l) => !/^\s*#/.test(l)).join('\n'))) problems.push('the crowd scan is in ci.yml: it is nightly only (owner, 17 Nov 2026)');
+  if (gridText != null) {
+    const body = gridText.split('\n').filter((l) => !/^\s*#/.test(l)).join('\n');
+    if (!/^on:\n\s+schedule:\n\s+- cron: /m.test(body)) problems.push('security-grid.yml has no schedule: the nightly run would never happen');
+    if (!/^\s+workflow_dispatch:/m.test(body)) problems.push('security-grid.yml cannot be run by hand (no workflow_dispatch)');
+    if (/^\s+(pull_request|push):/m.test(body)) problems.push('security-grid.yml runs on a pull request or a push: it must be nightly and by hand only');
+    for (const j of ['grid', 'pictures', 'stress']) if (!jobBlock(gridText, j)) problems.push(`security-grid.yml has no "${j}" job: it must run in the nightly run`);
+    const nightlyRuns = runsOf(jobBlock(gridText, 'grid')).join('\n') + '\n' + runsOf(jobBlock(gridText, 'stress')).join('\n');
+    if (!nightlyRuns.includes(NIGHTLY_ONLY_RUN)) problems.push('the crowd scan is missing from the nightly grid in security-grid.yml: it must run there (owner, 17 Nov 2026)');
+    const st = jobBlock(gridText, 'stress') || '';
+    for (const cmd of ['npm run stress', 'npm run check:recommend-cap', 'npm run test:sender']) if (!st.includes(cmd)) problems.push(`the nightly stress job does not run \`${cmd}\``);
+    if (/secrets\.SUPABASE_/.test(body.replace(/secrets\.STAGING_[A-Z_]+/g, ''))) problems.push('security-grid.yml names a LIVE secret: the nightly run touches staging only');
   }
   // 6. only a pull request that changes documents alone may skip the browser chain (docs/ROADMAP-2026-11-22.md 0.6, step 2).
   //    A push to main and a manual run always run everything: that run gates publishing.
   const changes = jobBlock(text, 'changes');
   const checklistJob = jobBlock(text, 'checklist');
+  const safariJob = jobBlock(text, 'safari');
   if (!changes) problems.push('ci.yml has no "changes" job: the rule for skipping the browser chain on a documents-only pull request lives there');
   else {
     // The branch for anything that is not a pull request must say browser=true and then END (exit 0) before any other line
@@ -148,20 +144,8 @@ function check(text, gridText) {
     if (ifOf(checklistJob) !== "${{ needs.changes.outputs.browser == 'true' }}") problems.push(`the checklist job's "if" must be exactly: \${{ needs.changes.outputs.browser == 'true' }} (it is: ${ifOf(checklistJob) || 'missing'})`);
     if (!/\bchanges\b/.test(needsOf(checklistJob))) problems.push('the checklist job must wait for "changes"');
   }
-  if (grid && (!/\bchanges\b/.test(needsOf(grid)) || !ifOf(grid).includes("needs.changes.outputs.browser == 'true'"))) problems.push('the grid job must wait for "changes" and run only when it says browser == true');
-  // the nightly copy and this one must run the same commands, in the same order
-  if (gridText != null && grid) {
-    const ciRuns = runsOf(grid);
-    const nightlyRuns = runsOf(jobBlock(gridText, 'grid'));
-    if (ciRuns.includes(NIGHTLY_ONLY_RUN)) problems.push('the crowd scan (' + NIGHTLY_ONLY_RUN + ') is back in the pull-request grid in ci.yml: it is nightly only (owner, 17 Nov 2026)');
-    if (!nightlyRuns.includes(NIGHTLY_ONLY_RUN)) problems.push('the crowd scan is missing from the nightly grid in security-grid.yml: it must run there (owner, 17 Nov 2026)');
-    const a = JSON.stringify(ciRuns);
-    const b = JSON.stringify(nightlyRuns.filter((r) => r !== NIGHTLY_ONLY_RUN));
-    if (a !== b) problems.push('the grid steps in ci.yml and in security-grid.yml have drifted apart (their run: commands differ, apart from the nightly-only crowd scan)');
-    const pa = JSON.stringify(runsOf(pics));
-    const pb = JSON.stringify(runsOf(jobBlock(gridText, 'pictures')));
-    if (pics && pa !== pb) problems.push('the pictures steps in ci.yml and in security-grid.yml have drifted apart');
-  }
+  // staging still takes turns inside a pull request: Safari waits for the checklist
+  if (safariJob && !/\bchecklist\b/.test(needsOf(safariJob))) problems.push('the safari job must wait for "checklist": staging jobs take turns');
   return problems;
 }
 
@@ -185,18 +169,14 @@ if (process.argv.includes('--self-test')) {
     'the group stops separating live from staging': (t) => t.replace(`'ci-staging-database' || 'ci-live-database'`, `'ci-live-database' || 'ci-live-database'`),
     'a browser step names a live secret directly': (t) => t.replace(`SUPABASE_DB_URL: \${{ env.TARGET_DB_URL }}\n          SERVE_SUPABASE_URL`, `SUPABASE_DB_URL: \${{ secrets.SUPABASE_DB_URL }}\n          SERVE_SUPABASE_URL`),
     'a publishing job is handed the staging key': (t) => t.replace(`  deploy-www:\n    name: Publish the front page to Cloudflare Pages\n`, `  deploy-www:\n    name: Publish the front page to Cloudflare Pages\n    env:\n      K: \${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}\n`),
-    'the grid stops waiting for Safari': (t) => t.replace('    needs: [changes, checklist, safari]\n    if: ${{ !cancelled()', '    needs: [changes, checklist]\n    if: ${{ !cancelled()'),
-    'the grid stops waiting for the checklist': (t) => t.replace('    needs: [changes, checklist, safari]\n    if: ${{ !cancelled()', '    needs: [changes, safari]\n    if: ${{ !cancelled()'),
-    'the grid would run on a push too': (t) => t.replace(`    needs: [changes, checklist, safari]\n    if: \${{ !cancelled() && github.event_name == 'pull_request' && needs.changes.outputs.browser == 'true' }}`, `    needs: [changes, checklist, safari]\n    if: \${{ !cancelled() && needs.changes.outputs.browser == 'true' }}`),
-    'the grid ignores the documents-only rule': (t) => t.replace(`github.event_name == 'pull_request' && needs.changes.outputs.browser == 'true' }}\n    runs-on: ubuntu-latest\n    env:\n      SUPABASE_URL`, `github.event_name == 'pull_request' }}\n    runs-on: ubuntu-latest\n    env:\n      SUPABASE_URL`),
     'the push branch no longer ends at once': (t) => t.replace('echo "Not a pull request: every suite always runs (this is the run that gates publishing)."\n            exit 0', 'echo "Not a pull request: every suite always runs (this is the run that gates publishing)."'),
     'a push could skip the checklist': (t) => t.replace('echo "browser=true" >> "$GITHUB_OUTPUT"\n            echo "Not a pull request', 'echo "browser=false" >> "$GITHUB_OUTPUT"\n            echo "Not a pull request'),
     'the checklist can be skipped for another reason': (t) => t.replace("    if: ${{ needs.changes.outputs.browser == 'true' }}\n    runs-on", "    if: ${{ needs.changes.outputs.browser == 'true' && github.actor != 'x' }}\n    runs-on"),
-    'the pictures stop waiting for the grid': (t) => t.replace('    needs: [grid, layout]', '    needs: [layout]'),
-    'the grid is handed a live secret': (t) => t.replace('          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}\n\n      # Same staging world', '          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}\n\n      # Same staging world'),
-    'the pictures job loses its staging address': (t) => t.replace(/(  pictures:[\s\S]*?)      SUPABASE_URL: https:\/\/pqxlfgvjoowawzgoszna\.supabase\.co\n/, '$1'),
-    'a grid step is changed in ci.yml only': (t) => t.replace('run: node scripts/identity-scan.js', 'run: node scripts/identity-scan.js --quick'),
-    'the crowd scan reappears in the pull-request grid': (t) => t.replace('      # NOT HERE: "Forty members at once"', '      - name: Forty members at once\n        run: node scripts/crowd-scan.js\n      # NOT HERE: "Forty members at once"'),
+    'Safari stops waiting for the checklist': (t) => t.replace(/(  safari:[\s\S]*?)    needs: checklist\n/, '$1    needs: changes\n'),
+    'the grid comes back as a job of ci.yml': (t) => t.replace('\n  package:\n', '\n  grid:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo\n\n  package:\n'),
+    'the pictures come back as a job of ci.yml': (t) => t.replace('\n  package:\n', '\n  pictures:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo\n\n  package:\n'),
+    'stress comes back as a job of ci.yml': (t) => t.replace('\n  package:\n', '\n  stress:\n    runs-on: ubuntu-latest\n    steps:\n      - run: npm run stress\n\n  package:\n'),
+    'the crowd scan appears in ci.yml': (t) => t.replace('\n  package:\n', '\n  extra:\n    runs-on: ubuntu-latest\n    steps:\n      - run: node scripts/crowd-scan.js\n\n  package:\n'),
     'the test server override stays set on a push': (t) => t.replace(`SERVE_SUPABASE_URL: \${{ github.event_name == 'pull_request' && env.TARGET_URL || '' }}`, `SERVE_SUPABASE_URL: \${{ env.TARGET_URL }}`),
   };
   for (const [what, mutate] of Object.entries(mutations)) {
@@ -204,11 +184,23 @@ if (process.argv.includes('--self-test')) {
     if (mutated === real) { console.error(`self-test FAILED: the mutation "${what}" did not change the file`); process.exit(1); }
     if (!check(mutated, gridReal).length) { console.error(`self-test FAILED: "${what}" was not caught`); process.exit(1); }
   }
-  // the nightly copy is broken instead: the crowd scan is dropped from security-grid.yml
-  const noScan = gridReal.replace(/      - name: Forty members at once\n        run: node scripts\/crowd-scan\.js\n/, '');
-  if (noScan === gridReal) { console.error('self-test FAILED: the nightly mutation did not change security-grid.yml'); process.exit(1); }
-  if (!check(real, noScan).length) { console.error('self-test FAILED: "the crowd scan is missing from the nightly" was not caught'); process.exit(1); }
-  console.log(`CI target rule: the real file passes and all ${Object.keys(mutations).length + 1} deliberate breaks are caught.`);
+  // the nightly file is broken instead
+  const nightlyBreaks = {
+    'the crowd scan is dropped from the nightly': (g) => g.replace(/      - name: Forty members at once\n        run: node scripts\/crowd-scan\.js\n/, ''),
+    'the nightly loses its schedule': (g) => g.replace(/  schedule:\n    - cron: [^\n]*\n/, ''),
+    'the nightly cannot be run by hand': (g) => g.replace('  workflow_dispatch: {}\n', ''),
+    'the nightly runs on every pull request': (g) => g.replace('on:\n  schedule:', 'on:\n  pull_request:\n  schedule:'),
+    'the nightly loses the stress job': (g) => g.replace('  stress:\n    name: Volume and concurrency', '  stress_gone:\n    name: Volume and concurrency'),
+    'the nightly stress job loses the cap check': (g) => g.replace('npm run check:recommend-cap', 'echo skipped'),
+    'the nightly loses the pictures': (g) => g.replace('\n  pictures:\n', '\n  pictures_gone:\n'),
+    'the nightly is handed a live secret': (g) => g.replace('secrets.STAGING_SUPABASE_DB_URL', 'secrets.SUPABASE_DB_URL'),
+  };
+  for (const [what, mutate] of Object.entries(nightlyBreaks)) {
+    const mutated = mutate(gridReal);
+    if (mutated === gridReal) { console.error(`self-test FAILED: the mutation "${what}" did not change security-grid.yml`); process.exit(1); }
+    if (!check(real, mutated).length) { console.error(`self-test FAILED: "${what}" was not caught`); process.exit(1); }
+  }
+  console.log(`CI target rule: the real file passes and all ${Object.keys(mutations).length + Object.keys(nightlyBreaks).length} deliberate breaks are caught.`);
   process.exit(0);
 }
 

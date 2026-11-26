@@ -254,6 +254,9 @@ Two things learned getting there, both worth keeping:
 
 ## Volume and concurrency
 
+Since 25 Nov 2026 this runs in the nightly run (`security-grid.yml`, with the grid and the pictures), not on
+pull requests or pushes (`docs/AGREED-2026-11-25-ci-step5.md`).
+
 `npm run stress` builds a market on a throwaway PostgreSQL — 200 members, 2000
 listings, 2000 messages by default, sizes settable with `STRESS_MEMBERS`,
 `STRESS_LISTINGS`, `STRESS_MESSAGES`, `STRESS_CONCURRENCY` — then checks that
@@ -768,8 +771,8 @@ Proven from GitHub's check runs on `556e185`: `deploy` 14:42:43, `Function
 checklist` 14:55:03. Members had each new version twelve minutes before the
 gate decided whether it worked, and a red run changed nothing they saw.
 
-Now `ci.yml` has a `deploy` job that `needs` database, checklist, stress,
-Safari and package. GitHub's documented rule - "If a job fails or is skipped,
+Now `ci.yml` has a `deploy` job that `needs` database, checklist, Safari and
+package (stress was a fifth until 25 Nov 2026; it runs nightly now). GitHub's documented rule - "If a job fails or is skipped,
 all jobs that need it are skipped" - makes it the gate, as long as its `if:`
 never uses always() or another status function. `npm run check:deploy`
 (`scripts/check-deploy-gate.js`) fails the build if that is ever weakened, if a

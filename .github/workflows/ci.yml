@@ -48,14 +48,15 @@ concurrency:
   # group apply-sql.yml shares. The group is deliberately NOT security-grid.yml's
   # "staging-database": two workflows in one group cancel each other's waiting runs (that is
   # what happened to the pictures on PR 38). Everything that touches staging in a pull request
-  # is a job of THIS workflow, in a chain (checklist, safari, then the grid, then the pictures:
-  # see "needs" below), so nothing else writes to staging while the privilege scan counts rows.
-  # security-grid.yml now runs only on its nightly schedule and by hand.
+  # is a job of THIS workflow, in a chain (checklist, then safari: see "needs" below).
+  # Since 25 Nov 2026 the security grid, the pictures and the volume and concurrency tests (stress) are
+  # NOT here: they run only in security-grid.yml, the one nightly run (docs/AGREED-2026-11-25-ci-step5.md),
+  # so nothing in a pull request or a push waits for them and nothing at night waits for a pull request.
   group: ${{ github.event_name == 'pull_request' && 'ci-staging-database' || 'ci-live-database' }}
   cancel-in-progress: false
 
 jobs:
-  # Does this pull request change anything the long browser chain (Function checklist, Safari, grid, pictures) could
+  # Does this pull request change anything the long browser chain (Function checklist, Safari) could
   # notice? (docs/ROADMAP-2026-11-22.md section 0.6, step 2; scripts/browser-suites-needed.js has the rule and its
   # self-test.) A pull request that changes ONLY documents says "false" and skips that chain; anything else, wording
   # in js/i18n.js included, says "true". A push to main and a manual run ALWAYS say "true": that run is what gates
@@ -87,7 +88,7 @@ jobs:
           result=$(node scripts/browser-suites-needed.js < changed.txt)
           echo "browser=$result" >> "$GITHUB_OUTPUT"
           if [ "$result" = "false" ]; then
-            echo "Documents only: the browser suites (Function checklist, Safari, grid, pictures) are skipped on this pull request. The database tests and the offline checks still run, and a push to main runs everything."
+            echo "Documents only: the browser suites (Function checklist, Safari) are skipped on this pull request. The database tests and the offline checks still run, and a push to main runs everything."
           else
             echo "The browser suites run."
           fi
@@ -169,6 +170,7 @@ jobs:
           node scripts/check-migration-lists.js --self-test
           node scripts/check-applied-live.js --self-test
           node scripts/layout-changed.js --self-test
+          node scripts/live-smoke.js --self-test
           node scripts/browser-suites-needed.js --self-test
           node scripts/superseded-runs.js --self-test
           node scripts/check-cancel-workflow.js
@@ -182,39 +184,12 @@ jobs:
         run: node scripts/staging-operator.js --self-test
       # Pull requests run the browser suites on STAGING, pushes to main on LIVE, and the staging jobs
       # take turns. This reads this very file and fails if that rule could ever send a push to staging,
-      # a pull request to live, hand a publishing job a database secret, or let the grid run beside
-      # the checklist; its self-test breaks a copy several ways and needs a failure each time.
+      # a pull request to live, hand a publishing job a database secret, or bring the grid, the pictures or
+      # stress back into this workflow; its self-test breaks a copy several ways and needs a failure each time.
       - name: Pull requests use staging, pushes to main use live, staging jobs take turns
         run: |
           npm run check:ci-targets
           node scripts/check-ci-targets.js --self-test
-
-  stress:
-    name: Volume and concurrency
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: '22'
-          cache: npm
-      - run: npm ci
-      - name: Volume and concurrency
-        # Runs against a throwaway PostgreSQL the harness downloads and starts,
-        # so it needs no secrets and nothing to clean up afterwards. It found
-        # the rate-limit race on its first run: 24 parallel inserts all
-        # accepted against a limit of 20, which no single-connection test could
-        # have seen.
-        run: npm run stress
-      - name: The five-open cap holds under two simultaneous submissions
-        # Two submissions fired at the same moment, on two connections, 30
-        # rounds, against a throwaway PostgreSQL. sql/tests uses one connection,
-        # so only this can see the race the advisory lock in sql/054 prevents.
-        run: npm run check:recommend-cap
-      - name: The email sender, made to fail on purpose
-        # Lost answers, provider errors, refusals and two senders at once,
-        # against a fake provider: every email goes out once or is given up.
-        run: npm run test:sender
 
   safari:
     name: Safari on an iPhone
@@ -409,193 +384,9 @@ jobs:
           retention-days: 5
           if-no-files-found: ignore
 
-  # THE SECURITY GRID, AFTER THE BROWSER SUITES, ON STAGING - pull requests only.
-  # The same steps as security-grid.yml (kept in step by scripts/check-ci-targets.js; that workflow now
-  # runs only nightly and by hand). They are jobs of THIS workflow, behind the checklist and Safari, because
-  # the privilege scan counts whole tables before and after its attempts: any other writer on staging in
-  # between turns a pass into "invitations changed from 5 to 6" (PR 117). "needs" is the turn-taking;
-  # !cancelled() so the grid still runs, and still reports, when an earlier job failed.
-  grid:
-    needs: [changes, checklist, safari]
-    if: ${{ !cancelled() && github.event_name == 'pull_request' && needs.changes.outputs.browser == 'true' }}
-    runs-on: ubuntu-latest
-    env:
-      SUPABASE_URL: https://pqxlfgvjoowawzgoszna.supabase.co
-      SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxeGxmZ3Zqb293YXd6Z29zem5hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxMTUyNTMsImV4cCI6MjEwODY5MTI1M30.d-5Hk6gljO5IOgsLus3AtddsOD7g9xJ6ra4beHGFtEQ
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: '22'
-      - run: npm ci
-
-      - name: Bring staging up to this commit's SQL
-        run: node scripts/apply-sql.js --only-new
-        env:
-          SUPABASE_DB_URL: ${{ secrets.STAGING_SUPABASE_DB_URL }}
-
-      - name: Every door, every caller
-        run: node scripts/security-grid.js
-        env:
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
-
-      # Same staging world, a different question: is any member ever SENT
-      # another member's name, email, phone, company or ids - through any
-      # table, any function, or any error message?
-      - name: Nobody is sent anybody else's identity
-        run: node scripts/identity-scan.js
-        env:
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
-
-      # And: can anybody make themselves more than they are? Self-promotion,
-      # forged tokens, Operator-only functions, the suspended acting active -
-      # then the database is read past every policy to prove nothing moved.
-      - name: Nobody rises above their station
-        run: node scripts/privilege-scan.js
-        env:
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
-
-      # Secret codes and sessions: invitation codes cannot be guessed or
-      # reused, signing out ends the refresh token, a member suspended or
-      # deleted mid-session is shut out with the token they still hold, and
-      # no token is ever stored where people read.
-      - name: No code can be guessed, reused or kept
-        run: node scripts/token-scan.js
-        env:
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
-
-      # Collisions: the same action by two hands at the same instant, fired
-      # truly in parallel, then the database read to see what stuck.
-      - name: Nothing happens twice that should happen once
-        run: node scripts/collision-scan.js
-        env:
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
-
-      # Every email, by the real triggers, in English and Spanish: each one
-      # matches its template in its reader's language, fully filled, linking
-      # only to the platform, naming no poster.
-      - name: Every email, both languages
-        run: node scripts/email-scan.js
-        env:
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
-
-      # The real pages, in a real browser, against staging: every page and
-      # every dashboard tab as a stranger, a member and an Operator, in both
-      # languages - no script errors, no dead tabs, nothing stuck loading, no
-      # critical accessibility fault (axe-core). Two engines: Chromium and
-      # Firefox (Safari's engine already runs in ci.yml).
-      - name: Cache the Playwright browser download
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-chromium-firefox-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-      - name: Install the browsers
-        run: npx playwright install --with-deps chromium firefox
-      - name: Every page, every tab (Chromium)
-        run: node scripts/browser-crawl.js
-        env:
-          BROWSER: chromium
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
-      - name: Every page, every tab (Firefox)
-        run: node scripts/browser-crawl.js
-        env:
-          BROWSER: firefox
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
-
-      # What the real pages pull down and keep, as members A and B: every
-      # download, localStorage, sessionStorage, cookies and the screen,
-      # searched for another member's name, company, phone or email.
-      - name: No member's browser gets another member's identity
-        run: node scripts/browser-leak-scan.js
-        env:
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
-
-      # NOT HERE: "Forty members at once" (scripts/crowd-scan.js) runs in the nightly security grid only
-      # (security-grid.yml). Owner decision 17 Nov 2026, docs/AGREED-2026-11-17-crowd-scan.md: it measures the
-      # speed of the small free staging server, not the code, so it does not block a pull request.
-      # scripts/check-ci-targets.js fails the build if it reappears in this job or leaves the nightly.
-
-  # The picture check (playwright.visual.config.js): the public pages and
-  # every dashboard tab, against the approved pictures. A job of this
-  # workflow, after the grid, and not a workflow of its own: two workflows
-  # in the one staging-database line threw each other out (GitHub keeps one
-  # waiting run per line), and the pictures were cancelled on PR 38.
-  # A page with no approved picture fails, and its new picture is kept as
-  # the "pictures" artifact to look at and commit.
-  #
-  # ONLY WHEN A PICTURE COULD MOVE (docs/FABLE-ORCHESTRATION-2026-11-16.md, fix 4).
-  # On a pull request the job below runs only if css/, a page's HTML, js/ other than
-  # js/i18n.js, tests/visual/ or its config changed (the rule is scripts/layout-changed.js,
-  # with its own self-test). A wording-only change to js/i18n.js, a migration or a test
-  # skips it - a skipped job reads "skipped", not red. The trade-off, plainly: a new
-  # English phrase can make a screen a few pixels different, and the pictures notice it
-  # at the nightly run instead of on the pull request. Pushes, the nightly schedule and
-  # manual runs always take the pictures.
-  layout:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    outputs:
-      pictures: ${{ steps.decide.outputs.pictures }}
-    steps:
-      - uses: actions/checkout@v5
-      - name: Did anything that can move a picture change?
-        id: decide
-        env:
-          EVENT: ${{ github.event_name }}
-          BASE_REF: ${{ github.base_ref }}
-        run: |
-          if [ "$EVENT" != "pull_request" ]; then
-            echo "pictures=true" >> "$GITHUB_OUTPUT"
-            echo "Not a pull request: the pictures always run."
-            exit 0
-          fi
-          git fetch --no-tags --depth=1 origin "$BASE_REF"
-          git diff --name-only "origin/$BASE_REF" HEAD > changed.txt
-          echo "Changed files:"; cat changed.txt
-          result=$(node scripts/layout-changed.js < changed.txt)
-          echo "pictures=$result" >> "$GITHUB_OUTPUT"
-          echo "The pictures run: $result"
-
-  pictures:
-    needs: [grid, layout]
-    if: ${{ !cancelled() && github.event_name == 'pull_request' && needs.layout.outputs.pictures == 'true' }}
-    runs-on: ubuntu-latest
-    # The same staging address and publishable key as the grid job above, as security-grid.yml gives its
-    # pictures job at workflow level: the visual tests read SUPABASE_URL / SUPABASE_ANON_KEY (and the
-    # service key, set on the step) and failed without them on this PR's first run.
-    env:
-      SUPABASE_URL: https://pqxlfgvjoowawzgoszna.supabase.co
-      SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxeGxmZ3Zqb293YXd6Z29zem5hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxMTUyNTMsImV4cCI6MjEwODY5MTI1M30.d-5Hk6gljO5IOgsLus3AtddsOD7g9xJ6ra4beHGFtEQ
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: '22'
-      - run: npm ci
-      - name: Cache the Playwright browser download
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-      - name: Install the browser
-        run: npx playwright install --with-deps chromium
-      - name: Every page and every tab looks as approved
-        run: npx playwright test -c playwright.visual.config.js
-        env:
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
-      - name: Keep the pictures
-        if: failure()
-        uses: actions/upload-artifact@v6
-        with:
-          name: pictures
-          path: |
-            test-results/
-            tests/visual/screenshots/
-          retention-days: 7
-
   package:
     name: Build artifact
-    needs: [database, checklist, stress]
+    needs: [database, checklist]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -637,7 +428,7 @@ jobs:
   # --------------------------------------------------------------------------
   deploy:
     name: Publish the site
-    needs: [database, checklist, stress, safari, package]
+    needs: [database, checklist, safari, package]
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     permissions:
@@ -686,7 +477,7 @@ jobs:
   # --------------------------------------------------------------------------
   deploy-cloudflare:
     name: Publish to Cloudflare Pages
-    needs: [database, checklist, stress, safari, package]
+    needs: [database, checklist, safari, package]
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     permissions:
@@ -725,7 +516,7 @@ jobs:
   # --------------------------------------------------------------------------
   deploy-www:
     name: Publish the front page to Cloudflare Pages
-    needs: [database, checklist, stress, safari, package]
+    needs: [database, checklist, safari, package]
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     permissions:
@@ -751,3 +542,28 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy www --project-name=platform-www --branch=main --commit-hash=${{ github.sha }}
+
+  # --------------------------------------------------------------------------
+  # A SHORT LOOK AT THE LIVE SITE AFTER EVERY PUBLISH (docs/AGREED-2026-11-25-ci-step5.md).
+  #
+  # Not part of the gate: it runs AFTER the two Cloudflare publishes, so it can never stop one, and no
+  # publishing job waits for it. It reads the public site with a few GET requests (scripts/live-smoke.js:
+  # REVISION is this commit, the app, sign-in and register pages answer, the front page shows its
+  # headline) and creates no data anywhere. It waits up to three minutes for Cloudflare to serve the new
+  # commit. A red result here means the site just published is not what a visitor receives.
+  # --------------------------------------------------------------------------
+  smoke:
+    name: Live site answers after the publish
+    needs: [deploy-cloudflare, deploy-www]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: The live site serves this commit and its pages answer
+        env:
+          EXPECTED_REVISION: ${{ github.sha }}
+          WAIT_SECONDS: '180'
+        run: node scripts/live-smoke.js
