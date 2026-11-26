@@ -157,6 +157,12 @@ jobs:
       # added the same day: migration numbers, applied-live probes, picture filter.
       - name: No test asserts on a hidden element
         run: npm run check:test-hidden
+      # With several workers, a spec file that counts a whole shared table is wrong the moment a neighbour adds a
+      # row. The five that do are in tests/e2e/exclusive-specs.js and run alone; this fails if a new one is not.
+      - name: A spec that counts a whole table runs alone
+        run: |
+          npm run check:exclusive
+          node scripts/check-exclusive-specs.js --self-test
       - name: Tooling self-tests
         run: |
           node scripts/check-test-hidden.js --self-test
@@ -420,7 +426,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: '22'
       - run: npm ci
 
       - name: Bring staging up to this commit's SQL
@@ -564,7 +570,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: '22'
       - run: npm ci
       - name: Cache the Playwright browser download
         uses: actions/cache@v5

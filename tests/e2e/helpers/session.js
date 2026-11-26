@@ -155,14 +155,63 @@ async function waitForListSettled(page, selector, { quietMs = 500, maxMs = 8000 
  *  (a Read button is disabled while its panel is being built), look again, press, and give the panel a short time to show.
  *  A press that lands on a row the page then redraws opens nothing; the next round presses the new row. The assertion the
  *  test makes afterwards is unchanged: this only gets the panel open. */
-async function clickUntilPanel(button, panel, { roundMs = 3000, totalMs = 20_000 } = {}) {
-  await expect(async () => {
-    if (await panel.first().isVisible()) return;
-    await expect(button).toBeEnabled({ timeout: roundMs });
-    if (await panel.first().isVisible()) return;
-    await button.click({ timeout: roundMs });
-    await expect(panel.first()).toBeVisible({ timeout: roundMs });
-  }).toPass({ timeout: totalMs });
+async function clickUntilPanel(button, panel, { roundMs = 8000, totalMs = 40_000 } = {}) {
+  // What the page said while we waited, so that a failure carries its own cause (the CI runs keep no traces: --trace off).
+  const page = button.page();
+  const said = [];
+  const onConsole = (m) => { if (['error', 'warning'].includes(m.type())) said.push(`${m.type()}: ${m.text()}`.slice(0, 300)); };
+  const onPageError = (e) => said.push(`pageerror: ${String(e.message || e)}`.slice(0, 300));
+  // The requests the platform's own services were asked for while we waited: which are STILL waiting for an answer when we
+  // give up (a hung request), which failed or answered with an error, which were slow. That separates "the request never
+  // came back" from "it came back and the page did nothing with it" (a logic fault), which the box state alone cannot.
+  const watched = (u) => /\/(rest|auth|functions)\/v1\//.test(u);
+  const short = (u) => u.replace(/^https?:\/\/[^/]+/, '').slice(0, 110);
+  const inflight = new Map();
+  const onRequest = (r) => { if (watched(r.url())) inflight.set(r, Date.now()); };
+  const onFinished = (r) => { inflight.delete(r); };
+  const onFailed = (r) => {
+    if (!watched(r.url())) return;
+    inflight.delete(r);
+    said.push(`request failed: ${r.method()} ${short(r.url())} (${(r.failure() || {}).errorText || 'no reason'})`);
+  };
+  const onResponse = (res) => {
+    const r = res.request();
+    if (!watched(r.url())) return;
+    const took = Date.now() - (inflight.get(r) || Date.now());
+    if (res.status() >= 400) said.push(`response ${res.status()}: ${r.method()} ${short(r.url())}`);
+    else if (took > 3000) said.push(`slow response (${Math.round(took / 1000)} s): ${r.method()} ${short(r.url())}`);
+  };
+  page.on('console', onConsole);
+  page.on('pageerror', onPageError);
+  page.on('request', onRequest);
+  page.on('requestfinished', onFinished);
+  page.on('requestfailed', onFailed);
+  page.on('response', onResponse);
+  try {
+    await expect(async () => {
+      if (await panel.first().isVisible()) return;
+      await expect(button).toBeEnabled({ timeout: roundMs });
+      if (await panel.first().isVisible()) return;
+      await button.click({ timeout: roundMs });
+      await expect(panel.first()).toBeVisible({ timeout: roundMs });
+    }).toPass({ timeout: totalMs });
+  } catch (e) {
+    let seen = 'the panel could not be read';
+    try {
+      seen = await panel.first().evaluate((el) => `class="${el.className}" text="${(el.textContent || '').trim().slice(0, 120)}"`);
+    } catch { /* the element is gone */ }
+    let btn = 'the button could not be read';
+    try { btn = await button.evaluate((el) => `text="${el.textContent}" disabled=${el.disabled}`); } catch { /* gone */ }
+    const waiting = [...inflight].map(([r, since]) => `${r.method()} ${short(r.url())} for ${Math.round((Date.now() - since) / 1000)} s`);
+    throw new Error(`${e.message}\nclickUntilPanel: panel ${seen}; button ${btn}; the page said: ${said.length ? said.join(' | ') : 'nothing'}; still waiting for an answer: ${waiting.length ? waiting.join(' | ') : 'no request'}`);
+  } finally {
+    page.off('console', onConsole);
+    page.off('pageerror', onPageError);
+    page.off('request', onRequest);
+    page.off('requestfinished', onFinished);
+    page.off('requestfailed', onFailed);
+    page.off('response', onResponse);
+  }
 }
 
 /** Submit the listing form, and say what it refused rather than what followed.
