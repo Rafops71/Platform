@@ -143,8 +143,8 @@ jobs:
       - name: Typed text is never query syntax
         run: npm run check:filters
       # Proven from GitHub's own timestamps: until 2026-10-25 the site went
-      # live twelve minutes before the checklist finished. The deploy job below
-      # fixes that, and this keeps it fixed - one always() would undo it.
+      # live twelve minutes before the checklist finished. The publishing jobs below
+      # fix that, and this keeps it fixed - one always() would undo it.
       # An acceptance records the hash of the text in terms_versions. If the
       # page's wording drifts from that copy, members sign one text while the
       # record holds another.
@@ -393,7 +393,7 @@ jobs:
       - name: Package the site
         # Reached only when both suites are green. A crossed function means this
         # job never runs and no artifact exists to deploy. The same script the
-        # deploy job below uses, so the artifact is what would be published.
+        # publishing jobs below use, so the artifact is what would be published.
         run: ./scripts/assemble-site.sh dist
       - uses: actions/upload-artifact@v6
         with:
@@ -402,7 +402,7 @@ jobs:
           retention-days: 14
 
   # --------------------------------------------------------------------------
-  # PUBLISH THE SITE - and only here.
+  # PUBLISHING - the gate, and only here.
   #
   # Until 2026-10-25 GitHub Pages published main straight from the branch, on
   # its own, independently of everything above. Proven from GitHub's own check
@@ -410,70 +410,38 @@ jobs:
   # finished 14:55:03. Members had the new version twelve minutes before the
   # gate said whether it worked. A red run would have changed nothing they saw.
   #
-  # This job is now the only way the site is published (Settings > Pages >
-  # Source must be "GitHub Actions" for it to take effect). It cannot run until
-  # every check has passed, because GitHub's documented rule for `needs` is:
+  # The site is published by the two Cloudflare jobs below, and only by them.
+  # (A third job, `deploy`, published a copy to GitHub Pages until it was
+  # switched off; nothing in this repository publishes there
+  # now, and scripts/check-deploy-gate.js fails the build if a deploy-pages
+  # step ever comes back.) Each cannot run until every check has passed,
+  # because GitHub's documented rule for `needs` is:
   #
   #   "If a job fails or is skipped, all jobs that need it are skipped"
   #
-  # unless the job uses always(). THIS JOB MUST NEVER USE always(), or a
-  # status function that ignores failure, in its `if:`. That one word would
+  # unless the job uses always(). THESE JOBS MUST NEVER USE always(), or a
+  # status function that ignores failure, in their `if:`. That one word would
   # turn the gate back into an alarm.
   #
   # Safari is in the list deliberately: it was not in `package`'s, and a
   # change that breaks the iPhone layout is a broken release.
   #
-  # main only. A branch run reaches this job and is skipped, which is the
-  # evidence, on the branch, that the wiring holds.
+  # main only. A branch run reaches these jobs and they are skipped, which is
+  # the evidence, on the branch, that the wiring holds.
   # --------------------------------------------------------------------------
-  deploy:
-    name: Publish the site
-    needs: [database, checklist, safari, package]
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    concurrency:
-      group: pages-deploy
-      cancel-in-progress: false
-    steps:
-      - uses: actions/checkout@v5
-      # Assembled again here, from this run's own commit, rather than handed
-      # down from `package`: a re-run of this job alone then still publishes
-      # exactly the commit that passed, without depending on how GitHub treats
-      # artifacts across re-run attempts - which its documentation does not say.
-      - name: Assemble exactly what the site serves
-        run: ./scripts/assemble-site.sh dist
-      - uses: actions/upload-pages-artifact@v4
-        with:
-          path: dist/
-      - name: Publish
-        id: deployment
-        uses: actions/deploy-pages@v4
-      - name: Say which version is live
-        run: |
-          echo "Published revision ${{ github.sha }} to ${{ steps.deployment.outputs.page_url }}"
-          echo "Check it from anywhere: ${{ steps.deployment.outputs.page_url }}REVISION"
 
   # --------------------------------------------------------------------------
-  # PUBLISH TO CLOUDFLARE PAGES - the same gate, a second destination.
+  # PUBLISH THE APP TO CLOUDFLARE PAGES (app.myplatform.trade).
   #
-  # Migration plan: HANDOFF.md, "Migration to Cloudflare Pages". GitHub Pages
-  # above stays the live site until the checklist has passed on the new
-  # address, so this job ADDS a copy; it replaces nothing.
+  # Migration plan: HANDOFF.md, "Migration to Cloudflare Pages". This is the
+  # only place the app is published.
   #
-  # Same `needs` and same main-only `if:` as `deploy`, and the same rule: no
-  # always() or other status function here, ever. It is NOT a second way round
-  # the gate, because it cannot start until every check has passed.
+  # The same rule as every publishing job (see the block above): no always()
+  # or other status function here, ever. It is NOT a way round the gate,
+  # because it cannot start until every check has passed.
   #
   # A missing secret FAILS this job; it never skips and goes green (the lesson
-  # of send-emails.yml, and a second-opinion finding on PR 42). The failure
-  # touches only this job: `deploy` above publishes to GitHub Pages on its own.
+  # of send-emails.yml, and a second-opinion finding on PR 42).
   # --------------------------------------------------------------------------
   deploy-cloudflare:
     name: Publish to Cloudflare Pages

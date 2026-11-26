@@ -23,7 +23,7 @@ const NAV_TIMEOUT = 20_000;
 /**
  * The site's own root path, from the same address the suite is pointed at
  * (playwright.config.js: E2E_BASE_URL, else http://localhost:8000). '/' on
- * localhost and on Cloudflare, '/Platform/' on GitHub Pages' project site.
+ * localhost and on Cloudflare (a site served from a sub-path would work too).
  */
 const SITE_ROOT = (() => {
   const p = new URL(process.env.E2E_BASE_URL || 'http://localhost:8000').pathname;
@@ -33,7 +33,7 @@ const SITE_ROOT = (() => {
 /**
  * The address of one of the site's own pages, with or without its ".html".
  *
- * GitHub Pages serves app.html at /app.html. Cloudflare Pages answers that
+ * A plain static host serves app.html at /app.html. Cloudflare Pages answers that
  * with a 308 to /app, and index.html to /. A test that waits for the literal
  * ".html" times out there although the member is on the right page. This
  * matches the page either way - and is exactly as strict as the check it

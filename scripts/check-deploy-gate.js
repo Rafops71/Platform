@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 //
-// Fails the build if the deploy job in .github/workflows/ci.yml could publish
+// Fails the build if a publishing job in .github/workflows/ci.yml could publish
 // the site without every check having passed.
 //
 // WHY A SCRIPT, AND NOT A COMMENT
@@ -69,17 +69,17 @@ if (start === -1) {
   }
 }
 }
-for (const job of ['deploy', 'deploy-cloudflare', 'deploy-www']) checkPublishingJob(job);
+for (const job of ['deploy-cloudflare', 'deploy-www']) checkPublishingJob(job);
 
-// Exactly one place may publish. A second deploy-pages step anywhere else in
-// the workflows would be a way round the gate.
+// GitHub Pages no longer publishes anything (the copy was switched off): NO workflow may contain a deploy-pages step. One
+// coming back would be a second, ungated-looking way to publish; the Cloudflare jobs below are the only publishers.
 const wfDir = path.dirname(FILE);
 for (const f of fs.readdirSync(wfDir).filter(n => /\.ya?ml$/.test(n))) {
   const body = fs.readFileSync(path.join(wfDir, f), 'utf8')
     .split('\n').filter(l => !/^\s*#/.test(l)).join('\n');
   const count = (body.match(/actions\/deploy-pages@/g) || []).length;
-  if (f === 'ci.yml' ? count !== 1 : count !== 0) {
-    problems.push(`${f} contains ${count} deploy-pages step(s); only ci.yml's deploy job may publish.`);
+  if (count !== 0) {
+    problems.push(`${f} contains ${count} deploy-pages step(s); GitHub Pages no longer publishes the site (only the Cloudflare jobs do).`);
   }
   const cf = (body.match(/cloudflare\/wrangler-action@/g) || []).length;
   // ci.yml: the app and the front page. demo-pages.yml: the demo, in its own

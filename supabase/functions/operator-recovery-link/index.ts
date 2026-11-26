@@ -35,9 +35,9 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const SITE_RESET_URL = Deno.env.get('SITE_RESET_URL') ??
-  'https://rafops71.github.io/Platform/reset.html';
+  'https://app.myplatform.trade/reset.html';
 
-// The Operator console is served from GitHub Pages, a different origin to
+// The Operator console is served from the app's own address, a different origin to
 // Supabase, so the browser will not send the request at all without these.
 const CORS = {
   'Access-Control-Allow-Origin': '*',

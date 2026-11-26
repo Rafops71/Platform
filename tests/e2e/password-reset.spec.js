@@ -88,11 +88,11 @@ async function tokenFor(email, password) {
  */
 // When the suite is pointed at a deployed address (E2E_BASE_URL), the link must
 // redirect to THAT address's reset.html, or the run proves nothing about it.
-// Locally the default stays the GitHub Pages address, as before.
+// Locally the default is the platform's own address (app.myplatform.trade).
 const LIVE_RESET_URL = process.env.SITE_RESET_URL ||
   (process.env.E2E_BASE_URL
     ? new URL('reset.html', process.env.E2E_BASE_URL.replace(/\/?$/, '/')).href
-    : 'https://rafops71.github.io/Platform/reset.html');
+    : 'https://app.myplatform.trade/reset.html');
 
 /** Follow a recovery link the way a member would, and end up on the copy of
  *  reset.html that this suite is testing, carrying the real session. */

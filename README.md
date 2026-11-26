@@ -13,7 +13,7 @@ deployment only.
 ## Stack
 
 Supabase (Postgres + Auth) · vanilla HTML/CSS/JS (no frameworks, no build step) ·
-GitHub Pages · GitHub Actions · Resend (notification email) · Playwright and a
+Cloudflare Pages · GitHub Actions · Resend (notification email) · Playwright and a
 local embedded Postgres for tests.
 
 ## Setup — do this in order
@@ -109,9 +109,11 @@ platform without being approved.)
 `js/supabase-config.js` holds the Supabase Project URL and the **publishable**
 key only (never the service role key — that stays out of any file in this repo).
 
-### 5. GitHub Pages
+### 5. Publishing
 
-Repo Settings → Pages → Deploy from branch `main`, root. The site is fully static.
+The site is fully static. `.github/workflows/ci.yml` publishes it to Cloudflare Pages (the app: project `platform`; the front
+page: project `platform-www`), only after every check has passed. Nothing is published from the repository's GitHub Pages
+setting. See HANDOFF.md, "Migration to Cloudflare Pages".
 
 ### 6. GitHub Actions secrets
 

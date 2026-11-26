@@ -43,7 +43,11 @@ const cases = [
   ['ci.yml publish job gets always()', edit('ci.yml',
     "    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')\n    runs-on: ubuntu-latest\n    permissions:\n      contents: read\n      deployments: write\n    concurrency:\n      group: cloudflare-deploy\n",
     "    if: always() && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')\n    runs-on: ubuntu-latest\n    permissions:\n      contents: read\n      deployments: write\n    concurrency:\n      group: cloudflare-deploy\n"), false],
-  ['the deploy job stops waiting for Safari', edit('ci.yml', "  deploy:\n    name: Publish the site\n    needs: [database, checklist, safari, package]", "  deploy:\n    name: Publish the site\n    needs: [database, checklist, package]"), false],
+  ['the Cloudflare app job stops waiting for Safari', edit('ci.yml', "  deploy-cloudflare:\n    name: Publish to Cloudflare Pages\n    needs: [database, checklist, safari, package]", "  deploy-cloudflare:\n    name: Publish to Cloudflare Pages\n    needs: [database, checklist, package]"), false],
+  ['a GitHub Pages deploy comes back in ci.yml', (d) => {
+    const p = path.join(d, '.github', 'workflows', 'ci.yml');
+    fs.appendFileSync(p, '\n  deploy:\n    needs: [database, checklist, safari, package]\n    if: github.ref == \'refs/heads/main\'\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/deploy-pages@v4\n');
+  }, false],
   ['the Cloudflare job is made to wait for the nightly stress job', edit('ci.yml', "  deploy-cloudflare:\n    name: Publish to Cloudflare Pages\n    needs: [database, checklist, safari, package]", "  deploy-cloudflare:\n    name: Publish to Cloudflare Pages\n    needs: [database, checklist, stress, safari, package]"), false],
   ['the front-page job is made to wait for the live smoke check', edit('ci.yml', "    name: Publish the front page to Cloudflare Pages\n    needs: [database, checklist, safari, package]", "    name: Publish the front page to Cloudflare Pages\n    needs: [database, checklist, safari, package, smoke]"), false],
   ['demo publish job gets always()', edit('demo-pages.yml', DEMO_IF, DEMO_IF.replace("    if: github", "    if: always() && github")), false],
