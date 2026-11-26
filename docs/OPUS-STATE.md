@@ -24,3 +24,4 @@
 - Rules for supervisor: red acted on within 1h; cause before rerun; migration goes live with its code; merge as soon as green; report to owner in one line on publish.
 - 26 Nov 00:36 overseer: live b2f9368 OK. #150 red: test expects listing ref NOT in activity text, but it is shown -> possible disclosure bug; told supervisor to check the checklist item before touching the test.
 - 26 Nov 02:35 overseer: #150 e77927d red since 00:52 on Item100 (newest 50 + Show more), no push for 1h40 -> nudged supervisor.
+- 26 Nov 04:35 overseer: #150 091f86c red 02:50 (Show more shows Spanish) idle 1h45; nudged. Backup last 25 Nov 13:06 (today's not yet). Live b2f9368.
