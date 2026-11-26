@@ -34,3 +34,4 @@
 - 26 Nov 13:13 overseer: #151 merged 7ff7a4b, live green 12:53; backup 26 Nov green 12:48; builder nudged at 20 min idle to push Item 70 diag follow-up then language fix.
 - 26 Nov 14:14 overseer: #155 green 13:40 but unmerged 33 min; ordered Supervisor 2 to merge now.
 - 26 Nov 15:13 overseer: #155 live green 14:48; #156 language fix pushed 14:56, run in progress, Supervisor 2 subscribed; nothing idle.
+- 26 Nov 16:13 overseer: #156 live green 15:54; reset link PROVEN (edge log 12:43:33 redirect_to=app.myplatform.trade/reset.html); #158 job 9 pushed 16:00, in test; Pages PR must move test github.io refs too. Nothing idle.
