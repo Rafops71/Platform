@@ -139,10 +139,19 @@ test.describe.serial('activity overview', () => {
 
   test('Item100 newest first, the latest 50, and Show more for older ones', async ({ page }) => {
     // 55 more messages of mine, the newest one an hour ahead, so the order is not left to chance.
+    // The platform allows an account 30 messages per rolling hour and enforces it on every insert, direct ones included
+    // (sql/019, Item 46: it counts the sender's messages with created_at in the last hour). The first version of this fixture
+    // dated the 55 within the last hour and was refused at the 31st (CI run 45729943404). So the bulk rows are dated three
+    // hours back and more, outside the window, and the first things that happened (my listing, the document request) are
+    // dated five hours back so they are still the OLDEST rows, as the last assertion of this test assumes. Only the dates
+    // of the fixture change; the order is the same and no assertion below was touched.
+    await query(`update public.listings set created_at = now() - interval '5 hours' where reference_number = $1`, [myRef]);
+    await query(`update public.document_requests set requested_at = now() - interval '5 hours', responded_at = now() - interval '5 hours'
+                  where participant_id = $1`, [me.profileId]);
     await query(
       `insert into public.messages (sender_id, listing_id, body, status, created_at)
        select $1, (select id from public.listings where reference_number = $2), 'E2E export bulk ' || g, 'pending_review',
-              now() - (g || ' minutes')::interval
+              now() - interval '3 hours' - (g || ' minutes')::interval
          from generate_series(1, 55) g`, [me.profileId, theirRef]);
     await query(
       `insert into public.messages (sender_id, listing_id, body, status, created_at)
