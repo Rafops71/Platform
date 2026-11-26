@@ -26,3 +26,4 @@
 - 26 Nov 02:35 overseer: #150 e77927d red since 00:52 on Item100 (newest 50 + Show more), no push for 1h40 -> nudged supervisor.
 - 26 Nov 04:35 overseer: #150 091f86c red 02:50 (Show more shows Spanish) idle 1h45; nudged. Backup last 25 Nov 13:06 (today's not yet). Live b2f9368.
 - 26 Nov 06:35 overseer: #150 c3c2ea0 red 04:59 (4th failure; language not saved back to en: maybe real app bug) -> told supervisor to check app path first, prove before push.
+- 26 Nov 08:35 overseer: #150 eee86d6 green since 07:06, unmerged 1.5h -> told supervisor to merge + watch live, then #152.
