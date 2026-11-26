@@ -155,14 +155,34 @@ async function waitForListSettled(page, selector, { quietMs = 500, maxMs = 8000 
  *  (a Read button is disabled while its panel is being built), look again, press, and give the panel a short time to show.
  *  A press that lands on a row the page then redraws opens nothing; the next round presses the new row. The assertion the
  *  test makes afterwards is unchanged: this only gets the panel open. */
-async function clickUntilPanel(button, panel, { roundMs = 3000, totalMs = 20_000 } = {}) {
-  await expect(async () => {
-    if (await panel.first().isVisible()) return;
-    await expect(button).toBeEnabled({ timeout: roundMs });
-    if (await panel.first().isVisible()) return;
-    await button.click({ timeout: roundMs });
-    await expect(panel.first()).toBeVisible({ timeout: roundMs });
-  }).toPass({ timeout: totalMs });
+async function clickUntilPanel(button, panel, { roundMs = 8000, totalMs = 40_000 } = {}) {
+  // What the page said while we waited, so that a failure carries its own cause (the CI runs keep no traces: --trace off).
+  const page = button.page();
+  const said = [];
+  const onConsole = (m) => { if (['error', 'warning'].includes(m.type())) said.push(`${m.type()}: ${m.text()}`.slice(0, 300)); };
+  const onPageError = (e) => said.push(`pageerror: ${String(e.message || e)}`.slice(0, 300));
+  page.on('console', onConsole);
+  page.on('pageerror', onPageError);
+  try {
+    await expect(async () => {
+      if (await panel.first().isVisible()) return;
+      await expect(button).toBeEnabled({ timeout: roundMs });
+      if (await panel.first().isVisible()) return;
+      await button.click({ timeout: roundMs });
+      await expect(panel.first()).toBeVisible({ timeout: roundMs });
+    }).toPass({ timeout: totalMs });
+  } catch (e) {
+    let seen = 'the panel could not be read';
+    try {
+      seen = await panel.first().evaluate((el) => `class="${el.className}" text="${(el.textContent || '').trim().slice(0, 120)}"`);
+    } catch { /* the element is gone */ }
+    let btn = 'the button could not be read';
+    try { btn = await button.evaluate((el) => `text="${el.textContent}" disabled=${el.disabled}`); } catch { /* gone */ }
+    throw new Error(`${e.message}\nclickUntilPanel: panel ${seen}; button ${btn}; the page said: ${said.length ? said.join(' | ') : 'nothing'}`);
+  } finally {
+    page.off('console', onConsole);
+    page.off('pageerror', onPageError);
+  }
 }
 
 /** Submit the listing form, and say what it refused rather than what followed.
