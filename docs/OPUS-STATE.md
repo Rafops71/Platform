@@ -32,3 +32,4 @@
 - 26 Nov 11:13 overseer: #152 live green (run 45802782200); new no-wait rules sent 11:10 to Supervisor 2 + Builder 3; #151 ordered pushed now; check now hourly.
 - 26 Nov 12:13 overseer: #151 diag run on 2becd0f in progress (Item 70 History flake; worker-cleanup cause ruled out by Builder 3); SITE_RESET_URL saved on live, proof pending next live run; nothing idle >30 min.
 - 26 Nov 13:13 overseer: #151 merged 7ff7a4b, live green 12:53; backup 26 Nov green 12:48; builder nudged at 20 min idle to push Item 70 diag follow-up then language fix.
+- 26 Nov 14:14 overseer: #155 green 13:40 but unmerged 33 min; ordered Supervisor 2 to merge now.
