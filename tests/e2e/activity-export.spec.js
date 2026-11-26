@@ -115,8 +115,15 @@ test.describe.serial('activity overview', () => {
     const text = await openOverview(page);
     expect(text).toContain(theirRef);
     expect(text).toContain('E2E export enquiry of theirs');
-    expect(text).not.toContain(myRef);
+    // What is prohibited is MY data in THEIR overview: my listing as a "Listing posted" row, my message text, my email.
+    // My listing's reference is allowed to appear on THEIR "Message sent" row: that is the listing their own enquiry was
+    // about (my_activity_export, sql/013: a sent message shows the reference of the listing its sender wrote about, and
+    // nothing of the other party). The first version of this test looked for the reference anywhere in the text and failed
+    // on exactly that row (CI run 45724836845); the test before this change looked at the "Listing posted" rows only.
+    const listingRows = await page.locator('#activity-list [data-activity-row]', { hasText: 'Listing posted' }).allInnerTexts();
+    expect(listingRows.join('\n')).not.toContain(myRef);
     expect(text).not.toContain('E2E export enquiry of mine');
+    expect(text).not.toContain(me.email);
   });
 
   test('Item100 the heading is the one line "Activity overview" with nothing under it but the rows', async ({ page }) => {
