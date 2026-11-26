@@ -128,6 +128,7 @@ the suite: this platform's product is controlled disclosure, so proving a thing
 | 98 | The words of the documentation fields never say or imply that a document was verified by the platform, the Operator or anyone else | MUST NOT |
 | 99 | There is no download of a member's activity any more: no button, no link, no code that makes a file | MUST NOT |
 | 100 | The profile screen shows everything the member's activity record holds, newest first, the latest 50, with a Show more button for older ones | does |
+| 101 | The language a member chooses is saved on their profile in order: pressing language buttons quickly leaves the profile on the last choice, so notification emails come in the language last chosen | does |
 
 ## Open questions on this list
 

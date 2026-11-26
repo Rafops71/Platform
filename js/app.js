@@ -105,9 +105,27 @@ function adoptProfileLanguage() {
     if (profileLang !== currentLang()) setLang(profileLang);
   } else if (stored !== profileLang) {
     CURRENT_PROFILE.language = stored;
-    myplatform.from('profiles').update({ language: stored }).eq('id', CURRENT_PROFILE.id)
-      .then(({ error }) => { if (error) console.warn('Could not save language preference:', error.message); });
+    saveLanguageChoice();
   }
+}
+
+/** Save the language the member has chosen to their profile, IN ORDER, last choice wins.
+ *
+ *  Each press used to send its own un-awaited update, so two quick presses (ES then EN) were two independent requests that
+ *  could reach the database in either order, and the profile could end on the OLDER choice while the screen showed the
+ *  newer one (found in CI run 45756301030). Notification emails are composed from profiles.language (sql/008), so the member
+ *  would then receive them in the wrong language. Now every call joins one chain, and each link writes the value
+ *  CURRENT_PROFILE holds WHEN THAT LINK RUNS: a burst of presses is written in order and ends on the last choice, and a
+ *  press that has already been overtaken writes the later value rather than its own. A failure is logged and does not
+ *  break the chain; the next press tries again. */
+let languageWrites = Promise.resolve();
+function saveLanguageChoice() {
+  languageWrites = languageWrites.then(async () => {
+    if (!CURRENT_PROFILE) return;
+    const { error } = await myplatform.from('profiles').update({ language: CURRENT_PROFILE.language }).eq('id', CURRENT_PROFILE.id);
+    if (error) console.warn('Could not save language preference:', error.message);
+  }).catch((e) => console.warn('Could not save language preference:', e && e.message));
+  return languageWrites;
 }
 
 /** Called by i18n.js after the participant switches language. Static text is
@@ -119,12 +137,12 @@ window.onLanguageChange = function (lang) {
   // Persist the choice to the profile as well as localStorage. localStorage
   // only ever reaches this browser, and notification emails are composed in
   // the database (sql/008), which can only read a stored column. Fire and
-  // forget: a failure here must not block the UI from switching, and the next
-  // toggle will try again.
+  // forget as far as the screen is concerned (a failure must not block the UI
+  // from switching, and the next toggle will try again), but the writes
+  // themselves are queued in order: see saveLanguageChoice().
   if (CURRENT_PROFILE && lang && lang !== CURRENT_PROFILE.language) {
     CURRENT_PROFILE.language = lang;
-    myplatform.from('profiles').update({ language: lang }).eq('id', CURRENT_PROFILE.id)
-      .then(({ error }) => { if (error) console.warn('Could not save language preference:', error.message); });
+    saveLanguageChoice();
   }
 
   populateSelect('unit', UNITS, true, unitLabel);
