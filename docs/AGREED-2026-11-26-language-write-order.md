@@ -1,7 +1,7 @@
 # The language a member chooses is saved in order, so the last press wins
 
-**STATUS: DRAFT, NOT YET APPROVED.** Prepared on a branch, no pull request, awaiting the owner's yes or no. Nothing a member
-sees changes: no wording, no layout.
+**STATUS: AGREED.** The owner said yes on 26 Nov 2026 (about 09:00 UTC), relayed through the Overseer session; carried out by
+Builder 3. Nothing a member sees changes: no wording, no layout.
 
 ## The fault (found, not guessed)
 
