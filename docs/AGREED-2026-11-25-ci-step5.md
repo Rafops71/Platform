@@ -75,7 +75,7 @@ request is the grid and pictures chain. The "after" figures are filled in below 
 run.
 
 After: a pull request's run now ends at Safari (the grid, the pictures and stress are gone from it). The measured minutes
-of this change's own pull request run are in its description (pull request 157 or the number it was given), read from GitHub's
+of this change's own pull request run are in its description, read from GitHub's
 job times; they are not repeated here because a number written into this file would need a second commit and a second run.
 The first real nightly run (security-grid.yml, 02:17 UTC) and the first live smoke check (the first push to main after the
 merge) are the proofs that can only come after the merge; the supervisor reads both.
