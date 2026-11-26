@@ -420,7 +420,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: '22'
       - run: npm ci
 
       - name: Bring staging up to this commit's SQL
@@ -564,7 +564,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: '22'
       - run: npm ci
       - name: Cache the Playwright browser download
         uses: actions/cache@v5
