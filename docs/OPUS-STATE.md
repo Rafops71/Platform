@@ -36,3 +36,4 @@
 - 26 Nov 15:13 overseer: #155 live green 14:48; #156 language fix pushed 14:56, run in progress, Supervisor 2 subscribed; nothing idle.
 - 26 Nov 16:13 overseer: #156 live green 15:54; reset link PROVEN (edge log 12:43:33 redirect_to=app.myplatform.trade/reset.html); #158 job 9 pushed 16:00, in test; Pages PR must move test github.io refs too. Nothing idle.
 - 26 Nov 17:13 overseer: #158 live green 16:44 (PR run 17.5 min vs 35-41 before; live smoke passed); #159 Pages switch-off green 17:12, merge due; Builder 3 idle pending owner's yes on demo screenshots (Supervisor 2 rightly challenged the live/ES version).
+- 26 Nov 18:13 overseer: QUEUE DONE. #159 live green 17:38 (no GitHub Pages job; Cloudflare only; reset Items 54/55/57 ticked). Waiting on owner: GitHub Pages settings screenshot + yes/no on demo screenshots. Next roadmap: lock main, Phase 1 decisions. First nightly 02:17 UTC to read tomorrow.
