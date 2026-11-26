@@ -28,3 +28,4 @@
 - 26 Nov 06:35 overseer: #150 c3c2ea0 red 04:59 (4th failure; language not saved back to en: maybe real app bug) -> told supervisor to check app path first, prove before push.
 - 26 Nov 08:35 overseer: #150 eee86d6 green since 07:06, unmerged 1.5h -> told supervisor to merge + watch live, then #152.
 - 26 Nov 10:35 overseer: #150 live 8626787 OK. #152 green 09:58 unmerged -> nudged. Backup: last 25 Nov 13:06; 26 Nov run not yet (normally ~13:00).
+- 26 Nov: T12 DECIDED by owner (button): after an introduction the Operator gets a SILENT COPY of the parties' messages. Not built yet: needs Terms/Privacy wording (owner's choice) + build in the final batch; members must be told in the Terms. Medsted check still open.
