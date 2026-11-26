@@ -23,3 +23,4 @@
 - Then ROADMAP: lock main (screens checked with owner) -> Phase 1 decisions (T12, Medsted, legal/wording list) -> last batch + freeze -> launch readiness -> soft launch 5-10 contacts.
 - Rules for supervisor: red acted on within 1h; cause before rerun; migration goes live with its code; merge as soon as green; report to owner in one line on publish.
 - 26 Nov 00:36 overseer: live b2f9368 OK. #150 red: test expects listing ref NOT in activity text, but it is shown -> possible disclosure bug; told supervisor to check the checklist item before touching the test.
+- 26 Nov 02:35 overseer: #150 e77927d red since 00:52 on Item100 (newest 50 + Show more), no push for 1h40 -> nudged supervisor.
