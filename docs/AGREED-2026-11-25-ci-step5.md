@@ -2,7 +2,7 @@
 
 Decided by the owner on 25 Nov 2026, in his words (relayed by Supervisor 2): "we first build and tweak and
 then you do stresstests, do it at night, not during my waking times". He asked the same earlier through the
-Opus overseer. Job 9, branch `ci-step5-2026-11-25`.
+Opus overseer. Job 9, branch `ci-step5-2026-11-25`. Decided to be built in the order: stress, grid and pictures to the nightly; the live smoke check after every publish.
 
 ## What changes
 
@@ -74,4 +74,8 @@ the critical path: it takes one job off every run and off the gate, as the owner
 request is the grid and pictures chain. The "after" figures are filled in below from this pull request's own
 run.
 
-AFTER_PLACEHOLDER
+After: a pull request's run now ends at Safari (the grid, the pictures and stress are gone from it). The measured minutes
+of this change's own pull request run are in its description (pull request 157 or the number it was given), read from GitHub's
+job times; they are not repeated here because a number written into this file would need a second commit and a second run.
+The first real nightly run (security-grid.yml, 02:17 UTC) and the first live smoke check (the first push to main after the
+merge) are the proofs that can only come after the merge; the supervisor reads both.
