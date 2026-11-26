@@ -419,8 +419,9 @@ back to the Site URL when a redirect is not allow-listed, so the link echoing
 the asked-for address is the proof that both settings took.
 
 (That is the record of what was set on 2026-10-13. The platform's address is
-now `https://app.myplatform.trade/`, and the old GitHub Pages copy at
-rafops71.github.io is switched off; the addresses above are kept as history.)
+now `https://app.myplatform.trade/`, and nothing in this repository publishes
+the old GitHub Pages copy at rafops71.github.io any more (see
+`docs/AGREED-2026-11-26-pages-off.md`); the addresses above are kept as history.)
 
 Leaked-password protection: off, and stays off by the owner's choice
 (2026-10-27). Supabase offers it only on the Pro plan and above (their

@@ -412,7 +412,7 @@ jobs:
   #
   # The site is published by the two Cloudflare jobs below, and only by them.
   # (A third job, `deploy`, published a copy to GitHub Pages until it was
-  # switched off; nothing in this repository publishes there
+  # removed (docs/AGREED-2026-11-26-pages-off.md); nothing in this repository publishes there
   # now, and scripts/check-deploy-gate.js fails the build if a deploy-pages
   # step ever comes back.) Each cannot run until every check has passed,
   # because GitHub's documented rule for `needs` is:

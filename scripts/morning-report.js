@@ -42,7 +42,7 @@ const REPO = process.env.GITHUB_REPOSITORY || 'Rafops71/Platform';
 const TOKEN = process.env.GITHUB_TOKEN || '';
 // The platform's own address (since 2026-10-29): app.myplatform.trade, on
 // Cloudflare Pages, the only place the app is published (the old GitHub Pages
-// copy has been switched off). SITE_URL overrides it.
+// copy is no longer published). SITE_URL overrides it.
 const SITE = (process.env.SITE_URL || 'https://app.myplatform.trade/').replace(/\/?$/, '/');
 // The front page (since 2026-10-29): a separate Cloudflare project. It has no
 // REVISION file, so it is checked by what a visitor sees: it answers, and it
