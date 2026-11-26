@@ -25,3 +25,6 @@ The first 2-worker run failed 3 tests, all one cause: `cleanup()` removed mail, 
 WHOLE `myplatform-e2e-` prefix, so one worker's teardown deleted the other worker's invitations (`createAccount()` then
 failed with "Registration is by invitation only", seen in the Auth log) and its queued mail (Item 86 counted 2, then 0).
 Those three deletes now match this run's own prefix and the addresses of the accounts being swept (orphans included).
+
+### The guard for the exclusive list (supervisor's decision, 23 Nov)
+`npm run check:exclusive` (`scripts/check-exclusive-specs.js`, in `npm run prepush` and in CI's offline checks) fails when a spec that is not in `tests/e2e/exclusive-specs.js` sends a SELECT with count/sum/avg/min/max from a shared table with no WHERE, or when a listed file no longer exists. A spec that is safe beside others despite such a query says so with a `whole-table-ok: <reason>` comment. Limit, said plainly: it sees whole-table aggregates only, not every way an assertion can depend on a neighbour, so the audit above still applies to a new spec. Proof: its self-test (8 cases), and a mutation on the real list (removing `operator-overview.spec.js`) is caught.
