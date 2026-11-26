@@ -21,7 +21,7 @@ const fs = require('fs');
 const path = require('path');
 const { test, expect } = require('@playwright/test');
 const { createAccount, cleanup, assertConfigured } = require('./helpers/fixtures');
-const { signIn, openScreen } = require('./helpers/session');
+const { signIn, openScreen, restoreEnglish } = require('./helpers/session');
 const { query } = require('../../scripts/db');
 
 const ROOT = path.join(__dirname, '..', '..');
@@ -420,6 +420,7 @@ test.describe('the screens', () => {
     await expect(row.locator('[data-translate-btn]')).toHaveText('Traducir');
     await row.locator('[data-translate-btn]').click();
     await expect(row.locator('[data-translation]')).toHaveText('La traducción no está disponible en este momento. Inténtelo de nuevo más tarde.');
+    await restoreEnglish(page, viewer.profileId);   // the Spanish choice is saved on the profile; the viewer signs in again in later tests
   });
 
   test('Item78 the Operator\'s Mailbox: a message can be translated and the translation hidden, and the original is never replaced', async ({ page }) => {

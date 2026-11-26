@@ -168,6 +168,7 @@ window.onLanguageChange = function (lang) {
   if (screen === 'browse') loadBrowseListings();
   if (screen === 'mailbox') loadMailbox();
   if (screen === 'notifications') loadNotifications();
+  if (screen === 'profile') loadMyActivity();
   if (screen === 'help') renderHelp(document.getElementById('help-list'));
   if (screen === 'new-listing' && !EDITING_LISTING_ID) {
     document.getElementById('listing-form-title').textContent = t('form.newListing');
@@ -196,6 +197,7 @@ function showScreen(name) {
   if (name === 'browse') loadBrowseListings();
   if (name === 'mailbox') loadMailbox();
   if (name === 'notifications') loadNotifications();
+  if (name === 'profile') loadMyActivity();
   if (name === 'new-listing' && !EDITING_LISTING_ID) resetListingForm();
 }
 
@@ -826,73 +828,47 @@ async function loadBrowseListings() {
     b.addEventListener('click', () => openContactModal(b.dataset.contact, b.dataset.ref)));
 }
 
-// ------------------------------------------------ ACTIVITY EXPORT ----
+// ------------------------------------------------ ACTIVITY OVERVIEW ----
 //
-// The participant's own record of what they have done here, as a CSV they can
-// open in a spreadsheet. CSV rather than PDF because the point is a file
-// somebody can read, sort and keep - a PDF would need a library, would not sort
-// and would not be any more readable.
+// The participant's own record of what they have done here, ON THE SCREEN (owner, 23 Nov 2026: "the member should be
+// able to see his history on the screen but not a downloadable spreadsheet"). It replaces the old CSV download; there is
+// no file, no button to save one and no code that makes one.
 //
-// The rows come from my_activity_export() (sql/013), which filters on the
-// caller's own profile and takes no argument, so there is no id for this page
-// to get wrong. What the browser does here is formatting and nothing else.
+// The rows come from my_activity_export() (sql/013), which filters on the caller's own profile and takes no argument,
+// so there is no id for this page to get wrong, and which never names a counterparty (checklist Items 35 and 36). What
+// the browser does here is ordering and formatting and nothing else: newest first, the latest 50, "Show more" for older.
+const ACTIVITY_PAGE = 50;
+let MY_ACTIVITY = [];
+let MY_ACTIVITY_SHOWN = 0;
 
-/** One CSV field: quoted always, with embedded quotes doubled.
- *
- *  Quoting everything rather than only what needs it is deliberate - a message
- *  body can contain a comma, a newline, a quote, or all three, and a rule
- *  applied to every field cannot be applied to the wrong one. */
-function csvField(value) {
-  return `"${String(value ?? '').replace(/"/g, '""')}"`;
+function renderMyActivity() {
+  const list = document.getElementById('activity-list');
+  const more = document.getElementById('activity-more-btn');
+  const rows = MY_ACTIVITY.slice(0, MY_ACTIVITY_SHOWN);
+  list.innerHTML = rows.map(r => `
+    <div class="list-row" data-activity-row>
+      <div class="list-row-top">
+        <span class="list-row-title">${escapeHtml(t(`export.cat.${r.category}`))}${r.reference ? ` · ${escapeHtml(r.reference)}` : ''}</span>
+        <span class="list-row-meta">${escapeHtml(formatDateTime(r.occurred_at))}</span>
+      </div>
+      ${r.detail ? `<div class="list-row-meta">${escapeHtml(r.detail)}${r.status ? ` · ${escapeHtml(statusLabel(r.status))}` : ''}</div>` : (r.status ? `<div class="list-row-meta">${escapeHtml(statusLabel(r.status))}</div>` : '')}
+    </div>`).join('');
+  more.classList.toggle('hidden', MY_ACTIVITY_SHOWN >= MY_ACTIVITY.length);
 }
 
-function toCsv(headers, rows) {
-  // A BOM, because the audience opens CSVs in Excel, which otherwise reads
-  // UTF-8 as the local codepage and turns every accented character in a
-  // Spanish message body into mojibake.
-  return '﻿' + [headers, ...rows].map(r => r.map(csvField).join(',')).join('\r\n') + '\r\n';
+async function loadMyActivity() {
+  const fresh = renderToken('app:loadMyActivity');
+  const { data, error } = await myplatform.rpc('my_activity_export');
+  if (!fresh()) return;
+  if (error) { showError(errorMessage(error)); return; }
+  MY_ACTIVITY = (data || []).slice().sort((a, b) => new Date(b.occurred_at) - new Date(a.occurred_at));
+  MY_ACTIVITY_SHOWN = Math.min(ACTIVITY_PAGE, MY_ACTIVITY.length);
+  renderMyActivity();
 }
 
-/** Hand the file to the browser. The link is created, clicked and dropped
- *  rather than left in the page, and the object URL is revoked after, so a
- *  participant exporting twice does not accumulate blobs. */
-function downloadFile(filename, contents, mime = 'text/csv;charset=utf-8') {
-  const url = URL.createObjectURL(new Blob([contents], { type: mime }));
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 0);
-}
-
-async function exportMyActivity() {
-  const button = document.getElementById('export-activity-btn');
-  button.disabled = true;
-  try {
-    const { data, error } = await myplatform.rpc('my_activity_export');
-    if (error) { showError(errorMessage(error)); return; }
-    if (!data || !data.length) { showError(t('export.empty')); return; }
-
-    const headers = [
-      t('export.colDate'), t('export.colCategory'), t('export.colReference'),
-      t('export.colDetail'), t('export.colStatus'),
-    ];
-    const rows = data.map(r => [
-      formatDateTime(r.occurred_at),
-      t(`export.cat.${r.category}`),
-      r.reference || '',
-      r.detail || '',
-      r.status ? statusLabel(r.status) : '',
-    ]);
-
-    const stamp = new Date().toISOString().slice(0, 10);
-    downloadFile(`myplatform-activity-${stamp}.csv`, toCsv(headers, rows));
-    showSuccess(t('export.done'));
-  } finally {
-    button.disabled = false;
-  }
+function showMoreActivity() {
+  MY_ACTIVITY_SHOWN = Math.min(MY_ACTIVITY_SHOWN + ACTIVITY_PAGE, MY_ACTIVITY.length);
+  renderMyActivity();
 }
 
 // ------------------------------------------------- SAVED SEARCHES ----
@@ -1184,7 +1160,7 @@ function wireProfile() {
   document.getElementById('recommend-form').addEventListener('submit', submitRecommendation);
   document.getElementById('email-form').addEventListener('submit', changeEmail);
   document.getElementById('password-form').addEventListener('submit', changePassword);
-  document.getElementById('export-activity-btn').addEventListener('click', exportMyActivity);
+  document.getElementById('activity-more-btn').addEventListener('click', showMoreActivity);
 
   // The Profile select and the header toggle are two views of one setting, so
   // choosing here goes through the same path the toggle uses: setLang fires

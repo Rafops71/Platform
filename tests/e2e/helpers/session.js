@@ -13,6 +13,7 @@
 'use strict';
 
 const { expect } = require('@playwright/test');
+const { query } = require('../../../scripts/db');
 
 // Long enough to absorb a cold Supabase Auth round-trip on a slow connection;
 // short enough that a genuinely stuck test still fails inside the 60s
@@ -118,6 +119,19 @@ async function signOut(page) {
 async function openScreen(page, name) {
   await page.click(`button[data-screen="${name}"]`);
   await expect(page.locator(`#screen-${name}`)).toBeVisible({ timeout: SCREEN_TIMEOUT });
+}
+
+/** Put a signed-in member's language back to English, in the DATABASE, after the page has gone quiet.
+ *  Pressing a language button as a signed-in member also writes profiles.language (js/app.js onLanguageChange: one update
+ *  per press, fire and forget, not awaited and not ordered), and the next page that member signs in on loads in that
+ *  language. A test that presses ES and is followed by another test for the same account would otherwise leave that
+ *  account Spanish (CI run 45743617051: the next test read 'Mostrar más' where it expected 'Show more').
+ *  The first fix pressed EN and polled the profile for 'en'; it failed once (run 45756301030) because two un-awaited
+ *  updates raced and the older one (es) landed last. So nothing here races the page: wait until the page has no request
+ *  in flight (so every update it sent has been answered), then set the row directly. */
+async function restoreEnglish(page, profileId) {
+  await page.waitForLoadState('networkidle');
+  await query(`update public.profiles set language = 'en' where id = $1`, [profileId]);
 }
 
 /** Wait until a list has stopped being redrawn: no change inside `selector` for `quietMs` (at most `maxMs` in all).
@@ -246,6 +260,6 @@ async function pickCommodity(page, name) {
 }
 
 module.exports = {
-  signIn, signOut, openScreen, waitForListSettled, clickUntilPanel, submitListing, pickCommodity, pagePattern,
+  signIn, signOut, openScreen, restoreEnglish, waitForListSettled, clickUntilPanel, submitListing, pickCommodity, pagePattern,
   NAV_TIMEOUT, SCREEN_TIMEOUT,
 };
