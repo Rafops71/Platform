@@ -29,7 +29,7 @@
 
 const { test, expect } = require('@playwright/test');
 const { createAccount, cleanup, assertConfigured } = require('./helpers/fixtures');
-const { signIn, openScreen } = require('./helpers/session');
+const { signIn, openScreen, restoreEnglish } = require('./helpers/session');
 const { query } = require('../../scripts/db');
 
 let member;
@@ -127,6 +127,7 @@ test.describe('on Safari, on an iPhone', () => {
     await page.reload();
     await expect(page.locator('body'), 'the language choice was forgotten after a reload on WebKit')
       .toContainText(/Explorar|Ofertas|Buzón/i, { timeout: 20_000 });
+    await restoreEnglish(page, member.profileId);   // the Spanish choice is saved on the profile; the member signs in again in later tests
   });
 
   test('an enquiry can be written and sent with a thumb', async ({ page }) => {

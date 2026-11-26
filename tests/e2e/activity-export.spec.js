@@ -14,7 +14,7 @@ const fs = require('fs');
 const path = require('path');
 const { test, expect } = require('@playwright/test');
 const { createAccount, cleanup, assertConfigured } = require('./helpers/fixtures');
-const { signIn } = require('./helpers/session');
+const { signIn, restoreEnglish } = require('./helpers/session');
 const { query } = require('../../scripts/db');
 
 let me, other, operator;
@@ -135,6 +135,7 @@ test.describe.serial('activity overview', () => {
     await page.locator('.lang-btn', { hasText: 'ES' }).click();
     await expect(card.locator('h3')).toHaveText('Resumen de actividad');
     await expect(card.locator('#activity-list')).toContainText('Publicación creada');
+    await restoreEnglish(page, me.profileId);   // the Spanish choice is saved on the profile; do not leave it for the next test
   });
 
   test('Item100 newest first, the latest 50, and Show more for older ones', async ({ page }) => {
@@ -145,6 +146,7 @@ test.describe.serial('activity overview', () => {
     // hours back and more, outside the window, and the first things that happened (my listing, the document request) are
     // dated five hours back so they are still the OLDEST rows, as the last assertion of this test assumes. Only the dates
     // of the fixture change; the order is the same and no assertion below was touched.
+    await query(`update public.profiles set language = 'en' where id = $1`, [me.profileId]);   // this test reads English labels whatever ran before it
     await query(`update public.listings set created_at = now() - interval '5 hours' where reference_number = $1`, [myRef]);
     await query(`update public.document_requests set requested_at = now() - interval '5 hours', responded_at = now() - interval '5 hours'
                   where participant_id = $1`, [me.profileId]);

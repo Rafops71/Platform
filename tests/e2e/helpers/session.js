@@ -13,6 +13,7 @@
 'use strict';
 
 const { expect } = require('@playwright/test');
+const { query } = require('../../../scripts/db');
 
 // Long enough to absorb a cold Supabase Auth round-trip on a slow connection;
 // short enough that a genuinely stuck test still fails inside the 60s
@@ -118,6 +119,18 @@ async function signOut(page) {
 async function openScreen(page, name) {
   await page.click(`button[data-screen="${name}"]`);
   await expect(page.locator(`#screen-${name}`)).toBeVisible({ timeout: SCREEN_TIMEOUT });
+}
+
+/** Put a signed-in member's language back to English, and wait until the DATABASE says so.
+ *  Pressing a language button as a signed-in member also writes profiles.language (js/app.js, onLanguageChange, fire and
+ *  forget), and the next page that member signs in on loads in that language. A test that presses ES and is followed by
+ *  another test for the same account would otherwise leave that account Spanish (CI run 45743617051: the next test read
+ *  'Mostrar más' where it expected 'Show more'). Pressing EN is not enough: the save is not awaited by the page, and
+ *  closing the page can cut it off, so the profile row is read until it says 'en'. */
+async function restoreEnglish(page, profileId) {
+  await page.locator('.lang-btn', { hasText: 'EN' }).first().click();
+  await expect.poll(async () => (await query('select language from public.profiles where id = $1', [profileId])).rows[0].language,
+    { timeout: 15_000, message: 'the profile language was not put back to en' }).toBe('en');
 }
 
 /** Wait until a list has stopped being redrawn: no change inside `selector` for `quietMs` (at most `maxMs` in all).
@@ -246,6 +259,6 @@ async function pickCommodity(page, name) {
 }
 
 module.exports = {
-  signIn, signOut, openScreen, waitForListSettled, clickUntilPanel, submitListing, pickCommodity, pagePattern,
+  signIn, signOut, openScreen, restoreEnglish, waitForListSettled, clickUntilPanel, submitListing, pickCommodity, pagePattern,
   NAV_TIMEOUT, SCREEN_TIMEOUT,
 };
