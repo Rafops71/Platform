@@ -135,7 +135,7 @@ test.describe.serial('activity overview', () => {
     await page.locator('.lang-btn', { hasText: 'ES' }).click();
     await expect(card.locator('h3')).toHaveText('Resumen de actividad');
     await expect(card.locator('#activity-list')).toContainText('Publicación creada');
-    await restoreEnglish(page, me.profileId);   // the Spanish choice is saved on the profile; do not leave it for the next test
+    await restoreEnglish(page, me.profileId);   // the Spanish choice is saved on the profile: do not leave it for the next test
   });
 
   test('Item100 newest first, the latest 50, and Show more for older ones', async ({ page }) => {
