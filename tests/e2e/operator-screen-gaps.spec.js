@@ -15,7 +15,7 @@ const fs = require('fs');
 const path = require('path');
 const { test, expect } = require('@playwright/test');
 const { createAccount, cleanup, assertConfigured } = require('./helpers/fixtures');
-const { signIn, openScreen } = require('./helpers/session');
+const { signIn, openScreen, waitForListSettled, clickUntilPanel } = require('./helpers/session');
 const { query } = require('../../scripts/db');
 
 const ROOT = path.join(__dirname, '..', '..');
@@ -124,10 +124,15 @@ test.describe('the screens', () => {
     await stubEcho(page);
     await signIn(page, operator, 'operator.html');
     await openScreen(page, 'matches');
-    const row = page.locator('#matches-list .list-row', { hasText: refSell });
+    // The row is found by the id of the match this test made, not by the listing reference. A pair of listings can have TWO
+    // suggestion rows (A to B and B to A: the database's own trigger makes one, this test's fixture the other, and the
+    // live project showed both on 24 Nov), so a reference alone is not one row. Whichever row is read, the panel it opens
+    // must show both listings in full: that is what is asserted below.
+    const row = page.locator('#matches-list .list-row').filter({ has: page.locator(`[data-read-match="${matchId}"]`) });
     await expect(row).toBeVisible({ timeout: 15_000 });
-    await row.locator('[data-read-match]').click();
+    await waitForListSettled(page, '#matches-list');
     const panel = row.locator('[data-match-read]');
+    await clickUntilPanel(row.locator('[data-read-match]'), panel);
     await expect(panel).toBeVisible();
     await expect(panel.locator(`[data-read-block="${refSell}"]`)).toBeVisible();
     await expect(panel.locator(`[data-read-block="${refBuy}"]`)).toBeVisible();
@@ -163,8 +168,9 @@ test.describe('the screens', () => {
     await openScreen(page, 'deals');
     const row = page.locator(`[data-deal-row="${dealId}"]`);
     await expect(row).toBeVisible({ timeout: 15_000 });
-    await row.locator('[data-read-deal]').click();
+    await waitForListSettled(page, '#deals-list');
     const panel = row.locator('[data-deal-read]');
+    await clickUntilPanel(row.locator('[data-read-deal]'), panel);
     await expect(panel).toBeVisible();
     await expect(panel).toContainText(`Specification / Grade: ${SELL_SPEC}`);
     await expect(panel).toContainText('13,850 USD per Metric tons');
@@ -181,7 +187,8 @@ test.describe('the screens', () => {
     await openScreen(page, 'deals');
     const row = page.locator(`[data-deal-row="${d.rows[0].id}"]`);
     await expect(row).toBeVisible({ timeout: 15_000 });
-    await row.locator('[data-read-deal]').click();
+    await waitForListSettled(page, '#deals-list');
+    await clickUntilPanel(row.locator('[data-read-deal]'), row.locator('[data-deal-read]'));
     await expect(row.locator('[data-read-gone]')).toContainText('SELL-GONE-001');
     await expect(row.locator('[data-translate-btn]')).toHaveCount(0);
   });

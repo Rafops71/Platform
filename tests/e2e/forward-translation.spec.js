@@ -14,7 +14,7 @@
 
 const { test, expect } = require('@playwright/test');
 const { createAccount, cleanup, assertConfigured } = require('./helpers/fixtures');
-const { signIn, openScreen } = require('./helpers/session');
+const { signIn, openScreen, restoreEnglish } = require('./helpers/session');
 const { query } = require('../../scripts/db');
 
 test.describe.configure({ mode: 'serial' });
@@ -104,6 +104,7 @@ test.describe('the forward window', () => {
     await mp.locator('.lang-btn', { hasText: 'ES' }).click();
     await expect(row.locator('[data-forward-translation]')).toHaveText(TRANSLATION);
     await expect(row).toContainText(MSG.shown);
+    await restoreEnglish(mp, owner.profileId);   // the Spanish choice is saved on the profile; the owner signs in again in later tests
     await ctx.close();
   });
 

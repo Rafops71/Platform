@@ -168,7 +168,7 @@ begin
   begin
     insert into public.listings (user_id, type, commodity, incoterm, origin, reference_number,
                                  poster_role, principal_kind, docs_seen, docs_showable, truth_confirmed)
-    values (me, 'sell', 'Held Copper', 'FOB', 'Chile', 'SELL-HOLD-1', 'principal', 'producer', 'yes', 'on_request', true);
+    values (me, 'sell', 'Held Copper', 'FOB', 'Chile', 'SELL-HOLD-1', 'principal', 'producer', 'held', 'on_request', true);
     insert into t19_hold values ('post', 'ACCEPTED');
   exception when others then insert into t19_hold values ('post', sqlerrm); end;
   begin
@@ -198,7 +198,7 @@ select public.accept_terms((select version from public.terms_versions where lang
                            '4 Plaza Mayor', null, 'Santiago', null, 'Chile');
 insert into public.listings (user_id, type, commodity, incoterm, origin, reference_number,
                              poster_role, principal_kind, docs_seen, docs_showable, truth_confirmed)
-select id, 'sell', 'Held Copper', 'FOB', 'Chile', 'SELL-HOLD-2', 'principal', 'producer', 'yes', 'on_request', true
+select id, 'sell', 'Held Copper', 'FOB', 'Chile', 'SELL-HOLD-2', 'principal', 'producer', 'held', 'on_request', true
   from public.profiles where email = 'sign-hold@example.invalid';
 select case when (select count(*) from public.get_public_listings()) > 0 then 'PASS' else 'FAIL' end
   as "T15 once signed, the same member can post and browse";

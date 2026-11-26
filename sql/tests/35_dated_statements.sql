@@ -32,7 +32,7 @@ select public.test_sign_approved();
 set role authenticated; set test.uid='f5f5f5f5-0035-0035-0035-000000000001';
 insert into public.listings (user_id, type, commodity, incoterm, origin, reference_number,
                              poster_role, principal_kind, docs_seen, truth_confirmed)
-select id, 'sell', 'Dated Copper', 'FOB', 'Chile', 'SELL-DATED-1', 'principal', 'producer', 'yes', true
+select id, 'sell', 'Dated Copper', 'FOB', 'Chile', 'SELL-DATED-1', 'principal', 'producer', 'held', true
   from public.profiles where email = 'dated-a@example.invalid';
 reset role; reset test.uid;
 

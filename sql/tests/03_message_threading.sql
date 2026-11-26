@@ -42,7 +42,7 @@ select public.test_sign_approved();
 -- failure. An assertion that disappears is worse than one that fails.
 set role authenticated; set test.uid='bbbbbbbb-0000-0000-0000-000000000001';
 insert into public.listings (user_id, type, commodity, quantity, unit, incoterm, origin, status, reference_number, poster_role, principal_kind, docs_seen, docs_showable, truth_confirmed)
- select id,'sell','Antimony',300,'Metric tons','FOB','Chile','available', public.next_reference('sell'), 'principal','producer','yes','on_request',true
+ select id,'sell','Antimony',300,'Metric tons','FOB','Chile','available', public.next_reference('sell'), 'principal','producer','held','on_request',true
  from public.profiles where email='thowner@example.com';
 reset role; reset test.uid;
 
