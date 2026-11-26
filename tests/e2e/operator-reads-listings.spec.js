@@ -78,11 +78,11 @@ test.describe('parity: what Browse shows and what the Operator can read', () => 
     expect(fn(op, 'readHasWords')).toContain('\\p{L}');
     const html = fn(op, 'listingReadHtml');
     expect((html.match(/translateControlHtml\(\)/g) || []).length, 'one Translate control per listing, not one per field').toBe(1);
-    // It is the LAST thing in the panel: after the free text, after the Poster / Documents line, and after the Posted line
+    // It is the LAST thing in the panel: after the free text, after the Listing member / Documents line, and after the Posted line
     // (owner, 21 Nov).
     expect(html.indexOf("field('notes'")).toBeGreaterThan(-1);
     expect(html.indexOf('data-read-translate')).toBeGreaterThan(html.indexOf("field('notes'"));
-    expect(html.indexOf('data-read-translate')).toBeGreaterThan(html.indexOf('Poster:'));
+    expect(html.indexOf('data-read-translate')).toBeGreaterThan(html.indexOf('Listing member:'));
     expect(html.indexOf('data-read-translate')).toBeGreaterThan(html.indexOf('Posted '));
   });
 });
@@ -103,7 +103,7 @@ test.describe('the screen', () => {
       `insert into public.listings (user_id, type, commodity, quantity, unit, incoterm, origin, status, reference_number,
          specification, price_conditions, currency, price_unit, notes, poster_role, principal_kind, docs_seen, truth_confirmed_at)
        values ($1, 'sell', 'Copper Concentrate', 100, 'Metric tons', 'FOB', 'Peru', 'available', public.next_reference('sell'),
-         $2, '13850', 'USD', 'Metric tons', $3, 'principal', 'producer', 'yes', now())
+         $2, '13850', 'USD', 'Metric tons', $3, 'principal', 'producer', 'held', now())
        returning id, reference_number`, [poster.profileId, SPEC, NOTES]);
     listingId = rows[0].id; refFull = rows[0].reference_number;
     await query(`insert into public.document_checklist (listing_id, doc_type, indicated) values ($1, 'Certificate of Origin', true)`, [listingId]);
@@ -144,7 +144,7 @@ test.describe('the screen', () => {
     await expect(panel).toContainText('Price: 13,850 USD per Metric tons');
     await expect(panel).toContainText(`Notes: ${NOTES}`);
     await expect(panel).toContainText('Documents indicated');
-    await expect(panel).toContainText('Documents seen by poster: Seen by the poster');
+    await expect(panel).toContainText('Supporting documentation: Documentation held and available');
     // Read again closes the panel; nothing was changed in the database.
     await row.locator('[data-read-listing]').click();
     await expect(panel).toHaveCount(0);
@@ -158,12 +158,12 @@ test.describe('the screen', () => {
     // One control for the whole offer, not one per field, and none inside a field.
     await expect(panel.locator('[data-translate-btn]')).toHaveCount(1);
     await expect(panel.locator('[data-read-field] [data-translate-btn]')).toHaveCount(0);
-    // It is at the very bottom: after Notes, after the Poster / Documents line and after the Posted line.
+    // It is at the very bottom: after Notes, after the Listing member / Documents line and after the Posted line.
     const order = await panel.evaluate((el) => {
       const btn = el.querySelector('[data-translate-btn]');
       const notes = el.querySelector('[data-read-field="notes"]');
       const metas = [...el.querySelectorAll('.list-row-meta')];
-      const poster = metas.find((d) => d.innerText.startsWith('Poster:'));
+      const poster = metas.find((d) => d.innerText.startsWith('Listing member:'));
       const posted = metas.find((d) => d.innerText.includes('Posted '));
       const follows = (a, b) => !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
       return { afterNotes: follows(notes, btn), afterPoster: follows(poster, btn), afterPosted: follows(posted, btn) };

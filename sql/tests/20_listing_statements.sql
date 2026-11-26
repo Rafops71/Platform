@@ -68,7 +68,7 @@ begin
   begin
     insert into public.listings (user_id, type, commodity, incoterm, origin, reference_number,
                                  poster_role, principal_kind, docs_seen, docs_showable)
-    values (me, 'sell', 'Stmt Copper', 'FOB', 'Chile', 'SELL-STMT-6', 'principal', 'producer', 'yes', 'on_request');
+    values (me, 'sell', 'Stmt Copper', 'FOB', 'Chile', 'SELL-STMT-6', 'principal', 'producer', 'held', 'on_request');
     insert into t20 values ('no tick', 'ACCEPTED');
   exception when others then insert into t20 values ('no tick', sqlerrm); end;
 end $$;
@@ -79,7 +79,7 @@ insert into public.listings (user_id, type, commodity, incoterm, origin, referen
                              poster_role, principal_kind, broker_via, has_mandate, docs_seen, docs_showable,
                              truth_confirmed, truth_confirmed_at)
 select id, 'sell', 'Stmt Copper', 'FOB', 'Chile', 'SELL-STMT-OK', 'principal', 'trader', 'one_broker', true,
-       'source_says', 'after_agreement', true, '2001-01-01'
+       'not_held', 'after_agreement', true, '2001-01-01'
   from public.profiles where email = 'stmt-member@example.invalid';
 
 insert into public.listings (user_id, type, commodity, incoterm, origin, reference_number,
@@ -208,7 +208,7 @@ begin
   begin
     insert into public.listings (user_id, type, commodity, incoterm, destination, reference_number,
                                  poster_role, principal_kind, docs_seen, docs_showable, truth_confirmed)
-    values (me, 'buy', 'Stmt Copper', 'FOB', 'Chile', 'SELL-STMT-K3', 'principal', 'trader', 'yes', 'on_request', true);
+    values (me, 'buy', 'Stmt Copper', 'FOB', 'Chile', 'SELL-STMT-K3', 'principal', 'trader', 'held', 'on_request', true);
     insert into t20k values ('buy kind', 'ACCEPTED');
   exception when others then insert into t20k values ('buy kind', sqlerrm); end;
 
@@ -222,7 +222,7 @@ begin
   begin
     insert into public.listings (user_id, type, commodity, incoterm, origin, reference_number,
                                  poster_role, principal_kind, docs_seen, docs_showable, truth_confirmed)
-    values (me, 'sell', 'Stmt Copper', 'FOB', 'Chile', 'SELL-STMT-K5', 'principal', 'trader', 'yes', 'on_request', true);
+    values (me, 'sell', 'Stmt Copper', 'FOB', 'Chile', 'SELL-STMT-K5', 'principal', 'trader', 'held', 'on_request', true);
     insert into t20k values ('sell trader', 'ACCEPTED');
   exception when others then insert into t20k values ('sell trader', sqlerrm); end;
 end $$;

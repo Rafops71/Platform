@@ -13,6 +13,7 @@
 'use strict';
 
 const { expect } = require('@playwright/test');
+const { query } = require('../../../scripts/db');
 
 // Long enough to absorb a cold Supabase Auth round-trip on a slow connection;
 // short enough that a genuinely stuck test still fails inside the 60s
@@ -120,6 +121,50 @@ async function openScreen(page, name) {
   await expect(page.locator(`#screen-${name}`)).toBeVisible({ timeout: SCREEN_TIMEOUT });
 }
 
+/** Put a signed-in member's language back to English, in the DATABASE, after the page has gone quiet.
+ *  Pressing a language button as a signed-in member also writes profiles.language (js/app.js onLanguageChange: one update
+ *  per press, fire and forget, not awaited and not ordered), and the next page that member signs in on loads in that
+ *  language. A test that presses ES and is followed by another test for the same account would otherwise leave that
+ *  account Spanish (CI run 45743617051: the next test read 'Mostrar más' where it expected 'Show more').
+ *  The first fix pressed EN and polled the profile for 'en'; it failed once (run 45756301030) because two un-awaited
+ *  updates raced and the older one (es) landed last. So nothing here races the page: wait until the page has no request
+ *  in flight (so every update it sent has been answered), then set the row directly. */
+async function restoreEnglish(page, profileId) {
+  await page.waitForLoadState('networkidle');
+  await query(`update public.profiles set language = 'en' where id = $1`, [profileId]);
+}
+
+/** Wait until a list has stopped being redrawn: no change inside `selector` for `quietMs` (at most `maxMs` in all).
+ *  The Operator lists are drawn by a loader that writes "Loading..." and then the rows; a save draws them again
+ *  (js/operator.js: saveDeal -> loadDeals). A click on a row that is thrown away a moment later does nothing the
+ *  test can see. Used before the first click on a row of such a list. It asserts nothing. */
+async function waitForListSettled(page, selector, { quietMs = 500, maxMs = 8000 } = {}) {
+  await page.evaluate(({ selector, quietMs, maxMs }) => new Promise((resolve) => {
+    const el = document.querySelector(selector);
+    if (!el) return resolve();
+    let quiet = setTimeout(done, quietMs);
+    const cap = setTimeout(done, maxMs);
+    const obs = new MutationObserver(() => { clearTimeout(quiet); quiet = setTimeout(done, quietMs); });
+    obs.observe(el, { childList: true, subtree: true, characterData: true });
+    function done() { obs.disconnect(); clearTimeout(quiet); clearTimeout(cap); resolve(); }
+  }), { selector, quietMs, maxMs });
+}
+
+/** Press a button until the panel it opens is visible. If the panel is already open nothing is pressed (the buttons
+ *  TOGGLE, so a second press would close it). Each round: panel visible -> done; else wait for the button to be enabled
+ *  (a Read button is disabled while its panel is being built), look again, press, and give the panel a short time to show.
+ *  A press that lands on a row the page then redraws opens nothing; the next round presses the new row. The assertion the
+ *  test makes afterwards is unchanged: this only gets the panel open. */
+async function clickUntilPanel(button, panel, { roundMs = 3000, totalMs = 20_000 } = {}) {
+  await expect(async () => {
+    if (await panel.first().isVisible()) return;
+    await expect(button).toBeEnabled({ timeout: roundMs });
+    if (await panel.first().isVisible()) return;
+    await button.click({ timeout: roundMs });
+    await expect(panel.first()).toBeVisible({ timeout: roundMs });
+  }).toPass({ timeout: totalMs });
+}
+
 /** Submit the listing form, and say what it refused rather than what followed.
  *
  *  A refused submit shows an error toast (js/utils.js showToast) which removes
@@ -137,7 +182,13 @@ async function answerListingStatements(page) {
   // A principal on a Sell offer also says Producer or Trader (sql/043).
   if (await page.locator('#kind-row:not(.hidden)').count() && !(await page.inputValue('#principal_kind'))) await page.selectOption('#principal_kind', 'producer');
   // The question is asked on a Sell offer only (a Buy request skips it).
-  if (await page.locator('#docs-seen-row:not(.hidden)').count() && !(await page.inputValue('#docs_seen'))) await page.selectOption('#docs_seen', 'yes');
+  // Which question depends on the role (sql/075): a principal says whether it holds the supporting documentation, a broker
+  // or mandated intermediary whether it has sighted it.
+  if (await page.locator('#docs-seen-row:not(.hidden)').count()) {
+    if (await page.locator('#docs-held-block:not(.hidden)').count()) {
+      if (!(await page.inputValue('#docs_held'))) await page.selectOption('#docs_held', 'held');
+    } else if (!(await page.inputValue('#docs_seen'))) await page.selectOption('#docs_seen', 'yes');
+  }
   await page.check('#truth-confirm');
 }
 
@@ -209,6 +260,6 @@ async function pickCommodity(page, name) {
 }
 
 module.exports = {
-  signIn, signOut, openScreen, submitListing, pickCommodity, pagePattern,
+  signIn, signOut, openScreen, restoreEnglish, waitForListSettled, clickUntilPanel, submitListing, pickCommodity, pagePattern,
   NAV_TIMEOUT, SCREEN_TIMEOUT,
 };
