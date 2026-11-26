@@ -418,6 +418,11 @@ minted through the admin API came back carrying
 back to the Site URL when a redirect is not allow-listed, so the link echoing
 the asked-for address is the proof that both settings took.
 
+(That is the record of what was set on 2026-10-13. The platform's address is
+now `https://app.myplatform.trade/`, and nothing in this repository publishes
+the old GitHub Pages copy at rafops71.github.io any more (see
+`docs/AGREED-2026-11-26-pages-off.md`); the addresses above are kept as history.)
+
 Leaked-password protection: off, and stays off by the owner's choice
 (2026-10-27). Supabase offers it only on the Pro plan and above (their
 password-security page, read that day); this organization is on Free.
@@ -771,8 +776,10 @@ Proven from GitHub's check runs on `556e185`: `deploy` 14:42:43, `Function
 checklist` 14:55:03. Members had each new version twelve minutes before the
 gate decided whether it worked, and a red run changed nothing they saw.
 
-Now `ci.yml` has a `deploy` job that `needs` database, checklist, Safari and
-package (stress was a fifth until 25 Nov 2026; it runs nightly now). GitHub's documented rule - "If a job fails or is skipped,
+Now `ci.yml` has publishing jobs (`deploy-cloudflare`, `deploy-www`; a GitHub
+Pages `deploy` job was a third until that copy was switched off) that `need`
+database, checklist, Safari and package (stress was a fifth until 25 Nov 2026;
+it runs nightly now). GitHub's documented rule - "If a job fails or is skipped,
 all jobs that need it are skipped" - makes it the gate, as long as its `if:`
 never uses always() or another status function. `npm run check:deploy`
 (`scripts/check-deploy-gate.js`) fails the build if that is ever weakened, if a

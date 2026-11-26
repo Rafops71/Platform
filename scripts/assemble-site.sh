@@ -9,7 +9,8 @@
 # main, on its own, whatever CI said: on commit 556e185 the site went live at
 # 14:42:43 and the checklist finished at 14:55:03. The "gate" decided whether
 # an artifact existed, not what members got. ci.yml now publishes the site
-# itself, only after every check passes, and this script decides what that
+# itself (to Cloudflare Pages; the GitHub Pages copy is no longer published),
+# only after every check passes, and this script decides what that
 # publication contains.
 #
 # The old packaging step copied css/, js/ and the pages - and NOT films/,

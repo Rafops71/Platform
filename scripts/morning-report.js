@@ -41,8 +41,8 @@
 const REPO = process.env.GITHUB_REPOSITORY || 'Rafops71/Platform';
 const TOKEN = process.env.GITHUB_TOKEN || '';
 // The platform's own address (since 2026-10-29): app.myplatform.trade, on
-// Cloudflare Pages. GitHub Pages still serves a copy, but it is no longer what
-// members use, so it is not what this report watches. SITE_URL overrides it.
+// Cloudflare Pages, the only place the app is published (the old GitHub Pages
+// copy is no longer published). SITE_URL overrides it.
 const SITE = (process.env.SITE_URL || 'https://app.myplatform.trade/').replace(/\/?$/, '/');
 // The front page (since 2026-10-29): a separate Cloudflare project. It has no
 // REVISION file, so it is checked by what a visitor sees: it answers, and it
@@ -97,7 +97,8 @@ const hhmm = (iso) => (iso || '').slice(11, 16);
  *  Three different failures used to look alike: a network error, an error page
  *  (a 404 or Cloudflare's 522 is HTML, not a revision) and a site that answers
  *  without a revision. The error page was reported as "still on the old branch
- *  publishing, Settings > Pages" - a GitHub Pages sentence that is wrong now.
+ *  publishing, Settings > Pages" - a GitHub Pages sentence that is wrong now
+ *  (nothing publishes there any more).
  *  Each is named for what it is, and none waits for ever (20 s). */
 async function checkLiveSite(site, head, doFetch = fetch) {
   let res;
