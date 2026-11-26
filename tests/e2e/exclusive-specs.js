@@ -26,3 +26,8 @@ module.exports = [
   'browse-at-volume.spec.js',
   'operator-at-volume.spec.js',
 ];
+// A new spec that counts a whole shared table without being listed above fails the build: npm run check:exclusive
+// (scripts/check-exclusive-specs.js, run by npm run prepush and by CI). It looks for a SELECT with count/sum/avg/min/max
+// FROM a shared table and no WHERE; it cannot see an assertion that is whole-table in another way (a list compared with
+// another list), so the audit in docs/AGREED-2026-11-23-ci-speed.md still applies to a new spec. A file that is safe
+// beside others despite such a query says so with a comment "whole-table-ok: <reason>".
